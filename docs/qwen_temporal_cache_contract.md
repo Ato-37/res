@@ -29,6 +29,20 @@
 
 今後の実装では、prefillの位置と継続方針を一緒に記録し、別のモデル入力から残ったdeltaを再利用しない。位置を明示するならcurrent input長に対応する位置だけを渡す。通常生成と再開を切り替える際は、実際にdecoderへ渡った位置・cache長を検査する。batch、padding、beam、複数video、images、static cacheの成立性は今回の小型検証に含まれない。
 
+## v4.49 / v5.17位置ヘルパーの固定CPU比較
+
+[位置geometry結果](../results/qwen_rope_version_geometry_cpu_20261012_01.json)は、公式v4.49.0ソース（103,533 bytes、SHA-256 `076a9b98955abe003ad90f9240372996bbc72d9f24e303346f23b77735106cd7`）からhash照合後に`get_rope_index`だけをAST抽出し、インストール済みv5.17.0の位置ヘルパーと3つの合成gridで比較した。全例CPU、重み・動画・forwardなし。位置列長は36/36/584で、`prefix`は`vision_start`を含み、video placeholderより前の総token数を表す。
+
+| 合成条件 | v4.49対v5.17のvideo temporal差 | 後続textの差 | anchor例（v4.49 → v5.17） |
+|---|---:|---:|---|
+| `[8,4,4]`, prefix 2, suffix 2, 0.75秒 | 28/32位置 | suffix 2/2位置で3軸すべて異なる | video末尾 `[12,3,3] → [2,3,3]`; suffix先頭 `[13,13,13] → [4,4,4]` |
+| `[8,4,4]`, prefix 2, suffix 2, 5秒 | 0/32位置 | suffix 2/2位置で3軸すべて異なる | video末尾 `[72,3,3]`は一致; suffix先頭 `[73,73,73] → [4,4,4]` |
+| `[2,24,46]`, prefix 15, suffix 17, 199.9998016357422秒 | 276/552位置 | suffix 17/17位置で3軸すべて異なる | video末尾 `[414,26,37] → [413,26,37]`; suffix先頭 `[415,415,415] → [38,38,38]` |
+
+ソース上、旧版はfloat32秒間隔に`tokens_per_second`を掛けてから整数座標へ変換し、動画後textを直前の全vision位置の最大値+1から続ける。v5.17は秒間隔を先に`int`へ変換して時間間隔を作り、動画後textを空間gridのcursorで続ける。したがって、時間rowの小数処理とtext cursorの両方が異なる。整数5秒のcontrolではvideo temporal rowが一致しても、後続textの位置は一致しない。
+
+小数時間rowだけを旧版式へ置き換えた候補は、どの固定例でも旧版の全位置tensorを再現しなかった。候補はv5.17の空間rowとtext位置をそのまま保つ定義だからである。この固定比較は実装geometryの観察であり、どちらのtext cursorが意味的に正しいか、モデル回答やQAが変わるかは検証していない。旧head確認の`−0.0756 nat`、95% t CI `[-0.1578,+0.0065]`に因果説明を与えず、位置差から過去の効果やfaithfulnessを主張しない。
+
 ## Ubuntuでの再検証
 
 以下は実行済みの8テストを再検証するCPUコマンド。
