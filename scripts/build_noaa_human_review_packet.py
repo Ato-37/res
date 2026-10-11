@@ -631,6 +631,7 @@ def build_review_packet(data_root=None, packet_name=None, media_preparer=None):
             provenance = prepare_media(group["media_path"], output_path)
             if not output_path.is_file():
                 raise PacketError("silent review copy was not created")
+            output_path.chmod(0o600)
             group["review_video_path"] = output_path.resolve()
             group["media_provenance"] = _validate_media_provenance(
                 group, output_path, provenance)

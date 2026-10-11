@@ -59,3 +59,9 @@ QA gateはcanonicalな3動画群、合計6サンプル・gold・auditの6件join
 現在の旧入力builderを16枚・2FPSの固定合成JPEGで再構成すると、FPS metadataを渡さない経路はprocessorの24FPS fallbackを使用した。明示metadataとの比較で画像tensor・token列・gridは一致し、時間座標1792/2048だけが変化した。このCPU再構成は過去79件で実際に使った座標の証明ではない。[設定を一致させた結果](../results/legacy_video_time_metadata_20261012_02.json)。
 
 固定8条件の精度監査では2条件でPython fractional floorとfloat32の丸め結果が異なった。GPU runnerは今後のforward前に一致を検査し、不一致なら停止する。今回の2つのGPU入力はCPU上で一致を確認したが、GPU結果をこの新guard下で再実行したわけではない。[精度監査](../results/qwen_fractional_precision_20261012_01.json)。旧79件はhash一致する入力manifestで別ID・別path・別byte列を確認したが、独立なsceneや統計的独立性までは証明しない。[入力identity監査](../results/head_confirmation_video_identity_20261012_01.json)。
+
+## ローカル人間レビュー資料
+
+`scripts/build_noaa_human_review_packet.py`で私有dataset内に3本の無音レビュー動画と6問のHTML資料を生成した。映像packet hash、全フレーム時刻、frame数、開始時刻・長さを元動画と比較して保持を確認している。最初に自分の回答を選び、未署名のfirst-pass JSONを保存し、その後に別ファイルのgold参照と比較する。別ファイルは直接読めるため、手続き上の順序であり安全な盲検を保証しない。人間による視聴・妥当性判断もコードでは証明できない。
+
+資料の生成は署名済みattestationを作らず、ゲートを通過させない。資料・動画・QA・署名者情報・ダウンロードJSONはローカル私有領域に保持する。人間が全件を確認して署名した後だけ、`audit_noaa_qa_gate.py --attestation <私有JSON> --require-go`でhashと記録を検証する。
