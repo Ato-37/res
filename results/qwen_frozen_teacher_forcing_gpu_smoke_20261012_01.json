@@ -1,0 +1,171 @@
+{
+  "attention_implementation": "eager",
+  "checkpoint_config_sha256": "77d9ec7321cc572e3579e2c84799c9cadaded63c49ce93b101733349fc330c43",
+  "checkpoint_generation_config_sha256": "0a3aea82869fe29f20dc95ccf3e2bcff380eca1f5ad6447a4a4b37110b08e43e",
+  "checkpoint_processor_config_sha256": "f2058c716eef96ccaed1cc1e2d0c08306b62586d535b28d9d08e691b2fab7ca0",
+  "checkpoint_revision": "cc594898137f460bfe9f0759e9844b3ce807cfb5",
+  "checkpoint_tokenizer_config_sha256": "4abd3520120e266da84c0864fee064d1fb10806f02225911a47253dd38dc5f56",
+  "checkpoint_tokenizer_sha256": "c0382117ea329cdf097041132f6d735924b697924d6f6fc3945713e96ce87539",
+  "comparison": {
+    "frozen_target_score_absolute_difference_nats": 0.0001890049686817056,
+    "generation_vs_wrong_offset_maximum_absolute_raw_logit_difference": 31.3125,
+    "max_per_token_logprob_within_0_02_nats": true,
+    "maximum_absolute_per_token_logprob_difference_nats": 0.00017959029467067066,
+    "maximum_absolute_raw_logit_difference": 1.0,
+    "mean_absolute_raw_logit_difference": 0.1434722609436986,
+    "prediction_logit_rows": [
+      583,
+      584
+    ],
+    "raw_logits_allclose_atol_0_1_rtol_0_01": false,
+    "raw_logits_finite": true,
+    "target_sha256": "6d46d93d937a1c6bc789da3de5f72bb8a2a8d44f47b30ffc408020734946ab0d",
+    "target_token_count": 2,
+    "teacher_correct_vs_wrong_offset_maximum_absolute_per_token_logprob_difference_nats": 23.199175520968478,
+    "wrong_offset_control_discriminates": true,
+    "wrong_offset_prediction_rows": [
+      584,
+      585
+    ]
+  },
+  "completed_model_calls": 3,
+  "compute_dtype": "bfloat16",
+  "cuda_version": "12.8",
+  "effective_frames": 4,
+  "effective_samples": 1,
+  "elapsed_scope": "runner workload from frame extraction through result write; excludes imports and initial preflight",
+  "elapsed_seconds": 9.459041761001572,
+  "failures": 1,
+  "frozen_target_sha256": "6d46d93d937a1c6bc789da3de5f72bb8a2a8d44f47b30ffc408020734946ab0d",
+  "frozen_target_token_count": 2,
+  "gate_failures": [
+    "raw_logits_outside_fixed_tolerance"
+  ],
+  "generation": {
+    "do_sample": false,
+    "eos_token_id": null,
+    "forced_eos_token_id": null,
+    "max_new_tokens": 2,
+    "output_logits": true,
+    "use_cache": true
+  },
+  "generation_trace": {
+    "cache_lengths_after": [
+      584,
+      585
+    ],
+    "calls": 2,
+    "first_generated_token_position": 55,
+    "input_lengths": [
+      584,
+      1
+    ],
+    "native_prefill_positions_match": true,
+    "past_cache_lengths": [
+      0,
+      584
+    ]
+  },
+  "gpu": "NVIDIA GeForce RTX 5070 Ti",
+  "gpu_free_before_gib": 14.6572265625,
+  "gpu_peak_tracking_started_before_model_load": true,
+  "gpu_total_gib": 15.89398193359375,
+  "limitations": [
+    "One licensed NOAA source, four uniform samples, one generic prompt and two greedy output tokens.",
+    "Raw-logit and maximum per-token log-probability tolerances are fixed engineering checks, not efficacy criteria.",
+    "This does not validate answer semantics, claim boundaries, QA, explanation faithfulness, or an intervention.",
+    "Generated text, token IDs, absolute scores, logits, annotations and QA labels are not exported."
+  ],
+  "max_per_token_logprob_tolerance_nats": 0.02,
+  "media_sha256": "13ab1d0e12d9c6b9e776890d123f363c12c572d52d1f58464b57a2e98667f126",
+  "peak_allocated_gib": 6.073658466339111,
+  "position_delta_summary": {
+    "prompt_rope_delta": [
+      [
+        -170
+      ]
+    ],
+    "teacher_rope_delta": [
+      [
+        -172
+      ]
+    ]
+  },
+  "privacy": "Derived metrics only; no local paths, prompt text, generated text, token IDs, logits, absolute target scores or annotations.",
+  "prompt_ids_sha256": "24145443dae43eb82050d90c838d0cfad6b3aac86faf1e70bdbd9dc66eb5a18a",
+  "prompt_policy": "fixed generic video description prompt; prompt text not exported",
+  "prompt_tokens": 584,
+  "purpose": "fixed_native_generation_vs_full_teacher_forcing_engineering_smoke",
+  "quantization": "4-bit",
+  "raw_logit_tolerance_fixed": {
+    "absolute": 0.1,
+    "relative": 0.01
+  },
+  "requested_frames": 4,
+  "requested_model_calls": 3,
+  "requested_samples": 1,
+  "sample_timestamps_seconds": [
+    0.0,
+    99.99990000000001,
+    199.99980000000002,
+    299.9997
+  ],
+  "sampled_fps": 0.010000010000009999,
+  "schema_version": 1,
+  "seed": 20261012,
+  "source_commit": "53181d64f83b90cac4ddad2a9916b3a5340ff3ee",
+  "source_sha256": {
+    "frame_extractor": "c8deb59615bbea9de796771d70de484dfc2218a0b1b900db0be33f3d068a0280",
+    "frame_sha_helper": "a9801b139e4a9a8c590193a3c9fb4b14242463f3728eabf6555652c409464539",
+    "frozen_target_scorer": "db2f61905819fa6bcc435675e7f4d1670099d3f5f611835fbd6a01e5778aedb1",
+    "installed_generation_utils": "bb558d8676be95457126c82a32600dad206c13e4fb96b4f5d114f1f2483d7f62",
+    "installed_processor": "a65cba8047b8d2a381d3634b42ee441322d4e885f02b6e84e6787bc9ba3649af",
+    "installed_qwen_model": "507cb2c383ead0e0e22b16ec9c8af2eb82703843cd5849112715751d990ff15e",
+    "installed_video_processor": "810143b5e06c17ba9ec43962c991e4946bac8ad227d8299a92db3d990edaf1e1",
+    "installed_vision_utils": "f3710ced8ffe735da57d08cf5236cf9d326ff646ed1bdad2e62593a7801adc33",
+    "runner": "1942a125c3e76803461e3cdc02c2b8702b6b28657138d175a5cfa7194f58aa65",
+    "video_time_mapping": "01711ac0f20770530239cf98ffb719c7f9e6f416f8c416aaf48da9543b091089"
+  },
+  "started_utc": "2026-10-11T21:18:22.941186+00:00",
+  "status": "gate_failed",
+  "target_provenance": "raw generation tail; caller provenance not independently verified",
+  "teacher_forced_generated_token_positions": [
+    [
+      55,
+      56
+    ],
+    [
+      55,
+      56
+    ],
+    [
+      55,
+      56
+    ]
+  ],
+  "teacher_forced_native_positions_match_prompt": true,
+  "teacher_forced_trace": {
+    "cache_length": 0,
+    "input_length": 586,
+    "model_calls": 1,
+    "positions_match_at_text_model": true
+  },
+  "teacher_forcing": {
+    "one fresh full-sequence forward": true,
+    "position_ids": "native get_rope_index for prompt plus fixed generated tail",
+    "use_cache": false
+  },
+  "versions": {
+    "bitsandbytes": "0.50.2",
+    "opencv-python-headless": "5.0.0.93",
+    "qwen-vl-utils": "0.0.14",
+    "torch": "2.11.0+cu128",
+    "transformers": "5.17.0"
+  },
+  "video_grid_thw": [
+    2,
+    24,
+    46
+  ],
+  "wrong_offset_control_minimum_max_token_logprob_difference_nats": 1e-06
+}

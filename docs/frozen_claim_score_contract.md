@@ -38,6 +38,14 @@ scorerは機械的な全target sumとmeanをnatsで返す。呼び出し側が�
 
 `build_samples.py`のwhitespace/casefold正規化は、NExT-GQA answer文字列と選択肢の対応を作る用途である。score対象文字列の正規化ではない。新しいclaim scoreでUnicode正規化、strip、句読点除去、空白圧縮をするかは未決であり、正解ラベル照合の規則を流用しない。
 
+## 実動画GPUでの固定target採点経路の検証
+
+[native生成とfull teacher forcingの比較](../results/qwen_frozen_teacher_forcing_gpu_smoke_20261012_01.json)は、使用条件を確認したNOAA動画1件・4フレーム、7B BF16/4bit/eagerで、2個のraw生成tokenを固定した。生成2回とfull teacher forcing1回のforwardは3/3完了したが、raw logitsの事前条件（atol0.1、rtol0.01）は満たさず、結果は`gate_failed`である。最大差1.0、平均絶対差0.14347だった。
+
+固定target各tokenのlog probability差は最大0.00017959 natで、別の事前条件0.02 nat以内だった。sumの差は0.00018900 nat。予測rowは583/584、1つずらしたteacher forcing controlとの最大token-score差は23.1992 natで、位置ずれを区別した。実際の位置row・cache長も検査した。9.459秒、ピーク割当6.074 GiB。固定1入力・2tokenの数値診断であり、母集団の効果・CI・有意差ではない。
+
+この結果を全体の互換性成功とは扱わず、許容差を変更しない。raw logitsの差がcache経路、系列長による計算、その他の数値要因のどれに由来するかは未同定。短い固定targetでのscore一致から、長い説明claimや介入下のscore一致・faithfulnessへ一般化しない。生成文・IDs・logitsを公開していないため、結果JSONだけから数値集計を独立再計算することもできない。
+
 ## 次のscore契約を凍結する前に必要な決定
 
 選択のdigestはtarget ID列のhashと選択indexを結びつけるだけで、渡されたper-token scoreやlogitsの出所・正しさを認証しない。実行runnerの入力・model・score計算と結果manifestを別途確認する。
