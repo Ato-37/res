@@ -46,6 +46,12 @@ scorerは機械的な全target sumとmeanをnatsで返す。呼び出し側が�
 
 この結果を全体の互換性成功とは扱わず、許容差を変更しない。raw logitsの差がcache経路、系列長による計算、その他の数値要因のどれに由来するかは未同定。短い固定targetでのscore一致から、長い説明claimや介入下のscore一致・faithfulnessへ一般化しない。生成文・IDs・logitsを公開していないため、結果JSONだけから数値集計を独立再計算することもできない。
 
+## CaFとの測定対象の違い
+
+[Yeo et al.のCaF論文](https://aclanthology.org/2025.emnlp-main.529.pdf)は、回答と説明について破損した入力span以降の対象token・layerごとの介入効果を作り、その二つの帰属mapを`CaF = 1 − cosine distance`で比較する。出力tokenの効果を平均したmapの一致であり、本資料で検討している「固定したclaimのlog likelihoodが、対応する動画区間への介入に選択的に依存するか」とは測定対象が異なる。論文のNLP/Gemma2での結果を動画の意味対応・説明の真実性の検証とは扱わない。
+
+[公式実装の固定commit](https://github.com/SenticNet/causal-faithfulness/tree/5fe379e0ac066623c60dcaec98536b3981e22dfe)では、静的に確認したpost-hoc説明経路では、promptにモデルの保存済み予測回答を含める。説明は生成tailを特殊tokenを除いてdecodeし、条件に応じて切り詰め、stripして再encodeしたIDsを固定し、元入力とcounterfactual入力で採点する。固定対象は整形後の説明列であり、raw generation tailをそのまま保持する本helperとは異なる。コードのtoken probability集計もsum log probabilityとは異なる。この違いから論文の結果が誤りとは判断しないが、対象列と集計を明記せずにCaFの測定として流用しない。取得した4ファイルでは`average_sequence`の定義が見つからず、その参照を含む経路の実行可能性は未確認である。コードの実行や論文の数値再現は行っていない。確認したsource hashと範囲は[実験ログ](../experiments/2026-10-12_pdca_8h.md)に記録した。
+
 ## 次のscore契約を凍結する前に必要な決定
 
 選択のdigestはtarget ID列のhashと選択indexを結びつけるだけで、渡されたper-token scoreやlogitsの出所・正しさを認証しない。実行runnerの入力・model・score計算と結果manifestを別途確認する。
