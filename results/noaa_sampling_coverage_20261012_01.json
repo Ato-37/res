@@ -1,0 +1,297 @@
+{
+  "code_sha256": {
+    "audit_script": "1a5dd8206c0abbe53b0d8f3e944df33ee2a158e4a60e0d4cac6ce9b61b13c676",
+    "canonical_group_manifest": "9e229286306fe1f9481a3b357ffadaca4cf042b147ef606d740b14e4c7f237be",
+    "frame_index_helper": "01711ac0f20770530239cf98ffb719c7f9e6f416f8c416aaf48da9543b091089"
+  },
+  "created_at_utc": "2026-10-11T17:47:11.006014+00:00",
+  "endpoint_span_pair_size_frames": 2,
+  "failure_reasons": {},
+  "groups": [
+    {
+      "failures": [],
+      "group_id": "dive03",
+      "media_sha256": "13ab1d0e12d9c6b9e776890d123f363c12c572d52d1f58464b57a2e98667f126",
+      "nominal_fps": 29.97002997002997,
+      "samples_sha256": "9f627d03dda142cef723535bbbd5b0cccda0bdc3b7eb764c6cdab6077abb39c5",
+      "source_duration_seconds": 300.0330666666667,
+      "source_frame_count": 8992,
+      "windows": {
+        "nonfinite_window_bounds_failures": 0,
+        "sampling": {
+          "4": {
+            "per_question_window": {
+              "frames_inside_windows": 12,
+              "max_nearest_sample_gap_seconds": 0.0,
+              "positive_paired_endpoint_span_intersections": 6,
+              "span_intersects_but_zero_actual_sample_points_windows": 0,
+              "windows_with_any_positive_paired_endpoint_span_overlap": 3,
+              "windows_with_any_sampled_point": 3,
+              "windows_with_at_least_two_sampled_frames": 3,
+              "windows_with_fewer_than_two_sampled_frames": 0,
+              "windows_with_nearest_sample_gap": 3,
+              "windows_with_zero_sampled_frames": 0
+            },
+            "whole_video": {
+              "frames_inside_windows": 1,
+              "max_nearest_sample_gap_seconds": 42.00020000000001,
+              "positive_paired_endpoint_span_intersections": 3,
+              "span_intersects_but_zero_actual_sample_points_windows": 2,
+              "windows_with_any_positive_paired_endpoint_span_overlap": 3,
+              "windows_with_any_sampled_point": 1,
+              "windows_with_at_least_two_sampled_frames": 0,
+              "windows_with_fewer_than_two_sampled_frames": 3,
+              "windows_with_nearest_sample_gap": 3,
+              "windows_with_zero_sampled_frames": 2
+            }
+          },
+          "8": {
+            "per_question_window": {
+              "frames_inside_windows": 24,
+              "max_nearest_sample_gap_seconds": 0.0,
+              "positive_paired_endpoint_span_intersections": 12,
+              "span_intersects_but_zero_actual_sample_points_windows": 0,
+              "windows_with_any_positive_paired_endpoint_span_overlap": 3,
+              "windows_with_any_sampled_point": 3,
+              "windows_with_at_least_two_sampled_frames": 3,
+              "windows_with_fewer_than_two_sampled_frames": 0,
+              "windows_with_nearest_sample_gap": 3,
+              "windows_with_zero_sampled_frames": 0
+            },
+            "whole_video": {
+              "frames_inside_windows": 1,
+              "max_nearest_sample_gap_seconds": 10.090166666666676,
+              "positive_paired_endpoint_span_intersections": 2,
+              "span_intersects_but_zero_actual_sample_points_windows": 1,
+              "windows_with_any_positive_paired_endpoint_span_overlap": 2,
+              "windows_with_any_sampled_point": 1,
+              "windows_with_at_least_two_sampled_frames": 0,
+              "windows_with_fewer_than_two_sampled_frames": 3,
+              "windows_with_nearest_sample_gap": 3,
+              "windows_with_zero_sampled_frames": 2
+            }
+          }
+        },
+        "window_bounds_failures": 0,
+        "windows_requested": 3,
+        "windows_valid": 3,
+        "windows_without_source_frame_presentation_timestamps": 0
+      }
+    },
+    {
+      "failures": [],
+      "group_id": "dive04",
+      "media_sha256": "0d68c44118067f640fa41b30c482170359d9846f597d73c6e3d573fe0c37fb03",
+      "nominal_fps": 29.97002997002997,
+      "samples_sha256": "55759c9473efeabcbe5bd2fd8b4cf25ae7809dbbebbffe7852e77fccb3375a13",
+      "source_duration_seconds": 300.0330666666667,
+      "source_frame_count": 8992,
+      "windows": {
+        "nonfinite_window_bounds_failures": 0,
+        "sampling": {
+          "4": {
+            "per_question_window": {
+              "frames_inside_windows": 4,
+              "max_nearest_sample_gap_seconds": 0.0,
+              "positive_paired_endpoint_span_intersections": 2,
+              "span_intersects_but_zero_actual_sample_points_windows": 0,
+              "windows_with_any_positive_paired_endpoint_span_overlap": 1,
+              "windows_with_any_sampled_point": 1,
+              "windows_with_at_least_two_sampled_frames": 1,
+              "windows_with_fewer_than_two_sampled_frames": 0,
+              "windows_with_nearest_sample_gap": 1,
+              "windows_with_zero_sampled_frames": 0
+            },
+            "whole_video": {
+              "frames_inside_windows": 0,
+              "max_nearest_sample_gap_seconds": 12.000100000000003,
+              "positive_paired_endpoint_span_intersections": 0,
+              "span_intersects_but_zero_actual_sample_points_windows": 0,
+              "windows_with_any_positive_paired_endpoint_span_overlap": 0,
+              "windows_with_any_sampled_point": 0,
+              "windows_with_at_least_two_sampled_frames": 0,
+              "windows_with_fewer_than_two_sampled_frames": 1,
+              "windows_with_nearest_sample_gap": 1,
+              "windows_with_zero_sampled_frames": 1
+            }
+          },
+          "8": {
+            "per_question_window": {
+              "frames_inside_windows": 8,
+              "max_nearest_sample_gap_seconds": 0.0,
+              "positive_paired_endpoint_span_intersections": 4,
+              "span_intersects_but_zero_actual_sample_points_windows": 0,
+              "windows_with_any_positive_paired_endpoint_span_overlap": 1,
+              "windows_with_any_sampled_point": 1,
+              "windows_with_at_least_two_sampled_frames": 1,
+              "windows_with_fewer_than_two_sampled_frames": 0,
+              "windows_with_nearest_sample_gap": 1,
+              "windows_with_zero_sampled_frames": 0
+            },
+            "whole_video": {
+              "frames_inside_windows": 1,
+              "max_nearest_sample_gap_seconds": 0.0,
+              "positive_paired_endpoint_span_intersections": 1,
+              "span_intersects_but_zero_actual_sample_points_windows": 0,
+              "windows_with_any_positive_paired_endpoint_span_overlap": 1,
+              "windows_with_any_sampled_point": 1,
+              "windows_with_at_least_two_sampled_frames": 0,
+              "windows_with_fewer_than_two_sampled_frames": 1,
+              "windows_with_nearest_sample_gap": 1,
+              "windows_with_zero_sampled_frames": 0
+            }
+          }
+        },
+        "window_bounds_failures": 0,
+        "windows_requested": 1,
+        "windows_valid": 1,
+        "windows_without_source_frame_presentation_timestamps": 0
+      }
+    },
+    {
+      "failures": [],
+      "group_id": "dive09",
+      "media_sha256": "59779cb92fd3bd0a66c2b4f5ef92e6915f32c80a9105d035c95a060559164676",
+      "nominal_fps": 29.97002997002997,
+      "samples_sha256": "a0ffc81448d39f3125ce97ac1fcbb947cf451a32d8f6d8bf421955f5559e4ee8",
+      "source_duration_seconds": 300.0330666666667,
+      "source_frame_count": 8992,
+      "windows": {
+        "nonfinite_window_bounds_failures": 0,
+        "sampling": {
+          "4": {
+            "per_question_window": {
+              "frames_inside_windows": 8,
+              "max_nearest_sample_gap_seconds": 0.0,
+              "positive_paired_endpoint_span_intersections": 4,
+              "span_intersects_but_zero_actual_sample_points_windows": 0,
+              "windows_with_any_positive_paired_endpoint_span_overlap": 2,
+              "windows_with_any_sampled_point": 2,
+              "windows_with_at_least_two_sampled_frames": 2,
+              "windows_with_fewer_than_two_sampled_frames": 0,
+              "windows_with_nearest_sample_gap": 2,
+              "windows_with_zero_sampled_frames": 0
+            },
+            "whole_video": {
+              "frames_inside_windows": 0,
+              "max_nearest_sample_gap_seconds": 25.000100000000003,
+              "positive_paired_endpoint_span_intersections": 1,
+              "span_intersects_but_zero_actual_sample_points_windows": 1,
+              "windows_with_any_positive_paired_endpoint_span_overlap": 1,
+              "windows_with_any_sampled_point": 0,
+              "windows_with_at_least_two_sampled_frames": 0,
+              "windows_with_fewer_than_two_sampled_frames": 2,
+              "windows_with_nearest_sample_gap": 2,
+              "windows_with_zero_sampled_frames": 2
+            }
+          },
+          "8": {
+            "per_question_window": {
+              "frames_inside_windows": 16,
+              "max_nearest_sample_gap_seconds": 0.0,
+              "positive_paired_endpoint_span_intersections": 8,
+              "span_intersects_but_zero_actual_sample_points_windows": 0,
+              "windows_with_any_positive_paired_endpoint_span_overlap": 2,
+              "windows_with_any_sampled_point": 2,
+              "windows_with_at_least_two_sampled_frames": 2,
+              "windows_with_fewer_than_two_sampled_frames": 0,
+              "windows_with_nearest_sample_gap": 2,
+              "windows_with_zero_sampled_frames": 0
+            },
+            "whole_video": {
+              "frames_inside_windows": 1,
+              "max_nearest_sample_gap_seconds": 0.7189666666666739,
+              "positive_paired_endpoint_span_intersections": 1,
+              "span_intersects_but_zero_actual_sample_points_windows": 0,
+              "windows_with_any_positive_paired_endpoint_span_overlap": 1,
+              "windows_with_any_sampled_point": 1,
+              "windows_with_at_least_two_sampled_frames": 0,
+              "windows_with_fewer_than_two_sampled_frames": 2,
+              "windows_with_nearest_sample_gap": 2,
+              "windows_with_zero_sampled_frames": 1
+            }
+          }
+        },
+        "window_bounds_failures": 0,
+        "windows_requested": 2,
+        "windows_valid": 2,
+        "windows_without_source_frame_presentation_timestamps": 0
+      }
+    }
+  ],
+  "human_qa_attestation_status": "pending; this audit does not satisfy or alter that gate",
+  "metadata_method": "OpenCV VideoCapture CAP_PROP_FRAME_COUNT and CAP_PROP_FPS; nominal constant-rate geometry",
+  "nonfinite_window_bounds_failures": 0,
+  "opencv_version": "5.0.0",
+  "privacy": "No question text, choices, answers, qids, local paths, or people are emitted.",
+  "purpose": "noaa_sampling_coverage_geometry_audit",
+  "requested_sample_counts": [
+    4,
+    8
+  ],
+  "sampling_counts": {
+    "4": {
+      "per_question_window": {
+        "frames_inside_windows": 24,
+        "max_nearest_sample_gap_seconds": 0.0,
+        "positive_paired_endpoint_span_intersections": 12,
+        "span_intersects_but_zero_actual_sample_points_windows": 0,
+        "windows_with_any_positive_paired_endpoint_span_overlap": 6,
+        "windows_with_any_sampled_point": 6,
+        "windows_with_at_least_two_sampled_frames": 6,
+        "windows_with_fewer_than_two_sampled_frames": 0,
+        "windows_with_nearest_sample_gap": 6,
+        "windows_with_zero_sampled_frames": 0
+      },
+      "whole_video": {
+        "frames_inside_windows": 1,
+        "max_nearest_sample_gap_seconds": 42.00020000000001,
+        "positive_paired_endpoint_span_intersections": 4,
+        "span_intersects_but_zero_actual_sample_points_windows": 3,
+        "windows_with_any_positive_paired_endpoint_span_overlap": 4,
+        "windows_with_any_sampled_point": 1,
+        "windows_with_at_least_two_sampled_frames": 0,
+        "windows_with_fewer_than_two_sampled_frames": 6,
+        "windows_with_nearest_sample_gap": 6,
+        "windows_with_zero_sampled_frames": 5
+      }
+    },
+    "8": {
+      "per_question_window": {
+        "frames_inside_windows": 48,
+        "max_nearest_sample_gap_seconds": 0.0,
+        "positive_paired_endpoint_span_intersections": 24,
+        "span_intersects_but_zero_actual_sample_points_windows": 0,
+        "windows_with_any_positive_paired_endpoint_span_overlap": 6,
+        "windows_with_any_sampled_point": 6,
+        "windows_with_at_least_two_sampled_frames": 6,
+        "windows_with_fewer_than_two_sampled_frames": 0,
+        "windows_with_nearest_sample_gap": 6,
+        "windows_with_zero_sampled_frames": 0
+      },
+      "whole_video": {
+        "frames_inside_windows": 3,
+        "max_nearest_sample_gap_seconds": 10.090166666666676,
+        "positive_paired_endpoint_span_intersections": 4,
+        "span_intersects_but_zero_actual_sample_points_windows": 1,
+        "windows_with_any_positive_paired_endpoint_span_overlap": 4,
+        "windows_with_any_sampled_point": 3,
+        "windows_with_at_least_two_sampled_frames": 0,
+        "windows_with_fewer_than_two_sampled_frames": 6,
+        "windows_with_nearest_sample_gap": 6,
+        "windows_with_zero_sampled_frames": 3
+      }
+    }
+  },
+  "schema_version": 1,
+  "scope_limit": "Counts are geometric sample/window intersections only; they do not establish claim fit, evidence validity, QA accuracy, efficacy, or faithfulness.",
+  "source_commit": "3c4880c1902a6ef21a327c42d0e8e0557fd6df8d",
+  "source_groups_requested": 3,
+  "source_groups_valid": 3,
+  "status": "complete",
+  "window_bounds_failures": 0,
+  "windows_expected": 6,
+  "windows_requested": 6,
+  "windows_valid": 6,
+  "windows_without_source_frame_presentation_timestamps": 0
+}
