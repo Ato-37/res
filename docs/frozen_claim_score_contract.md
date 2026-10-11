@@ -28,6 +28,8 @@
 
 [`frozen_teacher_forced_score.py`](../scripts/frozen_teacher_forced_score.py)は単一のraw sequenceと呼び出し側のprompt長からtarget tailを凍結する。`caller_provenance_unverified=True`が明示され、target hashは受け取ったIDsの一貫性を確認するだけで、実際に指定model/promptから生成されたことやtokenizer/model revisionを認証しない。採点はbatch 1、paddingなし、長さが`P + L`のfull-sequence logitsだけを受け付け、target ID `i`をrow `P − 1 + i`で採点する。cache-sliced logits、beam/multisequence、別のoffset規則はunsupportedである。
 
+現行のforward長は`P + L`、採点rowは`P − 1`から`P + L − 2`で、最後の出力rowは採点しない。因果的な厳密算術では`P + L − 1`個の入力で必要なrowを得られるが、これは異なる系列長での実行方針になる。固定GPU診断では長さ585と586で同じrow584のtoken log probabilityが0.0077603 nat異なった。短い方・生成scoreに近い方を結果から選んで現行policyへ代入しない。将来変更する場合はforward長・prefix scheduleを別versionの事前protocolで固定する。
+
 scorerは機械的な全target sumとmeanをnatsで返す。呼び出し側が単一EOS IDを与え、最後のtarget IDがそれと等しい場合だけ`terminal_seen`となる。全target scoreはそのterminalを含み、content scoreは末尾terminalを除く。EOS IDや終了設定の出所は検証せず、multi-EOS設定も扱わない。EOSがないtailは`termination_unverified`とされ、生成が自然に終了したと認証するものではない。
 
 [`frozen_target_token_selection.py`](../scripts/frozen_target_token_selection.py)は同じ凍結targetに対して、呼び出し側が指定した0-based・target-relative indexだけを集計する。selection hashはtarget hashとindex列に結び付くが、意味上どのtokenがclaimに属するか、JSON wrapper/EOSを含むか、選択者の判断が正しいかは検証しない。`semantic_selection_verified=False`であり、caller provenanceも未検証のままである。
