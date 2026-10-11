@@ -1,0 +1,66 @@
+{
+  "annotation_semantics": "Start/End timestamps are preserved as point anchors when equal; this audit does not determine semantic support for a model claim.",
+  "declared_source_url": "https://oer.hpc.msstate.edu/okeanos/ex2503/Eventlogs/EX2503_DIVE03_ANNOTATIONS.csv",
+  "declared_url_scope": "caller-supplied provenance references; this parser hashes the local input bytes but does not fetch URLs or verify that they supplied those bytes",
+  "declared_video_record_url": "https://www.ncei.noaa.gov/metadata/granule/geoportal/rest/metadata/item/EX2503_DIVE03_20250413T192459Z_ROVHD/html",
+  "export_header_columns": 114,
+  "export_header_sha256": "80499ac6340b8690d9430942992492577fb11b2544dae6e13977f1c12a0244b3",
+  "generated_at_utc": "2026-10-11T18:47:41.077156+00:00",
+  "positive_duration_records": 0,
+  "privacy": {
+    "absolute_input_path_emitted": false,
+    "annotation_text_or_identifiers_emitted": false,
+    "person_names_or_emails_emitted": false,
+    "row_values_emitted": false,
+    "taxonomy_labels_emitted": false
+  },
+  "purpose": "noaa_public_annotation_csv_structure_and_time_audit",
+  "python_version": "3.12.14",
+  "record_count": 62,
+  "reversed_interval_records": 0,
+  "review_flag_counts": {
+    "blank": 0,
+    "false": 62,
+    "other": 0,
+    "true": 0
+  },
+  "review_flag_semantics": "Counts classify the export's To Be Reviewed field only; they do not certify annotation quality-control completion.",
+  "runner_sha256": "cd6110e6379dd381fbf2cc0c35d7973d45f10a3c940d33afee7e348b8892555e",
+  "schema_version": 1,
+  "segment": {
+    "end_utc_exclusive": "2025-04-13T19:29:59Z",
+    "membership_rule": "UTC point anchors in [segment_start, segment_end)",
+    "point_anchors_at_exclusive_end": 0,
+    "point_anchors_in_segment": 1,
+    "positive_duration_rows_overlapping_segment": 0,
+    "start_utc": "2025-04-13T19:24:59Z"
+  },
+  "source_bytes": 45011,
+  "source_commit": "4889c33e41cb31014625beee51933e53e27b7d6c",
+  "source_sha256": "b6943e34560ff2f72f495dfabc628106a28dd567797b69e6a29af4bef128098c",
+  "start_end_timestamp_valid_records": 62,
+  "start_equals_end_point_records": 62,
+  "status": "complete",
+  "taxonomy_populated_record_counts": {
+    "Biota": 32,
+    "Class": 32,
+    "Family": 29,
+    "Genus": 22,
+    "Geoform": 0,
+    "Geoform Type": 0,
+    "Kingdom": 32,
+    "Order": 30,
+    "Phylum": 32,
+    "Species": 1,
+    "Substrate Class": 0,
+    "Taxon": 32,
+    "Taxon Common Names": 3,
+    "Taxon Path": 32,
+    "Taxonomy": 32,
+    "Water Column Layer": 0
+  },
+  "validated_timestamp_fields": [
+    "Start Date",
+    "End Date"
+  ]
+}
