@@ -49,7 +49,7 @@ motivation, scope, and model choices. Consult the latest relevant entry under
   `/dev/dxg` and reported GPU access blocked, while an individually elevated
   check in the same WSL checkout saw the RTX 5070 Ti and CUDA-enabled `.venv`.
   This is a Codex sandbox visibility boundary, not evidence of a WSL driver
-  failure. See `experiments/2026-10-10_round53_wsl_gpu_visibility_and_windows_feasibility.md`.
+  failure.
 
 ## Multi-agent research and independent audit (user instruction, 2026-10-09)
 
@@ -317,6 +317,6 @@ resume head/layer/alpha search. The CLEVRER matched-pair feasibility branch is c
 only 158/12,974 distinct-program pairs shared operator traces and only 12/158 had
 question-token edit distance 2–3; these counts do not establish semantic validity.
 
-Earlier grounding/claim-fit counts remain
-geometric/proxy audits only, not efficacy results. Ubuntu's RTX 5070 Ti, `.venv`, and
-pinned checkpoint remain as above; check runtime availability before each run.
+Earlier grounding/claim-fit counts remain geometric/proxy audits only, not efficacy
+results. Ubuntu's RTX 5070 Ti, `.venv`, and pinned checkpoint remain as above; check
+runtime availability before each run.
