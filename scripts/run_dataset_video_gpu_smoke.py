@@ -123,7 +123,7 @@ def main():
             'peak_allocated_gib':torch.cuda.max_memory_allocated()/1024**3,
             'forward_seconds':time.monotonic()-forward_started,'elapsed_seconds':time.monotonic()-timer,
             'gpu':torch.cuda.get_device_name(0),'gpu_free_before_gib':free_bytes/1024**3,'gpu_total_gib':total_bytes/1024**3,
-            'versions':{name:importlib.metadata.version(name) for name in ['torch','transformers','bitsandbytes','qwen-vl-utils','opencv-python']},
+            'versions':{name:importlib.metadata.version(name) for name in ['torch','transformers','bitsandbytes','qwen-vl-utils','opencv-python-headless']},
             'cuda_version':torch.version.cuda,
             'limitations':['One video, sparse frames, one forward, no generation or answer accuracy.',
                 'Chunk ranges represent coarse sampled-frame spans, not validated evidence intervals.',
