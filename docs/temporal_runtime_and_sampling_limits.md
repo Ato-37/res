@@ -53,3 +53,9 @@ QA gateはcanonicalな3動画群、合計6サンプル・gold・auditの6件join
 3. faithfulnessを問う別プロトコルでは、モデル説明を検証可能なイベントclaimへ分解する規則、人手で独立に確認したclaim–時間区間、対応する動画内controlの意味妥当性、primary score・動画分割・除外・停止条件を、結果を見る前に固定する。単純な時間ずらしやmaskを意味的counterfactualと呼ばない。十分な独立動画holdoutを確保できない場合は、探索的feasibilityに限定する。
 
 今回の結果は新しいhead/layer/dose探索の根拠ではない。既報のhead確認は、その固定estimandについて平均選択的margin差`−0.0756 nat`、95% t CI `[-0.1578, +0.0065]`で、`+0.25 nat`実質基準に届かなかった結果として維持する。[確認結果](../experiments/2026-10-08_head_faithfulness_confirmation.md)。保存結果はTransformers `5.17.0`を記録しているが、各例へ実際に渡った全position-ID列やモデルコードsource hashは保存していない。今回の時刻位置検査から過去効果を再解釈・上書きしない。
+
+## CPU再構成で分離した追加の限界
+
+現在の旧入力builderを16枚・2FPSの固定合成JPEGで再構成すると、FPS metadataを渡さない経路はprocessorの24FPS fallbackを使用した。明示metadataとの比較で画像tensor・token列・gridは一致し、時間座標1792/2048だけが変化した。このCPU再構成は過去79件で実際に使った座標の証明ではない。[設定を一致させた結果](../results/legacy_video_time_metadata_20261012_02.json)。
+
+固定8条件の精度監査では2条件でPython fractional floorとfloat32の丸め結果が異なった。GPU runnerは今後のforward前に一致を検査し、不一致なら停止する。今回の2つのGPU入力はCPU上で一致を確認したが、GPU結果をこの新guard下で再実行したわけではない。[精度監査](../results/qwen_fractional_precision_20261012_01.json)。旧79件はhash一致する入力manifestで別ID・別path・別byte列を確認したが、独立なsceneや統計的独立性までは証明しない。[入力identity監査](../results/head_confirmation_video_identity_20261012_01.json)。

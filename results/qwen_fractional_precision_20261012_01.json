@@ -1,0 +1,367 @@
+{
+  "actual_runtime_fixtures": {
+    "noaa": {
+      "fractional_ticks_from_runtime": [
+        15,
+        414
+      ],
+      "input_artifact_sha256": "b5e1a4008546264493da3ed2175ab52554487573e3a03be644e98eba426543d8",
+      "native_ticks_from_runtime": [
+        15,
+        413
+      ],
+      "observed_seconds_per_grid": 199.9998016357422,
+      "precision_audit": {
+        "float32_represented_seconds": 199.9998016357422,
+        "helper_matches_transformers_449_torch_float32": true,
+        "helper_matches_transformers_main_torch_float32": true,
+        "helper_python_float_fractional_ticks": [
+          15,
+          414
+        ],
+        "helper_vs_449_mismatch_step_indices": [],
+        "helper_vs_main_mismatch_step_indices": [],
+        "input_seconds_per_grid_python_float": 199.9998016357422,
+        "main_float32_scaled_interval": 399.9996032714844,
+        "temporal_steps": 2,
+        "tokens_per_second": 2,
+        "transformers_449_torch_float32_ticks": [
+          15,
+          414
+        ],
+        "transformers_main_torch_float32_ticks": [
+          15,
+          414
+        ],
+        "video_start_position": 15
+      },
+      "source_media_sha256": "13ab1d0e12d9c6b9e776890d123f363c12c572d52d1f58464b57a2e98667f126",
+      "temporal_steps": 2
+    },
+    "synthetic_subsecond": {
+      "fractional_ticks_from_runtime": [
+        15,
+        16
+      ],
+      "input_artifact_sha256": "9c8f0ddbf79ad7d3fe9c4f1e15bfd3e7e39389a47043994a9ed9aedba52a8c18",
+      "native_ticks_from_runtime": [
+        15,
+        15
+      ],
+      "observed_seconds_per_grid": 0.75,
+      "precision_audit": {
+        "float32_represented_seconds": 0.75,
+        "helper_matches_transformers_449_torch_float32": true,
+        "helper_matches_transformers_main_torch_float32": true,
+        "helper_python_float_fractional_ticks": [
+          15,
+          16
+        ],
+        "helper_vs_449_mismatch_step_indices": [],
+        "helper_vs_main_mismatch_step_indices": [],
+        "input_seconds_per_grid_python_float": 0.75,
+        "main_float32_scaled_interval": 1.5,
+        "temporal_steps": 2,
+        "tokens_per_second": 2,
+        "transformers_449_torch_float32_ticks": [
+          15,
+          16
+        ],
+        "transformers_main_torch_float32_ticks": [
+          15,
+          16
+        ],
+        "video_start_position": 15
+      },
+      "synthetic_pixels_sha256": "677a852d844fa8dad2d765847c5b9dfb28f3110f12855576328dc4576c3f0b78",
+      "temporal_steps": 2
+    }
+  },
+  "case_count_effective": 8,
+  "case_count_requested": 8,
+  "created_at_utc": "2026-10-11T18:06:26.724576+00:00",
+  "failures": 0,
+  "fixed_cases": [
+    {
+      "float32_represented_seconds": 0.5,
+      "helper_matches_transformers_449_torch_float32": false,
+      "helper_matches_transformers_main_torch_float32": false,
+      "helper_python_float_fractional_ticks": [
+        15,
+        15,
+        16,
+        17
+      ],
+      "helper_vs_449_mismatch_step_indices": [
+        1,
+        2,
+        3
+      ],
+      "helper_vs_main_mismatch_step_indices": [
+        1,
+        2,
+        3
+      ],
+      "input_seconds_per_grid_python_float": 0.49999999,
+      "main_float32_scaled_interval": 1.0,
+      "temporal_steps": 4,
+      "tokens_per_second": 2,
+      "transformers_449_torch_float32_ticks": [
+        15,
+        16,
+        17,
+        18
+      ],
+      "transformers_main_torch_float32_ticks": [
+        15,
+        16,
+        17,
+        18
+      ],
+      "video_start_position": 15
+    },
+    {
+      "float32_represented_seconds": 0.5,
+      "helper_matches_transformers_449_torch_float32": true,
+      "helper_matches_transformers_main_torch_float32": true,
+      "helper_python_float_fractional_ticks": [
+        15,
+        16,
+        17,
+        18
+      ],
+      "helper_vs_449_mismatch_step_indices": [],
+      "helper_vs_main_mismatch_step_indices": [],
+      "input_seconds_per_grid_python_float": 0.5,
+      "main_float32_scaled_interval": 1.0,
+      "temporal_steps": 4,
+      "tokens_per_second": 2,
+      "transformers_449_torch_float32_ticks": [
+        15,
+        16,
+        17,
+        18
+      ],
+      "transformers_main_torch_float32_ticks": [
+        15,
+        16,
+        17,
+        18
+      ],
+      "video_start_position": 15
+    },
+    {
+      "float32_represented_seconds": 0.5,
+      "helper_matches_transformers_449_torch_float32": true,
+      "helper_matches_transformers_main_torch_float32": true,
+      "helper_python_float_fractional_ticks": [
+        15,
+        16,
+        17,
+        18
+      ],
+      "helper_vs_449_mismatch_step_indices": [],
+      "helper_vs_main_mismatch_step_indices": [],
+      "input_seconds_per_grid_python_float": 0.50000001,
+      "main_float32_scaled_interval": 1.0,
+      "temporal_steps": 4,
+      "tokens_per_second": 2,
+      "transformers_449_torch_float32_ticks": [
+        15,
+        16,
+        17,
+        18
+      ],
+      "transformers_main_torch_float32_ticks": [
+        15,
+        16,
+        17,
+        18
+      ],
+      "video_start_position": 15
+    },
+    {
+      "float32_represented_seconds": 1.0,
+      "helper_matches_transformers_449_torch_float32": false,
+      "helper_matches_transformers_main_torch_float32": false,
+      "helper_python_float_fractional_ticks": [
+        15,
+        16,
+        18,
+        20
+      ],
+      "helper_vs_449_mismatch_step_indices": [
+        1,
+        2,
+        3
+      ],
+      "helper_vs_main_mismatch_step_indices": [
+        1,
+        2,
+        3
+      ],
+      "input_seconds_per_grid_python_float": 0.99999999,
+      "main_float32_scaled_interval": 2.0,
+      "temporal_steps": 4,
+      "tokens_per_second": 2,
+      "transformers_449_torch_float32_ticks": [
+        15,
+        17,
+        19,
+        21
+      ],
+      "transformers_main_torch_float32_ticks": [
+        15,
+        17,
+        19,
+        21
+      ],
+      "video_start_position": 15
+    },
+    {
+      "float32_represented_seconds": 1.0,
+      "helper_matches_transformers_449_torch_float32": true,
+      "helper_matches_transformers_main_torch_float32": true,
+      "helper_python_float_fractional_ticks": [
+        15,
+        17,
+        19,
+        21
+      ],
+      "helper_vs_449_mismatch_step_indices": [],
+      "helper_vs_main_mismatch_step_indices": [],
+      "input_seconds_per_grid_python_float": 1.0,
+      "main_float32_scaled_interval": 2.0,
+      "temporal_steps": 4,
+      "tokens_per_second": 2,
+      "transformers_449_torch_float32_ticks": [
+        15,
+        17,
+        19,
+        21
+      ],
+      "transformers_main_torch_float32_ticks": [
+        15,
+        17,
+        19,
+        21
+      ],
+      "video_start_position": 15
+    },
+    {
+      "float32_represented_seconds": 1.0,
+      "helper_matches_transformers_449_torch_float32": true,
+      "helper_matches_transformers_main_torch_float32": true,
+      "helper_python_float_fractional_ticks": [
+        15,
+        17,
+        19,
+        21
+      ],
+      "helper_vs_449_mismatch_step_indices": [],
+      "helper_vs_main_mismatch_step_indices": [],
+      "input_seconds_per_grid_python_float": 1.00000001,
+      "main_float32_scaled_interval": 2.0,
+      "temporal_steps": 4,
+      "tokens_per_second": 2,
+      "transformers_449_torch_float32_ticks": [
+        15,
+        17,
+        19,
+        21
+      ],
+      "transformers_main_torch_float32_ticks": [
+        15,
+        17,
+        19,
+        21
+      ],
+      "video_start_position": 15
+    },
+    {
+      "float32_represented_seconds": 199.9998016357422,
+      "helper_matches_transformers_449_torch_float32": true,
+      "helper_matches_transformers_main_torch_float32": true,
+      "helper_python_float_fractional_ticks": [
+        15,
+        414,
+        814,
+        1214
+      ],
+      "helper_vs_449_mismatch_step_indices": [],
+      "helper_vs_main_mismatch_step_indices": [],
+      "input_seconds_per_grid_python_float": 199.9998016357422,
+      "main_float32_scaled_interval": 399.9996032714844,
+      "temporal_steps": 4,
+      "tokens_per_second": 2,
+      "transformers_449_torch_float32_ticks": [
+        15,
+        414,
+        814,
+        1214
+      ],
+      "transformers_main_torch_float32_ticks": [
+        15,
+        414,
+        814,
+        1214
+      ],
+      "video_start_position": 15
+    },
+    {
+      "float32_represented_seconds": 0.75,
+      "helper_matches_transformers_449_torch_float32": true,
+      "helper_matches_transformers_main_torch_float32": true,
+      "helper_python_float_fractional_ticks": [
+        15,
+        16,
+        18,
+        19
+      ],
+      "helper_vs_449_mismatch_step_indices": [],
+      "helper_vs_main_mismatch_step_indices": [],
+      "input_seconds_per_grid_python_float": 0.75,
+      "main_float32_scaled_interval": 1.5,
+      "temporal_steps": 4,
+      "tokens_per_second": 2,
+      "transformers_449_torch_float32_ticks": [
+        15,
+        16,
+        18,
+        19
+      ],
+      "transformers_main_torch_float32_ticks": [
+        15,
+        16,
+        18,
+        19
+      ],
+      "video_start_position": 15
+    }
+  ],
+  "limitations": [
+    "CPU-only arithmetic audit; no model weights, GPU, video inference, labels, or QA.",
+    "Python float and Torch float32 operation order can quantize values differently near integer boundaries.",
+    "No dtype or implementation is declared universally correct; results are limited to the listed fixed inputs and source expressions.",
+    "The NOAA and synthetic intervals are imported from previously recorded runtime artifacts; this audit does not rerun those model forwards."
+  ],
+  "purpose": "qwen_fractional_temporal_position_precision_audit",
+  "schema_version": 1,
+  "source_commit": "a8f34c3f7bfcc4a723d93639ea087e1a2a05e597",
+  "source_references": {
+    "transformers_449": "https://github.com/huggingface/transformers/blob/v4.49.0/src/transformers/models/qwen2_5_vl/modeling_qwen2_5_vl.py",
+    "transformers_517": "https://github.com/huggingface/transformers/blob/v5.17.0/src/transformers/models/qwen2_5_vl/modeling_qwen2_5_vl.py",
+    "transformers_main": "https://github.com/huggingface/transformers/blob/main/src/transformers/models/qwen2_5_vl/modeling_qwen2_5_vl.py"
+  },
+  "source_sha256": {
+    "installed_qwen_modeling_source": "507cb2c383ead0e0e22b16ec9c8af2eb82703843cd5849112715751d990ff15e",
+    "qwen_temporal_geometry": "a0d455fd43f1ccdd5335676abedc2c85df8096ae962bbedff3b4b952ee3fd118",
+    "runner": "d7b8eba8e37be6634a98183b7370826d4f6e21161c8e04e78fd8c417aac4ceb9",
+    "video_time_mapping": "01711ac0f20770530239cf98ffb719c7f9e6f416f8c416aaf48da9543b091089"
+  },
+  "versions": {
+    "python": "3.12.14",
+    "torch": "2.11.0+cu128",
+    "transformers": "5.17.0"
+  }
+}

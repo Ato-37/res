@@ -1,0 +1,130 @@
+{
+  "changed_position_id_entries": 1792,
+  "comparison": {
+    "changed_position_id_entries": 1792,
+    "explicit_qwen_metadata": {
+      "grid_thw": [
+        8,
+        32,
+        32
+      ],
+      "implied_sampled_fps": 2.0,
+      "position_id_shape": [
+        3,
+        1,
+        2080
+      ],
+      "second_per_grid_seconds": 1.0,
+      "temporal_anchors": [
+        15,
+        17,
+        19,
+        21,
+        23,
+        25,
+        27,
+        29
+      ],
+      "video_token_count": 2048
+    },
+    "identity_checks": {
+      "explicit_do_sample_frames": false,
+      "explicit_input_has_one_video_tensor": true,
+      "explicit_video_metadata_fps": 2.0,
+      "explicit_video_metadata_frame_count": 16,
+      "input_token_ids_equal": true,
+      "position_id_tensor_shapes_equal": true,
+      "processor_pixel_value_keys_equal": true,
+      "processor_pixel_values_equal": true,
+      "video_grid_thw_equal": true,
+      "video_token_count_equal": true
+    },
+    "legacy_build_inputs": {
+      "grid_thw": [
+        8,
+        32,
+        32
+      ],
+      "implied_sampled_fps": 23.999999284744284,
+      "position_id_shape": [
+        3,
+        1,
+        2080
+      ],
+      "second_per_grid_seconds": 0.0833333358168602,
+      "temporal_anchors": [
+        15,
+        15,
+        15,
+        15,
+        15,
+        15,
+        15,
+        15
+      ],
+      "video_token_count": 2048
+    }
+  },
+  "created_at_utc": "2026-10-11T17:57:04.539551+00:00",
+  "fixture": {
+    "frame_count": 16,
+    "frame_timestamps_seconds": [
+      0.0,
+      0.5,
+      1.0,
+      1.5,
+      2.0,
+      2.5,
+      3.0,
+      3.5,
+      4.0,
+      4.5,
+      5.0,
+      5.5,
+      6.0,
+      6.5,
+      7.0,
+      7.5
+    ],
+    "kind": "deterministic_synthetic_jpeg_sequence",
+    "pixel_size": [
+      224,
+      224
+    ],
+    "prompt": "Describe the synthetic video briefly. Use only visual information.",
+    "sampled_fps": 2.0,
+    "sha256": "f44763a4eef72667d8862755518c4af3ca8f780b3c4657f633336a7574ef9a93"
+  },
+  "legacy_default_metadata_provenance": "Current-source inference, not historical-run provenance: build_inputs calls process_vision_info with default return_video_metadata=False and does not pass fps/video_metadata to the processor. Installed Transformers synthesizes frame indices but fps=None; VideoMetadata.sampled_fps therefore uses its documented 24 FPS fallback. The measured legacy second_per_grid value is reported above.",
+  "privacy": "No raw frame files, local paths, QA text, labels, qids, model weights, or logits are emitted.",
+  "processor_settings": {
+    "cap_pixels_per_frame": true,
+    "cuda_used": false,
+    "max_pixels": 200704,
+    "min_pixels": 200704,
+    "model": "Qwen/Qwen2.5-VL-7B-Instruct",
+    "model_revision": "cc594898137f460bfe9f0759e9844b3ce807cfb5",
+    "model_weights_loaded": false
+  },
+  "purpose": "current_legacy_video_time_metadata_reconstruction",
+  "schema_version": 1,
+  "scope_limit": "Reconstructs the current legacy builder and explicit-metadata paths on one synthetic 16-frame CPU fixture. Does not establish historical run coordinates, attribute prior results, use QA data, or claim temporal evidence validity.",
+  "source_commit": "6ab0e094c12d342c99ef773c2158db0703d7481e",
+  "source_sha256": {
+    "audit_script": "b114b2a86edb4c596bb994916c960e6bfa56629c6fd473930c27c5512e4f8f29",
+    "installed_processor_source": "a65cba8047b8d2a381d3634b42ee441322d4e885f02b6e84e6787bc9ba3649af",
+    "installed_qwen_vl_utils_source": "f3710ced8ffe735da57d08cf5236cf9d326ff646ed1bdad2e62593a7801adc33",
+    "installed_rope_source": "507cb2c383ead0e0e22b16ec9c8af2eb82703843cd5849112715751d990ff15e",
+    "legacy_builder": "ef400606a7e6b7100870990a600df71694c7e019292136e23a25e8513d1e28b3",
+    "model_config": "77d9ec7321cc572e3579e2c84799c9cadaded63c49ce93b101733349fc330c43",
+    "processor_config": "f2058c716eef96ccaed1cc1e2d0c08306b62586d535b28d9d08e691b2fab7ca0",
+    "vision_processor_config": "46eb4f5022ae89d1da785cddfe7a110d7c1576842149b60a15b7754acb38591d"
+  },
+  "status": "complete",
+  "versions": {
+    "Pillow": "12.3.0",
+    "qwen-vl-utils": "0.0.14",
+    "torch": "2.11.0+cu128",
+    "transformers": "5.17.0"
+  }
+}

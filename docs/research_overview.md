@@ -10,6 +10,8 @@
 
 ### 現行の提案方針（2026-10-09）
 
+2026-10-12更新: 使用条件を確認したNOAA動画1件と固定合成入力で、GPUによる時刻位置の動作検証を実施した。QA成績やfaithfulnessの改善は測定していない。FPS metadataの欠落、時間座標の丸め、抽出点と区間spanの違いを分けて監査した。NOAAの3動画・6 QAは人間による確認が未完了のため`no_go`を維持する。[時刻・サンプリングの結果と限界](temporal_runtime_and_sampling_limits.md)、[1時間PDCA実行記録](../experiments/2026-10-12_pdca_1h.md)を現行の実行結果として参照する。閉じたhead探索は再開しない。
+
 旧head-faithfulness確認は事前基準を満たさず、追加のhead/layer/alpha探索は停止した。研究を完了する段階ではなく、新しい評価対象へ進むための計画案として、**中間層の時間visual evidence介入によるgrounding改善と、claimの選択的証拠依存の検証**を定めた。[新研究計画書](internal_intervention_grounding_faithfulness_plan.md)が次の作業計画であり、まずCPUでNExT-GQAのinterval/claim適合性・重複ID・token-to-time mappingを監査する。データゲートを通るまでGPU実験は行わない。これは旧結果を覆すものでも、まだ承認済みの実験でもない。
 
 下記の三段構成・その後に記載されたhead中心の計画は、旧設計と実施済み記録を残すための履歴であり、現行の次アクションとして実行しない。旧数値・負の確認結果は保持し、新計画とは別estimandとして扱う。
