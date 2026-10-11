@@ -11,6 +11,7 @@ from qwen_temporal_geometry import qwen_temporal_geometry, replace_video_tempora
 from run_qwen_temporal_position_gpu_check import (
     make_synthetic_subsecond_fixture,
     validate_synthetic_subsecond_geometry,
+    assert_fractional_float32_compatibility,
 )
 
 
@@ -19,6 +20,16 @@ MODEL_PATH = (
     Path.home() / ".cache/huggingface/hub/models--Qwen--Qwen2.5-VL-7B-Instruct/snapshots"
     / REVISION
 )
+
+
+class FractionalPrecisionGateTests(unittest.TestCase):
+    def test_declared_runtime_fixtures_are_compatible(self):
+        assert_fractional_float32_compatibility([15,16],.75,2)
+        assert_fractional_float32_compatibility([15,414],199.9998016357422,2)
+
+    def test_rounding_boundary_refuses_incompatible_python_math(self):
+        with self.assertRaisesRegex(RuntimeError,'arithmetic differ'):
+            assert_fractional_float32_compatibility([15,15,16,17],.49999999,2)
 
 
 @unittest.skipUnless(MODEL_PATH.is_dir(), "pinned processor/config are not cached")

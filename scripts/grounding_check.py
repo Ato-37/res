@@ -8,6 +8,10 @@ was built from.
 
 The chunk timing is a coarse preprocessing alignment. The reported attention-overlap
 hit rate is only a grounding proxy; it is not a faithfulness or causal-dependence test.
+Its chunk interval is the span from the first to last sampled timestamp in each temporal
+patch, so that interval can overlap an annotation even when no sampled timestamp lies
+inside it. The separate sampled-point count below makes that geometric distinction
+visible; sampled points inside an annotation still do not establish semantic evidence.
 The last prompt-position attention predicts the first generated token; it is not
 direct evidence that the generated answer depends on the attended video interval.
 
@@ -27,7 +31,7 @@ import torch
 from PIL import Image
 from transformers import AutoProcessor, BitsAndBytesConfig, Qwen2_5_VLForConditionalGeneration
 from qwen_vl_utils import process_vision_info
-from grounding_metrics import attention_overlap_proxy
+from grounding_metrics import attention_overlap_proxy, sampled_point_window_coverage, validate_temporal_intervals
 from video_time_mapping import chunk_timestamp_ranges, effective_sample_fps, uniform_frame_indices
 
 
@@ -112,7 +116,7 @@ def main():
     for s in samples:
         s["video"] = os.path.expanduser(s["video"])
         try:
-            intervals = tuple((float(a), float(b)) for a, b in s["grounding"])
+            intervals = validate_temporal_intervals(s["grounding"])
             if not intervals or any(
                 not (math.isfinite(a) and math.isfinite(b) and a < b)
                 for a, b in intervals
@@ -214,8 +218,17 @@ def main():
                 skipped += 1
                 continue
             chunk_size = span_len // t
+            point_coverage = sampled_point_window_coverage(
+                timestamps, temporal_patch_size, s["grounding"]
+            )
             print(f"  frames_requested={args.num_frames}, frames_effective={len(timestamps)}, "
                   f"sampled_fps={sampled_fps:.6f}, temporal_patch_size={temporal_patch_size}")
+            print("  sampled_point_window_geometry="
+                  f"{point_coverage['points_inside']}/{len(timestamps)} sampled points inside "
+                  f"annotated windows; maximum_points_inside_any_chunk="
+                  f"{point_coverage['maximum_points_inside_any_chunk']}; "
+                  f"any_point_inside={point_coverage['any_point_inside']} "
+                  "(geometric only; not semantic evidence)")
 
             torch.cuda.reset_peak_memory_stats(0)
             with torch.no_grad():
@@ -246,9 +259,14 @@ def main():
                 continue
             per_chunk = torch.tensor(normalized, dtype=torch.float32)
             print(f"  video_span=({v_start},{v_end}) t_chunks={t} chunk_size={chunk_size}")
+            peak_points_inside = point_coverage['per_chunk_points_inside'][peak_chunk]
+            print(f"  attention_peak_chunk_sample_points_inside={peak_points_inside}; "
+                  f"attention_peak_span_only_overlap={bool(hit and peak_points_inside == 0)}")
             for c in range(t):
                 lo, hi = chunk_ranges[c]
-                print(f"    chunk={c} time=[{lo:.1f},{hi:.1f}]s attention_share={per_chunk[c].item():.3f}")
+                print(f"    chunk={c} time=[{lo:.1f},{hi:.1f}]s "
+                      f"sample_points_in_window={point_coverage['per_chunk_points_inside'][c]} "
+                      f"attention_share={per_chunk[c].item():.3f}")
 
             peak_lo, peak_hi = chunk_ranges[peak_chunk]
             hits += int(hit)

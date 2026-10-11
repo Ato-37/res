@@ -95,7 +95,7 @@ def qwen_temporal_geometry(
     is an optional nearest-sample partition of the source duration; it is a
     geometric convention, not an annotation or evidence-validity judgment.
 
-    The returned RoPE anchor fields encode two source implementations. In the
+    The returned RoPE anchor fields describe two source-level formulas. In the
     installed Transformers 5.17 implementation, ``int(second_per_grid)`` is
     applied *before* multiplication by tokens-per-second. Transformers 4.49.0
     multiplied the fractional interval first and converted resulting IDs to
@@ -103,6 +103,11 @@ def qwen_temporal_geometry(
     silently treated as source timestamps or as validated temporal evidence.
     ``video_start_position`` is the model's sequence-position offset before the
     video block; it defaults to zero for relative geometry.
+
+    Fractional ticks use Python float arithmetic. The historical version name
+    identifies the formula, not bit-exact Torch float32 behavior near rounding
+    boundaries. Inference callers must independently check the intended tensor
+    arithmetic; the GPU regression runner refuses incompatible candidates.
     """
     times = _timestamps(sampled_timestamps)
     patch = _positive_integer(temporal_patch_size, "temporal_patch_size")

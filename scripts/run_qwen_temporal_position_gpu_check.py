@@ -88,6 +88,22 @@ def compare_logits(reference, candidate):
         'bitwise_equal':bool(torch.equal(reference,candidate))}
 
 
+def assert_fractional_float32_compatibility(anchors, seconds, tokens_per_second):
+    """Refuse a mathematical helper result that differs from float32 source math.
+
+    This gate targets the declared CPU float32 expression only. It does not
+    silently change position IDs or establish semantic correctness.
+    """
+    import torch
+    if not anchors:
+        raise RuntimeError('Fractional temporal anchors missing')
+    interval = torch.tensor(seconds,dtype=torch.float32) * tokens_per_second
+    expected = (torch.arange(len(anchors),dtype=torch.float32) * interval).long()
+    expected = expected + anchors[0]
+    if expected.tolist() != list(anchors):
+        raise RuntimeError('Python helper and declared Torch float32 temporal arithmetic differ')
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--output',required=True)
@@ -180,6 +196,9 @@ def main():
         video_mask=batch['mm_token_type_ids'][0]==2
         if not torch.equal(native[1:],candidate[1:]) or not torch.equal(native[0,0,~video_mask],candidate[0,0,~video_mask]):
             raise RuntimeError('Candidate changed non-temporal-video coordinates')
+        step_tokens=(grid[1]//merge)*(grid[2]//merge)
+        preforward_anchors=[int(candidate[0,0,positions[0]+i*step_tokens]) for i in range(grid[0])]
+        assert_fractional_float32_compatibility(preforward_anchors,seconds,int(config.tokens_per_second))
         captures=[]
         def capture(module, positional, keyword):
             captures.append(keyword['position_ids'].detach().cpu().clone())
