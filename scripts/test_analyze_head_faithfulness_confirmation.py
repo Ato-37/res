@@ -1,5 +1,7 @@
 """CPU-only integrity tests for the independent confirmation analyzer."""
 
+import hashlib
+import json
 import sys
 from pathlib import Path
 import unittest
@@ -118,7 +120,9 @@ class HeadFaithfulnessConfirmationTests(unittest.TestCase):
         result, manifest = example_data()
         report = analyze(result, manifest)
         self.assertEqual(report['n_effective'], 5)
-        self.assertEqual(report['n_unique_videos'], 5)
+        self.assertEqual(report['n_unique_sample_keys'], 5)
+        self.assertIsNone(report['n_unique_videos'])
+        self.assertEqual(report['video_uniqueness_status'], 'unverified_no_sample_manifest')
         self.assertAlmostEqual(
             report['mean_selective_margin_drop_nat'],
             result['primary_summary']['mean'])
@@ -131,6 +135,87 @@ class HeadFaithfulnessConfirmationTests(unittest.TestCase):
         self.assertIn('95% t CI', output)
         self.assertNotIn('sample_000', output)
         self.assertEqual(len(output.splitlines()), 5)
+        self.assertIn('unique_videos=unverified', output)
+
+    def _hashed_samples(self, manifest, samples):
+        raw = json.dumps(samples, separators=(',', ':')).encode('utf-8')
+        manifest['samples_sha256'] = hashlib.sha256(raw).hexdigest()
+        return raw
+
+    def test_verifies_unique_video_ids_through_hashed_manifest(self):
+        result, manifest = example_data()
+        samples_raw = self._hashed_samples(
+            manifest, [{'video_id': f'private-video-{index}'} for index in range(5)])
+        report = analyze(result, manifest, samples_raw)
+        self.assertEqual(report['n_unique_videos'], 5)
+        self.assertEqual(
+            report['video_uniqueness_status'],
+            'verified_against_hashed_sample_manifest')
+        self.assertIn('do not establish statistical independence',
+                      report['video_uniqueness_interpretation'])
+        self.assertNotIn('private-video-', json.dumps(report))
+
+    def test_rejects_distinct_keys_that_map_to_same_video(self):
+        result, manifest = example_data()
+        samples = [{'video_id': f'video-{index}'} for index in range(5)]
+        samples[4]['video_id'] = samples[3]['video_id']
+        samples_raw = self._hashed_samples(manifest, samples)
+        with self.assertRaisesRegex(ValueError, 'unique video IDs'):
+            analyze(result, manifest, samples_raw)
+
+    def test_rejects_empty_video_id_for_effective_ordinal(self):
+        result, manifest = example_data()
+        samples = [{'video_id': f'video-{index}'} for index in range(5)]
+        samples[2]['video_id'] = '  '
+        samples_raw = self._hashed_samples(manifest, samples)
+        with self.assertRaisesRegex(ValueError, 'missing or empty video ID'):
+            analyze(result, manifest, samples_raw)
+
+    def test_rejects_whitespace_aliases_of_same_video_id(self):
+        result, manifest = example_data()
+        samples = [{'video_id': f'video-{index}'} for index in range(5)]
+        samples[4]['video_id'] = ' video-3 '
+        samples_raw = self._hashed_samples(manifest, samples)
+        with self.assertRaisesRegex(ValueError, 'unique video IDs'):
+            analyze(result, manifest, samples_raw)
+
+    def test_rejects_sample_manifest_hash_mismatch(self):
+        result, manifest = example_data()
+        samples_raw = json.dumps(
+            [{'video_id': f'video-{index}'} for index in range(5)],
+            separators=(',', ':')).encode('utf-8')
+        with self.assertRaisesRegex(ValueError, 'SHA-256 does not match'):
+            analyze(result, manifest, samples_raw)
+
+    def test_rejects_malformed_or_out_of_prefix_sample_keys(self):
+        result, manifest = example_data()
+        samples_raw = self._hashed_samples(
+            manifest, [{'video_id': f'video-{index}'} for index in range(5)])
+        result['records'][0]['sample_key'] = 'sample_bad'
+        with self.assertRaisesRegex(ValueError, 'mapped to a manifest ordinal'):
+            analyze(result, manifest, samples_raw)
+
+        result, manifest = example_data()
+        samples_raw = self._hashed_samples(
+            manifest, [{'video_id': f'video-{index}'} for index in range(5)])
+        result['records'][0]['sample_key'] = 'sample_005'
+        with self.assertRaisesRegex(ValueError, 'outside the requested manifest prefix'):
+            analyze(result, manifest, samples_raw)
+
+    def test_rejects_manifest_shorter_than_requested_prefix(self):
+        result, manifest = example_data()
+        samples_raw = self._hashed_samples(
+            manifest, [{'video_id': f'video-{index}'} for index in range(4)])
+        with self.assertRaisesRegex(ValueError, 'shorter than the requested prefix'):
+            analyze(result, manifest, samples_raw)
+
+    def test_raw_bytes_are_bound_to_manifest_hash(self):
+        result, manifest = example_data()
+        samples_raw = self._hashed_samples(
+            manifest, [{'video_id': f'video-{index}'} for index in range(5)])
+        tampered = samples_raw.replace(b'video-0', b'video-X')
+        with self.assertRaisesRegex(ValueError, 'SHA-256 does not match'):
+            analyze(result, manifest, tampered)
 
     def test_rejects_accounting_mismatch(self):
         result, manifest = example_data()

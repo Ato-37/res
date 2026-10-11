@@ -2,9 +2,11 @@
 
 import argparse
 from collections import Counter
+import hashlib
 import json
 import math
 from pathlib import Path
+import re
 import statistics
 
 from scipy.stats import ttest_1samp
@@ -56,7 +58,48 @@ def _validate_controls(record, top_k, repeats):
         seen_controls.update(keys)
 
 
-def analyze(result, manifest=None):
+def _verify_video_uniqueness(records, requested, manifest, samples_raw):
+    """Verify ordinal result keys against the hashed private input manifest."""
+    if samples_raw is None:
+        return None, 'unverified_no_sample_manifest'
+    if not isinstance(samples_raw, bytes) or manifest is None:
+        raise ValueError('raw sample-manifest bytes and run manifest must be supplied together')
+    expected_hash = manifest.get('samples_sha256')
+    if (not isinstance(expected_hash, str) or len(expected_hash) != 64
+            or any(char not in '0123456789abcdef' for char in expected_hash.lower())):
+        raise ValueError('run manifest has no valid sample-manifest SHA-256')
+    if hashlib.sha256(samples_raw).hexdigest() != expected_hash.lower():
+        raise ValueError('sample-manifest SHA-256 does not match run manifest')
+    try:
+        samples = json.loads(samples_raw.decode('utf-8'))
+    except (UnicodeDecodeError, json.JSONDecodeError) as exc:
+        raise ValueError('hashed sample manifest is not valid UTF-8 JSON') from exc
+    if not isinstance(samples, list) or len(samples) < requested:
+        raise ValueError('sample manifest is shorter than the requested prefix')
+
+    effective_video_ids = []
+    for record in records:
+        key = record.get('sample_key')
+        match = re.fullmatch(r'sample_(\d{3,})', key) if isinstance(key, str) else None
+        if match is None:
+            raise ValueError('sample key cannot be mapped to a manifest ordinal')
+        index = int(match.group(1))
+        if key != f'sample_{index:03d}' or index >= requested or index >= len(samples):
+            raise ValueError('sample key ordinal is outside the requested manifest prefix')
+        sample = samples[index]
+        if not isinstance(sample, dict):
+            raise ValueError('sample manifest row is not an object')
+        video_id = sample.get('video_id')
+        if not isinstance(video_id, str) or not video_id.strip():
+            raise ValueError('sample manifest has a missing or empty video ID')
+        effective_video_ids.append(video_id.strip())
+
+    if len(effective_video_ids) != len(set(effective_video_ids)):
+        raise ValueError('effective result records do not map to unique video IDs')
+    return len(effective_video_ids), 'verified_against_hashed_sample_manifest'
+
+
+def analyze(result, manifest=None, samples_raw=None):
     _assert_private(result)
     if result.get('experiment') != EXPERIMENT:
         raise ValueError('unexpected experiment identifier')
@@ -87,6 +130,8 @@ def analyze(result, manifest=None):
     if (any(not isinstance(key, str) or not key for key in keys)
             or len(set(keys)) != len(keys)):
         raise ValueError('sample keys must be nonempty and unique')
+    n_unique_videos, video_uniqueness_status = _verify_video_uniqueness(
+        records, requested, manifest, samples_raw)
 
     selective, target_drops, control_drops = [], [], []
     baseline_correct = 0
@@ -170,7 +215,11 @@ def analyze(result, manifest=None):
         'n_requested': requested,
         'n_effective': effective,
         'n_failures': failures,
-        'n_unique_videos': len(set(keys)),
+        'n_unique_sample_keys': len(set(keys)),
+        'n_unique_videos': n_unique_videos,
+        'video_uniqueness_status': video_uniqueness_status,
+        'video_uniqueness_interpretation': (
+            'distinct manifest video IDs do not establish statistical independence'),
         'baseline_correct_n': baseline_correct,
         'baseline_accuracy_descriptive': baseline_correct / effective,
         'mean_target_margin_drop_nat': statistics.mean(target_drops),
@@ -204,7 +253,8 @@ def format_concise(report):
     low, high = report['ci95_t']
     return '\n'.join((
         f"confirmation: {report['n_effective']}/{report['n_requested']} complete; "
-        f"failures={report['n_failures']}; unique_videos={report['n_unique_videos']}",
+        f"failures={report['n_failures']}; unique_sample_keys={report['n_unique_sample_keys']}; "
+        f"unique_videos={report['n_unique_videos'] if report['n_unique_videos'] is not None else 'unverified'}",
         f"mean margin drop: target={report['mean_target_margin_drop_nat']:+.4f}, "
         f"matched control={report['mean_control_margin_drop_nat']:+.4f} nat",
         f"selective effect={report['mean_selective_margin_drop_nat']:+.4f} nat "
@@ -221,13 +271,23 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--input', required=True)
     parser.add_argument('--manifest', required=True)
+    parser.add_argument('--samples-file',
+                        help='optional private JSON sample manifest for video-identity verification')
     parser.add_argument('--json', action='store_true',
                         help='print the full machine-readable report instead of a concise summary')
     args = parser.parse_args()
     result_path = Path(args.input)
     manifest_path = Path(args.manifest)
-    report = analyze(json.loads(result_path.read_text()),
-                     json.loads(manifest_path.read_text()))
+    result = json.loads(result_path.read_text())
+    manifest = json.loads(manifest_path.read_text())
+    if args.samples_file:
+        try:
+            raw_samples = Path(args.samples_file).read_bytes()
+        except OSError:
+            parser.error('could not read the optional sample manifest as UTF-8 JSON')
+    else:
+        raw_samples = None
+    report = analyze(result, manifest, raw_samples)
     if args.json:
         print(json.dumps(report, indent=2, sort_keys=True))
         return
