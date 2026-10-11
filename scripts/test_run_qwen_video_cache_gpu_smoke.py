@@ -51,6 +51,14 @@ class _TinyLanguageModel(nn.Module):
 
 
 class VideoCacheGpuSmokeCpuTests(unittest.TestCase):
+    @unittest.skipUnless(MODEL_PATH.is_dir(), "pinned cached config is unavailable")
+    def test_generation_padding_uses_generation_config_not_multimodal_config(self):
+        from transformers import AutoConfig, GenerationConfig
+        config = AutoConfig.from_pretrained(str(MODEL_PATH), local_files_only=True)
+        generation = GenerationConfig.from_pretrained(str(MODEL_PATH), local_files_only=True)
+        self.assertFalse(hasattr(config, "pad_token_id"))
+        self.assertEqual(generation.pad_token_id, 151643)
+
     def test_position_packing_and_normalization_are_shape_strict(self):
         rope = torch.arange(3 * 1 * 5).reshape(3, 1, 5)
         packed = pack_generation_positions(rope, 5)

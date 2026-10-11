@@ -367,7 +367,7 @@ def run_gpu_smoke(output: Path):
                         **({} if supplied_positions is None else {"position_ids": supplied_positions}),
                         past_key_values=fresh_cache,
                         use_cache=True, do_sample=False, max_new_tokens=MAX_NEW_TOKENS,
-                        eos_token_id=None, pad_token_id=model.config.pad_token_id,
+                        eos_token_id=None, pad_token_id=model.generation_config.pad_token_id,
                         forced_eos_token_id=None,
                         return_dict_in_generate=True, output_scores=True, output_logits=True,
                     )

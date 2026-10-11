@@ -1,0 +1,32 @@
+{
+  "available_source_sha256": {
+    "fractional_precision_guard": "cd56c13f0a605afd20408f634568492db5bc1e6a78567eae91a438312b2857b5",
+    "frame_extractor": "e541dd98ca62ac71321f110ec47494fa00fe5bddb48ad1ab295f220bb5fd49b9",
+    "frame_smoke_helper": "a9801b139e4a9a8c590193a3c9fb4b14242463f3728eabf6555652c409464539",
+    "geometry_helper": "a0d455fd43f1ccdd5335676abedc2c85df8096ae962bbedff3b4b952ee3fd118",
+    "runner": "047f34fb96e44aa57a3883d51dc37181e4db896e6581aa9f712ba27c268ccf43",
+    "video_time_mapping": "01711ac0f20770530239cf98ffb719c7f9e6f416f8c416aaf48da9543b091089"
+  },
+  "checkpoint_config_sha256": "77d9ec7321cc572e3579e2c84799c9cadaded63c49ce93b101733349fc330c43",
+  "checkpoint_generation_config_sha256": "0a3aea82869fe29f20dc95ccf3e2bcff380eca1f5ad6447a4a4b37110b08e43e",
+  "checkpoint_processor_config_sha256": "f2058c716eef96ccaed1cc1e2d0c08306b62586d535b28d9d08e691b2fab7ca0",
+  "checkpoint_revision": "cc594898137f460bfe9f0759e9844b3ce807cfb5",
+  "completed_model_calls": 0,
+  "created_utc": "2026-10-11T18:52:33.899729+00:00",
+  "effective_conditions": 0,
+  "effective_frames": 4,
+  "elapsed_seconds": 10.84024358500028,
+  "failure_type": "AttributeError",
+  "failures": 1,
+  "media_sha256_expected": "13ab1d0e12d9c6b9e776890d123f363c12c572d52d1f58464b57a2e98667f126",
+  "privacy": "Sanitized failure summary; no exception text, media, prompt, tokens, or logits.",
+  "purpose": "fixed_noaa_qwen_video_cache_generation_compatibility_smoke",
+  "requested_conditions": 3,
+  "requested_frames": 4,
+  "requested_model_calls": 6,
+  "runner_sha256": "047f34fb96e44aa57a3883d51dc37181e4db896e6581aa9f712ba27c268ccf43",
+  "schema_version": 1,
+  "source_commit": "f7b3516d59585be590b3ec8b0bafb0ff3693bd35",
+  "stage": "generate_native_auto",
+  "status": "failed"
+}

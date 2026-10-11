@@ -70,13 +70,13 @@ def extract_frames(video_path, num_frames, max_dim):
             path = f"{tmp_dir}/frame_{pos:03d}.jpg"
             img.save(path)
             frame_paths.append(path)
+        sampled_fps = effective_sample_fps(timestamps)
     except Exception:
         shutil.rmtree(tmp_dir, ignore_errors=True)
         raise
     finally:
         cap.release()
 
-    sampled_fps = effective_sample_fps(timestamps)
     return frame_paths, tmp_dir, timestamps, sampled_fps
 
 
