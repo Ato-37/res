@@ -1,14 +1,21 @@
-"""Video-only runtime regression check of native vs fractional temporal IDs.
+"""Runtime regression comparison for native and fractional video-time IDs.
 
-One fixed NOAA source, four frames, generic prompt, no QA, labels, generation,
-head/layer search or efficacy outcome. Three sequential model forwards: native
-automatic IDs, explicit identical IDs (no-op), and a temporal-row-only candidate
-matching current official upstream fractional arithmetic. Does not edit .venv.
-Usage: PYTHONPATH=scripts .venv/bin/python scripts/run_qwen_temporal_position_gpu_check.py --output results/NEW.json
+The default ``noaa`` fixture preserves the existing fixed NOAA video behavior.
+The fixed ``synthetic_subsecond`` fixture uses four deterministic in-memory
+frames at 8/3 FPS, with no NOAA media, annotations, or QA. Both compare the
+same three conditions: native automatic IDs, explicit-native no-op IDs, and a
+video-temporal-row-only fractional candidate. Neither fixture evaluates
+faithfulness, QA accuracy, or semantic temporal validity. Does not edit .venv.
+
+Usage::
+
+    PYTHONPATH=scripts .venv/bin/python scripts/run_qwen_temporal_position_gpu_check.py --output results/NEW.json
+    PYTHONPATH=scripts .venv/bin/python scripts/run_qwen_temporal_position_gpu_check.py --fixture synthetic_subsecond --output results/NEW.json
 """
 import argparse
 from datetime import datetime, timezone
 import gc
+import hashlib
 import importlib.metadata
 import inspect
 import json
@@ -24,6 +31,46 @@ from run_dataset_video_gpu_smoke import sha256
 from qwen_temporal_geometry import replace_video_temporal_rope_row, qwen_temporal_geometry
 
 RUN_PROGRESS = {'stage':'preflight', 'completed_forwards':0}
+
+
+SYNTHETIC_SUBSECOND_TIMESTAMPS = (0.0, 0.375, 0.75, 1.125)
+SYNTHETIC_SUBSECOND_FPS = 8 / 3
+
+
+def make_synthetic_subsecond_fixture():
+    """Create deterministic PIL frames and hash their ordered pixel bytes."""
+    from PIL import Image
+
+    frame_size = 224
+    colors = ((17, 43, 89), (61, 97, 131), (109, 151, 173), (197, 211, 229))
+    frames = [Image.new('RGB', (frame_size, frame_size), color) for color in colors]
+    digest = hashlib.sha256()
+    digest.update(b'qwen-temporal-smoke/synthetic-subsecond/v1\0')
+    digest.update(frame_size.to_bytes(4, 'big'))
+    for image in frames:
+        digest.update(image.tobytes())
+    return frames, list(SYNTHETIC_SUBSECOND_TIMESTAMPS), SYNTHETIC_SUBSECOND_FPS, digest.hexdigest()
+
+
+def validate_synthetic_subsecond_geometry(
+    timestamps, sampled_fps, grid_thw, seconds_per_grid,
+    native_temporal_anchors, fractional_temporal_anchors,
+):
+    """Fail closed on the fixed subsecond processor/model regression fixture."""
+    if tuple(float(value) for value in timestamps) != SYNTHETIC_SUBSECOND_TIMESTAMPS:
+        raise RuntimeError('Synthetic subsecond timestamps changed from the fixed fixture')
+    if not math.isclose(float(sampled_fps), SYNTHETIC_SUBSECOND_FPS, rel_tol=0, abs_tol=1e-12):
+        raise RuntimeError('Synthetic subsecond sample FPS changed from the fixed fixture')
+    if len(grid_thw) != 3 or int(grid_thw[0]) != 2:
+        raise RuntimeError(f'Synthetic processor temporal grid must be 2, got {grid_thw}')
+    if not math.isclose(float(seconds_per_grid), 0.75, rel_tol=0, abs_tol=1e-6):
+        raise RuntimeError(f'Synthetic second_per_grid_ts must be 0.75, got {seconds_per_grid}')
+    native = tuple(int(value) for value in native_temporal_anchors)
+    fractional = tuple(int(value) for value in fractional_temporal_anchors)
+    if len(native) != 2 or native[0] != native[1]:
+        raise RuntimeError(f'Installed native subsecond temporal anchors did not collapse: {native}')
+    if len(fractional) != 2 or fractional[1] != fractional[0] + 1:
+        raise RuntimeError(f'Fractional subsecond candidate must advance by one tick: {fractional}')
 
 
 def compare_logits(reference, candidate):
@@ -44,6 +91,8 @@ def compare_logits(reference, candidate):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--output',required=True)
+    parser.add_argument('--fixture',choices=('noaa','synthetic_subsecond'),default='noaa',
+        help='Input fixture; noaa preserves existing behavior (default)')
     args = parser.parse_args()
     repo = Path(__file__).resolve().parents[1]
     output = (repo / args.output).resolve()
@@ -52,7 +101,7 @@ def main():
     revision = 'cc594898137f460bfe9f0759e9844b3ce807cfb5'
     expected_media = '13ab1d0e12d9c6b9e776890d123f363c12c572d52d1f58464b57a2e98667f126'
     video = repo/'datasets/noaa_qa_pilot_20261011/media/source.mp4'
-    if not video.is_file() or sha256(video)!=expected_media:
+    if args.fixture == 'noaa' and (not video.is_file() or sha256(video)!=expected_media):
         parser.error('Pinned NOAA media missing/hash mismatch')
     model_path = Path.home()/'.cache/huggingface/hub/models--Qwen--Qwen2.5-VL-7B-Instruct/snapshots'/revision
     if not model_path.is_dir():
@@ -73,7 +122,12 @@ def main():
     started=datetime.now(timezone.utc).isoformat(); timer=time.monotonic()
     RUN_PROGRESS['stage']='extraction_and_model_load'
     prompt='Describe the visible scene briefly. Use only visual information.'
-    frames,tmp,timestamps,fps=extract_frames(str(video),4,224)
+    fixture_sha256=None
+    tmp=None
+    if args.fixture == 'noaa':
+        frames,tmp,timestamps,fps=extract_frames(str(video),4,224)
+    else:
+        frames,timestamps,fps,fixture_sha256=make_synthetic_subsecond_fixture()
     try:
         if len(timestamps)!=4 or len(frames)!=4:
             raise RuntimeError('Four effective frames required')
@@ -89,6 +143,12 @@ def main():
         if not videos or len(videos)!=1:
             raise RuntimeError('Exactly one processed video required')
         tensor,metadata=videos[0]
+        if args.fixture == 'synthetic_subsecond':
+            if metadata.get('frames_indices') != [0,1,2,3] or not math.isclose(
+                float(metadata.get('fps',0)),fps,rel_tol=0,abs_tol=1e-12):
+                raise RuntimeError('Synthetic list-frame metadata differs from fixed fixture')
+            if [i/float(metadata['fps']) for i in metadata['frames_indices']] != timestamps:
+                raise RuntimeError('Synthetic timestamps do not match actual list-frame metadata')
         batch=processor(text=[text],images=images,videos=[tensor],video_metadata=[metadata],
             do_sample_frames=False,cap_pixels_per_frame=True,padding=True,return_tensors='pt').to('cuda')
         grid=batch['video_grid_thw'][0].tolist()
@@ -100,6 +160,11 @@ def main():
         if [i for i,x in enumerate(types) if x==2]!=positions or any(x==1 for x in types):
             raise RuntimeError('Video modality mapping mismatch or image input')
         seconds=float(batch['second_per_grid_ts'][0])
+        if args.fixture == 'synthetic_subsecond':
+            if int(grid[0]) != 2:
+                raise RuntimeError(f'Synthetic processor grid T must equal 2, got {grid}')
+            if not math.isclose(seconds,0.75,rel_tol=0,abs_tol=1e-6):
+                raise RuntimeError(f'Synthetic processor second_per_grid_ts must equal 0.75, got {seconds}')
         config=model.config.vision_config
         native,delta=model.model.get_rope_index(
             input_ids=batch['input_ids'],mm_token_type_ids=batch['mm_token_type_ids'],
@@ -148,19 +213,41 @@ def main():
         step_tokens=(grid[1]//merge)*(grid[2]//merge)
         anchors_native=[int(native[0,0,positions[0]+i*step_tokens]) for i in range(grid[0])]
         anchors_candidate=[int(candidate[0,0,positions[0]+i*step_tokens]) for i in range(grid[0])]
+        if args.fixture == 'synthetic_subsecond':
+            validate_synthetic_subsecond_geometry(
+                timestamps,fps,grid,seconds,anchors_native,anchors_candidate
+            )
+            # Check this exact 0.75s/two-token-per-second case against Torch's
+            # float32 arithmetic. This is a fixture-specific equality check,
+            # not a claim about all floating-point rates or model versions.
+            float32_ticks=(torch.arange(2,dtype=torch.float32)*
+                torch.tensor(seconds,dtype=torch.float32)*int(config.tokens_per_second)
+                ).long()+anchors_native[0]
+            if tuple(int(value) for value in float32_ticks.tolist())!=tuple(anchors_candidate):
+                raise RuntimeError('Fixture fractional anchors differ from actual-case Torch float32 arithmetic')
+            geometry=qwen_temporal_geometry(
+                timestamps,int(processor.video_processor.temporal_patch_size),
+                tokens_per_second=int(config.tokens_per_second),second_per_grid=seconds,
+                video_start_position=anchors_native[0])
+            if tuple(geometry['transformers_4_49_0_temporal_rope_ticks_fractional'])!=tuple(anchors_candidate):
+                raise RuntimeError('Fixture temporal helper differs from actual-case fractional anchors')
+        purpose=('real_video_temporal_position_runtime_regression_check'
+            if args.fixture=='noaa' else 'synthetic_subsecond_temporal_position_regression_check')
+        source_files=[Path(__file__).name,'qwen_temporal_geometry.py','video_time_mapping.py',
+            'run_dataset_video_gpu_smoke.py']
+        if args.fixture=='noaa':
+            source_files += ['grounding_check.py']
         result={
-            'schema_version':1,'purpose':'real_video_temporal_position_runtime_regression_check',
+            'schema_version':1,'purpose':purpose,'fixture':args.fixture,
             'started_utc':started,'elapsed_seconds':time.monotonic()-timer,
             'source_commit':subprocess.check_output(['git','rev-parse','HEAD'],cwd=repo,text=True).strip(),
-            'source_sha256':{n:sha256(repo/'scripts'/n) for n in [Path(__file__).name,
-                'run_dataset_video_gpu_smoke.py','qwen_temporal_geometry.py','grounding_check.py','video_time_mapping.py']},
+            'source_sha256':{n:sha256(repo/'scripts'/n) for n in source_files},
             'installed_model_source_sha256':sha256(inspect.getfile(Qwen2_5_VLModel)),
+            'installed_processor_source_sha256':sha256(inspect.getfile(type(processor))),
+            'installed_vision_utils_source_sha256':sha256(inspect.getfile(process_vision_info)),
             'model':'Qwen/Qwen2.5-VL-7B-Instruct','model_revision':revision,'model_config_sha256':sha256(model_path/'config.json'),
-            'media_sha256':expected_media,'source_record':'https://www.ncei.noaa.gov/metadata/granule/geoportal/rest/metadata/item/EX2503_DIVE03_20250413T192459Z_ROVHD/html',
-            'rights_source':'https://oceanexplorer.noaa.gov/okeanos-beyond-the-blue-media-resources/',
-            'credit':'NOAA Ocean Exploration','cruise_citation':'NOAA Ocean Exploration (2025), EX2503, NCEI, https://doi.org/10.25921/vgk8-m692 (subset used)',
             'seed':20261012,'quantization':'4bit','compute_dtype':'bfloat16','attention_implementation':'eager',
-            'prompt':prompt,'audio_used':False,'annotations_used':False,'human_qa_attestation':'pending; no QA evaluation',
+            'prompt':prompt,'audio_used':False,'annotations_used':False,
             'requested_samples':1,'effective_samples':1,'requested_forwards':3,'effective_forwards':3,'failures':0,
             'requested_frames':4,'effective_frames':len(timestamps),'frame_max_dimension':224,'max_pixels':256*28*28,
             'sample_timestamps_seconds':timestamps,'sampled_fps':fps,'grid_thw':grid,'video_tokens':len(positions),
@@ -174,18 +261,47 @@ def main():
             'conditions':conditions,'gpu':torch.cuda.get_device_name(0),'gpu_free_before_gib':free/1024**3,'gpu_total_gib':total/1024**3,
             'versions':{n:importlib.metadata.version(n) for n in ['torch','transformers','bitsandbytes','qwen-vl-utils','opencv-python-headless']},
             'cuda_version':torch.version.cuda,
-            'limitations':['One sparse real video; no claim generation, QA accuracy, gold intervals or efficacy.',
+            'limitations':[(
+                'One fixed real video; no claim generation, QA accuracy, gold intervals or efficacy.'
+                if args.fixture=='noaa' else
+                'One deterministic synthetic subsecond fixture; no real-video or semantic validity claim.'),
                 'Sensitivity metrics are next-token distribution changes caused by position IDs, not faithfulness or improvement.',
                 'Candidate fixes only temporal video row; native text/spatial layout retained, not full4.49 backport.',
                 'Explicit position IDs tested only for batch1/singlevideo/allone-mask/full-prompt/no cache; generation unsupported.',
                 'No uncertainty interval/statistical test for one deterministic engineering fixture.'],
             'privacy':'No raw media, dataset QA, labels, full token/logit vectors, persons or absolute local paths.'}
+        if args.fixture=='noaa':
+            result.update({
+                'media_sha256':expected_media,
+                'source_record':'https://www.ncei.noaa.gov/metadata/granule/geoportal/rest/metadata/item/EX2503_DIVE03_20250413T192459Z_ROVHD/html',
+                'rights_source':'https://oceanexplorer.noaa.gov/okeanos-beyond-the-blue-media-resources/',
+                'credit':'NOAA Ocean Exploration',
+                'cruise_citation':'NOAA Ocean Exploration (2025), EX2503, NCEI, https://doi.org/10.25921/vgk8-m692 (subset used)',
+                'human_qa_attestation':'pending; no QA evaluation',
+            })
+        else:
+            result.update({
+                'fixture_provenance':'Deterministic synthetic PIL pixels; no real media or annotations.',
+                'synthetic_pixels_sha256':fixture_sha256,
+                'list_frame_metadata':{'fps':float(metadata['fps']),
+                    'frames_indices':metadata['frames_indices'],
+                    'total_num_frames':metadata['total_num_frames']},
+                'human_qa_attestation':'not applicable to synthetic fixture',
+                'synthetic_temporal_assertions':{
+                    'expected_grid_temporal_steps':2,
+                    'expected_seconds_per_grid':0.75,
+                    'native_temporal_anchors_collapsed':True,
+                    'fractional_anchor_increment':1,
+                    'torch_float32_fixture_arithmetic_checked':True,
+                },
+            })
         output.parent.mkdir(parents=True,exist_ok=True)
         with output.open('x',encoding='utf-8') as stream:
             json.dump(result,stream,indent=2,allow_nan=False); stream.write('\n')
-        print(f'GPU position check passed: 1 video, 3/3 forwards; no-op identical; native anchors {anchors_native}, candidate {anchors_candidate}; output {args.output}')
+        print(f'GPU position check passed: fixture={args.fixture}, 1 video, 3/3 forwards; no-op identical; native anchors {anchors_native}, candidate {anchors_candidate}; output {args.output}')
     finally:
-        shutil.rmtree(tmp,ignore_errors=True)
+        if tmp is not None:
+            shutil.rmtree(tmp,ignore_errors=True)
 
 
 if __name__=='__main__':
@@ -201,9 +317,15 @@ if __name__=='__main__':
                 output=(repo/arguments[index+1]).resolve()
                 if output.is_relative_to(repo/'results') and not output.exists():
                     output.parent.mkdir(parents=True,exist_ok=True)
+                    fixture=('synthetic_subsecond' if '--fixture' in arguments and
+                        arguments.index('--fixture')+1<len(arguments) and
+                        arguments[arguments.index('--fixture')+1]=='synthetic_subsecond' else 'noaa')
+                    purpose=('synthetic_subsecond_temporal_position_regression_check'
+                        if fixture=='synthetic_subsecond' else
+                        'real_video_temporal_position_runtime_regression_check')
                     with output.open('x',encoding='utf-8') as stream:
                         json.dump({'schema_version':1,'status':'failed',
-                            'purpose':'real_video_temporal_position_runtime_regression_check',
+                            'purpose':purpose,'fixture':fixture,
                             'requested_samples':1,'effective_samples':0,'requested_forwards':3,
                             'completed_finite_forwards':RUN_PROGRESS['completed_forwards'],
                             'failures':1,'failure_type':type(error).__name__,
