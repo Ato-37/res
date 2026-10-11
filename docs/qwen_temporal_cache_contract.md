@@ -17,6 +17,10 @@
 
 5秒間隔の別固定geometryでは、nativeの最大位置+1は73、最後のtext位置+1は6。これはgeometryの実測であり、この条件のdecodeは実行していない。最大位置を使う方式を「正しい継続」と決めつけない。
 
+[実動画7Bの独立したGPU検証](../results/qwen_video_cache_gpu_smoke_20261012_02.json)では、使用条件を確認したNOAA動画1件・4フレーム、固定checkpoint、BF16/4bit/eagerを使用した。native自動・packed明示native・時間rowのみ変更の3条件で、各584-token prefillと1-token cached decodeを実行し、6/6 forwardが成功した。native/no-opはsequence・score・raw logitsが完全一致、全条件有限、継続位置55、cache長0→584→585だった。時間anchorは15/413→15/414、変更は276箇所で、spatial/non-video位置は保持された。12.409秒、ピーク割当6.074 GiB。これはこの固定入力のキャッシュ接続の確認であり、時間座標の意味的正しさやfaithfulnessの改善ではない。
+
+[最初のGPU実行](../results/qwen_video_cache_gpu_smoke_20261012_01.json)は、存在しない複合設定のpad_token_idを参照して、最初のforward前に停止した。生成設定から参照するよう修復し、失敗記録も保存している。padding、複数動画、beam、別途cache再開、長い生成のGPU成立性は未検証。
+
 ## 区別する二つの規則
 
 通常の`generate`はQwenのpacked位置 `[text row; temporal,height,width rows]` を使い、継続時に各rowの最後の値へ1を足す。対して、別途キャッシュから再開する経路はmodel内の`rope_deltas`を参照できる。native実装のdeltaは `max(3つの位置row)+1−有効prompt長` であり、最後のtext座標と一致する保証はない。[公式5.17モデル](https://github.com/huggingface/transformers/blob/v5.17.0/src/transformers/models/qwen2_5_vl/modeling_qwen2_5_vl.py)、[公式5.17生成処理](https://github.com/huggingface/transformers/blob/v5.17.0/src/transformers/generation/utils.py)。
@@ -39,4 +43,8 @@ PYTHONPATH=scripts .venv/bin/python -m unittest scripts.test_audit_qwen_cache_po
 PYTHONPATH=scripts .venv/bin/python scripts/audit_qwen_cache_positions_cpu.py --output results/qwen_cache_positions_cpu_reproduction_NEW.json
 ```
 
-後者の例名では未実行。実GPUの互換性確認を行うなら、目的を7B BF16/4bitの実際の視覚入力・packed位置・cacheの接続に限定し、CPU結果と混ぜずに別manifestへ記録する。QAゲートを通過させるものではない。
+後者の例名では未実行。GPU検証コードのCPU preflightは次で再確認できる。9件が実行済み。QAゲートを通過させるものではない。
+
+```bash
+PYTHONPATH=scripts .venv/bin/python -m unittest scripts.test_run_qwen_video_cache_gpu_smoke
+```

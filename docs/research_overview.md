@@ -10,9 +10,11 @@
 
 ### 現行の提案方針（2026-10-09）
 
+2026-10-12追加: [8時間PDCAの記録](../experiments/2026-10-12_pdca_8h.md)で、実NOAA動画1件の7B BF16/4bitキャッシュ付き生成を3条件・6 forward検証し、native/no-op完全一致、有限出力、decode位置とcache長を確認した。別の公開CSV監査では62件すべてが点注釈で、固定5分区間には1件だけ含まれた。これは実行条件と注釈構造の確認であり、QAや説明faithfulnessの結果ではない。人間レビューはユーザーから未完了と確認され、注釈の最終QCも未検証のため、対応する評価ゲートは保留する。[キャッシュ継続の実行条件](qwen_temporal_cache_contract.md)を参照。
+
 2026-10-12更新: 使用条件を確認したNOAA動画1件と固定合成入力で、GPUによる時刻位置の動作検証を実施した。QA成績やfaithfulnessの改善は測定していない。FPS metadataの欠落、時間座標の丸め、抽出点と区間spanの違いを分けて監査した。NOAAの3動画・6 QAは人間による確認が未完了のため`no_go`を維持する。[時刻・サンプリングの結果と限界](temporal_runtime_and_sampling_limits.md)、[1時間PDCA実行記録](../experiments/2026-10-12_pdca_1h.md)を現行の実行結果として参照する。閉じたhead探索は再開しない。
 
-旧head-faithfulness確認は事前基準を満たさず、追加のhead/layer/alpha探索は停止した。研究を完了する段階ではなく、新しい評価対象へ進むための計画案として、**中間層の時間visual evidence介入によるgrounding改善と、claimの選択的証拠依存の検証**を定めた。[新研究計画書](internal_intervention_grounding_faithfulness_plan.md)が次の作業計画であり、まずCPUでNExT-GQAのinterval/claim適合性・重複ID・token-to-time mappingを監査する。データゲートを通るまでGPU実験は行わない。これは旧結果を覆すものでも、まだ承認済みの実験でもない。
+旧head-faithfulness確認は事前基準を満たさず、追加のhead/layer/alpha探索は停止した。研究を完了する段階ではなく、新しい評価対象へ進むための計画案として、**中間層の時間visual evidence介入によるgrounding改善と、claimの選択的証拠依存の検証**を定めた。[新研究計画書](internal_intervention_grounding_faithfulness_plan.md)が次の作業計画であり、まずCPUでNExT-GQAのinterval/claim適合性・重複ID・token-to-time mappingを監査する。データゲートを通るまで実データのQA・grounding・faithfulness評価を行わない。使用条件を別途確認した入力による動作検証は評価と区別して記録する。これは旧結果を覆すものでも、まだ承認済みの実験でもない。
 
 下記の三段構成・その後に記載されたhead中心の計画は、旧設計と実施済み記録を残すための履歴であり、現行の次アクションとして実行しない。旧数値・負の確認結果は保持し、新計画とは別estimandとして扱う。
 
