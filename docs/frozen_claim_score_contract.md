@@ -46,6 +46,18 @@ scorerは機械的な全target sumとmeanをnatsで返す。呼び出し側が�
 
 この結果を全体の互換性成功とは扱わず、許容差を変更しない。raw logitsの差がcache経路、系列長による計算、その他の数値要因のどれに由来するかは未同定。短い固定targetでのscore一致から、長い説明claimや介入下のscore一致・faithfulnessへ一般化しない。生成文・IDs・logitsを公開していないため、結果JSONだけから数値集計を独立再計算することもできない。
 
+[後続の系列長・出力層診断](../results/qwen_sequence_length_numerics_gpu_diagnostic_20261012_01.json)は、同じ入力と2 tokenを固定して実行した。生成2回と系列長584/585/586のfull forward3回、出力層への単一行の再投影5回で、logits19組・内部表現9組を比較した。18.42秒、ピーク6.074 GiB、失敗0件。配列を保持した実行中のTorch64・NumPy・Python算術照合は最大約9e−14以内だった。モデル出力の同等性閾値を新設したものではない。
+
+| 同じtoken予測位置の比較 | 内部表現の最大絶対差 | raw logitsの最大絶対差 |
+|---|---:|---:|
+| 生成token 0とfull584 | 0 | 0.0625 |
+| 生成token 0とfull585 | 2.5 | 0.4921875 |
+| 生成token 0とfull586 | 7.5 | 0.875 |
+| 生成token 1とfull585 | 8.712890625 | 1.03125 |
+| 生成token 1とfull586 | 8.484375 | 1.0 |
+
+full584の同じ内部表現を出力層へ単一行で渡すと、生成token 0のlogitsを完全に再現した。この固定行では出力層の入力行数がraw差を説明する。一方、585/586では出力層より前にも差があり、行数による出力層の差だけでは全体を説明できない。5行のfull投影と単一行再投影の差はraw最大0.03125–0.0625、固定tokenのlog probability差は8.55e−12–8.31e−11 natだった。特定のkernelや量子化を原因と同定した、因果maskが正しい、動画説明が忠実である、とは結論しない。現在の重み本体は[別のCPU照合](../results/qwen_checkpoint_bytes_cpu_20261012_01.json)で公式の固定revisionの5ファイルと一致したが、過去の実行や照合後の変更を継続的に認証するものではない。
+
 ## CaFとの測定対象の違い
 
 [Yeo et al.のCaF論文](https://aclanthology.org/2025.emnlp-main.529.pdf)は、回答と説明について破損した入力span以降の対象token・layerごとの介入効果を作り、その二つの帰属mapを`CaF = 1 − cosine distance`で比較する。出力tokenの効果を平均したmapの一致であり、本資料で検討している「固定したclaimのlog likelihoodが、対応する動画区間への介入に選択的に依存するか」とは測定対象が異なる。論文のNLP/Gemma2での結果を動画の意味対応・説明の真実性の検証とは扱わない。
