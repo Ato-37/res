@@ -37,3 +37,42 @@ Use a new filename on reproduction; existing outputs are refused. This command h
 ## Interpretation and next action
 
 A successful run would establish one finite real-video model forward and internal processor consistency at this sparse input size. It cannot establish visual correctness, semantic annotation fit, temporal evidence localization, intervention benefit, faithfulness, or novelty. Four frames across 300 seconds yield very coarse temporal coverage. No effect estimate, confidence interval, significance test, or multiplicity correction is applicable because there is no treatment/control outcome. The original human QA and NExT per-video rights gates stay open; do not reopen the closed head/layer/alpha searches.
+
+## Verified execution and primary audit
+
+The reproduction command above **ran** on the existing `.venv` with individual GPU elevation. Result: `results/noaa_video_only_gpu_smoke_20261012_01.json`.
+
+| Item | Observed |
+|---|---:|
+| Requested/effective videos | 1/1 |
+| Requested/effective frames | 4/4 |
+| Failures | 0 |
+| Grid (temporal, height, width) | [2, 24, 46] |
+| Video / total input tokens | 552 / 584 |
+| Attention layers with finite values | 28/28 |
+| Finite output logits | true |
+| Peak allocated CUDA memory | 6.521810 GiB |
+| Forward plus subsequent checks | 1.788918 s |
+| Extraction/load/forward through summary construction | 11.549180 s |
+
+Source commit at execution: `20a018f853e0a2ca8e9326e283cbed67e7ef82c9`. Result SHA256: `d3ac15aa1029cb4e339c2723dc8c654c2e8e88d733795249a94abaa9534b0415`. Primary independently rehashed all three referenced source files, checked requested/effective counts, the finite flags, and the absence of absolute local paths or dataset QA fields. No model generation or answer scoring occurred.
+
+Sample timestamps were 0, 99.9999, 199.9998 and 299.9997 seconds. Two chunk spans [0,99.9999] and [199.9998,299.9997] are sparse preprocessing spans, not continuous evidence coverage. Processor `seconds_per_grid_ts=199.999802` matched `2 / sampled_fps` within the runner's fixed tolerance. Neither this identity nor finite tensors establish semantic timestamp validity for arbitrary videos.
+
+Independent pre-run audits caught and resolved: arbitrary input overrides could mislabel provenance (media/hash now fixed together); eight frames had no memory evidence (runner restricted to four); runtime failures lacked an artifact (exception type/counts now preserved without sensitive message text); OpenCV package name mismatched the installed headless distribution (corrected and all version lookups checked before run). Preflight argparse failures still abort without a runtime result artifact. Initial normal-sandbox Git staging failed because `.git` is mounted read-only; scoped per-command elevated Git commits succeeded. No automatic review rejection occurred.
+
+## Evidence-led stop / next action
+
+The label-free real-data execution question is answered for this exact one-video/four-frame condition. Repeating the same forward or expanding to additional clips without a distinct question would not establish faithfulness and is not planned. No efficacy pilot is justified until the annotation/claim, control, estimand and rights gates are resolved. The historical NOAA human-QA attestation is still pending, and NExT clip-level rights are still unverified. This is a completed execution smoke, not an SSS efficacy result or thesis conclusion.
+
+CPU verification (no GPU needed; these 14 tests already passed):
+
+```bash
+PYTHONPATH=scripts .venv/bin/python -m unittest scripts/test_grounding_metrics.py scripts/test_video_time_mapping.py
+```
+
+For a separately authorized reproducibility check use a **new** result filename. No additional GPU repetition is scientifically required at this checkpoint.
+
+Post-run overwrite guard was checked using the existing output filename: CLI exited 2 before CUDA/model imports and preserved the result; this was a CPU-only safety check, not a second experiment.
+
+Final independent artifact audit passed: the auditor separately recomputed media, all referenced source, and pinned model-config hashes; reconciled counts/token math; and inspected privacy/claim boundaries directly. No critical execution-scope issue remains. The auditor emphasizes that sampled-pair endpoint spans differ from complete 200-second processor cells; this result must not be called a validated timestamp-to-evidence alignment. Independent `ffprobe` inspection found h264 640x360, CFR nominal/average 30000/1001 FPS, duration 300.033067 seconds and 8992 frames, consistent with the sampled endpoints within that duration. These are decoding metadata checks, not semantic evidence validation.
