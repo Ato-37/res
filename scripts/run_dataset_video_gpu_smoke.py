@@ -28,16 +28,15 @@ def sha256(path):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--output', required=True)
-    parser.add_argument('--video', default='datasets/noaa_qa_pilot_20261011/media/source.mp4')
-    parser.add_argument('--expected-sha256', default='13ab1d0e12d9c6b9e776890d123f363c12c572d52d1f58464b57a2e98667f126')
-    parser.add_argument('--num-frames', type=int, default=4, choices=[4, 8])
+    parser.add_argument('--num-frames', type=int, default=4, choices=[4])
     args = parser.parse_args()
     repo = Path(__file__).resolve().parents[1]
     output = (repo / args.output).resolve()
     if not output.is_relative_to(repo / 'results') or output.exists():
         parser.error('Use a new output inside results/; overwrite refused')
-    video = (repo / args.video).resolve()
-    if not video.is_file() or sha256(video) != args.expected_sha256:
+    expected_sha256 = '13ab1d0e12d9c6b9e776890d123f363c12c572d52d1f58464b57a2e98667f126'
+    video = (repo / 'datasets/noaa_qa_pilot_20261011/media/source.mp4').resolve()
+    if not video.is_file() or sha256(video) != expected_sha256:
         parser.error('Missing video or media hash mismatch')
     revision = 'cc594898137f460bfe9f0759e9844b3ce807cfb5'
     model_path = Path.home() / '.cache/huggingface/hub/models--Qwen--Qwen2.5-VL-7B-Instruct/snapshots' / revision
@@ -106,7 +105,7 @@ def main():
             'source_sha256':{name:sha256(repo/'scripts'/name) for name in [Path(__file__).name,'grounding_check.py','video_time_mapping.py']},
             'model':'Qwen/Qwen2.5-VL-7B-Instruct', 'model_revision':revision,
             'model_config_sha256':sha256(model_path/'config.json'),
-            'media_sha256':args.expected_sha256,
+            'media_sha256':expected_sha256,
             'selection':'NOAA EX2503 dive03 fixed before outcomes; one local real video; entire 300-second source',
             'source_record':'https://www.ncei.noaa.gov/metadata/granule/geoportal/rest/metadata/item/EX2503_DIVE03_20250413T192459Z_ROVHD/html',
             'rights_source':'https://oceanexplorer.noaa.gov/okeanos-beyond-the-blue-media-resources/',
@@ -143,4 +142,27 @@ def main():
 
 
 if __name__ == '__main__':
-    main()
+    try:
+        main()
+    except Exception as error:
+        # Preserve failed GPU attempts without serializing potentially sensitive
+        # exception messages (which can contain paths, prompts, or model inputs).
+        import sys
+        arguments = sys.argv[1:]
+        if '--output' in arguments:
+            index = arguments.index('--output')
+            if index + 1 < len(arguments):
+                repo = Path(__file__).resolve().parents[1]
+                output = (repo / arguments[index + 1]).resolve()
+                if output.is_relative_to(repo / 'results') and not output.exists():
+                    output.parent.mkdir(parents=True, exist_ok=True)
+                    with output.open('x', encoding='utf-8') as stream:
+                        json.dump({'schema_version':1, 'status':'failed',
+                            'purpose':'real_dataset_video_only_gpu_execution_validation',
+                            'requested_samples':1, 'effective_samples':0, 'failures':1,
+                            'created_utc':datetime.now(timezone.utc).isoformat(),
+                            'runner_sha256':sha256(Path(__file__)),
+                            'failure_type':type(error).__name__}, stream, indent=2)
+                        stream.write('\n')
+        print(f'GPU smoke failed: {type(error).__name__}; no research outcome.', file=sys.stderr)
+        sys.exit(1)
