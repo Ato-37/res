@@ -1,0 +1,119 @@
+{
+  "created_at_utc": "2026-10-11T20:49:13.331036+00:00",
+  "elapsed_seconds": 0.0185690879879985,
+  "failure_stage": null,
+  "fixture": {
+    "attention_masks_all_ones": true,
+    "batch_size": 1,
+    "fixed_suffix_length": 3,
+    "prompt_tokens": 36,
+    "synthetic_token_ids_omitted": true,
+    "video_grid_thw": [
+      8,
+      4,
+      4
+    ],
+    "video_placeholder_tokens": 32
+  },
+  "limitations": "does not establish 7B BF16/4-bit behavior, visual encoder compatibility, semantic validity of continuation coordinates, or a universal cache contract",
+  "model_config": {
+    "attention_implementation": "eager",
+    "config_sha256": "f263a1d0cb26ea6b73228d1255a40b706a4122fa2a9dc623e7c20045f88751fa",
+    "text_attention_heads": 2,
+    "text_hidden_size": 48,
+    "text_key_value_heads": 2,
+    "text_layers": 1,
+    "vision_layers": 1,
+    "vocab_size": 64
+  },
+  "observations": {
+    "all_scores_finite": true,
+    "cache_lengths_after_prefill_and_decode": [
+      36,
+      37,
+      38
+    ],
+    "cache_lengths_expected": [
+      36,
+      37,
+      38
+    ],
+    "cache_prefill_calls": 2,
+    "captured_decode_positions_match_native_slices": true,
+    "gate_checks": {
+      "cache_lengths_match_expected": true,
+      "model_forward_calls_match_expected": true,
+      "native_position_captures_match": true,
+      "teacher_forced_and_cache_logits_finite": true,
+      "teacher_forced_cache_predictions_match_fixed_tolerance": true,
+      "wrong_offset_control_finite": true,
+      "wrong_offset_control_separates_at_fixed_tolerance": true
+    },
+    "model_forward_calls_attempted": 6,
+    "model_forward_calls_by_stage_attempted": {
+      "cache_prefill": 2,
+      "negative_control_decode": 1,
+      "sequential_cached_decode": 2,
+      "teacher_forced_forward": 1
+    },
+    "model_forward_calls_by_stage_completed": {
+      "cache_prefill": 2,
+      "negative_control_decode": 1,
+      "sequential_cached_decode": 2,
+      "teacher_forced_forward": 1
+    },
+    "model_forward_calls_completed": 6,
+    "model_forward_calls_expected": 6,
+    "negative_control_decode_calls": 1,
+    "sequential_decode_calls": 2,
+    "teacher_forced_forward_calls": 1,
+    "teacher_forced_vs_cache_allclose_each_suffix_prediction": [
+      true,
+      true,
+      true
+    ],
+    "teacher_forced_vs_cache_max_abs_error_each_suffix_prediction": [
+      0.0,
+      5.960464477539063e-08,
+      1.1920928955078125e-07
+    ],
+    "wrong_offset_control_max_abs_error": 0.0001716911792755127,
+    "wrong_offset_control_not_allclose": true
+  },
+  "protocol": {
+    "atol": 1e-05,
+    "cache_path": "fresh prompt prefill followed by two sequential one-token calls",
+    "expected_model_forward_calls": 6,
+    "fixed_suffix_length": 3,
+    "forward_api": "direct model.forward with explicit native three-row positions; no GenerationMixin packed text row",
+    "negative_control": {
+      "comparison": "logits predicting suffix token 1 against native teacher-forced row P",
+      "position_shift_all_three_axes": 1,
+      "required_result": "not allclose at the same fixed tolerance",
+      "sensitivity_failure_action": "record as diagnostic failure; no offset/token/seed search"
+    },
+    "position_source": "installed native model.model.get_rope_index on prompt plus fixed suffix",
+    "rtol": 0.0001,
+    "score_alignment": "full-forward rows P-1,P,P+1 vs prefill-final and decode outputs after suffix tokens 0,1"
+  },
+  "purpose": "native_teacher_forcing_vs_fresh_cache_cpu_api_diagnostic",
+  "schema_version": 1,
+  "scope": "fixed synthetic placeholder geometry; tiny random CPU FP32 model; native positions only; no visual pixels, QA, candidate policy, or efficacy",
+  "seed": 20261012,
+  "source_commit": "f681cfd3bd809f35cf1bf57d0b10590650d27049",
+  "source_sha256": {
+    "installed_generation_utils": "bb558d8676be95457126c82a32600dad206c13e4fb96b4f5d114f1f2483d7f62",
+    "installed_qwen_model": "507cb2c383ead0e0e22b16ec9c8af2eb82703843cd5849112715751d990ff15e",
+    "reused_cpu_fixture_and_model_config": "b4dd42de19bc7bbbd7c71d087f9e8a9ec76ed6630c32f4a46160f9de90b79185",
+    "runner": "bfdb78918e4a4ec9911bb29b0e950696672347e017f227b7efebcb43c4798ae9"
+  },
+  "status": "ok",
+  "versions": {
+    "device": "cpu",
+    "dtype": "float32",
+    "model": "random tiny Qwen2.5-VL configuration reused from CPU cache-position audit",
+    "python": "3.12.14",
+    "torch": "2.11.0+cu128",
+    "transformers": "5.17.0"
+  }
+}
