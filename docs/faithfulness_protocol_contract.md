@@ -123,3 +123,27 @@ attestation exists. This protocol validator neither reads nor changes
 `scripts/audit_noaa_qa_gate.py`; passing an illustrative or real protocol file
 does not satisfy that gate, establish NOAA annotation validity, or upgrade the
 three-video/six-QA feasibility cohort to confirmatory evidence.
+
+## Standalone first-pass structure check
+
+`scripts/noaa_first_pass_contract.py` is a separate pure CPU helper; it is not
+integrated into the existing NOAA attestation gate. It checks an unsigned
+schema-1 first-pass export against caller-verified canonical group/source
+hashes, nonempty QID sets with exactly five choices, and expected silent-review
+media metadata. Every expected QID must occur once with a strict integer index
+0–4 and matching A–E label. It returns aggregate counts and generic failure
+codes, never the reviewer choices, QIDs or media metadata.
+
+`structurally_valid` and `review_media_matches_expected_metadata` indicate
+consistency with the supplied expectations only. The helper does not
+independently authenticate those expectations, compare choices to gold,
+establish reviewer identity or chronology, or grant execution authorization.
+The current private packet and v1 gate are unchanged; mandatory integration
+would require a separately versioned contract. User-reported human review
+remains incomplete.
+
+CPU reproduction (synthetic records; no private review or inference):
+
+```sh
+PYTHONPATH=scripts .venv/bin/python -m unittest scripts/test_noaa_first_pass_contract.py -v
+```
