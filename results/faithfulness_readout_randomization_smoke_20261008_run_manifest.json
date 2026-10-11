@@ -1,0 +1,15 @@
+{
+  "experiment": "head_attribution_output_readout_randomization_sanity",
+  "created_utc": "2026-10-08T05:11:41.703039+00:00",
+  "samples_sha256": "c60f9b9ac278d1b017418c3d483d50c13537aa18514c09f9ad77854045834b8a",
+  "model": "Qwen/Qwen2.5-VL-7B-Instruct",
+  "quant": "4bit",
+  "seed": 20261010,
+  "n_requested": 1,
+  "n_effective": 1,
+  "n_failures": 0,
+  "randomizations_per_sample": 1,
+  "num_frames": 16,
+  "layers": "all",
+  "randomized_parameter_scope": "five A-E output-readout rows only"
+}

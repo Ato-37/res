@@ -1,0 +1,1585 @@
+{
+  "schema_version": 1,
+  "script": "audit_evidence_probe_task_validity.py",
+  "samples_file": "/home/ato121/res/data/nextgqa_samples_evidence_control_heldout.json",
+  "probe_results": "/home/ato121/res/results/evidence_control_probe_heldout.json",
+  "model": "Qwen/Qwen2.5-VL-7B-Instruct",
+  "quant": "4bit",
+  "dtype": "bfloat16",
+  "prompt_protocol": "five NExT-GQA answer choices; next-token logprob of A-E; greedy-choice accuracy",
+  "n_requested": 56,
+  "n_effective": 56,
+  "failures": [],
+  "summary": {
+    "n": 56,
+    "multiple_choice_accuracy": 0.75,
+    "accuracy_wilson_ci95": [
+      0.6230735785233251,
+      0.8448294531172932
+    ],
+    "correct_vs_best_foil_logprob_margin_mean": 2.062500008858998,
+    "correct_vs_best_foil_logprob_margin_ci95": [
+      1.2767857458508973,
+      2.8549107416204476
+    ],
+    "stratified_prior_free_answer_probe_contrast": {
+      "correct": {
+        "n": 42,
+        "prior_selective_logprob_drop_mean": 0.05096568391059647,
+        "prior_selective_logprob_drop_ci95": [
+          -0.08713878649508641,
+          0.19837952472624218
+        ]
+      },
+      "incorrect": {
+        "n": 14,
+        "prior_selective_logprob_drop_mean": -0.44569724180868775,
+        "prior_selective_logprob_drop_ci95": [
+          -1.0044050750987874,
+          -0.020436659455300137
+        ]
+      }
+    },
+    "by_question_type": {
+      "CH": {
+        "n": 9,
+        "accuracy": 0.5555555555555556,
+        "mean_correct_vs_best_foil_margin": 0.8055555679085147
+      },
+      "CW": {
+        "n": 28,
+        "accuracy": 0.7857142857142857,
+        "mean_correct_vs_best_foil_margin": 2.870535704858152
+      },
+      "TC": {
+        "n": 10,
+        "accuracy": 0.7,
+        "mean_correct_vs_best_foil_margin": 0.31250000596046446
+      },
+      "TN": {
+        "n": 9,
+        "accuracy": 0.8888888888888888,
+        "mean_correct_vs_best_foil_margin": 2.750000065477151
+      }
+    }
+  },
+  "records": [
+    {
+      "sample_id": "0",
+      "video_id": null,
+      "qid": null,
+      "question_type": "CW",
+      "choices": [
+        "very hot",
+        "hiking",
+        "sunny",
+        "express her words",
+        "speaking"
+      ],
+      "answer_choice_index": 2,
+      "predicted_choice_index": 2,
+      "predicted_choice_label": "C",
+      "correct": true,
+      "choice_logprobs": [
+        -3.6520776748657227,
+        -7.902077674865723,
+        -0.027077650651335716,
+        -8.527077674865723,
+        -11.152077674865723
+      ],
+      "correct_vs_best_foil_logprob": 3.625000024214387,
+      "top_vs_second_logprob": 3.625000024214387,
+      "prior_selective_logprob_drop": 0.29854803085326864
+    },
+    {
+      "sample_id": "1",
+      "video_id": null,
+      "qid": null,
+      "question_type": "CW",
+      "choices": [
+        "to hit the man",
+        "interested in other toy",
+        "get ready to hit ball",
+        "to play with dog",
+        "pass the bat to someone else"
+      ],
+      "answer_choice_index": 2,
+      "predicted_choice_index": 2,
+      "predicted_choice_label": "C",
+      "correct": true,
+      "choice_logprobs": [
+        -8.263082504272461,
+        -8.638082504272461,
+        -0.013082974590361118,
+        -10.013082504272461,
+        -4.388082981109619
+      ],
+      "correct_vs_best_foil_logprob": 4.375000006519258,
+      "top_vs_second_logprob": 4.375000006519258,
+      "prior_selective_logprob_drop": 0.22656009793281484
+    },
+    {
+      "sample_id": "2",
+      "video_id": null,
+      "qid": null,
+      "question_type": "CH",
+      "choices": [
+        "touch her",
+        "took out his hand",
+        "stand facing the man",
+        "kissed his head",
+        "show his phone"
+      ],
+      "answer_choice_index": 1,
+      "predicted_choice_index": 0,
+      "predicted_choice_label": "A",
+      "correct": false,
+      "choice_logprobs": [
+        -0.39838024973869324,
+        -1.8983802795410156,
+        -5.273380279541016,
+        -1.7733802795410156,
+        -5.648380279541016
+      ],
+      "correct_vs_best_foil_logprob": -1.5000000298023224,
+      "top_vs_second_logprob": 1.3750000298023224,
+      "prior_selective_logprob_drop": -0.5488877773284884
+    },
+    {
+      "sample_id": "3",
+      "video_id": null,
+      "qid": null,
+      "question_type": "CW",
+      "choices": [
+        "move her forward",
+        "to adjust her clothes",
+        "to soothe her",
+        "to hug her",
+        "pose with her"
+      ],
+      "answer_choice_index": 0,
+      "predicted_choice_index": 0,
+      "predicted_choice_label": "A",
+      "correct": true,
+      "choice_logprobs": [
+        -0.22030042111873627,
+        -2.9703004360198975,
+        -4.595300197601318,
+        -2.9703004360198975,
+        -2.4703004360198975
+      ],
+      "correct_vs_best_foil_logprob": 2.250000014901161,
+      "top_vs_second_logprob": 2.250000014901161,
+      "prior_selective_logprob_drop": -0.6514271736145005
+    },
+    {
+      "sample_id": "4",
+      "video_id": null,
+      "qid": null,
+      "question_type": "CH",
+      "choices": [
+        "walk forward",
+        "crawl",
+        "jumping up and down",
+        "rides toy car",
+        "swing up and down"
+      ],
+      "answer_choice_index": 1,
+      "predicted_choice_index": 0,
+      "predicted_choice_label": "A",
+      "correct": false,
+      "choice_logprobs": [
+        -0.12612438201904297,
+        -3.001124382019043,
+        -4.001124382019043,
+        -3.001124382019043,
+        -7.876124382019043
+      ],
+      "correct_vs_best_foil_logprob": -2.875,
+      "top_vs_second_logprob": 2.875,
+      "prior_selective_logprob_drop": 0.08140106201171804
+    },
+    {
+      "sample_id": "5",
+      "video_id": null,
+      "qid": null,
+      "question_type": "TN",
+      "choices": [
+        "swing her leg",
+        "stand up",
+        "starts talking",
+        "smile and move hands",
+        "holds the book"
+      ],
+      "answer_choice_index": 1,
+      "predicted_choice_index": 4,
+      "predicted_choice_label": "E",
+      "correct": false,
+      "choice_logprobs": [
+        -3.345592975616455,
+        -2.220592975616455,
+        -2.345592975616455,
+        -2.970592975616455,
+        -0.34559309482574463
+      ],
+      "correct_vs_best_foil_logprob": -1.8749998807907104,
+      "top_vs_second_logprob": 1.8749998807907104,
+      "prior_selective_logprob_drop": -0.2740608721971505
+    },
+    {
+      "sample_id": "6",
+      "video_id": null,
+      "qid": null,
+      "question_type": "CW",
+      "choices": [
+        "play with them",
+        "to remove things from the table",
+        "hold orange shirt baby",
+        "to take photo",
+        "to blow the canddles"
+      ],
+      "answer_choice_index": 1,
+      "predicted_choice_index": 1,
+      "predicted_choice_label": "B",
+      "correct": true,
+      "choice_logprobs": [
+        -6.840743064880371,
+        -0.21574318408966064,
+        -6.965743064880371,
+        -1.9657431840896606,
+        -2.965743064880371
+      ],
+      "correct_vs_best_foil_logprob": 1.75,
+      "top_vs_second_logprob": 1.75,
+      "prior_selective_logprob_drop": -0.36326426975428916
+    },
+    {
+      "sample_id": "7",
+      "video_id": null,
+      "qid": null,
+      "question_type": "CW",
+      "choices": [
+        "the boat was lost",
+        "the boat had smoke around it",
+        "the boat was stationary",
+        "the boat falls down the waterfall",
+        "the boat ran out of engine"
+      ],
+      "answer_choice_index": 3,
+      "predicted_choice_index": 3,
+      "predicted_choice_label": "D",
+      "correct": true,
+      "choice_logprobs": [
+        -7.419118881225586,
+        -7.919118881225586,
+        -3.169119119644165,
+        -0.04411905258893967,
+        -9.919118881225586
+      ],
+      "correct_vs_best_foil_logprob": 3.1250000670552254,
+      "top_vs_second_logprob": 3.1250000670552254,
+      "prior_selective_logprob_drop": -0.27907999157906005
+    },
+    {
+      "sample_id": "8",
+      "video_id": null,
+      "qid": null,
+      "question_type": "CW",
+      "choices": [
+        "asking more food",
+        "adjusting its leash",
+        "to see who pet it",
+        "playing ball games",
+        "excited to change his attire"
+      ],
+      "answer_choice_index": 2,
+      "predicted_choice_index": 2,
+      "predicted_choice_label": "C",
+      "correct": true,
+      "choice_logprobs": [
+        -2.665396213531494,
+        -5.665396213531494,
+        -0.1653962880373001,
+        -2.540396213531494,
+        -8.290396690368652
+      ],
+      "correct_vs_best_foil_logprob": 2.374999925494194,
+      "top_vs_second_logprob": 2.374999925494194,
+      "prior_selective_logprob_drop": -0.4704677104949937
+    },
+    {
+      "sample_id": "9",
+      "video_id": null,
+      "qid": null,
+      "question_type": "CW",
+      "choices": [
+        "climbing the cliff",
+        "safety vest",
+        "ride bicycle",
+        "sledding",
+        "boat surfing"
+      ],
+      "answer_choice_index": 4,
+      "predicted_choice_index": 1,
+      "predicted_choice_label": "B",
+      "correct": false,
+      "choice_logprobs": [
+        -8.656639099121094,
+        -0.28163883090019226,
+        -9.781639099121094,
+        -9.906639099121094,
+        -1.4066388607025146
+      ],
+      "correct_vs_best_foil_logprob": -1.1250000298023224,
+      "top_vs_second_logprob": 1.1250000298023224,
+      "prior_selective_logprob_drop": 0.060274696350095525
+    },
+    {
+      "sample_id": "10",
+      "video_id": null,
+      "qid": null,
+      "question_type": "TC",
+      "choices": [
+        "adjust head",
+        "walk to the store",
+        "takes out notes",
+        "cry",
+        "drink water"
+      ],
+      "answer_choice_index": 2,
+      "predicted_choice_index": 2,
+      "predicted_choice_label": "C",
+      "correct": true,
+      "choice_logprobs": [
+        -3.545208692550659,
+        -8.045208930969238,
+        -0.2952086925506592,
+        -1.6702086925506592,
+        -3.295208692550659
+      ],
+      "correct_vs_best_foil_logprob": 1.375,
+      "top_vs_second_logprob": 1.375,
+      "prior_selective_logprob_drop": 0.4470602035522404
+    },
+    {
+      "sample_id": "11",
+      "video_id": null,
+      "qid": null,
+      "question_type": "CH",
+      "choices": [
+        "holds the pram",
+        "look around him",
+        "pat the baby gently",
+        "touch baby s feet",
+        "wear thick clothes"
+      ],
+      "answer_choice_index": 3,
+      "predicted_choice_index": 2,
+      "predicted_choice_label": "C",
+      "correct": false,
+      "choice_logprobs": [
+        -7.674250602722168,
+        -9.174250602722168,
+        -0.04925038665533066,
+        -3.049250364303589,
+        -10.924250602722168
+      ],
+      "correct_vs_best_foil_logprob": -2.999999977648258,
+      "top_vs_second_logprob": 2.999999977648258,
+      "prior_selective_logprob_drop": 0.7717607498168917
+    },
+    {
+      "sample_id": "12",
+      "video_id": null,
+      "qid": null,
+      "question_type": "CW",
+      "choices": [
+        "get on the adults lap",
+        "want to take toys",
+        "entertain himself",
+        "asking for food",
+        "play with dog"
+      ],
+      "answer_choice_index": 0,
+      "predicted_choice_index": 0,
+      "predicted_choice_label": "A",
+      "correct": true,
+      "choice_logprobs": [
+        -0.07202968001365662,
+        -2.6970295906066895,
+        -7.3220295906066895,
+        -6.8220295906066895,
+        -8.447030067443848
+      ],
+      "correct_vs_best_foil_logprob": 2.624999910593033,
+      "top_vs_second_logprob": 2.624999910593033,
+      "prior_selective_logprob_drop": -0.4818226933479295
+    },
+    {
+      "sample_id": "13",
+      "video_id": null,
+      "qid": null,
+      "question_type": "TC",
+      "choices": [
+        "crawls forward",
+        "clap",
+        "laughing",
+        "look at the dog",
+        "hug and put hands up"
+      ],
+      "answer_choice_index": 2,
+      "predicted_choice_index": 2,
+      "predicted_choice_label": "C",
+      "correct": true,
+      "choice_logprobs": [
+        -8.513256072998047,
+        -0.7632561326026917,
+        -0.6382561326026917,
+        -9.513256072998047,
+        -5.263256072998047
+      ],
+      "correct_vs_best_foil_logprob": 0.125,
+      "top_vs_second_logprob": 0.125,
+      "prior_selective_logprob_drop": 0.29576694071292664
+    },
+    {
+      "sample_id": "14",
+      "video_id": null,
+      "qid": null,
+      "question_type": "CW",
+      "choices": [
+        "took at other boy s progress",
+        "mixing things",
+        "tripped over a rock",
+        "look at baby",
+        "smashing pebbles"
+      ],
+      "answer_choice_index": 3,
+      "predicted_choice_index": 3,
+      "predicted_choice_label": "D",
+      "correct": true,
+      "choice_logprobs": [
+        -8.125528335571289,
+        -9.500528335571289,
+        -9.250528335571289,
+        -0.0005286726518534124,
+        -11.750528335571289
+      ],
+      "correct_vs_best_foil_logprob": 8.124999662919436,
+      "top_vs_second_logprob": 8.124999662919436,
+      "prior_selective_logprob_drop": 0.0478990435600295
+    },
+    {
+      "sample_id": "15",
+      "video_id": null,
+      "qid": null,
+      "question_type": "CH",
+      "choices": [
+        "approach girl in green",
+        "woman helped him",
+        "talking about something",
+        "hand gestures",
+        "push up using finger"
+      ],
+      "answer_choice_index": 3,
+      "predicted_choice_index": 3,
+      "predicted_choice_label": "D",
+      "correct": true,
+      "choice_logprobs": [
+        -8.03077507019043,
+        -9.78077507019043,
+        -3.530775308609009,
+        -0.03077535703778267,
+        -7.530775547027588
+      ],
+      "correct_vs_best_foil_logprob": 3.499999951571226,
+      "top_vs_second_logprob": 3.499999951571226,
+      "prior_selective_logprob_drop": 0.06754757761955332
+    },
+    {
+      "sample_id": "16",
+      "video_id": null,
+      "qid": null,
+      "question_type": "CW",
+      "choices": [
+        "performing",
+        "prevent echo",
+        "referring to papers",
+        "feel the music",
+        "to enjoy the music"
+      ],
+      "answer_choice_index": 2,
+      "predicted_choice_index": 2,
+      "predicted_choice_label": "C",
+      "correct": true,
+      "choice_logprobs": [
+        -4.156057357788086,
+        -4.781057357788086,
+        -0.15605713427066803,
+        -2.281057119369507,
+        -4.031057357788086
+      ],
+      "correct_vs_best_foil_logprob": 2.124999985098839,
+      "top_vs_second_logprob": 2.124999985098839,
+      "prior_selective_logprob_drop": 0.8885957089718488
+    },
+    {
+      "sample_id": "17",
+      "video_id": null,
+      "qid": null,
+      "question_type": "TN",
+      "choices": [
+        "look around",
+        "listen to dog s obey",
+        "spread its wings",
+        "eat",
+        "enjoying scenery"
+      ],
+      "answer_choice_index": 3,
+      "predicted_choice_index": 3,
+      "predicted_choice_label": "D",
+      "correct": true,
+      "choice_logprobs": [
+        -3.5340609550476074,
+        -9.53406047821045,
+        -5.534060955047607,
+        -0.03406086936593056,
+        -8.53406047821045
+      ],
+      "correct_vs_best_foil_logprob": 3.500000085681677,
+      "top_vs_second_logprob": 3.500000085681677,
+      "prior_selective_logprob_drop": -0.10189552307128835
+    },
+    {
+      "sample_id": "18",
+      "video_id": null,
+      "qid": null,
+      "question_type": "CW",
+      "choices": [
+        "walk on beach",
+        "start to dance",
+        "to hold the ball",
+        "stablisie the man",
+        "run together"
+      ],
+      "answer_choice_index": 1,
+      "predicted_choice_index": 1,
+      "predicted_choice_label": "B",
+      "correct": true,
+      "choice_logprobs": [
+        -8.169153213500977,
+        -0.04415326938033104,
+        -7.919153213500977,
+        -3.9191532135009766,
+        -3.7941532135009766
+      ],
+      "correct_vs_best_foil_logprob": 3.7499999441206455,
+      "top_vs_second_logprob": 3.7499999441206455,
+      "prior_selective_logprob_drop": -0.009332597255706787
+    },
+    {
+      "sample_id": "19",
+      "video_id": null,
+      "qid": null,
+      "question_type": "TC",
+      "choices": [
+        "playing drums",
+        "clap",
+        "hold cake",
+        "bring up his camera",
+        "poses for the camera"
+      ],
+      "answer_choice_index": 2,
+      "predicted_choice_index": 2,
+      "predicted_choice_label": "C",
+      "correct": true,
+      "choice_logprobs": [
+        -4.891524314880371,
+        -1.2665245532989502,
+        -0.6415245532989502,
+        -2.39152455329895,
+        -2.39152455329895
+      ],
+      "correct_vs_best_foil_logprob": 0.625,
+      "top_vs_second_logprob": 0.625,
+      "prior_selective_logprob_drop": 1.5833354949951186
+    },
+    {
+      "sample_id": "20",
+      "video_id": null,
+      "qid": null,
+      "question_type": "CH",
+      "choices": [
+        "with a stick",
+        "with a rod",
+        "with his hands",
+        "with a bucket",
+        "with a net"
+      ],
+      "answer_choice_index": 1,
+      "predicted_choice_index": 1,
+      "predicted_choice_label": "B",
+      "correct": true,
+      "choice_logprobs": [
+        -4.706377029418945,
+        -0.08137685060501099,
+        -6.206377029418945,
+        -8.831377029418945,
+        -2.706376791000366
+      ],
+      "correct_vs_best_foil_logprob": 2.6249999403953552,
+      "top_vs_second_logprob": 2.6249999403953552,
+      "prior_selective_logprob_drop": 0.13494743108749674
+    },
+    {
+      "sample_id": "21",
+      "video_id": null,
+      "qid": null,
+      "question_type": "TC",
+      "choices": [
+        "touch black cat with paws",
+        "look around",
+        "scratch",
+        "staring",
+        "no reaction"
+      ],
+      "answer_choice_index": 2,
+      "predicted_choice_index": 4,
+      "predicted_choice_label": "E",
+      "correct": false,
+      "choice_logprobs": [
+        -1.6825547218322754,
+        -2.9325547218322754,
+        -2.3075547218322754,
+        -2.4325547218322754,
+        -0.5575547218322754
+      ],
+      "correct_vs_best_foil_logprob": -1.75,
+      "top_vs_second_logprob": 1.125,
+      "prior_selective_logprob_drop": -0.09768104553222656
+    },
+    {
+      "sample_id": "22",
+      "video_id": null,
+      "qid": null,
+      "question_type": "CW",
+      "choices": [
+        "pick up the boy in green",
+        "dancing to music",
+        "look at something",
+        "adjusting the rope",
+        "excited"
+      ],
+      "answer_choice_index": 3,
+      "predicted_choice_index": 3,
+      "predicted_choice_label": "D",
+      "correct": true,
+      "choice_logprobs": [
+        -6.628294944763184,
+        -10.128294944763184,
+        -7.878294944763184,
+        -0.0032949938904494047,
+        -6.503294944763184
+      ],
+      "correct_vs_best_foil_logprob": 6.499999950872734,
+      "top_vs_second_logprob": 6.499999950872734,
+      "prior_selective_logprob_drop": -0.07567769289016724
+    },
+    {
+      "sample_id": "23",
+      "video_id": null,
+      "qid": null,
+      "question_type": "CW",
+      "choices": [
+        "pick up ball",
+        "cover jets",
+        "got off the boat",
+        "reading the book",
+        "adjusting music"
+      ],
+      "answer_choice_index": 2,
+      "predicted_choice_index": 2,
+      "predicted_choice_label": "C",
+      "correct": true,
+      "choice_logprobs": [
+        -8.626239776611328,
+        -7.001239776611328,
+        -0.0012399612460285425,
+        -10.251239776611328,
+        -11.626239776611328
+      ],
+      "correct_vs_best_foil_logprob": 6.9999998153653,
+      "top_vs_second_logprob": 6.9999998153653,
+      "prior_selective_logprob_drop": -0.36851708889007995
+    },
+    {
+      "sample_id": "24",
+      "video_id": null,
+      "qid": null,
+      "question_type": "CW",
+      "choices": [
+        "acknowledge something",
+        "head was uncomfortable",
+        "try to sing to beat",
+        "posing for the camera",
+        "produce higher vioce"
+      ],
+      "answer_choice_index": 2,
+      "predicted_choice_index": 2,
+      "predicted_choice_label": "C",
+      "correct": true,
+      "choice_logprobs": [
+        -1.8180418014526367,
+        -6.318041801452637,
+        -0.19304174184799194,
+        -4.693041801452637,
+        -6.193041801452637
+      ],
+      "correct_vs_best_foil_logprob": 1.6250000596046448,
+      "top_vs_second_logprob": 1.6250000596046448,
+      "prior_selective_logprob_drop": 0.15439488291740133
+    },
+    {
+      "sample_id": "25",
+      "video_id": null,
+      "qid": null,
+      "question_type": "TC",
+      "choices": [
+        "laughs",
+        "pull the girl",
+        "shake his head",
+        "watch them stir",
+        "claps"
+      ],
+      "answer_choice_index": 3,
+      "predicted_choice_index": 3,
+      "predicted_choice_label": "D",
+      "correct": true,
+      "choice_logprobs": [
+        -2.2185144424438477,
+        -1.8435144424438477,
+        -2.7185144424438477,
+        -0.46851444244384766,
+        -3.2185144424438477
+      ],
+      "correct_vs_best_foil_logprob": 1.375,
+      "top_vs_second_logprob": 1.375,
+      "prior_selective_logprob_drop": -0.12580089569091513
+    },
+    {
+      "sample_id": "26",
+      "video_id": null,
+      "qid": null,
+      "question_type": "CW",
+      "choices": [
+        "playing with toys",
+        "trying to sleep",
+        "curious in surroundings",
+        "restless",
+        "making himself comfortable"
+      ],
+      "answer_choice_index": 3,
+      "predicted_choice_index": 3,
+      "predicted_choice_label": "D",
+      "correct": true,
+      "choice_logprobs": [
+        -8.011653900146484,
+        -3.1366543769836426,
+        -3.8866543769836426,
+        -0.1366543471813202,
+        -2.7616543769836426
+      ],
+      "correct_vs_best_foil_logprob": 2.6250000298023224,
+      "top_vs_second_logprob": 2.6250000298023224,
+      "prior_selective_logprob_drop": 0.2395167350769043
+    },
+    {
+      "sample_id": "27",
+      "video_id": null,
+      "qid": null,
+      "question_type": "CW",
+      "choices": [
+        "having a meal",
+        "set off firework",
+        "playing chessmate",
+        "make barbecue",
+        "playing hide and seek"
+      ],
+      "answer_choice_index": 0,
+      "predicted_choice_index": 0,
+      "predicted_choice_label": "A",
+      "correct": true,
+      "choice_logprobs": [
+        -0.01818063110113144,
+        -6.518180847167969,
+        -6.268180847167969,
+        -4.268180847167969,
+        -7.643180847167969
+      ],
+      "correct_vs_best_foil_logprob": 4.250000216066837,
+      "top_vs_second_logprob": 4.250000216066837,
+      "prior_selective_logprob_drop": 0.4412185415625558
+    },
+    {
+      "sample_id": "28",
+      "video_id": null,
+      "qid": null,
+      "question_type": "CW",
+      "choices": [
+        "playing with another dog",
+        "playing fetch",
+        "play with snow",
+        "want to eat ball",
+        "want to bury ball in grass"
+      ],
+      "answer_choice_index": 1,
+      "predicted_choice_index": 1,
+      "predicted_choice_label": "B",
+      "correct": true,
+      "choice_logprobs": [
+        -9.375584602355957,
+        -0.0005841932725161314,
+        -10.000584602355957,
+        -8.250584602355957,
+        -8.750584602355957
+      ],
+      "correct_vs_best_foil_logprob": 8.250000409083441,
+      "top_vs_second_logprob": 8.250000409083441,
+      "prior_selective_logprob_drop": -0.007704514265061135
+    },
+    {
+      "sample_id": "29",
+      "video_id": null,
+      "qid": null,
+      "question_type": "CW",
+      "choices": [
+        "use him to block because shy",
+        "speaking to him",
+        "jumping over him",
+        "hold him",
+        "watching over him"
+      ],
+      "answer_choice_index": 3,
+      "predicted_choice_index": 3,
+      "predicted_choice_label": "D",
+      "correct": true,
+      "choice_logprobs": [
+        -6.378076076507568,
+        -8.503076553344727,
+        -7.128076076507568,
+        -0.0030762276146560907,
+        -8.878076553344727
+      ],
+      "correct_vs_best_foil_logprob": 6.374999848892912,
+      "top_vs_second_logprob": 6.374999848892912,
+      "prior_selective_logprob_drop": 0.8330060958862298
+    },
+    {
+      "sample_id": "31",
+      "video_id": null,
+      "qid": null,
+      "question_type": "CW",
+      "choices": [
+        "eating his food",
+        "lick yogurt taste",
+        "playing",
+        "eating food",
+        "observing the child"
+      ],
+      "answer_choice_index": 2,
+      "predicted_choice_index": 2,
+      "predicted_choice_label": "C",
+      "correct": true,
+      "choice_logprobs": [
+        -7.133182048797607,
+        -7.883182048797607,
+        -0.008182219229638577,
+        -5.008182048797607,
+        -9.758182525634766
+      ],
+      "correct_vs_best_foil_logprob": 4.999999829567969,
+      "top_vs_second_logprob": 4.999999829567969,
+      "prior_selective_logprob_drop": 0.19659805297851562
+    },
+    {
+      "sample_id": "33",
+      "video_id": null,
+      "qid": null,
+      "question_type": "TN",
+      "choices": [
+        "hold the bottle sideways",
+        "walk forward",
+        "give out glass",
+        "suck on it",
+        "shakes the container"
+      ],
+      "answer_choice_index": 0,
+      "predicted_choice_index": 0,
+      "predicted_choice_label": "A",
+      "correct": true,
+      "choice_logprobs": [
+        -0.7508000135421753,
+        -2.000800132751465,
+        -2.875800132751465,
+        -1.3758000135421753,
+        -2.500800132751465
+      ],
+      "correct_vs_best_foil_logprob": 0.625,
+      "top_vs_second_logprob": 0.625,
+      "prior_selective_logprob_drop": -0.01957378387451314
+    },
+    {
+      "sample_id": "35",
+      "video_id": null,
+      "qid": null,
+      "question_type": "CW",
+      "choices": [
+        "he is happy",
+        "show excitement",
+        "jump and fight",
+        "reach for treat",
+        "to snatch the toy"
+      ],
+      "answer_choice_index": 3,
+      "predicted_choice_index": 1,
+      "predicted_choice_label": "B",
+      "correct": false,
+      "choice_logprobs": [
+        -3.1128201484680176,
+        -0.1128201112151146,
+        -5.612820148468018,
+        -2.9878201484680176,
+        -4.862820148468018
+      ],
+      "correct_vs_best_foil_logprob": -2.875000037252903,
+      "top_vs_second_logprob": 2.875000037252903,
+      "prior_selective_logprob_drop": -1.0744107544422121
+    },
+    {
+      "sample_id": "36",
+      "video_id": null,
+      "qid": null,
+      "question_type": "TC",
+      "choices": [
+        "watch the man",
+        "pass to other people",
+        "jump",
+        "sits on the chair",
+        "put hand up to hi-five"
+      ],
+      "answer_choice_index": 4,
+      "predicted_choice_index": 4,
+      "predicted_choice_label": "E",
+      "correct": true,
+      "choice_logprobs": [
+        -4.788299560546875,
+        -4.413299560546875,
+        -4.163299560546875,
+        -7.538299560546875,
+        -0.03829959034919739
+      ],
+      "correct_vs_best_foil_logprob": 4.124999970197678,
+      "top_vs_second_logprob": 4.124999970197678,
+      "prior_selective_logprob_drop": 1.25801420211792
+    },
+    {
+      "sample_id": "37",
+      "video_id": null,
+      "qid": null,
+      "question_type": "TC",
+      "choices": [
+        "resting on the ground",
+        "move away",
+        "fidget around",
+        "observe dog",
+        "climb up chair"
+      ],
+      "answer_choice_index": 4,
+      "predicted_choice_index": 2,
+      "predicted_choice_label": "C",
+      "correct": false,
+      "choice_logprobs": [
+        -1.6710096597671509,
+        -1.0460096597671509,
+        -0.7960096597671509,
+        -6.546009540557861,
+        -4.921009540557861
+      ],
+      "correct_vs_best_foil_logprob": -4.1249998807907104,
+      "top_vs_second_logprob": 0.25,
+      "prior_selective_logprob_drop": -0.6323797821998625
+    },
+    {
+      "sample_id": "38",
+      "video_id": null,
+      "qid": null,
+      "question_type": "CW",
+      "choices": [
+        "to see how to move the pencil",
+        "paste stickers",
+        "adjust bookmark",
+        "stop pen from falling",
+        "sign book"
+      ],
+      "answer_choice_index": 4,
+      "predicted_choice_index": 4,
+      "predicted_choice_label": "E",
+      "correct": true,
+      "choice_logprobs": [
+        -4.15492057800293,
+        -3.1549203395843506,
+        -2.5299203395843506,
+        -5.40492057800293,
+        -0.15492036938667297
+      ],
+      "correct_vs_best_foil_logprob": 2.3749999701976776,
+      "top_vs_second_logprob": 2.3749999701976776,
+      "prior_selective_logprob_drop": 0.10462741851806356
+    },
+    {
+      "sample_id": "39",
+      "video_id": null,
+      "qid": null,
+      "question_type": "CW",
+      "choices": [
+        "hiding from dog",
+        "play",
+        "owner beating it",
+        "playing with another cat",
+        "keep warm"
+      ],
+      "answer_choice_index": 1,
+      "predicted_choice_index": 1,
+      "predicted_choice_label": "B",
+      "correct": true,
+      "choice_logprobs": [
+        -6.028640270233154,
+        -0.028640441596508026,
+        -6.028640270233154,
+        -8.028640747070312,
+        -3.7786405086517334
+      ],
+      "correct_vs_best_foil_logprob": 3.7500000670552254,
+      "top_vs_second_logprob": 3.7500000670552254,
+      "prior_selective_logprob_drop": 0.09872283935546733
+    },
+    {
+      "sample_id": "40",
+      "video_id": null,
+      "qid": null,
+      "question_type": "CW",
+      "choices": [
+        "get out of humps",
+        "tripped",
+        "long hair girl scared him",
+        "wet floor",
+        "pushed by dog"
+      ],
+      "answer_choice_index": 1,
+      "predicted_choice_index": 1,
+      "predicted_choice_label": "B",
+      "correct": true,
+      "choice_logprobs": [
+        -6.1305670738220215,
+        -0.005567164625972509,
+        -6.2555670738220215,
+        -6.7555670738220215,
+        -8.63056755065918
+      ],
+      "correct_vs_best_foil_logprob": 6.124999909196049,
+      "top_vs_second_logprob": 6.124999909196049,
+      "prior_selective_logprob_drop": 0.12932043075561594
+    },
+    {
+      "sample_id": "41",
+      "video_id": null,
+      "qid": null,
+      "question_type": "CW",
+      "choices": [
+        "resting",
+        "eat food",
+        "toy to attract baby s attention",
+        "part of the route",
+        "yawning"
+      ],
+      "answer_choice_index": 4,
+      "predicted_choice_index": 1,
+      "predicted_choice_label": "B",
+      "correct": false,
+      "choice_logprobs": [
+        -3.682746171951294,
+        -0.43274614214897156,
+        -4.682745933532715,
+        -2.557746171951294,
+        -1.432746171951294
+      ],
+      "correct_vs_best_foil_logprob": -1.0000000298023224,
+      "top_vs_second_logprob": 1.0000000298023224,
+      "prior_selective_logprob_drop": 0.16888337135315012
+    },
+    {
+      "sample_id": "42",
+      "video_id": null,
+      "qid": null,
+      "question_type": "TC",
+      "choices": [
+        "wipe his eyes",
+        "rock the chair",
+        "grabbing toys",
+        "fiddling with fingers",
+        "pick up glass"
+      ],
+      "answer_choice_index": 3,
+      "predicted_choice_index": 3,
+      "predicted_choice_label": "D",
+      "correct": true,
+      "choice_logprobs": [
+        -3.525327205657959,
+        -1.025327205657959,
+        -5.775327205657959,
+        -0.525327205657959,
+        -4.150327205657959
+      ],
+      "correct_vs_best_foil_logprob": 0.5,
+      "top_vs_second_logprob": 0.5,
+      "prior_selective_logprob_drop": -0.44769853651523306
+    },
+    {
+      "sample_id": "43",
+      "video_id": null,
+      "qid": null,
+      "question_type": "CH",
+      "choices": [
+        "stage became darker",
+        "lights switched on",
+        "light on the speaker",
+        "became brighter",
+        "curtains closed"
+      ],
+      "answer_choice_index": 0,
+      "predicted_choice_index": 3,
+      "predicted_choice_label": "D",
+      "correct": false,
+      "choice_logprobs": [
+        -1.6997003555297852,
+        -1.1997003555297852,
+        -4.074700355529785,
+        -0.6997004151344299,
+        -6.449700355529785
+      ],
+      "correct_vs_best_foil_logprob": -0.9999999403953552,
+      "top_vs_second_logprob": 0.4999999403953552,
+      "prior_selective_logprob_drop": -1.0405068397521973
+    },
+    {
+      "sample_id": "44",
+      "video_id": null,
+      "qid": null,
+      "question_type": "TN",
+      "choices": [
+        "shake hands",
+        "open the tap",
+        "stand up",
+        "get down to the ground",
+        "look at camera"
+      ],
+      "answer_choice_index": 4,
+      "predicted_choice_index": 4,
+      "predicted_choice_label": "E",
+      "correct": true,
+      "choice_logprobs": [
+        -5.012513160705566,
+        -7.887513160705566,
+        -5.387513160705566,
+        -8.512513160705566,
+        -0.01251310296356678
+      ],
+      "correct_vs_best_foil_logprob": 5.000000057742,
+      "top_vs_second_logprob": 5.000000057742,
+      "prior_selective_logprob_drop": -0.15534541606903218
+    },
+    {
+      "sample_id": "45",
+      "video_id": null,
+      "qid": null,
+      "question_type": "TN",
+      "choices": [
+        "carry it to the side",
+        "crawl out",
+        "climb and move away",
+        "throws it inside the cage",
+        "pat his shoulders excitedly"
+      ],
+      "answer_choice_index": 0,
+      "predicted_choice_index": 0,
+      "predicted_choice_label": "A",
+      "correct": true,
+      "choice_logprobs": [
+        -0.037187010049819946,
+        -5.037187099456787,
+        -4.287187099456787,
+        -7.787187099456787,
+        -4.162187099456787
+      ],
+      "correct_vs_best_foil_logprob": 4.125000089406967,
+      "top_vs_second_logprob": 4.125000089406967,
+      "prior_selective_logprob_drop": -0.5520676434040084
+    },
+    {
+      "sample_id": "46",
+      "video_id": null,
+      "qid": null,
+      "question_type": "CW",
+      "choices": [
+        "playing and make it fly",
+        "for girl to ride forward",
+        "mimic rocket movement",
+        "show excitement",
+        "prevent item from dropping into cup"
+      ],
+      "answer_choice_index": 2,
+      "predicted_choice_index": 0,
+      "predicted_choice_label": "A",
+      "correct": false,
+      "choice_logprobs": [
+        -0.2473486065864563,
+        -4.122348785400391,
+        -2.4973485469818115,
+        -2.1223485469818115,
+        -7.497348785400391
+      ],
+      "correct_vs_best_foil_logprob": -2.2499999403953552,
+      "top_vs_second_logprob": 1.8749999403953552,
+      "prior_selective_logprob_drop": -3.5006514549255385
+    },
+    {
+      "sample_id": "47",
+      "video_id": null,
+      "qid": null,
+      "question_type": "TN",
+      "choices": [
+        "walk away",
+        "said something",
+        "touch the glass with the bottle",
+        "touch his fingers",
+        "jumps"
+      ],
+      "answer_choice_index": 2,
+      "predicted_choice_index": 2,
+      "predicted_choice_label": "C",
+      "correct": true,
+      "choice_logprobs": [
+        -2.322765827178955,
+        -7.072765827178955,
+        -0.1977657824754715,
+        -2.572765827178955,
+        -5.572765827178955
+      ],
+      "correct_vs_best_foil_logprob": 2.1250000447034836,
+      "top_vs_second_logprob": 2.1250000447034836,
+      "prior_selective_logprob_drop": -0.21331611871719502
+    },
+    {
+      "sample_id": "48",
+      "video_id": null,
+      "qid": null,
+      "question_type": "CW",
+      "choices": [
+        "to put more force",
+        "to kick it away",
+        "to play with the dog",
+        "play with the toy",
+        "the boy got bored of it"
+      ],
+      "answer_choice_index": 2,
+      "predicted_choice_index": 3,
+      "predicted_choice_label": "D",
+      "correct": false,
+      "choice_logprobs": [
+        -3.968266010284424,
+        -1.7182658910751343,
+        -2.093266010284424,
+        -0.46826592087745667,
+        -2.968266010284424
+      ],
+      "correct_vs_best_foil_logprob": -1.6250000894069672,
+      "top_vs_second_logprob": 1.2499999701976776,
+      "prior_selective_logprob_drop": -0.014244371652608834
+    },
+    {
+      "sample_id": "49",
+      "video_id": null,
+      "qid": null,
+      "question_type": "CW",
+      "choices": [
+        "show all audiences",
+        "someone pat him",
+        "look at slides",
+        "wait for his assistant",
+        "script to read from"
+      ],
+      "answer_choice_index": 0,
+      "predicted_choice_index": 0,
+      "predicted_choice_label": "A",
+      "correct": true,
+      "choice_logprobs": [
+        -0.02893533557653427,
+        -7.153935432434082,
+        -7.403935432434082,
+        -3.653935432434082,
+        -6.778935432434082
+      ],
+      "correct_vs_best_foil_logprob": 3.6250000968575478,
+      "top_vs_second_logprob": 3.6250000968575478,
+      "prior_selective_logprob_drop": -1.0706335067749038
+    },
+    {
+      "sample_id": "50",
+      "video_id": null,
+      "qid": null,
+      "question_type": "TN",
+      "choices": [
+        "hold his hand",
+        "lie down",
+        "goes away",
+        "move his feet",
+        "swim"
+      ],
+      "answer_choice_index": 2,
+      "predicted_choice_index": 2,
+      "predicted_choice_label": "C",
+      "correct": true,
+      "choice_logprobs": [
+        -3.9973978996276855,
+        -5.7473978996276855,
+        -0.37239786982536316,
+        -1.2473978996276855,
+        -6.9973978996276855
+      ],
+      "correct_vs_best_foil_logprob": 0.8750000298023224,
+      "top_vs_second_logprob": 0.8750000298023224,
+      "prior_selective_logprob_drop": -0.16295132935047008
+    },
+    {
+      "sample_id": "51",
+      "video_id": null,
+      "qid": null,
+      "question_type": "CH",
+      "choices": [
+        "in sports attire",
+        "looking angry",
+        "making different faces",
+        "smile and wave",
+        "intrigued"
+      ],
+      "answer_choice_index": 3,
+      "predicted_choice_index": 3,
+      "predicted_choice_label": "D",
+      "correct": true,
+      "choice_logprobs": [
+        -9.626835823059082,
+        -10.626835823059082,
+        -6.37683629989624,
+        -0.0018362818518653512,
+        -11.251835823059082
+      ],
+      "correct_vs_best_foil_logprob": 6.375000018044375,
+      "top_vs_second_logprob": 6.375000018044375,
+      "prior_selective_logprob_drop": -0.13341590166091777
+    },
+    {
+      "sample_id": "52",
+      "video_id": null,
+      "qid": null,
+      "question_type": "TC",
+      "choices": [
+        "pat black and brown dogs",
+        "walk around in circles",
+        "look at second toy",
+        "chases after him",
+        "starts biting the ball"
+      ],
+      "answer_choice_index": 2,
+      "predicted_choice_index": 4,
+      "predicted_choice_label": "E",
+      "correct": false,
+      "choice_logprobs": [
+        -5.992447853088379,
+        -2.492448091506958,
+        -1.242448091506958,
+        -4.242447853088379,
+        -0.4924480617046356
+      ],
+      "correct_vs_best_foil_logprob": -0.7500000298023224,
+      "top_vs_second_logprob": 0.7500000298023224,
+      "prior_selective_logprob_drop": -0.1370939373970046
+    },
+    {
+      "sample_id": "53",
+      "video_id": null,
+      "qid": null,
+      "question_type": "TN",
+      "choices": [
+        "changes the camera focus",
+        "look in same direction",
+        "looks back at the man speaking",
+        "toys",
+        "walk past"
+      ],
+      "answer_choice_index": 1,
+      "predicted_choice_index": 1,
+      "predicted_choice_label": "B",
+      "correct": true,
+      "choice_logprobs": [
+        -8.125596046447754,
+        -0.0005959880072623491,
+        -9.125596046447754,
+        -9.125596046447754,
+        -9.875596046447754
+      ],
+      "correct_vs_best_foil_logprob": 8.125000058440492,
+      "top_vs_second_logprob": 8.125000058440492,
+      "prior_selective_logprob_drop": -0.06713249087333395
+    },
+    {
+      "sample_id": "54",
+      "video_id": null,
+      "qid": null,
+      "question_type": "CH",
+      "choices": [
+        "kiss the cat",
+        "put cat on his lap",
+        "feed the cat",
+        "hitting it",
+        "pats the cat"
+      ],
+      "answer_choice_index": 4,
+      "predicted_choice_index": 4,
+      "predicted_choice_label": "E",
+      "correct": true,
+      "choice_logprobs": [
+        -2.950568675994873,
+        -2.075568675994873,
+        -6.075568675994873,
+        -6.825568675994873,
+        -0.2005685567855835
+      ],
+      "correct_vs_best_foil_logprob": 1.8750001192092896,
+      "top_vs_second_logprob": 1.8750001192092896,
+      "prior_selective_logprob_drop": 0.3926375046372428
+    },
+    {
+      "sample_id": "55",
+      "video_id": null,
+      "qid": null,
+      "question_type": "TC",
+      "choices": [
+        "bicycle",
+        "children hand",
+        "toy car",
+        "baseball",
+        "cup of water"
+      ],
+      "answer_choice_index": 2,
+      "predicted_choice_index": 2,
+      "predicted_choice_label": "C",
+      "correct": true,
+      "choice_logprobs": [
+        -2.3662447929382324,
+        -2.1162447929382324,
+        -0.4912447929382324,
+        -2.2412447929382324,
+        -2.7412447929382324
+      ],
+      "correct_vs_best_foil_logprob": 1.625,
+      "top_vs_second_logprob": 1.625,
+      "prior_selective_logprob_drop": 0.25076937675476074
+    },
+    {
+      "sample_id": "56",
+      "video_id": null,
+      "qid": null,
+      "question_type": "CW",
+      "choices": [
+        "stylish",
+        "look at the cameraman",
+        "hot sun",
+        "ensure safety",
+        "reading the book"
+      ],
+      "answer_choice_index": 3,
+      "predicted_choice_index": 1,
+      "predicted_choice_label": "B",
+      "correct": false,
+      "choice_logprobs": [
+        -6.593057632446289,
+        -0.09305775165557861,
+        -6.093057632446289,
+        -2.468057632446289,
+        -9.093057632446289
+      ],
+      "correct_vs_best_foil_logprob": -2.3749998807907104,
+      "top_vs_second_logprob": 2.3749998807907104,
+      "prior_selective_logprob_drop": -0.0021644294261946584
+    },
+    {
+      "sample_id": "58",
+      "video_id": null,
+      "qid": null,
+      "question_type": "CH",
+      "choices": [
+        "raise hands up high",
+        "shelter umbrella over her",
+        "on the table",
+        "girl blow",
+        "clap"
+      ],
+      "answer_choice_index": 4,
+      "predicted_choice_index": 4,
+      "predicted_choice_label": "E",
+      "correct": true,
+      "choice_logprobs": [
+        -1.5052452087402344,
+        -7.380245208740234,
+        -6.505245208740234,
+        -7.505245208740234,
+        -0.255245178937912
+      ],
+      "correct_vs_best_foil_logprob": 1.2500000298023224,
+      "top_vs_second_logprob": 1.2500000298023224,
+      "prior_selective_logprob_drop": 0.09049606323242188
+    },
+    {
+      "sample_id": "59",
+      "video_id": null,
+      "qid": null,
+      "question_type": "TN",
+      "choices": [
+        "yes",
+        "cry",
+        "a little",
+        "no",
+        "a lot"
+      ],
+      "answer_choice_index": 3,
+      "predicted_choice_index": 3,
+      "predicted_choice_label": "D",
+      "correct": true,
+      "choice_logprobs": [
+        -2.379648447036743,
+        -4.129648208618164,
+        -4.629648208618164,
+        -0.1296483427286148,
+        -6.004648208618164
+      ],
+      "correct_vs_best_foil_logprob": 2.2500001043081284,
+      "top_vs_second_logprob": 2.2500001043081284,
+      "prior_selective_logprob_drop": -0.28189907073974574
+    }
+  ],
+  "limitations": [
+    "This is a post-hoc task-validity audit on the already-used probe set.",
+    "Choice-letter scoring is prompt-dependent and is not the dataset\u2019s free-form generation score.",
+    "Stratifying earlier free-answer contrasts by baseline accuracy is descriptive and does not establish a causal interaction."
+  ]
+}

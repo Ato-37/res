@@ -1,0 +1,301 @@
+[
+  {
+    "video": "~/nextgqa_sample/NExTVideo/1015/4631119360.mp4",
+    "question": "What did the boy do with the toy scooper?",
+    "answer": "scoop water",
+    "grounding": [
+      [
+        18.6,
+        24.4
+      ]
+    ]
+  },
+  {
+    "video": "~/nextgqa_sample/NExTVideo/0014/2805028487.mp4",
+    "question": "What was the lady in white doing as the lady in black jacket was taking a picture of her?",
+    "answer": "eating",
+    "grounding": [
+      [
+        7.8,
+        12.2
+      ]
+    ]
+  },
+  {
+    "video": "~/nextgqa_sample/NExTVideo/1101/5995224103.mp4",
+    "question": "What are the girls doing in this video?",
+    "answer": "walking",
+    "grounding": [
+      [
+        16.1,
+        18.9
+      ]
+    ]
+  },
+  {
+    "video": "~/nextgqa_sample/NExTVideo/0042/10985344225.mp4",
+    "question": "Why does the person in the pink hat move his hand from his ear after the mechanism hits the bell the first time?",
+    "answer": "listen to the sound",
+    "grounding": [
+      [
+        5.6,
+        10.2
+      ]
+    ]
+  },
+  {
+    "video": "~/nextgqa_sample/NExTVideo/1122/2924847675.mp4",
+    "question": "Why did the woman turned her body facing the robot at the end?",
+    "answer": "to talk with the robot",
+    "grounding": [
+      [
+        8.6,
+        13.2
+      ]
+    ]
+  },
+  {
+    "video": "~/nextgqa_sample/NExTVideo/1026/2407193002.mp4",
+    "question": "Why did the boy in white leave the sofa while the boy wearing yellow was moving sideways nearer to the sofa?",
+    "answer": "do something else",
+    "grounding": [
+      [
+        12.7,
+        31.3
+      ]
+    ]
+  },
+  {
+    "video": "~/nextgqa_sample/NExTVideo/1011/4198999510.mp4",
+    "question": "What did the man do after kissing the baby the first time?",
+    "answer": "put baby over shoulder",
+    "grounding": [
+      [
+        15.3,
+        17.3
+      ]
+    ]
+  },
+  {
+    "video": "~/nextgqa_sample/NExTVideo/1200/5890296039.mp4",
+    "question": "How does the lady in white dress tidy her hair at the end?",
+    "answer": "with her hands",
+    "grounding": [
+      [
+        72.0,
+        75.4
+      ]
+    ]
+  },
+  {
+    "video": "~/nextgqa_sample/NExTVideo/1022/5503178247.mp4",
+    "question": "How did the boy in stripes react as he watches the baby play with himself?",
+    "answer": "suck finger",
+    "grounding": [
+      [
+        28.1,
+        31.6
+      ]
+    ]
+  },
+  {
+    "video": "~/nextgqa_sample/NExTVideo/1021/3492285627.mp4",
+    "question": "Why does the baby keep putting his hand in his mouth?",
+    "answer": "to eat",
+    "grounding": [
+      [
+        2.9,
+        5.1
+      ],
+      [
+        13.8,
+        15.3
+      ],
+      [
+        19.8,
+        22.6
+      ],
+      [
+        26.8,
+        29.2
+      ],
+      [
+        32.0,
+        33.8
+      ],
+      [
+        36.0,
+        37.4
+      ],
+      [
+        45.6,
+        51.4
+      ]
+    ]
+  },
+  {
+    "video": "~/nextgqa_sample/NExTVideo/1020/11794871936.mp4",
+    "question": "What expression did the girl give after she pointed at the camera?",
+    "answer": "smile",
+    "grounding": [
+      [
+        9.9,
+        11.9
+      ]
+    ]
+  },
+  {
+    "video": "~/nextgqa_sample/NExTVideo/1015/8575896129.mp4",
+    "question": "Why does the lady bend down after putting the baby on the ground?",
+    "answer": "to support baby",
+    "grounding": [
+      [
+        2.9,
+        11.3
+      ]
+    ]
+  },
+  {
+    "video": "~/nextgqa_sample/NExTVideo/1013/4863455612.mp4",
+    "question": "Why are the people wearing gloves?",
+    "answer": "making a model",
+    "grounding": [
+      [
+        0.0,
+        30
+      ]
+    ]
+  },
+  {
+    "video": "~/nextgqa_sample/NExTVideo/1051/6869912856.mp4",
+    "question": "Why did the man bend and lower his head to the bed?",
+    "answer": "to pick the girl up",
+    "grounding": [
+      [
+        5.3,
+        8.2
+      ]
+    ]
+  },
+  {
+    "video": "~/nextgqa_sample/NExTVideo/1009/6118838509.mp4",
+    "question": "What did the person do after the turtle finished eating the leaf?",
+    "answer": "walk away",
+    "grounding": [
+      [
+        34.3,
+        45.8
+      ]
+    ]
+  },
+  {
+    "video": "~/nextgqa_sample/NExTVideo/1002/6936757706.mp4",
+    "question": "What did the boy in red do after he eat one spoon of his ice cream?",
+    "answer": "look at the girl",
+    "grounding": [
+      [
+        9.8,
+        11.6
+      ]
+    ]
+  },
+  {
+    "video": "~/nextgqa_sample/NExTVideo/0099/3357799819.mp4",
+    "question": "How does the woman attempt to turn the baby over at the start?",
+    "answer": "push baby over",
+    "grounding": [
+      [
+        1.8,
+        4.1
+      ]
+    ]
+  },
+  {
+    "video": "~/nextgqa_sample/NExTVideo/1025/2976591964.mp4",
+    "question": "Why are the three children in front of the lady in brown not able to balance on the surface near the start?",
+    "answer": "lady was jumping",
+    "grounding": [
+      [
+        1.4,
+        4.6
+      ]
+    ]
+  },
+  {
+    "video": "~/nextgqa_sample/NExTVideo/1001/3098102850.mp4",
+    "question": "What does the cat at the back do after eating for a while in the middle?",
+    "answer": "walks away",
+    "grounding": [
+      [
+        9.4,
+        15.2
+      ]
+    ]
+  },
+  {
+    "video": "~/nextgqa_sample/NExTVideo/1106/4794935391.mp4",
+    "question": "Why did the lady in red picked up the spoon on the table?",
+    "answer": "to eat ice cream",
+    "grounding": [
+      [
+        5.8,
+        14
+      ]
+    ]
+  },
+  {
+    "video": "~/nextgqa_sample/NExTVideo/0101/3404210548.mp4",
+    "question": "Why does the man in green hold on to the rope?",
+    "answer": "to not fall",
+    "grounding": [
+      [
+        4.2,
+        9.6
+      ]
+    ]
+  },
+  {
+    "video": "~/nextgqa_sample/NExTVideo/0092/3180339331.mp4",
+    "question": "What did the person do after she took the black item away?",
+    "answer": "pat animal",
+    "grounding": [
+      [
+        17.0,
+        19.6
+      ]
+    ]
+  },
+  {
+    "video": "~/nextgqa_sample/NExTVideo/1014/7916860778.mp4",
+    "question": "Why did the woman in white bend down after walking into the shade?",
+    "answer": "take something from the floor",
+    "grounding": [
+      [
+        7.4,
+        10.3
+      ]
+    ]
+  },
+  {
+    "video": "~/nextgqa_sample/NExTVideo/1001/8031010690.mp4",
+    "question": "How did the baby feel while crawling onto the pillow?",
+    "answer": "having fun",
+    "grounding": [
+      [
+        5.2,
+        9.3
+      ]
+    ]
+  },
+  {
+    "video": "~/nextgqa_sample/NExTVideo/1025/4693467772.mp4",
+    "question": "What did the lady in white do after the lady in red started dancing?",
+    "answer": "dance",
+    "grounding": [
+      [
+        5.3,
+        14.5
+      ]
+    ]
+  }
+]

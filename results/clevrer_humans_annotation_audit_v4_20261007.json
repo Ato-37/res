@@ -1,0 +1,368 @@
+{
+  "report_schema_version": 4,
+  "annotation_dir_name": "clevrer_humans_annotations_20261007",
+  "files": {
+    "causal_cloze.json": {
+      "bytes": 253367,
+      "sha256": "260635454d189cc22e59d9da9de8bcc2d58b03b0a9e11940b1cb8b40aeb04d6a",
+      "top_level_type": "dict",
+      "record_count": 100,
+      "sample_keys": [
+        "1120",
+        "1709",
+        "1292",
+        "1785",
+        "293",
+        "1518",
+        "1698",
+        "1839",
+        "1585",
+        "141"
+      ],
+      "common_record_keys": [
+        [
+          "questions",
+          100
+        ]
+      ],
+      "nested_question_count": 431,
+      "nested_question_fields": [
+        [
+          "question_id",
+          431
+        ],
+        [
+          "question",
+          431
+        ],
+        [
+          "question_type",
+          431
+        ],
+        [
+          "choices",
+          431
+        ]
+      ],
+      "nested_choice_count": 1724,
+      "choice_answer_labels": {
+        "correct": 858,
+        "wrong": 866
+      }
+    },
+    "train_question.json": {
+      "bytes": 310639,
+      "sha256": "c6382723e6356aec826a31f5de2bf6858afda50191fb1d70e2b1c58400719d1c",
+      "top_level_type": "dict",
+      "record_count": 535,
+      "sample_keys": [
+        "3",
+        "4",
+        "5",
+        "8",
+        "10",
+        "11",
+        "13",
+        "14",
+        "15",
+        "16"
+      ],
+      "common_record_keys": [
+        [
+          "questions",
+          535
+        ]
+      ],
+      "nested_question_count": 1197,
+      "nested_question_fields": [
+        [
+          "question_id",
+          1197
+        ],
+        [
+          "question",
+          1197
+        ],
+        [
+          "question_type",
+          1197
+        ],
+        [
+          "choices",
+          1197
+        ]
+      ],
+      "nested_choice_count": 1197,
+      "choice_answer_labels": {
+        "correct": 618,
+        "wrong": 579
+      }
+    },
+    "valid_question.json": {
+      "bytes": 77732,
+      "sha256": "9f1cc43ae8a2e70e3edae517f99d2c75cfba518bd3176f0ea389771b2c1bc23c",
+      "top_level_type": "dict",
+      "record_count": 183,
+      "sample_keys": [
+        "10002",
+        "10003",
+        "10006",
+        "10008",
+        "10009",
+        "10011",
+        "10013",
+        "10014",
+        "10015",
+        "10016"
+      ],
+      "common_record_keys": [
+        [
+          "questions",
+          183
+        ]
+      ],
+      "nested_question_count": 216,
+      "nested_question_fields": [
+        [
+          "question_id",
+          216
+        ],
+        [
+          "question",
+          216
+        ],
+        [
+          "question_type",
+          216
+        ],
+        [
+          "choices",
+          216
+        ]
+      ],
+      "nested_choice_count": 432,
+      "choice_answer_labels": {
+        "correct": 219,
+        "wrong": 213
+      }
+    },
+    "train_ceg_data.p": {
+      "bytes": 1227761,
+      "sha256": "c63fa1560090d7a5a072cb33da99e5758679c9ce0ccf88ea39f959534e1d21b3",
+      "loaded": true,
+      "top_level_type": "dict",
+      "scene_count": 574,
+      "scene_key_sample": [
+        "00003",
+        "00004",
+        "00005",
+        "00006",
+        "00008",
+        "00009",
+        "00010",
+        "00011",
+        "00012",
+        "00013"
+      ],
+      "scene_fields": [
+        [
+          "CEG_full",
+          574
+        ],
+        [
+          "CEG_pos",
+          574
+        ],
+        [
+          "CEG_neg",
+          574
+        ],
+        [
+          "video_filename",
+          574
+        ]
+      ],
+      "video_filename_count": 574,
+      "video_filename_sample": [
+        "video_00003.mp4",
+        "video_00004.mp4",
+        "video_00005.mp4",
+        "video_00006.mp4",
+        "video_00008.mp4",
+        "video_00009.mp4",
+        "video_00010.mp4",
+        "video_00011.mp4",
+        "video_00012.mp4",
+        "video_00013.mp4",
+        "video_00014.mp4",
+        "video_00015.mp4",
+        "video_00016.mp4",
+        "video_00017.mp4",
+        "video_00018.mp4",
+        "video_00019.mp4",
+        "video_00020.mp4",
+        "video_00021.mp4",
+        "video_00024.mp4",
+        "video_00029.mp4"
+      ],
+      "graph_fields": {
+        "CEG_full": 574,
+        "CEG_neg": 574,
+        "CEG_pos": 574
+      },
+      "graph_totals_by_field": {
+        "CEG_full": {
+          "graphs": 574,
+          "nodes": 2769,
+          "edges": 11516
+        },
+        "CEG_pos": {
+          "graphs": 574,
+          "nodes": 2769,
+          "edges": 1318
+        },
+        "CEG_neg": {
+          "graphs": 574,
+          "nodes": 2769,
+          "edges": 10198
+        }
+      },
+      "graph_attribute_key_occurrences": {
+        "node": {},
+        "edge": {
+          "weight": 23032
+        }
+      },
+      "graph_attribute_value_type_counts": {
+        "node": {},
+        "edge": {
+          "weight": {
+            "int": 23032
+          }
+        }
+      },
+      "time_key_counts": {},
+      "time_key_examples": []
+    },
+    "valid_ceg_data.p": {
+      "bytes": 1175667,
+      "sha256": "735e20c028292147c990860016baf00f660e543aa298fc06b77151c0357d5eff",
+      "loaded": true,
+      "top_level_type": "dict",
+      "scene_count": 525,
+      "scene_key_sample": [
+        "10001",
+        "10002",
+        "10003",
+        "10004",
+        "10005",
+        "10006",
+        "10007",
+        "10008",
+        "10009",
+        "10011"
+      ],
+      "scene_fields": [
+        [
+          "CEG_full",
+          525
+        ],
+        [
+          "CEG_pos",
+          525
+        ],
+        [
+          "CEG_neg",
+          525
+        ],
+        [
+          "video_filename",
+          525
+        ]
+      ],
+      "video_filename_count": 525,
+      "video_filename_sample": [
+        "video_10001.mp4",
+        "video_10002.mp4",
+        "video_10003.mp4",
+        "video_10004.mp4",
+        "video_10005.mp4",
+        "video_10006.mp4",
+        "video_10007.mp4",
+        "video_10008.mp4",
+        "video_10009.mp4",
+        "video_10011.mp4",
+        "video_10012.mp4",
+        "video_10013.mp4",
+        "video_10014.mp4",
+        "video_10015.mp4",
+        "video_10016.mp4",
+        "video_10017.mp4",
+        "video_10018.mp4",
+        "video_10019.mp4",
+        "video_10020.mp4",
+        "video_10021.mp4"
+      ],
+      "graph_fields": {
+        "CEG_full": 525,
+        "CEG_neg": 525,
+        "CEG_pos": 525
+      },
+      "graph_totals_by_field": {
+        "CEG_full": {
+          "graphs": 525,
+          "nodes": 2590,
+          "edges": 11226
+        },
+        "CEG_pos": {
+          "graphs": 525,
+          "nodes": 2590,
+          "edges": 1406
+        },
+        "CEG_neg": {
+          "graphs": 525,
+          "nodes": 2590,
+          "edges": 9820
+        }
+      },
+      "graph_attribute_key_occurrences": {
+        "node": {},
+        "edge": {
+          "weight": 22452
+        }
+      },
+      "graph_attribute_value_type_counts": {
+        "node": {},
+        "edge": {
+          "weight": {
+            "int": 22452
+          }
+        }
+      },
+      "time_key_counts": {},
+      "time_key_examples": []
+    }
+  },
+  "cross_file_alignment": {
+    "train": {
+      "question_scene_count": 535,
+      "graph_scene_count": 574,
+      "matched_scene_count": 535,
+      "question_scene_without_graph_count": 0,
+      "graph_scene_without_question_count": 39
+    },
+    "valid": {
+      "question_scene_count": 183,
+      "graph_scene_count": 525,
+      "matched_scene_count": 183,
+      "question_scene_without_graph_count": 0,
+      "graph_scene_without_question_count": 342
+    },
+    "causal_cloze": {
+      "record_scene_count": 100,
+      "matched_train_or_valid_graph_count": 31,
+      "record_without_graph_count": 69
+    }
+  },
+  "timing_scan_scope": "Named temporal keys in CEG graph node/edge attributes only; this does not search event-description text or establish human temporal grounding."
+}

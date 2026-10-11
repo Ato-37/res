@@ -1,0 +1,3589 @@
+{
+  "schema_version": 1,
+  "script": "evidence_control_choice_probe.py",
+  "samples_file": "/home/ato121/res/data/nextgqa_samples_evidence_control_heldout.json",
+  "probe_results": "/home/ato121/res/results/evidence_control_probe_heldout.json",
+  "choice_audit": "/home/ato121/res/results/evidence_probe_task_validity_audit.json",
+  "model": "Qwen/Qwen2.5-VL-7B-Instruct",
+  "quant": "4bit",
+  "dtype": "bfloat16",
+  "prompt_protocol": "same five NExT-GQA choices; correct A-E logprob minus best foil",
+  "estimand": "mean[(full margin-evidence replaced margin) - (full margin-placebo replaced margin)]",
+  "interpretation": "Positive means evidence-position frame replacement reduced the correct-vs-best-foil margin more than matched placebo replacement.",
+  "n_requested": 56,
+  "n_effective": 56,
+  "failures": [],
+  "summary": {
+    "n": 56,
+    "mean_selective_margin_drop": 0.10714285383738961,
+    "sd": 0.4725586794434247,
+    "bootstrap_ci95_pointwise": [
+      -0.012500002610093902,
+      0.23125000429416628
+    ],
+    "positive_fraction": 0.5535714285714286,
+    "paired_sign_flip_p_two_sided": 0.10028997100289971,
+    "n_permutations": 10000
+  },
+  "by_baseline_correctness": {
+    "true": {
+      "n": 42,
+      "mean_selective_margin_drop": 0.2125000005686334,
+      "sd": 0.42681643782545325,
+      "bootstrap_ci95_pointwise": [
+        0.08928570337690565,
+        0.34404762698714403
+      ],
+      "positive_fraction": 0.6190476190476191,
+      "paired_sign_flip_p_two_sided": 0.0014998500149985001,
+      "n_permutations": 10000
+    },
+    "false": {
+      "n": 14,
+      "mean_selective_margin_drop": -0.2089285863563418,
+      "sd": 0.4762238567198985,
+      "bootstrap_ci95_pointwise": [
+        -0.441071446452822,
+        0.03571426482605087
+      ],
+      "positive_fraction": 0.35714285714285715,
+      "paired_sign_flip_p_two_sided": 0.12788721127887212,
+      "n_permutations": 10000
+    }
+  },
+  "records": [
+    {
+      "sample_id": "0",
+      "question_type": "CW",
+      "baseline_choice_correct": true,
+      "gold_choice_index": 2,
+      "full_choice_logprobs": [
+        -3.6520776748657227,
+        -7.902077674865723,
+        -0.027077650651335716,
+        -8.527077674865723,
+        -11.152077674865723
+      ],
+      "full_correct_vs_best_foil_margin": 3.625000024214387,
+      "evidence_replaced_margins": [
+        3.625000014901161,
+        3.375000026077032,
+        3.6249999944120646,
+        3.625000048428774,
+        3.625000014901161
+      ],
+      "placebo_replaced_margins": [
+        3.9999999031424522,
+        3.624999975785613,
+        3.2499999329447746,
+        3.624999975785613,
+        3.624999975785613
+      ],
+      "evidence_margin_drop": 0.05000000447034836,
+      "mean_placebo_margin_drop": 7.152557390810443e-08,
+      "selective_margin_drop": 0.04999993294477445,
+      "matched_interventions": [
+        {
+          "evidence_target": 201,
+          "evidence_donor": 281,
+          "placebo_target": 322,
+          "placebo_donor": 362
+        },
+        {
+          "evidence_target": 161,
+          "evidence_donor": 80,
+          "placebo_target": 281,
+          "placebo_donor": 322
+        },
+        {
+          "evidence_target": 121,
+          "evidence_donor": 80,
+          "placebo_target": 40,
+          "placebo_donor": 0
+        },
+        {
+          "evidence_target": 241,
+          "evidence_donor": 281,
+          "placebo_target": 281,
+          "placebo_donor": 322
+        },
+        {
+          "evidence_target": 201,
+          "evidence_donor": 281,
+          "placebo_target": 281,
+          "placebo_donor": 322
+        }
+      ]
+    },
+    {
+      "sample_id": "1",
+      "question_type": "CW",
+      "baseline_choice_correct": true,
+      "gold_choice_index": 2,
+      "full_choice_logprobs": [
+        -8.263082504272461,
+        -8.638082504272461,
+        -0.013082974590361118,
+        -10.013082504272461,
+        -4.388082981109619
+      ],
+      "full_correct_vs_best_foil_margin": 4.375000006519258,
+      "evidence_replaced_margins": [
+        4.625000040046871,
+        4.625000040046871,
+        4.625000040046871,
+        4.625000040046871,
+        4.625000040046871
+      ],
+      "placebo_replaced_margins": [
+        4.125000204890966,
+        4.625000149011612,
+        4.374999997206032,
+        4.125000204890966,
+        4.3750000623986125
+      ],
+      "evidence_margin_drop": -0.2500000335276127,
+      "mean_placebo_margin_drop": 0.04999988283961976,
+      "selective_margin_drop": -0.29999991636723244,
+      "matched_interventions": [
+        {
+          "evidence_target": 329,
+          "evidence_donor": 299,
+          "placebo_target": 389,
+          "placebo_donor": 359
+        },
+        {
+          "evidence_target": 329,
+          "evidence_donor": 299,
+          "placebo_target": 299,
+          "placebo_donor": 269
+        },
+        {
+          "evidence_target": 329,
+          "evidence_donor": 299,
+          "placebo_target": 359,
+          "placebo_donor": 389
+        },
+        {
+          "evidence_target": 329,
+          "evidence_donor": 299,
+          "placebo_target": 389,
+          "placebo_donor": 359
+        },
+        {
+          "evidence_target": 329,
+          "evidence_donor": 299,
+          "placebo_target": 269,
+          "placebo_donor": 239
+        }
+      ]
+    },
+    {
+      "sample_id": "2",
+      "question_type": "CH",
+      "baseline_choice_correct": false,
+      "gold_choice_index": 1,
+      "full_choice_logprobs": [
+        -0.39838024973869324,
+        -1.8983802795410156,
+        -5.273380279541016,
+        -1.7733802795410156,
+        -5.648380279541016
+      ],
+      "full_correct_vs_best_foil_margin": -1.5000000298023224,
+      "evidence_replaced_margins": [
+        -1.5,
+        -1.1250000596046448,
+        -1.3749999701976776,
+        -1.5,
+        -1.1250000596046448
+      ],
+      "placebo_replaced_margins": [
+        -1.25,
+        -1.875,
+        -1.3749999701976776,
+        -1.3749999701976776,
+        -1.5
+      ],
+      "evidence_margin_drop": -0.17500001192092896,
+      "mean_placebo_margin_drop": -0.02500004172325143,
+      "selective_margin_drop": -0.14999997019767752,
+      "matched_interventions": [
+        {
+          "evidence_target": 1190,
+          "evidence_donor": 1309,
+          "placebo_target": 1428,
+          "placebo_donor": 1309
+        },
+        {
+          "evidence_target": 595,
+          "evidence_donor": 476,
+          "placebo_target": 833,
+          "placebo_donor": 714
+        },
+        {
+          "evidence_target": 1071,
+          "evidence_donor": 952,
+          "placebo_target": 1309,
+          "placebo_donor": 1428
+        },
+        {
+          "evidence_target": 1190,
+          "evidence_donor": 1309,
+          "placebo_target": 952,
+          "placebo_donor": 833
+        },
+        {
+          "evidence_target": 595,
+          "evidence_donor": 476,
+          "placebo_target": 714,
+          "placebo_donor": 833
+        }
+      ]
+    },
+    {
+      "sample_id": "3",
+      "question_type": "CW",
+      "baseline_choice_correct": true,
+      "gold_choice_index": 0,
+      "full_choice_logprobs": [
+        -0.22030042111873627,
+        -2.9703004360198975,
+        -4.595300197601318,
+        -2.9703004360198975,
+        -2.4703004360198975
+      ],
+      "full_correct_vs_best_foil_margin": 2.250000014901161,
+      "evidence_replaced_margins": [
+        2.500000014901161,
+        2.500000014901161,
+        2.500000014901161,
+        2.500000014901161,
+        2.500000014901161
+      ],
+      "placebo_replaced_margins": [
+        1.4999999701976776,
+        2.7499999552965164,
+        2.7499999552965164,
+        2.7499999552965164,
+        2.2499999403953552
+      ],
+      "evidence_margin_drop": -0.25,
+      "mean_placebo_margin_drop": -0.14999994039535514,
+      "selective_margin_drop": -0.10000005960464486,
+      "matched_interventions": [
+        {
+          "evidence_target": 435,
+          "evidence_donor": 326,
+          "placebo_target": 652,
+          "placebo_donor": 544
+        },
+        {
+          "evidence_target": 435,
+          "evidence_donor": 326,
+          "placebo_target": 217,
+          "placebo_donor": 109
+        },
+        {
+          "evidence_target": 435,
+          "evidence_donor": 326,
+          "placebo_target": 217,
+          "placebo_donor": 109
+        },
+        {
+          "evidence_target": 435,
+          "evidence_donor": 326,
+          "placebo_target": 217,
+          "placebo_donor": 109
+        },
+        {
+          "evidence_target": 435,
+          "evidence_donor": 326,
+          "placebo_target": 544,
+          "placebo_donor": 652
+        }
+      ]
+    },
+    {
+      "sample_id": "4",
+      "question_type": "CH",
+      "baseline_choice_correct": false,
+      "gold_choice_index": 1,
+      "full_choice_logprobs": [
+        -0.12612438201904297,
+        -3.001124382019043,
+        -4.001124382019043,
+        -3.001124382019043,
+        -7.876124382019043
+      ],
+      "full_correct_vs_best_foil_margin": -2.875,
+      "evidence_replaced_margins": [
+        -2.8749999180436134,
+        -3.4999999403953552,
+        -2.8749999180436134,
+        -3.4999999403953552,
+        -2.8749999180436134
+      ],
+      "placebo_replaced_margins": [
+        -5.250000167638063,
+        -2.3750001192092896,
+        -2.999999910593033,
+        -2.2499998956918716,
+        -5.250000167638063
+      ],
+      "evidence_margin_drop": 0.24999992698431006,
+      "mean_placebo_margin_drop": 0.7500000521540642,
+      "selective_margin_drop": -0.5000001251697541,
+      "matched_interventions": [
+        {
+          "evidence_target": 475,
+          "evidence_donor": 511,
+          "placebo_target": 548,
+          "placebo_donor": 511
+        },
+        {
+          "evidence_target": 438,
+          "evidence_donor": 402,
+          "placebo_target": 402,
+          "placebo_donor": 365
+        },
+        {
+          "evidence_target": 475,
+          "evidence_donor": 511,
+          "placebo_target": 365,
+          "placebo_donor": 329
+        },
+        {
+          "evidence_target": 438,
+          "evidence_donor": 402,
+          "placebo_target": 511,
+          "placebo_donor": 548
+        },
+        {
+          "evidence_target": 475,
+          "evidence_donor": 511,
+          "placebo_target": 548,
+          "placebo_donor": 511
+        }
+      ]
+    },
+    {
+      "sample_id": "5",
+      "question_type": "TN",
+      "baseline_choice_correct": false,
+      "gold_choice_index": 1,
+      "full_choice_logprobs": [
+        -3.345592975616455,
+        -2.220592975616455,
+        -2.345592975616455,
+        -2.970592975616455,
+        -0.34559309482574463
+      ],
+      "full_correct_vs_best_foil_margin": -1.8749998807907104,
+      "evidence_replaced_margins": [
+        -2.1249999403953552,
+        -2.1249999403953552,
+        -2.1249999403953552,
+        -2.1249999403953552,
+        -2.1249999403953552
+      ],
+      "placebo_replaced_margins": [
+        -1.25,
+        -1.3749999701976776,
+        -1.3749999701976776,
+        -1.3749999701976776,
+        -1.3749999701976776
+      ],
+      "evidence_margin_drop": 0.2500000596046448,
+      "mean_placebo_margin_drop": -0.5249999046325684,
+      "selective_margin_drop": 0.7749999642372132,
+      "matched_interventions": [
+        {
+          "evidence_target": 453,
+          "evidence_donor": 362,
+          "placebo_target": 272,
+          "placebo_donor": 362
+        },
+        {
+          "evidence_target": 453,
+          "evidence_donor": 362,
+          "placebo_target": 362,
+          "placebo_donor": 272
+        },
+        {
+          "evidence_target": 453,
+          "evidence_donor": 362,
+          "placebo_target": 362,
+          "placebo_donor": 272
+        },
+        {
+          "evidence_target": 453,
+          "evidence_donor": 362,
+          "placebo_target": 362,
+          "placebo_donor": 272
+        },
+        {
+          "evidence_target": 453,
+          "evidence_donor": 362,
+          "placebo_target": 362,
+          "placebo_donor": 272
+        }
+      ]
+    },
+    {
+      "sample_id": "6",
+      "question_type": "CW",
+      "baseline_choice_correct": true,
+      "gold_choice_index": 1,
+      "full_choice_logprobs": [
+        -6.840743064880371,
+        -0.21574318408966064,
+        -6.965743064880371,
+        -1.9657431840896606,
+        -2.965743064880371
+      ],
+      "full_correct_vs_best_foil_margin": 1.75,
+      "evidence_replaced_margins": [
+        1.3750000596046448,
+        1.1250000298023224,
+        0.8749999403953552,
+        1.5000000298023224,
+        1.3750000596046448
+      ],
+      "placebo_replaced_margins": [
+        3.000000022351742,
+        3.000000022351742,
+        3.000000022351742,
+        2.875000074505806,
+        1.9999999701976776
+      ],
+      "evidence_margin_drop": 0.4999999761581422,
+      "mean_placebo_margin_drop": -1.0250000223517417,
+      "selective_margin_drop": 1.5249999985098839,
+      "matched_interventions": [
+        {
+          "evidence_target": 644,
+          "evidence_donor": 545,
+          "placebo_target": 396,
+          "placebo_donor": 347
+        },
+        {
+          "evidence_target": 693,
+          "evidence_donor": 545,
+          "placebo_target": 396,
+          "placebo_donor": 347
+        },
+        {
+          "evidence_target": 594,
+          "evidence_donor": 545,
+          "placebo_target": 396,
+          "placebo_donor": 347
+        },
+        {
+          "evidence_target": 743,
+          "evidence_donor": 545,
+          "placebo_target": 495,
+          "placebo_donor": 446
+        },
+        {
+          "evidence_target": 644,
+          "evidence_donor": 545,
+          "placebo_target": 446,
+          "placebo_donor": 495
+        }
+      ]
+    },
+    {
+      "sample_id": "7",
+      "question_type": "CW",
+      "baseline_choice_correct": true,
+      "gold_choice_index": 3,
+      "full_choice_logprobs": [
+        -7.419118881225586,
+        -7.919118881225586,
+        -3.169119119644165,
+        -0.04411905258893967,
+        -9.919118881225586
+      ],
+      "full_correct_vs_best_foil_margin": 3.1250000670552254,
+      "evidence_replaced_margins": [
+        2.7500000447034836,
+        2.875,
+        2.7500000447034836,
+        2.875,
+        2.7500000447034836
+      ],
+      "placebo_replaced_margins": [
+        1.7500000298023224,
+        2.7500001192092896,
+        3.3749999329447746,
+        3.0000000782310963,
+        3.3749999329447746
+      ],
+      "evidence_margin_drop": 0.3250000402331352,
+      "mean_placebo_margin_drop": 0.2750000484287738,
+      "selective_margin_drop": 0.04999999180436143,
+      "matched_interventions": [
+        {
+          "evidence_target": 386,
+          "evidence_donor": 429,
+          "placebo_target": 472,
+          "placebo_donor": 514
+        },
+        {
+          "evidence_target": 343,
+          "evidence_donor": 300,
+          "placebo_target": 214,
+          "placebo_donor": 171
+        },
+        {
+          "evidence_target": 386,
+          "evidence_donor": 429,
+          "placebo_target": 429,
+          "placebo_donor": 472
+        },
+        {
+          "evidence_target": 343,
+          "evidence_donor": 300,
+          "placebo_target": 257,
+          "placebo_donor": 214
+        },
+        {
+          "evidence_target": 386,
+          "evidence_donor": 429,
+          "placebo_target": 429,
+          "placebo_donor": 472
+        }
+      ]
+    },
+    {
+      "sample_id": "8",
+      "question_type": "CW",
+      "baseline_choice_correct": true,
+      "gold_choice_index": 2,
+      "full_choice_logprobs": [
+        -2.665396213531494,
+        -5.665396213531494,
+        -0.1653962880373001,
+        -2.540396213531494,
+        -8.290396690368652
+      ],
+      "full_correct_vs_best_foil_margin": 2.374999925494194,
+      "evidence_replaced_margins": [
+        2.5000000596046448,
+        2.5000000596046448,
+        2.5000000596046448,
+        2.5000000596046448,
+        2.5000000596046448
+      ],
+      "placebo_replaced_margins": [
+        2.6250000298023224,
+        2.25,
+        2.6249999925494194,
+        2.6250000298023224,
+        2.25
+      ],
+      "evidence_margin_drop": -0.12500013411045074,
+      "mean_placebo_margin_drop": -0.10000008493661872,
+      "selective_margin_drop": -0.02500004917383203,
+      "matched_interventions": [
+        {
+          "evidence_target": 532,
+          "evidence_donor": 607,
+          "placebo_target": 683,
+          "placebo_donor": 607
+        },
+        {
+          "evidence_target": 532,
+          "evidence_donor": 607,
+          "placebo_target": 380,
+          "placebo_donor": 304
+        },
+        {
+          "evidence_target": 532,
+          "evidence_donor": 607,
+          "placebo_target": 456,
+          "placebo_donor": 380
+        },
+        {
+          "evidence_target": 532,
+          "evidence_donor": 607,
+          "placebo_target": 683,
+          "placebo_donor": 607
+        },
+        {
+          "evidence_target": 532,
+          "evidence_donor": 607,
+          "placebo_target": 380,
+          "placebo_donor": 304
+        }
+      ]
+    },
+    {
+      "sample_id": "9",
+      "question_type": "CW",
+      "baseline_choice_correct": false,
+      "gold_choice_index": 4,
+      "full_choice_logprobs": [
+        -8.656639099121094,
+        -0.28163883090019226,
+        -9.781639099121094,
+        -9.906639099121094,
+        -1.4066388607025146
+      ],
+      "full_correct_vs_best_foil_margin": -1.1250000298023224,
+      "evidence_replaced_margins": [
+        -1.2500000298023224,
+        -0.8749999403953552,
+        -0.8749999701976776,
+        -1.1250000596046448,
+        -0.6249999701976776
+      ],
+      "placebo_replaced_margins": [
+        -1.5,
+        -1.5,
+        -1.5,
+        -0.7499999403953552,
+        -0.7499999403953552
+      ],
+      "evidence_margin_drop": -0.1750000357627869,
+      "mean_placebo_margin_drop": 0.07499994635581975,
+      "selective_margin_drop": -0.24999998211860663,
+      "matched_interventions": [
+        {
+          "evidence_target": 743,
+          "evidence_donor": 1115,
+          "placebo_target": 0,
+          "placebo_donor": 1115
+        },
+        {
+          "evidence_target": 669,
+          "evidence_donor": 1115,
+          "placebo_target": 0,
+          "placebo_donor": 1115
+        },
+        {
+          "evidence_target": 446,
+          "evidence_donor": 0,
+          "placebo_target": 0,
+          "placebo_donor": 1115
+        },
+        {
+          "evidence_target": 149,
+          "evidence_donor": 0,
+          "placebo_target": 1115,
+          "placebo_donor": 0
+        },
+        {
+          "evidence_target": 74,
+          "evidence_donor": 0,
+          "placebo_target": 1115,
+          "placebo_donor": 0
+        }
+      ]
+    },
+    {
+      "sample_id": "10",
+      "question_type": "TC",
+      "baseline_choice_correct": true,
+      "gold_choice_index": 2,
+      "full_choice_logprobs": [
+        -3.545208692550659,
+        -8.045208930969238,
+        -0.2952086925506592,
+        -1.6702086925506592,
+        -3.295208692550659
+      ],
+      "full_correct_vs_best_foil_margin": 1.375,
+      "evidence_replaced_margins": [
+        1.4999999701976776,
+        1.4999999701976776,
+        1.6249999850988388,
+        1.5000000298023224,
+        1.4999999701976776
+      ],
+      "placebo_replaced_margins": [
+        1.7500000298023224,
+        1.5000000298023224,
+        1.7500000298023224,
+        1.8750000596046448,
+        1.5000000298023224
+      ],
+      "evidence_margin_drop": -0.14999998509883872,
+      "mean_placebo_margin_drop": -0.3000000357627868,
+      "selective_margin_drop": 0.15000005066394806,
+      "matched_interventions": [
+        {
+          "evidence_target": 808,
+          "evidence_donor": 646,
+          "placebo_target": 1131,
+          "placebo_donor": 1292
+        },
+        {
+          "evidence_target": 323,
+          "evidence_donor": 162,
+          "placebo_target": 485,
+          "placebo_donor": 646
+        },
+        {
+          "evidence_target": 969,
+          "evidence_donor": 1131,
+          "placebo_target": 1131,
+          "placebo_donor": 1292
+        },
+        {
+          "evidence_target": 2261,
+          "evidence_donor": 2100,
+          "placebo_target": 1777,
+          "placebo_donor": 1938
+        },
+        {
+          "evidence_target": 808,
+          "evidence_donor": 646,
+          "placebo_target": 485,
+          "placebo_donor": 646
+        }
+      ]
+    },
+    {
+      "sample_id": "11",
+      "question_type": "CH",
+      "baseline_choice_correct": false,
+      "gold_choice_index": 3,
+      "full_choice_logprobs": [
+        -7.674250602722168,
+        -9.174250602722168,
+        -0.04925038665533066,
+        -3.049250364303589,
+        -10.924250602722168
+      ],
+      "full_correct_vs_best_foil_margin": -2.999999977648258,
+      "evidence_replaced_margins": [
+        -3.5000000819563866,
+        -3.124999910593033,
+        -3.3750000670552254,
+        -2.7500000074505806,
+        -2.874999988824129
+      ],
+      "placebo_replaced_margins": [
+        -2.8749999068677425,
+        -2.8749999068677425,
+        -2.7500001192092896,
+        -2.750000089406967,
+        -3.7500000055879354
+      ],
+      "evidence_margin_drop": 0.1250000335276127,
+      "mean_placebo_margin_drop": 2.7939677238464355e-08,
+      "selective_margin_drop": 0.12500000558793545,
+      "matched_interventions": [
+        {
+          "evidence_target": 404,
+          "evidence_donor": 438,
+          "placebo_target": 202,
+          "placebo_donor": 168
+        },
+        {
+          "evidence_target": 269,
+          "evidence_donor": 202,
+          "placebo_target": 202,
+          "placebo_donor": 168
+        },
+        {
+          "evidence_target": 303,
+          "evidence_donor": 202,
+          "placebo_target": 135,
+          "placebo_donor": 168
+        },
+        {
+          "evidence_target": 337,
+          "evidence_donor": 438,
+          "placebo_target": 471,
+          "placebo_donor": 438
+        },
+        {
+          "evidence_target": 370,
+          "evidence_donor": 438,
+          "placebo_target": 505,
+          "placebo_donor": 471
+        }
+      ]
+    },
+    {
+      "sample_id": "12",
+      "question_type": "CW",
+      "baseline_choice_correct": true,
+      "gold_choice_index": 0,
+      "full_choice_logprobs": [
+        -0.07202968001365662,
+        -2.6970295906066895,
+        -7.3220295906066895,
+        -6.8220295906066895,
+        -8.447030067443848
+      ],
+      "full_correct_vs_best_foil_margin": 2.624999910593033,
+      "evidence_replaced_margins": [
+        3.6249999701976776,
+        2.374999977648258,
+        2.374999910593033,
+        3.6249999701976776,
+        2.374999977648258
+      ],
+      "placebo_replaced_margins": [
+        1.7499999552965164,
+        2.8749999664723873,
+        2.8749999664723873,
+        2.3749999925494194,
+        3.2499999590218067
+      ],
+      "evidence_margin_drop": -0.25000005066394815,
+      "mean_placebo_margin_drop": -5.7369470507495635e-08,
+      "selective_margin_drop": -0.24999999329447764,
+      "matched_interventions": [
+        {
+          "evidence_target": 561,
+          "evidence_donor": 631,
+          "placebo_target": 631,
+          "placebo_donor": 701
+        },
+        {
+          "evidence_target": 491,
+          "evidence_donor": 351,
+          "placebo_target": 351,
+          "placebo_donor": 281
+        },
+        {
+          "evidence_target": 421,
+          "evidence_donor": 351,
+          "placebo_target": 351,
+          "placebo_donor": 281
+        },
+        {
+          "evidence_target": 561,
+          "evidence_donor": 631,
+          "placebo_target": 771,
+          "placebo_donor": 701
+        },
+        {
+          "evidence_target": 491,
+          "evidence_donor": 351,
+          "placebo_target": 701,
+          "placebo_donor": 631
+        }
+      ]
+    },
+    {
+      "sample_id": "13",
+      "question_type": "TC",
+      "baseline_choice_correct": true,
+      "gold_choice_index": 2,
+      "full_choice_logprobs": [
+        -8.513256072998047,
+        -0.7632561326026917,
+        -0.6382561326026917,
+        -9.513256072998047,
+        -5.263256072998047
+      ],
+      "full_correct_vs_best_foil_margin": 0.125,
+      "evidence_replaced_margins": [
+        -0.6250000596046448,
+        0.125,
+        -0.6250000596046448,
+        0.125,
+        -0.6250000596046448
+      ],
+      "placebo_replaced_margins": [
+        0.0,
+        -0.125,
+        -0.125,
+        -0.125,
+        -0.5
+      ],
+      "evidence_margin_drop": 0.45000003576278685,
+      "mean_placebo_margin_drop": 0.3,
+      "selective_margin_drop": 0.15000003576278687,
+      "matched_interventions": [
+        {
+          "evidence_target": 1016,
+          "evidence_donor": 938,
+          "placebo_target": 781,
+          "placebo_donor": 703
+        },
+        {
+          "evidence_target": 1094,
+          "evidence_donor": 1172,
+          "placebo_target": 1172,
+          "placebo_donor": 938
+        },
+        {
+          "evidence_target": 1016,
+          "evidence_donor": 938,
+          "placebo_target": 1172,
+          "placebo_donor": 938
+        },
+        {
+          "evidence_target": 1094,
+          "evidence_donor": 1172,
+          "placebo_target": 1172,
+          "placebo_donor": 938
+        },
+        {
+          "evidence_target": 1016,
+          "evidence_donor": 938,
+          "placebo_target": 938,
+          "placebo_donor": 859
+        }
+      ]
+    },
+    {
+      "sample_id": "14",
+      "question_type": "CW",
+      "baseline_choice_correct": true,
+      "gold_choice_index": 3,
+      "full_choice_logprobs": [
+        -8.125528335571289,
+        -9.500528335571289,
+        -9.250528335571289,
+        -0.0005286726518534124,
+        -11.750528335571289
+      ],
+      "full_correct_vs_best_foil_margin": 8.124999662919436,
+      "evidence_replaced_margins": [
+        7.999999710242264,
+        8.125000145635568,
+        7.625000072235707,
+        7.999999710242264,
+        8.125000145635568
+      ],
+      "placebo_replaced_margins": [
+        8.625000411615474,
+        8.625000411615474,
+        8.125000384927262,
+        8.374999791325536,
+        7.999999804596882
+      ],
+      "evidence_margin_drop": 0.14999970612116176,
+      "mean_placebo_margin_drop": -0.22500049789669063,
+      "selective_margin_drop": 0.3750002040178524,
+      "matched_interventions": [
+        {
+          "evidence_target": 827,
+          "evidence_donor": 909,
+          "placebo_target": 579,
+          "placebo_donor": 496
+        },
+        {
+          "evidence_target": 661,
+          "evidence_donor": 579,
+          "placebo_target": 579,
+          "placebo_donor": 496
+        },
+        {
+          "evidence_target": 744,
+          "evidence_donor": 579,
+          "placebo_target": 496,
+          "placebo_donor": 413
+        },
+        {
+          "evidence_target": 827,
+          "evidence_donor": 909,
+          "placebo_target": 992,
+          "placebo_donor": 909
+        },
+        {
+          "evidence_target": 661,
+          "evidence_donor": 579,
+          "placebo_target": 909,
+          "placebo_donor": 992
+        }
+      ]
+    },
+    {
+      "sample_id": "15",
+      "question_type": "CH",
+      "baseline_choice_correct": true,
+      "gold_choice_index": 3,
+      "full_choice_logprobs": [
+        -8.03077507019043,
+        -9.78077507019043,
+        -3.530775308609009,
+        -0.03077535703778267,
+        -7.530775547027588
+      ],
+      "full_correct_vs_best_foil_margin": 3.499999951571226,
+      "evidence_replaced_margins": [
+        3.4999999683350325,
+        3.3750000931322575,
+        3.249999973922968,
+        3.250000074505806,
+        3.4999999683350325
+      ],
+      "placebo_replaced_margins": [
+        3.375000037252903,
+        3.500000102445483,
+        3.375000111758709,
+        3.499999960884452,
+        3.375000037252903
+      ],
+      "evidence_margin_drop": 0.12499993592500669,
+      "mean_placebo_margin_drop": 0.07499990165233594,
+      "selective_margin_drop": 0.050000034272670746,
+      "matched_interventions": [
+        {
+          "evidence_target": 1438,
+          "evidence_donor": 1797,
+          "placebo_target": 1977,
+          "placebo_donor": 1797
+        },
+        {
+          "evidence_target": 1618,
+          "evidence_donor": 1797,
+          "placebo_target": 899,
+          "placebo_donor": 719
+        },
+        {
+          "evidence_target": 1078,
+          "evidence_donor": 899,
+          "placebo_target": 359,
+          "placebo_donor": 180
+        },
+        {
+          "evidence_target": 1258,
+          "evidence_donor": 899,
+          "placebo_target": 719,
+          "placebo_donor": 539
+        },
+        {
+          "evidence_target": 1438,
+          "evidence_donor": 1797,
+          "placebo_target": 1977,
+          "placebo_donor": 1797
+        }
+      ]
+    },
+    {
+      "sample_id": "16",
+      "question_type": "CW",
+      "baseline_choice_correct": true,
+      "gold_choice_index": 2,
+      "full_choice_logprobs": [
+        -4.156057357788086,
+        -4.781057357788086,
+        -0.15605713427066803,
+        -2.281057119369507,
+        -4.031057357788086
+      ],
+      "full_correct_vs_best_foil_margin": 2.124999985098839,
+      "evidence_replaced_margins": [
+        2.1250001192092896,
+        2.500000089406967,
+        2.250000014901161,
+        2.2499998956918716,
+        2.1250001192092896
+      ],
+      "placebo_replaced_margins": [
+        2.250000089406967,
+        2.5,
+        2.1249998807907104,
+        2.5,
+        2.5000000298023224
+      ],
+      "evidence_margin_drop": -0.12500006258487684,
+      "mean_placebo_margin_drop": -0.2500000149011612,
+      "selective_margin_drop": 0.12499995231628436,
+      "matched_interventions": [
+        {
+          "evidence_target": 536,
+          "evidence_donor": 469,
+          "placebo_target": 335,
+          "placebo_donor": 402
+        },
+        {
+          "evidence_target": 134,
+          "evidence_donor": 67,
+          "placebo_target": 67,
+          "placebo_donor": 0
+        },
+        {
+          "evidence_target": 670,
+          "evidence_donor": 603,
+          "placebo_target": 603,
+          "placebo_donor": 469
+        },
+        {
+          "evidence_target": 268,
+          "evidence_donor": 201,
+          "placebo_target": 67,
+          "placebo_donor": 0
+        },
+        {
+          "evidence_target": 536,
+          "evidence_donor": 469,
+          "placebo_target": 469,
+          "placebo_donor": 402
+        }
+      ]
+    },
+    {
+      "sample_id": "17",
+      "question_type": "TN",
+      "baseline_choice_correct": true,
+      "gold_choice_index": 3,
+      "full_choice_logprobs": [
+        -3.5340609550476074,
+        -9.53406047821045,
+        -5.534060955047607,
+        -0.03406086936593056,
+        -8.53406047821045
+      ],
+      "full_correct_vs_best_foil_margin": 3.500000085681677,
+      "evidence_replaced_margins": [
+        3.2499999701976776,
+        3.125000014901161,
+        3.2499999701976776,
+        3.125000014901161,
+        3.2499999701976776
+      ],
+      "placebo_replaced_margins": [
+        3.250000052154064,
+        3.625000048428774,
+        3.625000048428774,
+        3.625000048428774,
+        3.250000052154064
+      ],
+      "evidence_margin_drop": 0.3000000976026058,
+      "mean_placebo_margin_drop": 0.025000035762786865,
+      "selective_margin_drop": 0.27500006183981895,
+      "matched_interventions": [
+        {
+          "evidence_target": 590,
+          "evidence_donor": 664,
+          "placebo_target": 664,
+          "placebo_donor": 737
+        },
+        {
+          "evidence_target": 516,
+          "evidence_donor": 442,
+          "placebo_target": 442,
+          "placebo_donor": 369
+        },
+        {
+          "evidence_target": 590,
+          "evidence_donor": 664,
+          "placebo_target": 442,
+          "placebo_donor": 369
+        },
+        {
+          "evidence_target": 516,
+          "evidence_donor": 442,
+          "placebo_target": 442,
+          "placebo_donor": 369
+        },
+        {
+          "evidence_target": 590,
+          "evidence_donor": 664,
+          "placebo_target": 664,
+          "placebo_donor": 737
+        }
+      ]
+    },
+    {
+      "sample_id": "18",
+      "question_type": "CW",
+      "baseline_choice_correct": true,
+      "gold_choice_index": 1,
+      "full_choice_logprobs": [
+        -8.169153213500977,
+        -0.04415326938033104,
+        -7.919153213500977,
+        -3.9191532135009766,
+        -3.7941532135009766
+      ],
+      "full_correct_vs_best_foil_margin": 3.7499999441206455,
+      "evidence_replaced_margins": [
+        3.2499998919665813,
+        3.2499998919665813,
+        3.2499998919665813,
+        3.2499998919665813,
+        3.2499998919665813
+      ],
+      "placebo_replaced_margins": [
+        3.250000089406967,
+        3.250000089406967,
+        4.125000078231096,
+        3.4999999590218067,
+        3.250000089406967
+      ],
+      "evidence_margin_drop": 0.5000000521540642,
+      "mean_placebo_margin_drop": 0.27499988302588463,
+      "selective_margin_drop": 0.22500016912817955,
+      "matched_interventions": [
+        {
+          "evidence_target": 277,
+          "evidence_donor": 332,
+          "placebo_target": 166,
+          "placebo_donor": 111
+        },
+        {
+          "evidence_target": 277,
+          "evidence_donor": 332,
+          "placebo_target": 166,
+          "placebo_donor": 111
+        },
+        {
+          "evidence_target": 277,
+          "evidence_donor": 332,
+          "placebo_target": 332,
+          "placebo_donor": 387
+        },
+        {
+          "evidence_target": 277,
+          "evidence_donor": 332,
+          "placebo_target": 221,
+          "placebo_donor": 166
+        },
+        {
+          "evidence_target": 277,
+          "evidence_donor": 332,
+          "placebo_target": 166,
+          "placebo_donor": 111
+        }
+      ]
+    },
+    {
+      "sample_id": "19",
+      "question_type": "TC",
+      "baseline_choice_correct": true,
+      "gold_choice_index": 2,
+      "full_choice_logprobs": [
+        -4.891524314880371,
+        -1.2665245532989502,
+        -0.6415245532989502,
+        -2.39152455329895,
+        -2.39152455329895
+      ],
+      "full_correct_vs_best_foil_margin": 0.625,
+      "evidence_replaced_margins": [
+        0.375,
+        -1.375,
+        0.375,
+        -1.375,
+        0.375
+      ],
+      "placebo_replaced_margins": [
+        0.5,
+        0.6250000596046448,
+        0.25,
+        0.5,
+        0.25
+      ],
+      "evidence_margin_drop": 0.95,
+      "mean_placebo_margin_drop": 0.19999998807907104,
+      "selective_margin_drop": 0.7500000119209289,
+      "matched_interventions": [
+        {
+          "evidence_target": 450,
+          "evidence_donor": 409,
+          "placebo_target": 368,
+          "placebo_donor": 327
+        },
+        {
+          "evidence_target": 490,
+          "evidence_donor": 531,
+          "placebo_target": 572,
+          "placebo_donor": 531
+        },
+        {
+          "evidence_target": 450,
+          "evidence_donor": 409,
+          "placebo_target": 531,
+          "placebo_donor": 572
+        },
+        {
+          "evidence_target": 490,
+          "evidence_donor": 531,
+          "placebo_target": 368,
+          "placebo_donor": 327
+        },
+        {
+          "evidence_target": 450,
+          "evidence_donor": 409,
+          "placebo_target": 531,
+          "placebo_donor": 572
+        }
+      ]
+    },
+    {
+      "sample_id": "20",
+      "question_type": "CH",
+      "baseline_choice_correct": true,
+      "gold_choice_index": 1,
+      "full_choice_logprobs": [
+        -4.706377029418945,
+        -0.08137685060501099,
+        -6.206377029418945,
+        -8.831377029418945,
+        -2.706376791000366
+      ],
+      "full_correct_vs_best_foil_margin": 2.6249999403953552,
+      "evidence_replaced_margins": [
+        2.500000022351742,
+        0.6249999403953552,
+        2.4999999180436134,
+        2.7499999031424522,
+        0.6249999403953552
+      ],
+      "placebo_replaced_margins": [
+        2.7500001043081284,
+        2.7499999552965164,
+        2.7499999552965164,
+        2.7499999552965164,
+        3.2500001154839993
+      ],
+      "evidence_margin_drop": 0.8249999955296516,
+      "mean_placebo_margin_drop": -0.22500007674098033,
+      "selective_margin_drop": 1.050000072270632,
+      "matched_interventions": [
+        {
+          "evidence_target": 128,
+          "evidence_donor": 384,
+          "placebo_target": 575,
+          "placebo_donor": 511
+        },
+        {
+          "evidence_target": 64,
+          "evidence_donor": 384,
+          "placebo_target": 384,
+          "placebo_donor": 448
+        },
+        {
+          "evidence_target": 192,
+          "evidence_donor": 384,
+          "placebo_target": 384,
+          "placebo_donor": 448
+        },
+        {
+          "evidence_target": 256,
+          "evidence_donor": 384,
+          "placebo_target": 384,
+          "placebo_donor": 448
+        },
+        {
+          "evidence_target": 0,
+          "evidence_donor": 384,
+          "placebo_target": 511,
+          "placebo_donor": 448
+        }
+      ]
+    },
+    {
+      "sample_id": "21",
+      "question_type": "TC",
+      "baseline_choice_correct": false,
+      "gold_choice_index": 2,
+      "full_choice_logprobs": [
+        -1.6825547218322754,
+        -2.9325547218322754,
+        -2.3075547218322754,
+        -2.4325547218322754,
+        -0.5575547218322754
+      ],
+      "full_correct_vs_best_foil_margin": -1.75,
+      "evidence_replaced_margins": [
+        -1.6250001192092896,
+        -2.0,
+        -1.6250001192092896,
+        -2.0,
+        -1.6250001192092896
+      ],
+      "placebo_replaced_margins": [
+        -2.6249998807907104,
+        -2.6249998807907104,
+        -2.0,
+        -2.6249998807907104,
+        -3.1250000596046448
+      ],
+      "evidence_margin_drop": 0.02500007152557382,
+      "mean_placebo_margin_drop": 0.8499999403953553,
+      "selective_margin_drop": -0.8249998688697815,
+      "matched_interventions": [
+        {
+          "evidence_target": 152,
+          "evidence_donor": 76,
+          "placebo_target": 0,
+          "placebo_donor": 76
+        },
+        {
+          "evidence_target": 228,
+          "evidence_donor": 304,
+          "placebo_target": 0,
+          "placebo_donor": 76
+        },
+        {
+          "evidence_target": 152,
+          "evidence_donor": 76,
+          "placebo_target": 380,
+          "placebo_donor": 304
+        },
+        {
+          "evidence_target": 228,
+          "evidence_donor": 304,
+          "placebo_target": 0,
+          "placebo_donor": 76
+        },
+        {
+          "evidence_target": 152,
+          "evidence_donor": 76,
+          "placebo_target": 76,
+          "placebo_donor": 0
+        }
+      ]
+    },
+    {
+      "sample_id": "22",
+      "question_type": "CW",
+      "baseline_choice_correct": true,
+      "gold_choice_index": 3,
+      "full_choice_logprobs": [
+        -6.628294944763184,
+        -10.128294944763184,
+        -7.878294944763184,
+        -0.0032949938904494047,
+        -6.503294944763184
+      ],
+      "full_correct_vs_best_foil_margin": 6.499999950872734,
+      "evidence_replaced_margins": [
+        6.124999885447323,
+        6.75000019161962,
+        6.124999885447323,
+        6.75000019161962,
+        6.124999885447323
+      ],
+      "placebo_replaced_margins": [
+        6.374999816995114,
+        6.5000001336447895,
+        5.750000084284693,
+        6.5000001336447895,
+        6.625000139931217
+      ],
+      "evidence_margin_drop": 0.1249999429564923,
+      "mean_placebo_margin_drop": 0.14999988917261398,
+      "selective_margin_drop": -0.02499994621612167,
+      "matched_interventions": [
+        {
+          "evidence_target": 112,
+          "evidence_donor": 167,
+          "placebo_target": 223,
+          "placebo_donor": 167
+        },
+        {
+          "evidence_target": 56,
+          "evidence_donor": 0,
+          "placebo_target": 167,
+          "placebo_donor": 223
+        },
+        {
+          "evidence_target": 112,
+          "evidence_donor": 167,
+          "placebo_target": 0,
+          "placebo_donor": 167
+        },
+        {
+          "evidence_target": 56,
+          "evidence_donor": 0,
+          "placebo_target": 167,
+          "placebo_donor": 223
+        },
+        {
+          "evidence_target": 112,
+          "evidence_donor": 167,
+          "placebo_target": 279,
+          "placebo_donor": 223
+        }
+      ]
+    },
+    {
+      "sample_id": "23",
+      "question_type": "CW",
+      "baseline_choice_correct": true,
+      "gold_choice_index": 2,
+      "full_choice_logprobs": [
+        -8.626239776611328,
+        -7.001239776611328,
+        -0.0012399612460285425,
+        -10.251239776611328,
+        -11.626239776611328
+      ],
+      "full_correct_vs_best_foil_margin": 6.9999998153653,
+      "evidence_replaced_margins": [
+        8.37500031144009,
+        7.000000128522515,
+        7.124999774736352,
+        7.874999947322067,
+        8.37500031144009
+      ],
+      "placebo_replaced_margins": [
+        7.125000002444722,
+        7.125000086147338,
+        6.749999977066182,
+        7.125000002444722,
+        7.125000086147338
+      ],
+      "evidence_margin_drop": -0.7500002793269234,
+      "mean_placebo_margin_drop": -0.050000215484760524,
+      "selective_margin_drop": -0.7000000638421628,
+      "matched_interventions": [
+        {
+          "evidence_target": 69,
+          "evidence_donor": 115,
+          "placebo_target": 115,
+          "placebo_donor": 138
+        },
+        {
+          "evidence_target": 23,
+          "evidence_donor": 0,
+          "placebo_target": 138,
+          "placebo_donor": 115
+        },
+        {
+          "evidence_target": 92,
+          "evidence_donor": 115,
+          "placebo_target": 161,
+          "placebo_donor": 138
+        },
+        {
+          "evidence_target": 46,
+          "evidence_donor": 0,
+          "placebo_target": 115,
+          "placebo_donor": 138
+        },
+        {
+          "evidence_target": 69,
+          "evidence_donor": 115,
+          "placebo_target": 138,
+          "placebo_donor": 115
+        }
+      ]
+    },
+    {
+      "sample_id": "24",
+      "question_type": "CW",
+      "baseline_choice_correct": true,
+      "gold_choice_index": 2,
+      "full_choice_logprobs": [
+        -1.8180418014526367,
+        -6.318041801452637,
+        -0.19304174184799194,
+        -4.693041801452637,
+        -6.193041801452637
+      ],
+      "full_correct_vs_best_foil_margin": 1.6250000596046448,
+      "evidence_replaced_margins": [
+        1.7500000298023224,
+        1.2499999403953552,
+        1.7500000298023224,
+        1.3750000149011612,
+        1.125
+      ],
+      "placebo_replaced_margins": [
+        1.4999999850988388,
+        1.6249999552965164,
+        1.6250000149011612,
+        1.6249999701976776,
+        1.5000000596046448
+      ],
+      "evidence_margin_drop": 0.17500005662441254,
+      "mean_placebo_margin_drop": 0.0500000625848771,
+      "selective_margin_drop": 0.12499999403953543,
+      "matched_interventions": [
+        {
+          "evidence_target": 1167,
+          "evidence_donor": 1070,
+          "placebo_target": 1070,
+          "placebo_donor": 1264
+        },
+        {
+          "evidence_target": 584,
+          "evidence_donor": 681,
+          "placebo_target": 875,
+          "placebo_donor": 681
+        },
+        {
+          "evidence_target": 778,
+          "evidence_donor": 681,
+          "placebo_target": 681,
+          "placebo_donor": 875
+        },
+        {
+          "evidence_target": 973,
+          "evidence_donor": 1070,
+          "placebo_target": 1264,
+          "placebo_donor": 1362
+        },
+        {
+          "evidence_target": 486,
+          "evidence_donor": 389,
+          "placebo_target": 195,
+          "placebo_donor": 292
+        }
+      ]
+    },
+    {
+      "sample_id": "25",
+      "question_type": "TC",
+      "baseline_choice_correct": true,
+      "gold_choice_index": 3,
+      "full_choice_logprobs": [
+        -2.2185144424438477,
+        -1.8435144424438477,
+        -2.7185144424438477,
+        -0.46851444244384766,
+        -3.2185144424438477
+      ],
+      "full_correct_vs_best_foil_margin": 1.375,
+      "evidence_replaced_margins": [
+        1.25,
+        1.6250000596046448,
+        1.3750000596046448,
+        1.25,
+        1.4999999701976776
+      ],
+      "placebo_replaced_margins": [
+        2.125000074505806,
+        2.125000074505806,
+        1.6249999403953552,
+        1.6249999403953552,
+        2.125000074505806
+      ],
+      "evidence_margin_drop": -0.025000017881393388,
+      "mean_placebo_margin_drop": -0.5500000208616256,
+      "selective_margin_drop": 0.5250000029802322,
+      "matched_interventions": [
+        {
+          "evidence_target": 1210,
+          "evidence_donor": 2268,
+          "placebo_target": 0,
+          "placebo_donor": 2268
+        },
+        {
+          "evidence_target": 454,
+          "evidence_donor": 0,
+          "placebo_target": 0,
+          "placebo_donor": 2268
+        },
+        {
+          "evidence_target": 756,
+          "evidence_donor": 0,
+          "placebo_target": 2268,
+          "placebo_donor": 0
+        },
+        {
+          "evidence_target": 302,
+          "evidence_donor": 0,
+          "placebo_target": 2268,
+          "placebo_donor": 0
+        },
+        {
+          "evidence_target": 1663,
+          "evidence_donor": 2268,
+          "placebo_target": 0,
+          "placebo_donor": 2268
+        }
+      ]
+    },
+    {
+      "sample_id": "26",
+      "question_type": "CW",
+      "baseline_choice_correct": true,
+      "gold_choice_index": 3,
+      "full_choice_logprobs": [
+        -8.011653900146484,
+        -3.1366543769836426,
+        -3.8866543769836426,
+        -0.1366543471813202,
+        -2.7616543769836426
+      ],
+      "full_correct_vs_best_foil_margin": 2.6250000298023224,
+      "evidence_replaced_margins": [
+        2.625,
+        2.6250001043081284,
+        2.7500001043081284,
+        2.7500000670552254,
+        2.5000000298023224
+      ],
+      "placebo_replaced_margins": [
+        2.7499999180436134,
+        2.6250001043081284,
+        2.5000000447034836,
+        2.6250001043081284,
+        2.6249998807907104
+      ],
+      "evidence_margin_drop": -0.02500003129243833,
+      "mean_placebo_margin_drop": 1.9371509729637637e-08,
+      "selective_margin_drop": -0.02500005066394806,
+      "matched_interventions": [
+        {
+          "evidence_target": 239,
+          "evidence_donor": 279,
+          "placebo_target": 299,
+          "placebo_donor": 279
+        },
+        {
+          "evidence_target": 219,
+          "evidence_donor": 279,
+          "placebo_target": 279,
+          "placebo_donor": 299
+        },
+        {
+          "evidence_target": 159,
+          "evidence_donor": 100,
+          "placebo_target": 60,
+          "placebo_donor": 40
+        },
+        {
+          "evidence_target": 179,
+          "evidence_donor": 100,
+          "placebo_target": 279,
+          "placebo_donor": 299
+        },
+        {
+          "evidence_target": 259,
+          "evidence_donor": 279,
+          "placebo_target": 100,
+          "placebo_donor": 80
+        }
+      ]
+    },
+    {
+      "sample_id": "27",
+      "question_type": "CW",
+      "baseline_choice_correct": true,
+      "gold_choice_index": 0,
+      "full_choice_logprobs": [
+        -0.01818063110113144,
+        -6.518180847167969,
+        -6.268180847167969,
+        -4.268180847167969,
+        -7.643180847167969
+      ],
+      "full_correct_vs_best_foil_margin": 4.250000216066837,
+      "evidence_replaced_margins": [
+        3.125000048428774,
+        4.37500019185245,
+        3.0000000037252903,
+        4.000000085681677,
+        3.125000048428774
+      ],
+      "placebo_replaced_margins": [
+        3.500000022351742,
+        4.499999925494194,
+        3.500000022351742,
+        3.500000022351742,
+        3.500000022351742
+      ],
+      "evidence_margin_drop": 0.7250001404434441,
+      "mean_placebo_margin_drop": 0.5500002130866051,
+      "selective_margin_drop": 0.174999927356839,
+      "matched_interventions": [
+        {
+          "evidence_target": 49,
+          "evidence_donor": 197,
+          "placebo_target": 344,
+          "placebo_donor": 295
+        },
+        {
+          "evidence_target": 98,
+          "evidence_donor": 197,
+          "placebo_target": 295,
+          "placebo_donor": 246
+        },
+        {
+          "evidence_target": 0,
+          "evidence_donor": 197,
+          "placebo_target": 344,
+          "placebo_donor": 295
+        },
+        {
+          "evidence_target": 148,
+          "evidence_donor": 197,
+          "placebo_target": 344,
+          "placebo_donor": 295
+        },
+        {
+          "evidence_target": 49,
+          "evidence_donor": 197,
+          "placebo_target": 344,
+          "placebo_donor": 295
+        }
+      ]
+    },
+    {
+      "sample_id": "28",
+      "question_type": "CW",
+      "baseline_choice_correct": true,
+      "gold_choice_index": 1,
+      "full_choice_logprobs": [
+        -9.375584602355957,
+        -0.0005841932725161314,
+        -10.000584602355957,
+        -8.250584602355957,
+        -8.750584602355957
+      ],
+      "full_correct_vs_best_foil_margin": 8.250000409083441,
+      "evidence_replaced_margins": [
+        8.12499957124237,
+        8.500000460480805,
+        8.37500001839362,
+        7.750000232015736,
+        8.12499957124237
+      ],
+      "placebo_replaced_margins": [
+        8.25000029389048,
+        8.749999608582584,
+        8.499999637482688,
+        8.249999957333785,
+        8.249999957333785
+      ],
+      "evidence_margin_drop": 0.07500043840846082,
+      "mean_placebo_margin_drop": -0.14999948184122402,
+      "selective_margin_drop": 0.22499992024968485,
+      "matched_interventions": [
+        {
+          "evidence_target": 449,
+          "evidence_donor": 269,
+          "placebo_target": 180,
+          "placebo_donor": 269
+        },
+        {
+          "evidence_target": 629,
+          "evidence_donor": 718,
+          "placebo_target": 988,
+          "placebo_donor": 898
+        },
+        {
+          "evidence_target": 359,
+          "evidence_donor": 269,
+          "placebo_target": 269,
+          "placebo_donor": 180
+        },
+        {
+          "evidence_target": 539,
+          "evidence_donor": 718,
+          "placebo_target": 718,
+          "placebo_donor": 808
+        },
+        {
+          "evidence_target": 449,
+          "evidence_donor": 269,
+          "placebo_target": 718,
+          "placebo_donor": 808
+        }
+      ]
+    },
+    {
+      "sample_id": "29",
+      "question_type": "CW",
+      "baseline_choice_correct": true,
+      "gold_choice_index": 3,
+      "full_choice_logprobs": [
+        -6.378076076507568,
+        -8.503076553344727,
+        -7.128076076507568,
+        -0.0030762276146560907,
+        -8.878076553344727
+      ],
+      "full_correct_vs_best_foil_margin": 6.374999848892912,
+      "evidence_replaced_margins": [
+        6.62500015925616,
+        6.50000015553087,
+        6.62500015925616,
+        6.50000015553087,
+        6.62500015925616
+      ],
+      "placebo_replaced_margins": [
+        6.874999922933057,
+        7.2500001672888175,
+        7.2500001672888175,
+        6.874999922933057,
+        6.874999922933057
+      ],
+      "evidence_margin_drop": -0.2000003088731317,
+      "mean_placebo_margin_drop": -0.6500001717824491,
+      "selective_margin_drop": 0.44999986290931737,
+      "matched_interventions": [
+        {
+          "evidence_target": 1138,
+          "evidence_donor": 1043,
+          "placebo_target": 1043,
+          "placebo_donor": 948
+        },
+        {
+          "evidence_target": 1232,
+          "evidence_donor": 1327,
+          "placebo_target": 1422,
+          "placebo_donor": 1327
+        },
+        {
+          "evidence_target": 1138,
+          "evidence_donor": 1043,
+          "placebo_target": 1422,
+          "placebo_donor": 1327
+        },
+        {
+          "evidence_target": 1232,
+          "evidence_donor": 1327,
+          "placebo_target": 1043,
+          "placebo_donor": 948
+        },
+        {
+          "evidence_target": 1138,
+          "evidence_donor": 1043,
+          "placebo_target": 1043,
+          "placebo_donor": 948
+        }
+      ]
+    },
+    {
+      "sample_id": "31",
+      "question_type": "CW",
+      "baseline_choice_correct": true,
+      "gold_choice_index": 2,
+      "full_choice_logprobs": [
+        -7.133182048797607,
+        -7.883182048797607,
+        -0.008182219229638577,
+        -5.008182048797607,
+        -9.758182525634766
+      ],
+      "full_correct_vs_best_foil_margin": 4.999999829567969,
+      "evidence_replaced_margins": [
+        5.249999878928065,
+        4.874999857507646,
+        5.249999878928065,
+        4.874999857507646,
+        5.249999878928065
+      ],
+      "placebo_replaced_margins": [
+        5.749999814666808,
+        4.999999826774001,
+        5.749999814666808,
+        4.999999826774001,
+        5.249999928288162
+      ],
+      "evidence_margin_drop": -0.10000004079192859,
+      "mean_placebo_margin_drop": -0.350000012665987,
+      "selective_margin_drop": 0.24999997187405842,
+      "matched_interventions": [
+        {
+          "evidence_target": 21,
+          "evidence_donor": 0,
+          "placebo_target": 0,
+          "placebo_donor": 64
+        },
+        {
+          "evidence_target": 43,
+          "evidence_donor": 64,
+          "placebo_target": 64,
+          "placebo_donor": 86
+        },
+        {
+          "evidence_target": 21,
+          "evidence_donor": 0,
+          "placebo_target": 0,
+          "placebo_donor": 64
+        },
+        {
+          "evidence_target": 43,
+          "evidence_donor": 64,
+          "placebo_target": 64,
+          "placebo_donor": 86
+        },
+        {
+          "evidence_target": 21,
+          "evidence_donor": 0,
+          "placebo_target": 107,
+          "placebo_donor": 86
+        }
+      ]
+    },
+    {
+      "sample_id": "33",
+      "question_type": "TN",
+      "baseline_choice_correct": true,
+      "gold_choice_index": 0,
+      "full_choice_logprobs": [
+        -0.7508000135421753,
+        -2.000800132751465,
+        -2.875800132751465,
+        -1.3758000135421753,
+        -2.500800132751465
+      ],
+      "full_correct_vs_best_foil_margin": 0.625,
+      "evidence_replaced_margins": [
+        0.625,
+        0.375,
+        0.4999999403953552,
+        0.625,
+        0.375
+      ],
+      "placebo_replaced_margins": [
+        0.375,
+        0.3750000596046448,
+        0.625,
+        0.5,
+        0.3750000596046448
+      ],
+      "evidence_margin_drop": 0.12500001192092897,
+      "mean_placebo_margin_drop": 0.1749999761581421,
+      "selective_margin_drop": -0.049999964237213146,
+      "matched_interventions": [
+        {
+          "evidence_target": 490,
+          "evidence_donor": 435,
+          "placebo_target": 326,
+          "placebo_donor": 272
+        },
+        {
+          "evidence_target": 544,
+          "evidence_donor": 435,
+          "placebo_target": 707,
+          "placebo_donor": 653
+        },
+        {
+          "evidence_target": 598,
+          "evidence_donor": 653,
+          "placebo_target": 653,
+          "placebo_donor": 707
+        },
+        {
+          "evidence_target": 490,
+          "evidence_donor": 435,
+          "placebo_target": 435,
+          "placebo_donor": 381
+        },
+        {
+          "evidence_target": 544,
+          "evidence_donor": 435,
+          "placebo_target": 707,
+          "placebo_donor": 653
+        }
+      ]
+    },
+    {
+      "sample_id": "35",
+      "question_type": "CW",
+      "baseline_choice_correct": false,
+      "gold_choice_index": 3,
+      "full_choice_logprobs": [
+        -3.1128201484680176,
+        -0.1128201112151146,
+        -5.612820148468018,
+        -2.9878201484680176,
+        -4.862820148468018
+      ],
+      "full_correct_vs_best_foil_margin": -2.875000037252903,
+      "evidence_replaced_margins": [
+        -1.8749999552965164,
+        -2.999999910593033,
+        -2.5000000447034836,
+        -1.8749999552965164,
+        -2.999999910593033
+      ],
+      "placebo_replaced_margins": [
+        -2.8750000968575478,
+        -3.6249998956918716,
+        -2.8750000968575478,
+        -2.8750000968575478,
+        -2.8750000968575478
+      ],
+      "evidence_margin_drop": -0.4250000819563864,
+      "mean_placebo_margin_drop": 0.15000001937150964,
+      "selective_margin_drop": -0.575000101327896,
+      "matched_interventions": [
+        {
+          "evidence_target": 261,
+          "evidence_donor": 217,
+          "placebo_target": 217,
+          "placebo_donor": 174
+        },
+        {
+          "evidence_target": 348,
+          "evidence_donor": 391,
+          "placebo_target": 435,
+          "placebo_donor": 478
+        },
+        {
+          "evidence_target": 304,
+          "evidence_donor": 217,
+          "placebo_target": 217,
+          "placebo_donor": 174
+        },
+        {
+          "evidence_target": 261,
+          "evidence_donor": 217,
+          "placebo_target": 217,
+          "placebo_donor": 174
+        },
+        {
+          "evidence_target": 348,
+          "evidence_donor": 391,
+          "placebo_target": 217,
+          "placebo_donor": 174
+        }
+      ]
+    },
+    {
+      "sample_id": "36",
+      "question_type": "TC",
+      "baseline_choice_correct": true,
+      "gold_choice_index": 4,
+      "full_choice_logprobs": [
+        -4.788299560546875,
+        -4.413299560546875,
+        -4.163299560546875,
+        -7.538299560546875,
+        -0.03829959034919739
+      ],
+      "full_correct_vs_best_foil_margin": 4.124999970197678,
+      "evidence_replaced_margins": [
+        4.125000085681677,
+        4.125000085681677,
+        4.125000085681677,
+        4.125000085681677,
+        4.125000085681677
+      ],
+      "placebo_replaced_margins": [
+        3.7500000335276127,
+        3.874999910593033,
+        4.249999940395355,
+        4.249999940395355,
+        3.7500000335276127
+      ],
+      "evidence_margin_drop": -1.1548399925231934e-07,
+      "mean_placebo_margin_drop": 0.14999999850988388,
+      "selective_margin_drop": -0.15000011399388313,
+      "matched_interventions": [
+        {
+          "evidence_target": 1409,
+          "evidence_donor": 1281,
+          "placebo_target": 1153,
+          "placebo_donor": 1025
+        },
+        {
+          "evidence_target": 1409,
+          "evidence_donor": 1281,
+          "placebo_target": 1281,
+          "placebo_donor": 1153
+        },
+        {
+          "evidence_target": 1409,
+          "evidence_donor": 1281,
+          "placebo_target": 1538,
+          "placebo_donor": 1666
+        },
+        {
+          "evidence_target": 1409,
+          "evidence_donor": 1281,
+          "placebo_target": 1538,
+          "placebo_donor": 1666
+        },
+        {
+          "evidence_target": 1409,
+          "evidence_donor": 1281,
+          "placebo_target": 1153,
+          "placebo_donor": 1025
+        }
+      ]
+    },
+    {
+      "sample_id": "37",
+      "question_type": "TC",
+      "baseline_choice_correct": false,
+      "gold_choice_index": 4,
+      "full_choice_logprobs": [
+        -1.6710096597671509,
+        -1.0460096597671509,
+        -0.7960096597671509,
+        -6.546009540557861,
+        -4.921009540557861
+      ],
+      "full_correct_vs_best_foil_margin": -4.1249998807907104,
+      "evidence_replaced_margins": [
+        -4.75,
+        -3.375,
+        -4.999999761581421,
+        -4.249999761581421,
+        -4.75
+      ],
+      "placebo_replaced_margins": [
+        -6.0,
+        -4.000000178813934,
+        -5.625000238418579,
+        -5.5,
+        -6.0
+      ],
+      "evidence_margin_drop": 0.3000000238418581,
+      "mean_placebo_margin_drop": 1.3000002026557924,
+      "selective_margin_drop": -1.0000001788139343,
+      "matched_interventions": [
+        {
+          "evidence_target": 106,
+          "evidence_donor": 0,
+          "placebo_target": 370,
+          "placebo_donor": 317
+        },
+        {
+          "evidence_target": 53,
+          "evidence_donor": 0,
+          "placebo_target": 264,
+          "placebo_donor": 317
+        },
+        {
+          "evidence_target": 211,
+          "evidence_donor": 264,
+          "placebo_target": 317,
+          "placebo_donor": 264
+        },
+        {
+          "evidence_target": 159,
+          "evidence_donor": 264,
+          "placebo_target": 0,
+          "placebo_donor": 264
+        },
+        {
+          "evidence_target": 106,
+          "evidence_donor": 0,
+          "placebo_target": 370,
+          "placebo_donor": 317
+        }
+      ]
+    },
+    {
+      "sample_id": "38",
+      "question_type": "CW",
+      "baseline_choice_correct": true,
+      "gold_choice_index": 4,
+      "full_choice_logprobs": [
+        -4.15492057800293,
+        -3.1549203395843506,
+        -2.5299203395843506,
+        -5.40492057800293,
+        -0.15492036938667297
+      ],
+      "full_correct_vs_best_foil_margin": 2.3749999701976776,
+      "evidence_replaced_margins": [
+        2.5000001192092896,
+        2.5000001192092896,
+        2.5000001192092896,
+        2.5000001192092896,
+        2.5000001192092896
+      ],
+      "placebo_replaced_margins": [
+        2.3749999403953552,
+        2.3749999403953552,
+        2.3749999403953552,
+        2.3749999403953552,
+        2.3749998956918716
+      ],
+      "evidence_margin_drop": -0.12500014901161194,
+      "mean_placebo_margin_drop": 3.8743019015186064e-08,
+      "selective_margin_drop": -0.12500018775463095,
+      "matched_interventions": [
+        {
+          "evidence_target": 1691,
+          "evidence_donor": 1570,
+          "placebo_target": 1570,
+          "placebo_donor": 1450
+        },
+        {
+          "evidence_target": 1691,
+          "evidence_donor": 1570,
+          "placebo_target": 1570,
+          "placebo_donor": 1450
+        },
+        {
+          "evidence_target": 1691,
+          "evidence_donor": 1570,
+          "placebo_target": 1570,
+          "placebo_donor": 1450
+        },
+        {
+          "evidence_target": 1691,
+          "evidence_donor": 1570,
+          "placebo_target": 1570,
+          "placebo_donor": 1450
+        },
+        {
+          "evidence_target": 1691,
+          "evidence_donor": 1570,
+          "placebo_target": 1450,
+          "placebo_donor": 1570
+        }
+      ]
+    },
+    {
+      "sample_id": "39",
+      "question_type": "CW",
+      "baseline_choice_correct": true,
+      "gold_choice_index": 1,
+      "full_choice_logprobs": [
+        -6.028640270233154,
+        -0.028640441596508026,
+        -6.028640270233154,
+        -8.028640747070312,
+        -3.7786405086517334
+      ],
+      "full_correct_vs_best_foil_margin": 3.7500000670552254,
+      "evidence_replaced_margins": [
+        3.125000014901161,
+        3.500000074505806,
+        4.12499981187284,
+        4.000000149011612,
+        3.125000014901161
+      ],
+      "placebo_replaced_margins": [
+        3.3749999813735485,
+        3.3749999813735485,
+        3.5000000782310963,
+        3.6250001154839993,
+        3.5000000782310963
+      ],
+      "evidence_margin_drop": 0.17500005401670915,
+      "mean_placebo_margin_drop": 0.27500002011656743,
+      "selective_margin_drop": -0.09999996609985828,
+      "matched_interventions": [
+        {
+          "evidence_target": 107,
+          "evidence_donor": 160,
+          "placebo_target": 240,
+          "placebo_donor": 213
+        },
+        {
+          "evidence_target": 53,
+          "evidence_donor": 160,
+          "placebo_target": 240,
+          "placebo_donor": 213
+        },
+        {
+          "evidence_target": 80,
+          "evidence_donor": 160,
+          "placebo_target": 187,
+          "placebo_donor": 213
+        },
+        {
+          "evidence_target": 27,
+          "evidence_donor": 160,
+          "placebo_target": 213,
+          "placebo_donor": 187
+        },
+        {
+          "evidence_target": 133,
+          "evidence_donor": 160,
+          "placebo_target": 187,
+          "placebo_donor": 213
+        }
+      ]
+    },
+    {
+      "sample_id": "40",
+      "question_type": "CW",
+      "baseline_choice_correct": true,
+      "gold_choice_index": 1,
+      "full_choice_logprobs": [
+        -6.1305670738220215,
+        -0.005567164625972509,
+        -6.2555670738220215,
+        -6.7555670738220215,
+        -8.63056755065918
+      ],
+      "full_correct_vs_best_foil_margin": 6.124999909196049,
+      "evidence_replaced_margins": [
+        6.249999817926437,
+        6.375000212807208,
+        6.499999935738742,
+        6.874999851221219,
+        6.249999817926437
+      ],
+      "placebo_replaced_margins": [
+        6.124999955762178,
+        6.375000143889338,
+        6.374999956227839,
+        6.374999956227839,
+        6.624999915482476
+      ],
+      "evidence_margin_drop": -0.32500001792795974,
+      "mean_placebo_margin_drop": -0.2500000763218848,
+      "selective_margin_drop": -0.07499994160607493,
+      "matched_interventions": [
+        {
+          "evidence_target": 1058,
+          "evidence_donor": 907,
+          "placebo_target": 907,
+          "placebo_donor": 756
+        },
+        {
+          "evidence_target": 151,
+          "evidence_donor": 0,
+          "placebo_target": 605,
+          "placebo_donor": 756
+        },
+        {
+          "evidence_target": 1511,
+          "evidence_donor": 1360,
+          "placebo_target": 1814,
+          "placebo_donor": 1965
+        },
+        {
+          "evidence_target": 2116,
+          "evidence_donor": 1965,
+          "placebo_target": 1814,
+          "placebo_donor": 1965
+        },
+        {
+          "evidence_target": 1058,
+          "evidence_donor": 907,
+          "placebo_target": 1360,
+          "placebo_donor": 1209
+        }
+      ]
+    },
+    {
+      "sample_id": "41",
+      "question_type": "CW",
+      "baseline_choice_correct": false,
+      "gold_choice_index": 4,
+      "full_choice_logprobs": [
+        -3.682746171951294,
+        -0.43274614214897156,
+        -4.682745933532715,
+        -2.557746171951294,
+        -1.432746171951294
+      ],
+      "full_correct_vs_best_foil_margin": -1.0000000298023224,
+      "evidence_replaced_margins": [
+        -0.3749999403953552,
+        -0.8750000298023224,
+        -0.875,
+        -1.0,
+        -0.5
+      ],
+      "placebo_replaced_margins": [
+        -0.875,
+        -0.8750000596046448,
+        -0.9999999701976776,
+        -0.9999999701976776,
+        -0.9999999403953552
+      ],
+      "evidence_margin_drop": -0.27500003576278687,
+      "mean_placebo_margin_drop": -0.05000004172325134,
+      "selective_margin_drop": -0.22499999403953552,
+      "matched_interventions": [
+        {
+          "evidence_target": 276,
+          "evidence_donor": 331,
+          "placebo_target": 359,
+          "placebo_donor": 386
+        },
+        {
+          "evidence_target": 110,
+          "evidence_donor": 83,
+          "placebo_target": 28,
+          "placebo_donor": 55
+        },
+        {
+          "evidence_target": 138,
+          "evidence_donor": 83,
+          "placebo_target": 55,
+          "placebo_donor": 28
+        },
+        {
+          "evidence_target": 193,
+          "evidence_donor": 83,
+          "placebo_target": 55,
+          "placebo_donor": 28
+        },
+        {
+          "evidence_target": 304,
+          "evidence_donor": 331,
+          "placebo_target": 414,
+          "placebo_donor": 386
+        }
+      ]
+    },
+    {
+      "sample_id": "42",
+      "question_type": "TC",
+      "baseline_choice_correct": true,
+      "gold_choice_index": 3,
+      "full_choice_logprobs": [
+        -3.525327205657959,
+        -1.025327205657959,
+        -5.775327205657959,
+        -0.525327205657959,
+        -4.150327205657959
+      ],
+      "full_correct_vs_best_foil_margin": 0.5,
+      "evidence_replaced_margins": [
+        -0.25,
+        -0.25,
+        -0.25,
+        -0.25,
+        -0.25
+      ],
+      "placebo_replaced_margins": [
+        1.625,
+        0.7500000596046448,
+        -0.125,
+        1.625,
+        0.7500000596046448
+      ],
+      "evidence_margin_drop": 0.75,
+      "mean_placebo_margin_drop": -0.42500002384185787,
+      "selective_margin_drop": 1.1750000238418579,
+      "matched_interventions": [
+        {
+          "evidence_target": 2100,
+          "evidence_donor": 1950,
+          "placebo_target": 1650,
+          "placebo_donor": 1500
+        },
+        {
+          "evidence_target": 2100,
+          "evidence_donor": 1950,
+          "placebo_target": 1800,
+          "placebo_donor": 1650
+        },
+        {
+          "evidence_target": 2100,
+          "evidence_donor": 1950,
+          "placebo_target": 2250,
+          "placebo_donor": 1950
+        },
+        {
+          "evidence_target": 2100,
+          "evidence_donor": 1950,
+          "placebo_target": 1650,
+          "placebo_donor": 1500
+        },
+        {
+          "evidence_target": 2100,
+          "evidence_donor": 1950,
+          "placebo_target": 1800,
+          "placebo_donor": 1650
+        }
+      ]
+    },
+    {
+      "sample_id": "43",
+      "question_type": "CH",
+      "baseline_choice_correct": false,
+      "gold_choice_index": 0,
+      "full_choice_logprobs": [
+        -1.6997003555297852,
+        -1.1997003555297852,
+        -4.074700355529785,
+        -0.6997004151344299,
+        -6.449700355529785
+      ],
+      "full_correct_vs_best_foil_margin": -0.9999999403953552,
+      "evidence_replaced_margins": [
+        -0.3750000596046448,
+        -0.875,
+        -1.4999998807907104,
+        -0.625,
+        -0.3750000596046448
+      ],
+      "placebo_replaced_margins": [
+        -1.7499998807907104,
+        -0.8749999403953552,
+        -1.125,
+        -0.8749999403953552,
+        -2.5
+      ],
+      "evidence_margin_drop": -0.24999994039535522,
+      "mean_placebo_margin_drop": 0.42500001192092896,
+      "selective_margin_drop": -0.6749999523162842,
+      "matched_interventions": [
+        {
+          "evidence_target": 1428,
+          "evidence_donor": 1558,
+          "placebo_target": 1687,
+          "placebo_donor": 1558
+        },
+        {
+          "evidence_target": 1168,
+          "evidence_donor": 909,
+          "placebo_target": 649,
+          "placebo_donor": 519
+        },
+        {
+          "evidence_target": 1298,
+          "evidence_donor": 1558,
+          "placebo_target": 779,
+          "placebo_donor": 649
+        },
+        {
+          "evidence_target": 1038,
+          "evidence_donor": 909,
+          "placebo_target": 649,
+          "placebo_donor": 519
+        },
+        {
+          "evidence_target": 1428,
+          "evidence_donor": 1558,
+          "placebo_target": 1558,
+          "placebo_donor": 1687
+        }
+      ]
+    },
+    {
+      "sample_id": "44",
+      "question_type": "TN",
+      "baseline_choice_correct": true,
+      "gold_choice_index": 4,
+      "full_choice_logprobs": [
+        -5.012513160705566,
+        -7.887513160705566,
+        -5.387513160705566,
+        -8.512513160705566,
+        -0.01251310296356678
+      ],
+      "full_correct_vs_best_foil_margin": 5.000000057742,
+      "evidence_replaced_margins": [
+        4.874999807216227,
+        5.6250001871958375,
+        5.12499987334013,
+        4.874999807216227,
+        5.6250001871958375
+      ],
+      "placebo_replaced_margins": [
+        5.62500015180558,
+        5.124999972991645,
+        5.124999972991645,
+        5.124999972991645,
+        4.874999958090484
+      ],
+      "evidence_margin_drop": -0.22499991469085234,
+      "mean_placebo_margin_drop": -0.17499994803219998,
+      "selective_margin_drop": -0.04999996665865236,
+      "matched_interventions": [
+        {
+          "evidence_target": 414,
+          "evidence_donor": 460,
+          "placebo_target": 552,
+          "placebo_donor": 506
+        },
+        {
+          "evidence_target": 368,
+          "evidence_donor": 276,
+          "placebo_target": 460,
+          "placebo_donor": 506
+        },
+        {
+          "evidence_target": 322,
+          "evidence_donor": 276,
+          "placebo_target": 460,
+          "placebo_donor": 506
+        },
+        {
+          "evidence_target": 414,
+          "evidence_donor": 460,
+          "placebo_target": 460,
+          "placebo_donor": 506
+        },
+        {
+          "evidence_target": 368,
+          "evidence_donor": 276,
+          "placebo_target": 230,
+          "placebo_donor": 184
+        }
+      ]
+    },
+    {
+      "sample_id": "45",
+      "question_type": "TN",
+      "baseline_choice_correct": true,
+      "gold_choice_index": 0,
+      "full_choice_logprobs": [
+        -0.037187010049819946,
+        -5.037187099456787,
+        -4.287187099456787,
+        -7.787187099456787,
+        -4.162187099456787
+      ],
+      "full_correct_vs_best_foil_margin": 4.125000089406967,
+      "evidence_replaced_margins": [
+        3.9999998323619366,
+        4.249999787658453,
+        3.9999998323619366,
+        4.249999787658453,
+        3.9999998323619366
+      ],
+      "placebo_replaced_margins": [
+        4.624999966472387,
+        4.624999966472387,
+        4.624999966472387,
+        4.374999983236194,
+        4.50000019185245
+      ],
+      "evidence_margin_drop": 0.025000274926424204,
+      "mean_placebo_margin_drop": -0.42499992549419385,
+      "selective_margin_drop": 0.45000020042061806,
+      "matched_interventions": [
+        {
+          "evidence_target": 726,
+          "evidence_donor": 670,
+          "placebo_target": 559,
+          "placebo_donor": 503
+        },
+        {
+          "evidence_target": 782,
+          "evidence_donor": 838,
+          "placebo_target": 559,
+          "placebo_donor": 503
+        },
+        {
+          "evidence_target": 726,
+          "evidence_donor": 670,
+          "placebo_target": 559,
+          "placebo_donor": 503
+        },
+        {
+          "evidence_target": 782,
+          "evidence_donor": 838,
+          "placebo_target": 838,
+          "placebo_donor": 670
+        },
+        {
+          "evidence_target": 726,
+          "evidence_donor": 670,
+          "placebo_target": 615,
+          "placebo_donor": 670
+        }
+      ]
+    },
+    {
+      "sample_id": "46",
+      "question_type": "CW",
+      "baseline_choice_correct": false,
+      "gold_choice_index": 2,
+      "full_choice_logprobs": [
+        -0.2473486065864563,
+        -4.122348785400391,
+        -2.4973485469818115,
+        -2.1223485469818115,
+        -7.497348785400391
+      ],
+      "full_correct_vs_best_foil_margin": -2.2499999403953552,
+      "evidence_replaced_margins": [
+        -2.624999985098839,
+        -2.624999985098839,
+        -2.624999985098839,
+        -2.624999985098839,
+        -2.624999985098839
+      ],
+      "placebo_replaced_margins": [
+        -2.25,
+        -2.4999998956918716,
+        -2.4999998956918716,
+        -2.375000014901161,
+        -2.4999998956918716
+      ],
+      "evidence_margin_drop": 0.3750000447034836,
+      "mean_placebo_margin_drop": 0.17499999999999982,
+      "selective_margin_drop": 0.20000004470348376,
+      "matched_interventions": [
+        {
+          "evidence_target": 722,
+          "evidence_donor": 619,
+          "placebo_target": 826,
+          "placebo_donor": 929
+        },
+        {
+          "evidence_target": 722,
+          "evidence_donor": 619,
+          "placebo_target": 929,
+          "placebo_donor": 826
+        },
+        {
+          "evidence_target": 722,
+          "evidence_donor": 619,
+          "placebo_target": 929,
+          "placebo_donor": 826
+        },
+        {
+          "evidence_target": 722,
+          "evidence_donor": 619,
+          "placebo_target": 516,
+          "placebo_donor": 413
+        },
+        {
+          "evidence_target": 722,
+          "evidence_donor": 619,
+          "placebo_target": 929,
+          "placebo_donor": 826
+        }
+      ]
+    },
+    {
+      "sample_id": "47",
+      "question_type": "TN",
+      "baseline_choice_correct": true,
+      "gold_choice_index": 2,
+      "full_choice_logprobs": [
+        -2.322765827178955,
+        -7.072765827178955,
+        -0.1977657824754715,
+        -2.572765827178955,
+        -5.572765827178955
+      ],
+      "full_correct_vs_best_foil_margin": 2.1250000447034836,
+      "evidence_replaced_margins": [
+        1.9999999403953552,
+        1.9999999403953552,
+        1.9999999403953552,
+        1.9999999403953552,
+        1.9999999403953552
+      ],
+      "placebo_replaced_margins": [
+        2.3750000298023224,
+        1.8750000298023224,
+        2.7500000968575478,
+        2.7500000968575478,
+        2.7500000968575478
+      ],
+      "evidence_margin_drop": 0.12500010430812836,
+      "mean_placebo_margin_drop": -0.37500002533197385,
+      "selective_margin_drop": 0.5000001296401022,
+      "matched_interventions": [
+        {
+          "evidence_target": 1162,
+          "evidence_donor": 1258,
+          "placebo_target": 1355,
+          "placebo_donor": 1258
+        },
+        {
+          "evidence_target": 1162,
+          "evidence_donor": 1258,
+          "placebo_target": 1258,
+          "placebo_donor": 1355
+        },
+        {
+          "evidence_target": 1162,
+          "evidence_donor": 1258,
+          "placebo_target": 968,
+          "placebo_donor": 871
+        },
+        {
+          "evidence_target": 1162,
+          "evidence_donor": 1258,
+          "placebo_target": 968,
+          "placebo_donor": 871
+        },
+        {
+          "evidence_target": 1162,
+          "evidence_donor": 1258,
+          "placebo_target": 968,
+          "placebo_donor": 871
+        }
+      ]
+    },
+    {
+      "sample_id": "48",
+      "question_type": "CW",
+      "baseline_choice_correct": false,
+      "gold_choice_index": 2,
+      "full_choice_logprobs": [
+        -3.968266010284424,
+        -1.7182658910751343,
+        -2.093266010284424,
+        -0.46826592087745667,
+        -2.968266010284424
+      ],
+      "full_correct_vs_best_foil_margin": -1.6250000894069672,
+      "evidence_replaced_margins": [
+        -1.6249998807907104,
+        -1.7500001192092896,
+        -1.125,
+        -1.7499999403953552,
+        -1.6249998807907104
+      ],
+      "placebo_replaced_margins": [
+        -1.2500000596046448,
+        -1.25,
+        -1.2500000596046448,
+        -1.25,
+        -1.9999999105930328
+      ],
+      "evidence_margin_drop": -0.05000012516975394,
+      "mean_placebo_margin_drop": -0.22500008344650269,
+      "selective_margin_drop": 0.17499995827674875,
+      "matched_interventions": [
+        {
+          "evidence_target": 394,
+          "evidence_donor": 345,
+          "placebo_target": 246,
+          "placebo_donor": 197
+        },
+        {
+          "evidence_target": 542,
+          "evidence_donor": 591,
+          "placebo_target": 591,
+          "placebo_donor": 640
+        },
+        {
+          "evidence_target": 443,
+          "evidence_donor": 345,
+          "placebo_target": 246,
+          "placebo_donor": 197
+        },
+        {
+          "evidence_target": 493,
+          "evidence_donor": 591,
+          "placebo_target": 591,
+          "placebo_donor": 640
+        },
+        {
+          "evidence_target": 394,
+          "evidence_donor": 345,
+          "placebo_target": 296,
+          "placebo_donor": 345
+        }
+      ]
+    },
+    {
+      "sample_id": "49",
+      "question_type": "CW",
+      "baseline_choice_correct": true,
+      "gold_choice_index": 0,
+      "full_choice_logprobs": [
+        -0.02893533557653427,
+        -7.153935432434082,
+        -7.403935432434082,
+        -3.653935432434082,
+        -6.778935432434082
+      ],
+      "full_correct_vs_best_foil_margin": 3.6250000968575478,
+      "evidence_replaced_margins": [
+        3.6249999199062586,
+        3.2500000037252903,
+        4.000000212341547,
+        3.125000052154064,
+        3.6249999199062586
+      ],
+      "placebo_replaced_margins": [
+        4.1250000186264515,
+        4.3750001937150955,
+        3.3749999552965164,
+        3.9999999832361937,
+        3.3749999552965164
+      ],
+      "evidence_margin_drop": 0.10000007525086385,
+      "mean_placebo_margin_drop": -0.22499992437660676,
+      "selective_margin_drop": 0.3249999996274706,
+      "matched_interventions": [
+        {
+          "evidence_target": 390,
+          "evidence_donor": 130,
+          "placebo_target": 780,
+          "placebo_donor": 910
+        },
+        {
+          "evidence_target": 520,
+          "evidence_donor": 780,
+          "placebo_target": 130,
+          "placebo_donor": 0
+        },
+        {
+          "evidence_target": 260,
+          "evidence_donor": 130,
+          "placebo_target": 910,
+          "placebo_donor": 1039
+        },
+        {
+          "evidence_target": 650,
+          "evidence_donor": 780,
+          "placebo_target": 1169,
+          "placebo_donor": 1039
+        },
+        {
+          "evidence_target": 390,
+          "evidence_donor": 130,
+          "placebo_target": 910,
+          "placebo_donor": 1039
+        }
+      ]
+    },
+    {
+      "sample_id": "50",
+      "question_type": "TN",
+      "baseline_choice_correct": true,
+      "gold_choice_index": 2,
+      "full_choice_logprobs": [
+        -3.9973978996276855,
+        -5.7473978996276855,
+        -0.37239786982536316,
+        -1.2473978996276855,
+        -6.9973978996276855
+      ],
+      "full_correct_vs_best_foil_margin": 0.8750000298023224,
+      "evidence_replaced_margins": [
+        0.5000000298023224,
+        0.25,
+        0.5000000298023224,
+        0.25,
+        0.5000000298023224
+      ],
+      "placebo_replaced_margins": [
+        0.8750000298023224,
+        0.8749999701976776,
+        0.9999999403953552,
+        0.7500000298023224,
+        0.8750000298023224
+      ],
+      "evidence_margin_drop": 0.47500001192092894,
+      "mean_placebo_margin_drop": 2.9802322387695312e-08,
+      "selective_margin_drop": 0.47499998211860656,
+      "matched_interventions": [
+        {
+          "evidence_target": 752,
+          "evidence_donor": 699,
+          "placebo_target": 645,
+          "placebo_donor": 591
+        },
+        {
+          "evidence_target": 806,
+          "evidence_donor": 699,
+          "placebo_target": 591,
+          "placebo_donor": 537
+        },
+        {
+          "evidence_target": 752,
+          "evidence_donor": 699,
+          "placebo_target": 699,
+          "placebo_donor": 645
+        },
+        {
+          "evidence_target": 806,
+          "evidence_donor": 699,
+          "placebo_target": 537,
+          "placebo_donor": 484
+        },
+        {
+          "evidence_target": 752,
+          "evidence_donor": 699,
+          "placebo_target": 645,
+          "placebo_donor": 591
+        }
+      ]
+    },
+    {
+      "sample_id": "51",
+      "question_type": "CH",
+      "baseline_choice_correct": true,
+      "gold_choice_index": 3,
+      "full_choice_logprobs": [
+        -9.626835823059082,
+        -10.626835823059082,
+        -6.37683629989624,
+        -0.0018362818518653512,
+        -11.251835823059082
+      ],
+      "full_correct_vs_best_foil_margin": 6.375000018044375,
+      "evidence_replaced_margins": [
+        5.875000189058483,
+        6.250000215368345,
+        6.375000093248673,
+        6.624999804073013,
+        6.5000001195585355
+      ],
+      "placebo_replaced_margins": [
+        5.750000177649781,
+        6.499999765539542,
+        6.499999941559508,
+        6.625000234460458,
+        6.249999980442226
+      ],
+      "evidence_margin_drop": 0.0499999337829653,
+      "mean_placebo_margin_drop": 0.049999998114071964,
+      "selective_margin_drop": -6.43311066639285e-08,
+      "matched_interventions": [
+        {
+          "evidence_target": 156,
+          "evidence_donor": 89,
+          "placebo_target": 223,
+          "placebo_donor": 245
+        },
+        {
+          "evidence_target": 178,
+          "evidence_donor": 223,
+          "placebo_target": 267,
+          "placebo_donor": 245
+        },
+        {
+          "evidence_target": 134,
+          "evidence_donor": 89,
+          "placebo_target": 45,
+          "placebo_donor": 67
+        },
+        {
+          "evidence_target": 111,
+          "evidence_donor": 89,
+          "placebo_target": 67,
+          "placebo_donor": 45
+        },
+        {
+          "evidence_target": 200,
+          "evidence_donor": 223,
+          "placebo_target": 289,
+          "placebo_donor": 267
+        }
+      ]
+    },
+    {
+      "sample_id": "52",
+      "question_type": "TC",
+      "baseline_choice_correct": false,
+      "gold_choice_index": 2,
+      "full_choice_logprobs": [
+        -5.992447853088379,
+        -2.492448091506958,
+        -1.242448091506958,
+        -4.242447853088379,
+        -0.4924480617046356
+      ],
+      "full_correct_vs_best_foil_margin": -0.7500000298023224,
+      "evidence_replaced_margins": [
+        0.5,
+        -1.1250000298023224,
+        -0.9999999701976776,
+        0.5,
+        -1.1250000298023224
+      ],
+      "placebo_replaced_margins": [
+        -0.25,
+        0.0,
+        -0.6249999403953552,
+        -0.6249999403953552,
+        -0.25
+      ],
+      "evidence_margin_drop": -0.3000000238418579,
+      "mean_placebo_margin_drop": -0.4000000536441803,
+      "selective_margin_drop": 0.10000002980232237,
+      "matched_interventions": [
+        {
+          "evidence_target": 1359,
+          "evidence_donor": 1235,
+          "placebo_target": 1729,
+          "placebo_donor": 1853
+        },
+        {
+          "evidence_target": 1606,
+          "evidence_donor": 1729,
+          "placebo_target": 1235,
+          "placebo_donor": 1112
+        },
+        {
+          "evidence_target": 1482,
+          "evidence_donor": 1235,
+          "placebo_target": 1112,
+          "placebo_donor": 1235
+        },
+        {
+          "evidence_target": 1359,
+          "evidence_donor": 1235,
+          "placebo_target": 1112,
+          "placebo_donor": 1235
+        },
+        {
+          "evidence_target": 1606,
+          "evidence_donor": 1729,
+          "placebo_target": 1729,
+          "placebo_donor": 1853
+        }
+      ]
+    },
+    {
+      "sample_id": "53",
+      "question_type": "TN",
+      "baseline_choice_correct": true,
+      "gold_choice_index": 1,
+      "full_choice_logprobs": [
+        -8.125596046447754,
+        -0.0005959880072623491,
+        -9.125596046447754,
+        -9.125596046447754,
+        -9.875596046447754
+      ],
+      "full_correct_vs_best_foil_margin": 8.125000058440492,
+      "evidence_replaced_margins": [
+        7.750000169791747,
+        7.500000171363354,
+        7.749999941559508,
+        8.000000013329554,
+        7.750000169791747
+      ],
+      "placebo_replaced_margins": [
+        7.7499999272986315,
+        7.749999833002221,
+        7.750000024214387,
+        7.750000024214387,
+        7.624999945517629
+      ],
+      "evidence_margin_drop": 0.37499996527330914,
+      "mean_placebo_margin_drop": 0.40000010759104043,
+      "selective_margin_drop": -0.02500014231773129,
+      "matched_interventions": [
+        {
+          "evidence_target": 707,
+          "evidence_donor": 777,
+          "placebo_target": 919,
+          "placebo_donor": 989
+        },
+        {
+          "evidence_target": 636,
+          "evidence_donor": 777,
+          "placebo_target": 353,
+          "placebo_donor": 283
+        },
+        {
+          "evidence_target": 495,
+          "evidence_donor": 424,
+          "placebo_target": 777,
+          "placebo_donor": 848
+        },
+        {
+          "evidence_target": 565,
+          "evidence_donor": 424,
+          "placebo_target": 777,
+          "placebo_donor": 848
+        },
+        {
+          "evidence_target": 707,
+          "evidence_donor": 777,
+          "placebo_target": 848,
+          "placebo_donor": 777
+        }
+      ]
+    },
+    {
+      "sample_id": "54",
+      "question_type": "CH",
+      "baseline_choice_correct": true,
+      "gold_choice_index": 4,
+      "full_choice_logprobs": [
+        -2.950568675994873,
+        -2.075568675994873,
+        -6.075568675994873,
+        -6.825568675994873,
+        -0.2005685567855835
+      ],
+      "full_correct_vs_best_foil_margin": 1.8750001192092896,
+      "evidence_replaced_margins": [
+        1.3750000298023224,
+        1.3750000298023224,
+        1.3750000298023224,
+        1.3750000298023224,
+        1.3750000298023224
+      ],
+      "placebo_replaced_margins": [
+        1.6249999701976776,
+        1.7499999701976776,
+        1.6249999701976776,
+        1.6249999701976776,
+        1.875
+      ],
+      "evidence_margin_drop": 0.5000000894069672,
+      "mean_placebo_margin_drop": 0.17500014305114742,
+      "selective_margin_drop": 0.32499994635581975,
+      "matched_interventions": [
+        {
+          "evidence_target": 434,
+          "evidence_donor": 376,
+          "placebo_target": 318,
+          "placebo_donor": 289
+        },
+        {
+          "evidence_target": 405,
+          "evidence_donor": 376,
+          "placebo_target": 289,
+          "placebo_donor": 260
+        },
+        {
+          "evidence_target": 434,
+          "evidence_donor": 376,
+          "placebo_target": 318,
+          "placebo_donor": 289
+        },
+        {
+          "evidence_target": 405,
+          "evidence_donor": 376,
+          "placebo_target": 318,
+          "placebo_donor": 289
+        },
+        {
+          "evidence_target": 434,
+          "evidence_donor": 376,
+          "placebo_target": 376,
+          "placebo_donor": 347
+        }
+      ]
+    },
+    {
+      "sample_id": "55",
+      "question_type": "TC",
+      "baseline_choice_correct": true,
+      "gold_choice_index": 2,
+      "full_choice_logprobs": [
+        -2.3662447929382324,
+        -2.1162447929382324,
+        -0.4912447929382324,
+        -2.2412447929382324,
+        -2.7412447929382324
+      ],
+      "full_correct_vs_best_foil_margin": 1.625,
+      "evidence_replaced_margins": [
+        1.8749999105930328,
+        1.8750000298023224,
+        1.3749999403953552,
+        1.5000000596046448,
+        1.5000001192092896
+      ],
+      "placebo_replaced_margins": [
+        1.875,
+        1.125,
+        1.875,
+        1.125,
+        1.375
+      ],
+      "evidence_margin_drop": -1.1920928910669204e-08,
+      "mean_placebo_margin_drop": 0.1499999999999999,
+      "selective_margin_drop": -0.15000001192092882,
+      "matched_interventions": [
+        {
+          "evidence_target": 88,
+          "evidence_donor": 0,
+          "placebo_target": 204,
+          "placebo_donor": 234
+        },
+        {
+          "evidence_target": 29,
+          "evidence_donor": 0,
+          "placebo_target": 0,
+          "placebo_donor": 204
+        },
+        {
+          "evidence_target": 58,
+          "evidence_donor": 0,
+          "placebo_target": 204,
+          "placebo_donor": 234
+        },
+        {
+          "evidence_target": 117,
+          "evidence_donor": 204,
+          "placebo_target": 0,
+          "placebo_donor": 204
+        },
+        {
+          "evidence_target": 175,
+          "evidence_donor": 204,
+          "placebo_target": 234,
+          "placebo_donor": 263
+        }
+      ]
+    },
+    {
+      "sample_id": "56",
+      "question_type": "CW",
+      "baseline_choice_correct": false,
+      "gold_choice_index": 3,
+      "full_choice_logprobs": [
+        -6.593057632446289,
+        -0.09305775165557861,
+        -6.093057632446289,
+        -2.468057632446289,
+        -9.093057632446289
+      ],
+      "full_correct_vs_best_foil_margin": -2.3749998807907104,
+      "evidence_replaced_margins": [
+        -1.8750001192092896,
+        -2.4999999180436134,
+        -2.7499999925494194,
+        -2.1250000819563866,
+        -2.1249999329447746
+      ],
+      "placebo_replaced_margins": [
+        -2.5000000074505806,
+        -2.625000022351742,
+        -2.2500000968575478,
+        -2.0000001043081284,
+        -2.5000000074505806
+      ],
+      "evidence_margin_drop": -0.09999987185001391,
+      "mean_placebo_margin_drop": 1.6689300519345807e-07,
+      "selective_margin_drop": -0.1000000387430191,
+      "matched_interventions": [
+        {
+          "evidence_target": 199,
+          "evidence_donor": 125,
+          "placebo_target": 299,
+          "placebo_donor": 324
+        },
+        {
+          "evidence_target": 274,
+          "evidence_donor": 299,
+          "placebo_target": 324,
+          "placebo_donor": 299
+        },
+        {
+          "evidence_target": 150,
+          "evidence_donor": 125,
+          "placebo_target": 75,
+          "placebo_donor": 50
+        },
+        {
+          "evidence_target": 224,
+          "evidence_donor": 299,
+          "placebo_target": 100,
+          "placebo_donor": 75
+        },
+        {
+          "evidence_target": 175,
+          "evidence_donor": 125,
+          "placebo_target": 299,
+          "placebo_donor": 324
+        }
+      ]
+    },
+    {
+      "sample_id": "58",
+      "question_type": "CH",
+      "baseline_choice_correct": true,
+      "gold_choice_index": 4,
+      "full_choice_logprobs": [
+        -1.5052452087402344,
+        -7.380245208740234,
+        -6.505245208740234,
+        -7.505245208740234,
+        -0.255245178937912
+      ],
+      "full_correct_vs_best_foil_margin": 1.2500000298023224,
+      "evidence_replaced_margins": [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "placebo_replaced_margins": [
+        0.8749999403953552,
+        0.8749999403953552,
+        1.5000000149011612,
+        1.1250000298023224,
+        1.5000000149011612
+      ],
+      "evidence_margin_drop": 1.2500000298023224,
+      "mean_placebo_margin_drop": 0.07500004172325125,
+      "selective_margin_drop": 1.1749999880790711,
+      "matched_interventions": [
+        {
+          "evidence_target": 239,
+          "evidence_donor": 210,
+          "placebo_target": 269,
+          "placebo_donor": 299
+        },
+        {
+          "evidence_target": 239,
+          "evidence_donor": 210,
+          "placebo_target": 269,
+          "placebo_donor": 299
+        },
+        {
+          "evidence_target": 239,
+          "evidence_donor": 210,
+          "placebo_target": 210,
+          "placebo_donor": 180
+        },
+        {
+          "evidence_target": 239,
+          "evidence_donor": 210,
+          "placebo_target": 299,
+          "placebo_donor": 269
+        },
+        {
+          "evidence_target": 239,
+          "evidence_donor": 210,
+          "placebo_target": 210,
+          "placebo_donor": 180
+        }
+      ]
+    },
+    {
+      "sample_id": "59",
+      "question_type": "TN",
+      "baseline_choice_correct": true,
+      "gold_choice_index": 3,
+      "full_choice_logprobs": [
+        -2.379648447036743,
+        -4.129648208618164,
+        -4.629648208618164,
+        -0.1296483427286148,
+        -6.004648208618164
+      ],
+      "full_correct_vs_best_foil_margin": 2.2500001043081284,
+      "evidence_replaced_margins": [
+        1.8749999850988388,
+        2.6250000074505806,
+        2.249999910593033,
+        1.8749999850988388,
+        2.6250000074505806
+      ],
+      "placebo_replaced_margins": [
+        2.3750000596046448,
+        2.375000022351742,
+        2.375000022351742,
+        2.374999888241291,
+        2.374999888241291
+      ],
+      "evidence_margin_drop": 1.2516975411713815e-07,
+      "mean_placebo_margin_drop": -0.12499987185001382,
+      "selective_margin_drop": 0.12499999701976794,
+      "matched_interventions": [
+        {
+          "evidence_target": 1000,
+          "evidence_donor": 923,
+          "placebo_target": 769,
+          "placebo_donor": 692
+        },
+        {
+          "evidence_target": 1077,
+          "evidence_donor": 923,
+          "placebo_target": 846,
+          "placebo_donor": 769
+        },
+        {
+          "evidence_target": 1154,
+          "evidence_donor": 923,
+          "placebo_target": 846,
+          "placebo_donor": 769
+        },
+        {
+          "evidence_target": 1000,
+          "evidence_donor": 923,
+          "placebo_target": 692,
+          "placebo_donor": 615
+        },
+        {
+          "evidence_target": 1077,
+          "evidence_donor": 923,
+          "placebo_target": 692,
+          "placebo_donor": 615
+        }
+      ]
+    }
+  ],
+  "limitations": [
+    "Exploratory outcome added after inspecting the free-answer probe.",
+    "Single-frame input replacement is a hybrid/OOD perturbation, not a direct causal test of explanation validity.",
+    "Choice-letter margin depends on this prompt and does not equal official free-generation accuracy."
+  ]
+}

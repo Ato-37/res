@@ -1,0 +1,714 @@
+[
+  {
+    "video": "/home/ato121/nextgqa_sample/NExTVideo/0085/2583300764.mp4",
+    "question": "why is the lady in curly hair wearing shades",
+    "answer": "sunny",
+    "grounding": [
+      [
+        3.1,
+        9.3
+      ]
+    ]
+  },
+  {
+    "video": "/home/ato121/nextgqa_sample/NExTVideo/0080/8666185192.mp4",
+    "question": "why did the boy raise up his bat after hitting the floor with it",
+    "answer": "get ready to hit ball",
+    "grounding": [
+      [
+        10.5,
+        11.9
+      ]
+    ]
+  },
+  {
+    "video": "/home/ato121/nextgqa_sample/NExTVideo/1123/5475182274.mp4",
+    "question": "how did the man get the girl s attention in the middle of the video",
+    "answer": "took out his hand",
+    "grounding": [
+      [
+        17.7,
+        20.6
+      ],
+      [
+        34.5,
+        40.5
+      ]
+    ]
+  },
+  {
+    "video": "/home/ato121/nextgqa_sample/NExTVideo/1104/3540508501.mp4",
+    "question": "why does the man touch the lady s back",
+    "answer": "move her forward",
+    "grounding": [
+      [
+        13.7,
+        17.0
+      ]
+    ]
+  },
+  {
+    "video": "/home/ato121/nextgqa_sample/NExTVideo/1202/6292691001.mp4",
+    "question": "how does the girl get in front of the lady",
+    "answer": "crawl",
+    "grounding": [
+      [
+        14.5,
+        16.7
+      ]
+    ]
+  },
+  {
+    "video": "/home/ato121/nextgqa_sample/NExTVideo/1005/10467727335.mp4",
+    "question": "what did the girl do after the man hugged her at the start of the video",
+    "answer": "stand up",
+    "grounding": [
+      [
+        12.6,
+        16.6
+      ]
+    ]
+  },
+  {
+    "video": "/home/ato121/nextgqa_sample/NExTVideo/1022/3889087646.mp4",
+    "question": "why did the lady in green moved towards the table",
+    "answer": "to remove things from the table",
+    "grounding": [
+      [
+        24.6,
+        31.0
+      ]
+    ]
+  },
+  {
+    "video": "/home/ato121/nextgqa_sample/NExTVideo/1026/2876084443.mp4",
+    "question": "why did the red boat person approach the other boat",
+    "answer": "the boat falls down the waterfall",
+    "grounding": [
+      [
+        10.2,
+        14.0
+      ]
+    ]
+  },
+  {
+    "video": "/home/ato121/nextgqa_sample/NExTVideo/0039/3089919537.mp4",
+    "question": "why was the dog looking upwards in the middle",
+    "answer": "to see who pet it",
+    "grounding": [
+      [
+        15.7,
+        19.9
+      ]
+    ]
+  },
+  {
+    "video": "/home/ato121/nextgqa_sample/NExTVideo/1161/4854593577.mp4",
+    "question": "why do the people wear life vests",
+    "answer": "boat surfing",
+    "grounding": [
+      [
+        0.1,
+        37
+      ]
+    ]
+  },
+  {
+    "video": "/home/ato121/nextgqa_sample/NExTVideo/1150/5678063296.mp4",
+    "question": "what does the man playing the guitar do when he stretches his arm out in front of him",
+    "answer": "takes out notes",
+    "grounding": [
+      [
+        10.3,
+        13.7
+      ],
+      [
+        25.0,
+        37.2
+      ],
+      [
+        73.1,
+        76.4
+      ]
+    ]
+  },
+  {
+    "video": "/home/ato121/nextgqa_sample/NExTVideo/0093/3735590728.mp4",
+    "question": "how did the man show affection to the baby in the middle of the video",
+    "answer": "touch baby s feet",
+    "grounding": [
+      [
+        7.0,
+        13.5
+      ]
+    ]
+  },
+  {
+    "video": "/home/ato121/nextgqa_sample/NExTVideo/0013/5514739631.mp4",
+    "question": "why did the baby in white crawled towards the adult",
+    "answer": "get on the adults lap",
+    "grounding": [
+      [
+        13.8,
+        20.0
+      ]
+    ]
+  },
+  {
+    "video": "/home/ato121/nextgqa_sample/NExTVideo/1011/4825019426.mp4",
+    "question": "how do we know that the kids are excited and happy near the end",
+    "answer": "laughing",
+    "grounding": [
+      [
+        32.1,
+        37.4
+      ]
+    ]
+  },
+  {
+    "video": "/home/ato121/nextgqa_sample/NExTVideo/1025/2776910060.mp4",
+    "question": "why did the man in black tilt his head down near the end of the video",
+    "answer": "look at baby",
+    "grounding": [
+      [
+        22.0,
+        28.1
+      ]
+    ]
+  },
+  {
+    "video": "/home/ato121/nextgqa_sample/NExTVideo/1002/8614954803.mp4",
+    "question": "how did the lady in green get her message across",
+    "answer": "hand gestures",
+    "grounding": [
+      [
+        35.6,
+        56.9
+      ]
+    ]
+  },
+  {
+    "video": "/home/ato121/nextgqa_sample/NExTVideo/1160/6042037966.mp4",
+    "question": "why does the guitarist look downwards when he sings",
+    "answer": "referring to papers",
+    "grounding": [
+      [
+        4.5,
+        7.5
+      ],
+      [
+        10.2,
+        13.5
+      ],
+      [
+        19.7,
+        22.7
+      ],
+      [
+        26.6,
+        28.7
+      ]
+    ]
+  },
+  {
+    "video": "/home/ato121/nextgqa_sample/NExTVideo/0086/6691315951.mp4",
+    "question": "what did the yellow bird do after it landed on the red birdhouse",
+    "answer": "eat",
+    "grounding": [
+      [
+        16.7,
+        20.8
+      ]
+    ]
+  },
+  {
+    "video": "/home/ato121/nextgqa_sample/NExTVideo/0087/3121452683.mp4",
+    "question": "why did the lady and the man hold hand after waving their hand in the air",
+    "answer": "start to dance",
+    "grounding": [
+      [
+        8.4,
+        10.2
+      ]
+    ]
+  },
+  {
+    "video": "/home/ato121/nextgqa_sample/NExTVideo/1013/5359417762.mp4",
+    "question": "what does the man in black with a hat do as the boy was blowing the candles",
+    "answer": "hold cake",
+    "grounding": [
+      [
+        13.7,
+        17.2
+      ]
+    ]
+  },
+  {
+    "video": "/home/ato121/nextgqa_sample/NExTVideo/1123/4740931975.mp4",
+    "question": "how did the man caught the fish",
+    "answer": "with a rod",
+    "grounding": [
+      [
+        0.0,
+        12.1
+      ]
+    ]
+  },
+  {
+    "video": "/home/ato121/nextgqa_sample/NExTVideo/1105/2623764605.mp4",
+    "question": "what does the grey cat do as the black cat was licking it at the start",
+    "answer": "scratch",
+    "grounding": [
+      [
+        4.2,
+        8.1
+      ]
+    ]
+  },
+  {
+    "video": "/home/ato121/nextgqa_sample/NExTVideo/1102/7610762882.mp4",
+    "question": "why did the man in red turn his hand at the start of the video",
+    "answer": "adjusting the rope",
+    "grounding": [
+      [
+        0.1,
+        4.1
+      ]
+    ]
+  },
+  {
+    "video": "/home/ato121/nextgqa_sample/NExTVideo/1006/3702630327.mp4",
+    "question": "why was the man in a kneeling down position at the start",
+    "answer": "got off the boat",
+    "grounding": [
+      [
+        0.5,
+        3.7
+      ]
+    ]
+  },
+  {
+    "video": "/home/ato121/nextgqa_sample/NExTVideo/1165/7691046836.mp4",
+    "question": "why did the boy nod his head when singing",
+    "answer": "try to sing to beat",
+    "grounding": [
+      [
+        15.9,
+        19.5
+      ],
+      [
+        22.8,
+        26.6
+      ],
+      [
+        29.9,
+        33.9
+      ],
+      [
+        37.2,
+        40.8
+      ]
+    ]
+  },
+  {
+    "video": "/home/ato121/nextgqa_sample/NExTVideo/1203/4891298747.mp4",
+    "question": "what does the boy do as the girl and ladies stir",
+    "answer": "watch them stir",
+    "grounding": [
+      [
+        1.2,
+        75.3
+      ]
+    ]
+  },
+  {
+    "video": "/home/ato121/nextgqa_sample/NExTVideo/1012/4293949179.mp4",
+    "question": "why does the baby move her head from side to side",
+    "answer": "restless",
+    "grounding": [
+      [
+        3.4,
+        9.2
+      ]
+    ]
+  },
+  {
+    "video": "/home/ato121/nextgqa_sample/NExTVideo/1017/2818950014.mp4",
+    "question": "why are the people gathered at the backyard of a house",
+    "answer": "having a meal",
+    "grounding": [
+      [
+        0.0,
+        5.1
+      ]
+    ]
+  },
+  {
+    "video": "/home/ato121/nextgqa_sample/NExTVideo/1006/4914358389.mp4",
+    "question": "why is the dog chasing the ball in the middle of the video",
+    "answer": "playing fetch",
+    "grounding": [
+      [
+        9.4,
+        22.4
+      ]
+    ]
+  },
+  {
+    "video": "/home/ato121/nextgqa_sample/NExTVideo/1017/4555151860.mp4",
+    "question": "why does the man in white hold on to the kid s shoulders when he leans forward",
+    "answer": "hold him",
+    "grounding": [
+      [
+        34.9,
+        43.8
+      ]
+    ]
+  },
+  {
+    "video": "/home/ato121/nextgqa_sample/NExTVideo/0082/10400848434.mp4",
+    "question": "what happens to the girl when the ostriches poke so hard into the bucket",
+    "answer": "holding bucket tightly",
+    "grounding": [
+      [
+        0.0,
+        11.9
+      ]
+    ]
+  },
+  {
+    "video": "/home/ato121/nextgqa_sample/NExTVideo/1007/9304080249.mp4",
+    "question": "why is the toddler hovering over the table",
+    "answer": "playing",
+    "grounding": [
+      [
+        0.1,
+        3.2
+      ]
+    ]
+  },
+  {
+    "video": "/home/ato121/nextgqa_sample/NExTVideo/0084/4273509832.mp4",
+    "question": "how did the parrot react when the man in brown started to pat it",
+    "answer": "move away",
+    "grounding": [
+      [
+        4.0,
+        5.5
+      ]
+    ]
+  },
+  {
+    "video": "/home/ato121/nextgqa_sample/NExTVideo/1122/3440542069.mp4",
+    "question": "what does the baby do after she finished drinking from the bottle",
+    "answer": "hold the bottle sideways",
+    "grounding": [
+      [
+        15.8,
+        20.6
+      ]
+    ]
+  },
+  {
+    "video": "/home/ato121/nextgqa_sample/NExTVideo/1026/3312292397.mp4",
+    "question": "what did the man do after the baby pointed to a direction in the middle of the video",
+    "answer": "point in same direction",
+    "grounding": [
+      [
+        20.7,
+        22.9
+      ]
+    ]
+  },
+  {
+    "video": "/home/ato121/nextgqa_sample/NExTVideo/1100/2637691975.mp4",
+    "question": "why did the dog flap its paws after standing on its feet",
+    "answer": "reach for treat",
+    "grounding": [
+      [
+        8.4,
+        11.9
+      ]
+    ]
+  },
+  {
+    "video": "/home/ato121/nextgqa_sample/NExTVideo/1023/2404303400.mp4",
+    "question": "what do the man and lady in white nearing the end do when they walk past",
+    "answer": "put hand up to hi-five",
+    "grounding": [
+      [
+        46.0,
+        51.3
+      ]
+    ]
+  },
+  {
+    "video": "/home/ato121/nextgqa_sample/NExTVideo/1009/9663613477.mp4",
+    "question": "what did the dog do when the lady was scratching it at the beginning of the video",
+    "answer": "climb up chair",
+    "grounding": [
+      [
+        1.1,
+        8.3
+      ]
+    ]
+  },
+  {
+    "video": "/home/ato121/nextgqa_sample/NExTVideo/1006/8235000713.mp4",
+    "question": "why does the man wearing spectacles open the book at the end of the video",
+    "answer": "sign book",
+    "grounding": [
+      [
+        55.5,
+        60
+      ]
+    ]
+  },
+  {
+    "video": "/home/ato121/nextgqa_sample/NExTVideo/1024/4684348177.mp4",
+    "question": "why is the cat hiding inside the bag",
+    "answer": "play",
+    "grounding": [
+      [
+        -0.0,
+        4.8
+      ]
+    ]
+  },
+  {
+    "video": "/home/ato121/nextgqa_sample/NExTVideo/1014/2528769674.mp4",
+    "question": "why does the kid fall down after walking some distance",
+    "answer": "tripped",
+    "grounding": [
+      [
+        4.2,
+        7.1
+      ],
+      [
+        34.7,
+        37.4
+      ],
+      [
+        42.4,
+        44.7
+      ],
+      [
+        49.7,
+        52.8
+      ],
+      [
+        70.6,
+        73.3
+      ]
+    ]
+  },
+  {
+    "video": "/home/ato121/nextgqa_sample/NExTVideo/0047/8674344665.mp4",
+    "question": "why is the crocodile opening its mouth",
+    "answer": "yawning",
+    "grounding": [
+      [
+        3.2,
+        10.5
+      ]
+    ]
+  },
+  {
+    "video": "/home/ato121/nextgqa_sample/NExTVideo/1103/6158132572.mp4",
+    "question": "what is the man in white doing with his hands as he talks at the end of the video",
+    "answer": "fiddling with fingers",
+    "grounding": [
+      [
+        68.2,
+        75
+      ]
+    ]
+  },
+  {
+    "video": "/home/ato121/nextgqa_sample/NExTVideo/1000/6851952624.mp4",
+    "question": "how is the atmosphere changed in the middle",
+    "answer": "stage became darker",
+    "grounding": [
+      [
+        40.7,
+        60.7
+      ]
+    ]
+  },
+  {
+    "video": "/home/ato121/nextgqa_sample/NExTVideo/1011/11444414803.mp4",
+    "question": "what does the boy do after shaking his body for a while at the start",
+    "answer": "look at camera",
+    "grounding": [
+      [
+        9.3,
+        13.9
+      ]
+    ]
+  },
+  {
+    "video": "/home/ato121/nextgqa_sample/NExTVideo/1025/3317240291.mp4",
+    "question": "what does the boy do after finding a white package in the middle",
+    "answer": "carry it to the side",
+    "grounding": [
+      [
+        30.2,
+        33.6
+      ]
+    ]
+  },
+  {
+    "video": "/home/ato121/nextgqa_sample/NExTVideo/1015/11794880314.mp4",
+    "question": "why did the girl suddenly took the rocket away from the table",
+    "answer": "mimic rocket movement",
+    "grounding": [
+      [
+        30.0,
+        34.2
+      ]
+    ]
+  },
+  {
+    "video": "/home/ato121/nextgqa_sample/NExTVideo/1010/5188348585.mp4",
+    "question": "what did the person do after closing the liquor",
+    "answer": "touch the glass with the bottle",
+    "grounding": [
+      [
+        37.1,
+        40.3
+      ]
+    ]
+  },
+  {
+    "video": "/home/ato121/nextgqa_sample/NExTVideo/1162/9658373642.mp4",
+    "question": "why did the boy in green pick up the green ball when it was on the floor",
+    "answer": "to play with the dog",
+    "grounding": [
+      [
+        16.2,
+        23.2
+      ]
+    ]
+  },
+  {
+    "video": "/home/ato121/nextgqa_sample/NExTVideo/1012/5264359909.mp4",
+    "question": "why does the man holding the mallet have to turn around to speak before his demonstration",
+    "answer": "show all audiences",
+    "grounding": [
+      [
+        5.6,
+        23.2
+      ]
+    ]
+  },
+  {
+    "video": "/home/ato121/nextgqa_sample/NExTVideo/1130/4751951497.mp4",
+    "question": "what does the boy do after waving at the girl at the end",
+    "answer": "goes away",
+    "grounding": [
+      [
+        24.5,
+        26.9
+      ]
+    ]
+  },
+  {
+    "video": "/home/ato121/nextgqa_sample/NExTVideo/1015/5325035068.mp4",
+    "question": "how did the ladies pose for a photo",
+    "answer": "smile and wave",
+    "grounding": [
+      [
+        3.6,
+        7.4
+      ]
+    ]
+  },
+  {
+    "video": "/home/ato121/nextgqa_sample/NExTVideo/1027/12397126264.mp4",
+    "question": "what did the brown dog do while the white dog plays with the second toy at the end of the video",
+    "answer": "look at second toy",
+    "grounding": [
+      [
+        43.3,
+        55.6
+      ]
+    ]
+  },
+  {
+    "video": "/home/ato121/nextgqa_sample/NExTVideo/1027/8906111356.mp4",
+    "question": "what did the smaller owl do after the bigger owl looked at something in the middle of the video",
+    "answer": "look in same direction",
+    "grounding": [
+      [
+        16.4,
+        25.5
+      ]
+    ]
+  },
+  {
+    "video": "/home/ato121/nextgqa_sample/NExTVideo/1020/13496784364.mp4",
+    "question": "how did the man show affection to the cat at the end of the video",
+    "answer": "pats the cat",
+    "grounding": [
+      [
+        12.7,
+        14.5
+      ]
+    ]
+  },
+  {
+    "video": "/home/ato121/nextgqa_sample/NExTVideo/1016/3697296215.mp4",
+    "question": "what are the two men holding while moving forward",
+    "answer": "toy car",
+    "grounding": [
+      [
+        0.1,
+        7.3
+      ]
+    ]
+  },
+  {
+    "video": "/home/ato121/nextgqa_sample/NExTVideo/1164/7238677454.mp4",
+    "question": "why did the man look behind him",
+    "answer": "ensure safety",
+    "grounding": [
+      [
+        4.9,
+        9.4
+      ]
+    ]
+  },
+  {
+    "video": "/home/ato121/nextgqa_sample/NExTVideo/1006/8316861265.mp4",
+    "question": "why is the girl moving about",
+    "answer": "dancing",
+    "grounding": [
+      [
+        0.0,
+        62
+      ]
+    ]
+  },
+  {
+    "video": "/home/ato121/nextgqa_sample/NExTVideo/1124/8759410624.mp4",
+    "question": "how does the lady show her happiness after blowing the candles",
+    "answer": "clap",
+    "grounding": [
+      [
+        15.3,
+        16.9
+      ]
+    ]
+  },
+  {
+    "video": "/home/ato121/nextgqa_sample/NExTVideo/1015/4979601057.mp4",
+    "question": "does the boy get hurt after the chair flips over",
+    "answer": "no",
+    "grounding": [
+      [
+        33.0,
+        38.6
+      ]
+    ]
+  }
+]

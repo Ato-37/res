@@ -1,0 +1,281 @@
+{
+  "schema_version": 1,
+  "script": "necessity_choice_margin_test.py",
+  "samples_file": "/home/ato121/res/data/nextgqa_samples_necessity_choice_replication_smoke.json",
+  "model": "Qwen/Qwen2.5-VL-7B-Instruct",
+  "quant": "4bit",
+  "dtype": "bfloat16",
+  "attn_implementation": "eager",
+  "torch_version": "2.11.0+cu128",
+  "transformers_version": "5.17.0",
+  "device": "cuda",
+  "gpu_name": "NVIDIA GeForce RTX 5070 Ti",
+  "seed": 20261009,
+  "num_frames": 16,
+  "prompt_protocol": "five NExT-GQA options; gold A-E logprob minus best foil",
+  "primary_estimand": "mean[(full margin - evidence-mask margin) - (full margin - matched-control-mask margin)] among baseline-correct samples",
+  "control_protocol": "same number of black-masked frames; non-grounding indices chosen to minimize temporal rank-distance from evidence indices",
+  "n_requested": 3,
+  "n_effective": 3,
+  "failures": [],
+  "summary": {
+    "all": {
+      "n": 3,
+      "mean": 0.583333260534952,
+      "sd": 1.6645822036339388,
+      "ci95_pointwise": [
+        -0.5000002779997885,
+        2.5000001192092896
+      ],
+      "positive_fraction": 0.3333333333333333,
+      "signflip_p_two_sided": 1.0
+    },
+    "baseline_correct_primary": {
+      "n": 3,
+      "mean": 0.583333260534952,
+      "sd": 1.6645822036339388,
+      "ci95_pointwise": [
+        -0.5000002779997885,
+        2.5000001192092896
+      ],
+      "positive_fraction": 0.3333333333333333,
+      "signflip_p_two_sided": 1.0
+    },
+    "baseline_incorrect_secondary": {
+      "n": 0,
+      "mean": null,
+      "sd": null,
+      "ci95_pointwise": null,
+      "positive_fraction": null,
+      "signflip_p_two_sided": null
+    },
+    "correct_minus_incorrect_interaction": {
+      "mean_correct_minus_incorrect": null,
+      "ci95_pointwise": null
+    }
+  },
+  "multiplicity": "One predeclared primary cohort (baseline-correct); all-sample, baseline-incorrect, and interaction results are secondary and not multiplicity-corrected.",
+  "signflip_test": "Two-sided sample-level random sign flips of the mean contrast; assumes symmetric paired null effects.",
+  "limitations": [
+    "Black-frame masking is an out-of-distribution perturbation; equal-dose control reduces but does not remove this concern.",
+    "The gold-vs-best-foil letter margin is prompt-dependent and is not official free-generation accuracy.",
+    "Conditioning on baseline correctness is part of the prespecified primary cohort; this does not establish general XAI faithfulness or head causality."
+  ],
+  "records": [
+    {
+      "sample_id": "13125896183:3",
+      "video_id": "13125896183",
+      "qid": "3",
+      "question_type": "CW",
+      "sampled_indices": [
+        0,
+        69,
+        139,
+        208,
+        277,
+        346,
+        416,
+        485,
+        554,
+        623,
+        693,
+        762,
+        831,
+        900,
+        970,
+        1039
+      ],
+      "evidence_mask_indices": [
+        762,
+        831,
+        900
+      ],
+      "control_mask_indices": [
+        623,
+        693,
+        970
+      ],
+      "masked_frame_count": 3,
+      "baseline_choice_correct": true,
+      "gold_choice_index": 1,
+      "predicted_choice_index": 1,
+      "choice_logprobs": {
+        "full": [
+          -2.532156467437744,
+          -1.0321564674377441,
+          -3.407156467437744,
+          -1.1571564674377441,
+          -1.5321564674377441
+        ],
+        "evidence_mask": [
+          -2.3071913719177246,
+          -3.3071913719177246,
+          -3.9321913719177246,
+          -0.5571912527084351,
+          -1.307191252708435
+        ],
+        "control_mask": [
+          -2.305630683898926,
+          -1.3056306838989258,
+          -3.180630683898926,
+          -1.0556306838989258,
+          -1.4306306838989258
+        ]
+      },
+      "margins": {
+        "full": 0.125,
+        "evidence_mask": -2.7500001192092896,
+        "control_mask": -0.25
+      },
+      "evidence_margin_drop": 2.8750001192092896,
+      "control_margin_drop": 0.375,
+      "selective_necessity_margin_drop": 2.5000001192092896
+    },
+    {
+      "sample_id": "6176571322:6",
+      "video_id": "6176571322",
+      "qid": "6",
+      "question_type": "TN",
+      "sampled_indices": [
+        0,
+        26,
+        51,
+        77,
+        102,
+        128,
+        153,
+        179,
+        204,
+        230,
+        255,
+        281,
+        306,
+        332,
+        357,
+        383
+      ],
+      "evidence_mask_indices": [
+        102,
+        128,
+        153,
+        179,
+        204
+      ],
+      "control_mask_indices": [
+        26,
+        51,
+        77,
+        230,
+        255
+      ],
+      "masked_frame_count": 5,
+      "baseline_choice_correct": true,
+      "gold_choice_index": 1,
+      "predicted_choice_index": 1,
+      "choice_logprobs": {
+        "full": [
+          -2.9436793327331543,
+          -0.3186792731285095,
+          -3.5686793327331543,
+          -4.943679332733154,
+          -1.6936793327331543
+        ],
+        "evidence_mask": [
+          -3.938523292541504,
+          -0.31352323293685913,
+          -3.438523292541504,
+          -4.938523292541504,
+          -1.563523292541504
+        ],
+        "control_mask": [
+          -3.145845890045166,
+          -0.39584600925445557,
+          -3.520845890045166,
+          -5.145845890045166,
+          -1.3958460092544556
+        ]
+      },
+      "margins": {
+        "full": 1.3750000596046448,
+        "evidence_mask": 1.2500000596046448,
+        "control_mask": 1.0
+      },
+      "evidence_margin_drop": 0.125,
+      "control_margin_drop": 0.3750000596046448,
+      "selective_necessity_margin_drop": -0.2500000596046448
+    },
+    {
+      "sample_id": "5080289573:9",
+      "video_id": "5080289573",
+      "qid": "9",
+      "question_type": "CW",
+      "sampled_indices": [
+        0,
+        26,
+        53,
+        79,
+        105,
+        132,
+        158,
+        184,
+        211,
+        237,
+        263,
+        290,
+        316,
+        342,
+        369,
+        395
+      ],
+      "evidence_mask_indices": [
+        290,
+        316,
+        342,
+        369,
+        395
+      ],
+      "control_mask_indices": [
+        158,
+        184,
+        211,
+        237,
+        263
+      ],
+      "masked_frame_count": 5,
+      "baseline_choice_correct": true,
+      "gold_choice_index": 2,
+      "predicted_choice_index": 2,
+      "choice_logprobs": {
+        "full": [
+          -7.256199836730957,
+          -8.756199836730957,
+          -0.006199889350682497,
+          -5.256199836730957,
+          -11.381199836730957
+        ],
+        "evidence_mask": [
+          -6.7575602531433105,
+          -8.007559776306152,
+          -0.007560094352811575,
+          -5.1325602531433105,
+          -10.882559776306152
+        ],
+        "control_mask": [
+          -4.647244930267334,
+          -6.022244930267334,
+          -0.022245049476623535,
+          -4.647244930267334,
+          -9.397245407104492
+        ]
+      },
+      "margins": {
+        "full": 5.2499999473802745,
+        "evidence_mask": 5.125000158790499,
+        "control_mask": 4.6249998807907104
+      },
+      "evidence_margin_drop": 0.12499978858977556,
+      "control_margin_drop": 0.6250000665895641,
+      "selective_necessity_margin_drop": -0.5000002779997885
+    }
+  ]
+}

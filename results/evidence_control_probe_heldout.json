@@ -1,0 +1,4784 @@
+{
+  "schema_version": 1,
+  "script": "evidence_control_probe.py",
+  "samples_file": "/home/ato121/res/data/nextgqa_samples_evidence_control_heldout.json",
+  "model": "Qwen/Qwen2.5-VL-7B-Instruct",
+  "quant": "4bit",
+  "dtype": "bfloat16",
+  "attn_implementation": "eager",
+  "n_requested": 60,
+  "n_effective": 56,
+  "paired_repeats_per_sample": 5,
+  "num_frames": 16,
+  "estimand": "mean[(full-evidence_replaced) - (full-mean_placebo)]",
+  "interpretation": "Positive means one-frame evidence-position replacement reduced correct-answer sequence log-probability more than the same replacement at nearby non-evidence positions. Input-level specificity only; not head causality. Correct-answer logprob is not a choice margin; the current sample manifest has no foil choices.",
+  "summary": {
+    "n": 56,
+    "mean_selective_evidence_drop": -0.07320004751922458,
+    "sd": 0.6787588825115008,
+    "bootstrap_ci95_pointwise": [
+      -0.2602787579955689,
+      0.09322496643345984
+    ],
+    "positive_fraction": 0.44642857142857145,
+    "paired_sign_flip_t": -0.8070303183336077,
+    "paired_sign_flip_p_two_sided": 0.4540545945405459,
+    "n_permutations": 10000,
+    "assumption": "paired sample-level contrast is symmetric under the null"
+  },
+  "failures": [
+    {
+      "id": "30",
+      "video": "/home/ato121/nextgqa_sample/NExTVideo/0082/10400848434.mp4",
+      "error": "RuntimeError('Cannot construct matched one-frame perturbations: evidence=[0, 25, 50, 75, 100, 125, 150, 175, 199, 224, 249, 274, 299, 324, 349], non_evidence=1')"
+    },
+    {
+      "id": "32",
+      "video": "/home/ato121/nextgqa_sample/NExTVideo/0084/4273509832.mp4",
+      "error": "RuntimeError('Cannot construct matched one-frame perturbations: evidence=[], non_evidence=16')"
+    },
+    {
+      "id": "34",
+      "video": "/home/ato121/nextgqa_sample/NExTVideo/1026/3312292397.mp4",
+      "error": "RuntimeError('Cannot construct matched one-frame perturbations: evidence=[], non_evidence=16')"
+    },
+    {
+      "id": "57",
+      "video": "/home/ato121/nextgqa_sample/NExTVideo/1006/8316861265.mp4",
+      "error": "RuntimeError('Cannot construct matched one-frame perturbations: evidence=[0, 124, 248, 372, 497, 621, 745, 869, 993, 1117, 1241, 1365, 1490, 1614, 1738], non_evidence=1')"
+    }
+  ],
+  "records": [
+    {
+      "sample_id": "0",
+      "grounding": [
+        [
+          3.1,
+          9.3
+        ]
+      ],
+      "sampled_indices": [
+        0,
+        40,
+        80,
+        121,
+        161,
+        201,
+        241,
+        281,
+        322,
+        362,
+        402,
+        442,
+        482,
+        523,
+        563,
+        603
+      ],
+      "evidence_indices": [
+        121,
+        161,
+        201,
+        241
+      ],
+      "matched_interventions": [
+        {
+          "evidence_target": 201,
+          "evidence_donor": 281,
+          "placebo_target": 322,
+          "placebo_donor": 362
+        },
+        {
+          "evidence_target": 161,
+          "evidence_donor": 80,
+          "placebo_target": 281,
+          "placebo_donor": 322
+        },
+        {
+          "evidence_target": 121,
+          "evidence_donor": 80,
+          "placebo_target": 40,
+          "placebo_donor": 0
+        },
+        {
+          "evidence_target": 241,
+          "evidence_donor": 281,
+          "placebo_target": 281,
+          "placebo_donor": 322
+        },
+        {
+          "evidence_target": 201,
+          "evidence_donor": 281,
+          "placebo_target": 281,
+          "placebo_donor": 322
+        }
+      ],
+      "full_sequence_logprob": -20.989380836486816,
+      "evidence_replaced_sequence_logprobs": [
+        -20.98028564453125,
+        -20.797922134399414,
+        -20.05257511138916,
+        -20.930541038513184,
+        -20.98028564453125
+      ],
+      "placebo_sequence_logprobs": [
+        -21.238234996795654,
+        -20.22308850288391,
+        -20.341368913650513,
+        -20.22308850288391,
+        -20.22308850288391
+      ],
+      "evidence_drop": -0.24105892181396626,
+      "mean_placebo_drop": -0.5396069526672349,
+      "selective_evidence_drop": 0.29854803085326864,
+      "edited_positions_per_intervention": 1
+    },
+    {
+      "sample_id": "1",
+      "grounding": [
+        [
+          10.5,
+          11.9
+        ]
+      ],
+      "sampled_indices": [
+        0,
+        30,
+        60,
+        90,
+        120,
+        150,
+        180,
+        210,
+        239,
+        269,
+        299,
+        329,
+        359,
+        389,
+        419,
+        449
+      ],
+      "evidence_indices": [
+        329
+      ],
+      "matched_interventions": [
+        {
+          "evidence_target": 329,
+          "evidence_donor": 299,
+          "placebo_target": 389,
+          "placebo_donor": 359
+        },
+        {
+          "evidence_target": 329,
+          "evidence_donor": 299,
+          "placebo_target": 299,
+          "placebo_donor": 269
+        },
+        {
+          "evidence_target": 329,
+          "evidence_donor": 299,
+          "placebo_target": 359,
+          "placebo_donor": 389
+        },
+        {
+          "evidence_target": 329,
+          "evidence_donor": 299,
+          "placebo_target": 389,
+          "placebo_donor": 359
+        },
+        {
+          "evidence_target": 329,
+          "evidence_donor": 299,
+          "placebo_target": 269,
+          "placebo_donor": 239
+        }
+      ],
+      "full_sequence_logprob": -30.698221683502197,
+      "evidence_replaced_sequence_logprobs": [
+        -30.919127374887466,
+        -30.919127374887466,
+        -30.919127374887466,
+        -30.919127374887466,
+        -30.919127374887466
+      ],
+      "placebo_sequence_logprobs": [
+        -30.64742147922516,
+        -30.92453995347023,
+        -30.82672354578972,
+        -30.64742147922516,
+        -30.41672992706299
+      ],
+      "evidence_drop": 0.22090569138526917,
+      "mean_placebo_drop": -0.005654406547545676,
+      "selective_evidence_drop": 0.22656009793281484,
+      "edited_positions_per_intervention": 1
+    },
+    {
+      "sample_id": "2",
+      "grounding": [
+        [
+          17.7,
+          20.6
+        ],
+        [
+          34.5,
+          40.5
+        ]
+      ],
+      "sampled_indices": [
+        0,
+        119,
+        238,
+        357,
+        476,
+        595,
+        714,
+        833,
+        952,
+        1071,
+        1190,
+        1309,
+        1428,
+        1547,
+        1666,
+        1785
+      ],
+      "evidence_indices": [
+        595,
+        1071,
+        1190
+      ],
+      "matched_interventions": [
+        {
+          "evidence_target": 1190,
+          "evidence_donor": 1309,
+          "placebo_target": 1428,
+          "placebo_donor": 1309
+        },
+        {
+          "evidence_target": 595,
+          "evidence_donor": 476,
+          "placebo_target": 833,
+          "placebo_donor": 714
+        },
+        {
+          "evidence_target": 1071,
+          "evidence_donor": 952,
+          "placebo_target": 1309,
+          "placebo_donor": 1428
+        },
+        {
+          "evidence_target": 1190,
+          "evidence_donor": 1309,
+          "placebo_target": 952,
+          "placebo_donor": 833
+        },
+        {
+          "evidence_target": 595,
+          "evidence_donor": 476,
+          "placebo_target": 714,
+          "placebo_donor": 833
+        }
+      ],
+      "full_sequence_logprob": -38.80190873146057,
+      "evidence_replaced_sequence_logprobs": [
+        -38.774460315704346,
+        -38.29107475280762,
+        -38.44991159439087,
+        -38.774460315704346,
+        -38.29107475280762
+      ],
+      "placebo_sequence_logprobs": [
+        -38.07064914703369,
+        -39.82722330093384,
+        -39.28349494934082,
+        -39.640071868896484,
+        -38.50398135185242
+      ],
+      "evidence_drop": -0.2857123851776109,
+      "mean_placebo_drop": 0.2631753921508775,
+      "selective_evidence_drop": -0.5488877773284884,
+      "edited_positions_per_intervention": 1
+    },
+    {
+      "sample_id": "3",
+      "grounding": [
+        [
+          13.7,
+          17.0
+        ]
+      ],
+      "sampled_indices": [
+        0,
+        109,
+        217,
+        326,
+        435,
+        544,
+        652,
+        761,
+        870,
+        979,
+        1087,
+        1196,
+        1305,
+        1414,
+        1522,
+        1631
+      ],
+      "evidence_indices": [
+        435
+      ],
+      "matched_interventions": [
+        {
+          "evidence_target": 435,
+          "evidence_donor": 326,
+          "placebo_target": 652,
+          "placebo_donor": 544
+        },
+        {
+          "evidence_target": 435,
+          "evidence_donor": 326,
+          "placebo_target": 217,
+          "placebo_donor": 109
+        },
+        {
+          "evidence_target": 435,
+          "evidence_donor": 326,
+          "placebo_target": 217,
+          "placebo_donor": 109
+        },
+        {
+          "evidence_target": 435,
+          "evidence_donor": 326,
+          "placebo_target": 217,
+          "placebo_donor": 109
+        },
+        {
+          "evidence_target": 435,
+          "evidence_donor": 326,
+          "placebo_target": 544,
+          "placebo_donor": 652
+        }
+      ],
+      "full_sequence_logprob": -34.974629163742065,
+      "evidence_replaced_sequence_logprobs": [
+        -34.08174753189087,
+        -34.08174753189087,
+        -34.08174753189087,
+        -34.08174753189087,
+        -34.08174753189087
+      ],
+      "placebo_sequence_logprobs": [
+        -34.18777418136597,
+        -35.091816425323486,
+        -35.091816425323486,
+        -35.091816425323486,
+        -34.20265007019043
+      ],
+      "evidence_drop": -0.8928816318511963,
+      "mean_placebo_drop": -0.24145445823669576,
+      "selective_evidence_drop": -0.6514271736145005,
+      "edited_positions_per_intervention": 1
+    },
+    {
+      "sample_id": "4",
+      "grounding": [
+        [
+          14.5,
+          16.7
+        ]
+      ],
+      "sampled_indices": [
+        0,
+        37,
+        73,
+        110,
+        146,
+        183,
+        219,
+        256,
+        292,
+        329,
+        365,
+        402,
+        438,
+        475,
+        511,
+        548
+      ],
+      "evidence_indices": [
+        438,
+        475
+      ],
+      "matched_interventions": [
+        {
+          "evidence_target": 475,
+          "evidence_donor": 511,
+          "placebo_target": 548,
+          "placebo_donor": 511
+        },
+        {
+          "evidence_target": 438,
+          "evidence_donor": 402,
+          "placebo_target": 402,
+          "placebo_donor": 365
+        },
+        {
+          "evidence_target": 475,
+          "evidence_donor": 511,
+          "placebo_target": 365,
+          "placebo_donor": 329
+        },
+        {
+          "evidence_target": 438,
+          "evidence_donor": 402,
+          "placebo_target": 511,
+          "placebo_donor": 548
+        },
+        {
+          "evidence_target": 475,
+          "evidence_donor": 511,
+          "placebo_target": 548,
+          "placebo_donor": 511
+        }
+      ],
+      "full_sequence_logprob": -26.70022964477539,
+      "evidence_replaced_sequence_logprobs": [
+        -27.641643524169922,
+        -27.1972713470459,
+        -27.641643524169922,
+        -27.1972713470459,
+        -27.641643524169922
+      ],
+      "placebo_sequence_logprobs": [
+        -27.674209594726562,
+        -27.047822952270508,
+        -27.42557716369629,
+        -27.090648651123047,
+        -27.674209594726562
+      ],
+      "evidence_drop": 0.7636650085449226,
+      "mean_placebo_drop": 0.6822639465332045,
+      "selective_evidence_drop": 0.08140106201171804,
+      "edited_positions_per_intervention": 1
+    },
+    {
+      "sample_id": "5",
+      "grounding": [
+        [
+          12.6,
+          16.6
+        ]
+      ],
+      "sampled_indices": [
+        0,
+        91,
+        181,
+        272,
+        362,
+        453,
+        544,
+        634,
+        725,
+        815,
+        906,
+        997,
+        1087,
+        1178,
+        1268,
+        1359
+      ],
+      "evidence_indices": [
+        453
+      ],
+      "matched_interventions": [
+        {
+          "evidence_target": 453,
+          "evidence_donor": 362,
+          "placebo_target": 272,
+          "placebo_donor": 362
+        },
+        {
+          "evidence_target": 453,
+          "evidence_donor": 362,
+          "placebo_target": 362,
+          "placebo_donor": 272
+        },
+        {
+          "evidence_target": 453,
+          "evidence_donor": 362,
+          "placebo_target": 362,
+          "placebo_donor": 272
+        },
+        {
+          "evidence_target": 453,
+          "evidence_donor": 362,
+          "placebo_target": 362,
+          "placebo_donor": 272
+        },
+        {
+          "evidence_target": 453,
+          "evidence_donor": 362,
+          "placebo_target": 362,
+          "placebo_donor": 272
+        }
+      ],
+      "full_sequence_logprob": -23.25699169933796,
+      "evidence_replaced_sequence_logprobs": [
+        -22.71876449882984,
+        -22.71876449882984,
+        -22.71876449882984,
+        -22.71876449882984,
+        -22.71876449882984
+      ],
+      "placebo_sequence_logprobs": [
+        -22.952317744493484,
+        -23.00295227766037,
+        -23.00295227766037,
+        -23.00295227766037,
+        -23.00295227766037
+      ],
+      "evidence_drop": -0.5382272005081177,
+      "mean_placebo_drop": -0.2641663283109672,
+      "selective_evidence_drop": -0.2740608721971505,
+      "edited_positions_per_intervention": 1
+    },
+    {
+      "sample_id": "6",
+      "grounding": [
+        [
+          24.6,
+          31.0
+        ]
+      ],
+      "sampled_indices": [
+        0,
+        50,
+        99,
+        149,
+        198,
+        248,
+        297,
+        347,
+        396,
+        446,
+        495,
+        545,
+        594,
+        644,
+        693,
+        743
+      ],
+      "evidence_indices": [
+        594,
+        644,
+        693,
+        743
+      ],
+      "matched_interventions": [
+        {
+          "evidence_target": 644,
+          "evidence_donor": 545,
+          "placebo_target": 396,
+          "placebo_donor": 347
+        },
+        {
+          "evidence_target": 693,
+          "evidence_donor": 545,
+          "placebo_target": 396,
+          "placebo_donor": 347
+        },
+        {
+          "evidence_target": 594,
+          "evidence_donor": 545,
+          "placebo_target": 396,
+          "placebo_donor": 347
+        },
+        {
+          "evidence_target": 743,
+          "evidence_donor": 545,
+          "placebo_target": 495,
+          "placebo_donor": 446
+        },
+        {
+          "evidence_target": 644,
+          "evidence_donor": 545,
+          "placebo_target": 446,
+          "placebo_donor": 495
+        }
+      ],
+      "full_sequence_logprob": -36.356532419100404,
+      "evidence_replaced_sequence_logprobs": [
+        -37.87961208820343,
+        -37.13127335906029,
+        -35.58932588249445,
+        -36.41520627588034,
+        -37.87961208820343
+      ],
+      "placebo_sequence_logprobs": [
+        -37.66698634438217,
+        -37.66698634438217,
+        -37.66698634438217,
+        -36.71876664087176,
+        -36.99162536859512
+      ],
+      "evidence_drop": 0.6224735196679845,
+      "mean_placebo_drop": 0.9857377894222736,
+      "selective_evidence_drop": -0.36326426975428916,
+      "edited_positions_per_intervention": 1
+    },
+    {
+      "sample_id": "7",
+      "grounding": [
+        [
+          10.2,
+          14.0
+        ]
+      ],
+      "sampled_indices": [
+        0,
+        43,
+        86,
+        129,
+        171,
+        214,
+        257,
+        300,
+        343,
+        386,
+        429,
+        472,
+        514,
+        557,
+        600,
+        643
+      ],
+      "evidence_indices": [
+        343,
+        386
+      ],
+      "matched_interventions": [
+        {
+          "evidence_target": 386,
+          "evidence_donor": 429,
+          "placebo_target": 472,
+          "placebo_donor": 514
+        },
+        {
+          "evidence_target": 343,
+          "evidence_donor": 300,
+          "placebo_target": 214,
+          "placebo_donor": 171
+        },
+        {
+          "evidence_target": 386,
+          "evidence_donor": 429,
+          "placebo_target": 429,
+          "placebo_donor": 472
+        },
+        {
+          "evidence_target": 343,
+          "evidence_donor": 300,
+          "placebo_target": 257,
+          "placebo_donor": 214
+        },
+        {
+          "evidence_target": 386,
+          "evidence_donor": 429,
+          "placebo_target": 429,
+          "placebo_donor": 472
+        }
+      ],
+      "full_sequence_logprob": -41.80922615528107,
+      "evidence_replaced_sequence_logprobs": [
+        -42.264003187417984,
+        -41.33672276139259,
+        -42.264003187417984,
+        -41.33672276139259,
+        -42.264003187417984
+      ],
+      "placebo_sequence_logprobs": [
+        -41.918095886707306,
+        -43.341608703136444,
+        -41.87278711795807,
+        -41.85557621717453,
+        -41.87278711795807
+      ],
+      "evidence_drop": 0.08386486172675944,
+      "mean_placebo_drop": 0.3629448533058195,
+      "selective_evidence_drop": -0.27907999157906005,
+      "edited_positions_per_intervention": 1
+    },
+    {
+      "sample_id": "8",
+      "grounding": [
+        [
+          15.7,
+          19.9
+        ]
+      ],
+      "sampled_indices": [
+        0,
+        76,
+        152,
+        228,
+        304,
+        380,
+        456,
+        532,
+        607,
+        683,
+        759,
+        835,
+        911,
+        987,
+        1063,
+        1139
+      ],
+      "evidence_indices": [
+        532
+      ],
+      "matched_interventions": [
+        {
+          "evidence_target": 532,
+          "evidence_donor": 607,
+          "placebo_target": 683,
+          "placebo_donor": 607
+        },
+        {
+          "evidence_target": 532,
+          "evidence_donor": 607,
+          "placebo_target": 380,
+          "placebo_donor": 304
+        },
+        {
+          "evidence_target": 532,
+          "evidence_donor": 607,
+          "placebo_target": 456,
+          "placebo_donor": 380
+        },
+        {
+          "evidence_target": 532,
+          "evidence_donor": 607,
+          "placebo_target": 683,
+          "placebo_donor": 607
+        },
+        {
+          "evidence_target": 532,
+          "evidence_donor": 607,
+          "placebo_target": 380,
+          "placebo_donor": 304
+        }
+      ],
+      "full_sequence_logprob": -44.07039403915405,
+      "evidence_replaced_sequence_logprobs": [
+        -44.25547647476196,
+        -44.25547647476196,
+        -44.25547647476196,
+        -44.25547647476196,
+        -44.25547647476196
+      ],
+      "placebo_sequence_logprobs": [
+        -45.25921988487244,
+        -44.27725124359131,
+        -44.5567786693573,
+        -45.25921988487244,
+        -44.27725124359131
+      ],
+      "evidence_drop": 0.18508243560791016,
+      "mean_placebo_drop": 0.6555501461029039,
+      "selective_evidence_drop": -0.4704677104949937,
+      "edited_positions_per_intervention": 1
+    },
+    {
+      "sample_id": "9",
+      "grounding": [
+        [
+          0.1,
+          37
+        ]
+      ],
+      "sampled_indices": [
+        0,
+        74,
+        149,
+        223,
+        297,
+        372,
+        446,
+        520,
+        595,
+        669,
+        743,
+        818,
+        892,
+        966,
+        1041,
+        1115
+      ],
+      "evidence_indices": [
+        74,
+        149,
+        223,
+        297,
+        372,
+        446,
+        520,
+        595,
+        669,
+        743,
+        818,
+        892,
+        966,
+        1041
+      ],
+      "matched_interventions": [
+        {
+          "evidence_target": 743,
+          "evidence_donor": 1115,
+          "placebo_target": 0,
+          "placebo_donor": 1115
+        },
+        {
+          "evidence_target": 669,
+          "evidence_donor": 1115,
+          "placebo_target": 0,
+          "placebo_donor": 1115
+        },
+        {
+          "evidence_target": 446,
+          "evidence_donor": 0,
+          "placebo_target": 0,
+          "placebo_donor": 1115
+        },
+        {
+          "evidence_target": 149,
+          "evidence_donor": 0,
+          "placebo_target": 1115,
+          "placebo_donor": 0
+        },
+        {
+          "evidence_target": 74,
+          "evidence_donor": 0,
+          "placebo_target": 1115,
+          "placebo_donor": 0
+        }
+      ],
+      "full_sequence_logprob": -30.718026161193848,
+      "evidence_replaced_sequence_logprobs": [
+        -30.59693717956543,
+        -30.76875114440918,
+        -30.746302604675293,
+        -30.78302764892578,
+        -29.94782829284668
+      ],
+      "placebo_sequence_logprobs": [
+        -30.5321102142334,
+        -30.5321102142334,
+        -30.5321102142334,
+        -30.47257137298584,
+        -30.47257137298584
+      ],
+      "evidence_drop": -0.1494567871093757,
+      "mean_placebo_drop": -0.20973148345947124,
+      "selective_evidence_drop": 0.060274696350095525,
+      "edited_positions_per_intervention": 1
+    },
+    {
+      "sample_id": "10",
+      "grounding": [
+        [
+          10.3,
+          13.7
+        ],
+        [
+          25.0,
+          37.2
+        ],
+        [
+          73.1,
+          76.4
+        ]
+      ],
+      "sampled_indices": [
+        0,
+        162,
+        323,
+        485,
+        646,
+        808,
+        969,
+        1131,
+        1292,
+        1454,
+        1615,
+        1777,
+        1938,
+        2100,
+        2261,
+        2423
+      ],
+      "evidence_indices": [
+        323,
+        808,
+        969,
+        2261
+      ],
+      "matched_interventions": [
+        {
+          "evidence_target": 808,
+          "evidence_donor": 646,
+          "placebo_target": 1131,
+          "placebo_donor": 1292
+        },
+        {
+          "evidence_target": 323,
+          "evidence_donor": 162,
+          "placebo_target": 485,
+          "placebo_donor": 646
+        },
+        {
+          "evidence_target": 969,
+          "evidence_donor": 1131,
+          "placebo_target": 1131,
+          "placebo_donor": 1292
+        },
+        {
+          "evidence_target": 2261,
+          "evidence_donor": 2100,
+          "placebo_target": 1777,
+          "placebo_donor": 1938
+        },
+        {
+          "evidence_target": 808,
+          "evidence_donor": 646,
+          "placebo_target": 485,
+          "placebo_donor": 646
+        }
+      ],
+      "full_sequence_logprob": -35.861756324768066,
+      "evidence_replaced_sequence_logprobs": [
+        -35.6919150352478,
+        -35.39556837081909,
+        -36.16567373275757,
+        -35.53079319000244,
+        -35.6919150352478
+      ],
+      "placebo_sequence_logprobs": [
+        -35.39951133728027,
+        -35.34916162490845,
+        -35.39951133728027,
+        -34.743218421936035,
+        -35.34916162490845
+      ],
+      "evidence_drop": -0.16658325195312784,
+      "mean_placebo_drop": -0.6136434555053683,
+      "selective_evidence_drop": 0.4470602035522404,
+      "edited_positions_per_intervention": 1
+    },
+    {
+      "sample_id": "11",
+      "grounding": [
+        [
+          7.0,
+          13.5
+        ]
+      ],
+      "sampled_indices": [
+        0,
+        34,
+        67,
+        101,
+        135,
+        168,
+        202,
+        236,
+        269,
+        303,
+        337,
+        370,
+        404,
+        438,
+        471,
+        505
+      ],
+      "evidence_indices": [
+        236,
+        269,
+        303,
+        337,
+        370,
+        404
+      ],
+      "matched_interventions": [
+        {
+          "evidence_target": 404,
+          "evidence_donor": 438,
+          "placebo_target": 202,
+          "placebo_donor": 168
+        },
+        {
+          "evidence_target": 269,
+          "evidence_donor": 202,
+          "placebo_target": 202,
+          "placebo_donor": 168
+        },
+        {
+          "evidence_target": 303,
+          "evidence_donor": 202,
+          "placebo_target": 135,
+          "placebo_donor": 168
+        },
+        {
+          "evidence_target": 337,
+          "evidence_donor": 438,
+          "placebo_target": 471,
+          "placebo_donor": 438
+        },
+        {
+          "evidence_target": 370,
+          "evidence_donor": 438,
+          "placebo_target": 505,
+          "placebo_donor": 471
+        }
+      ],
+      "full_sequence_logprob": -50.91243362426758,
+      "evidence_replaced_sequence_logprobs": [
+        -51.64644479751587,
+        -50.8700532913208,
+        -53.1663818359375,
+        -52.139299392700195,
+        -51.24432563781738
+      ],
+      "placebo_sequence_logprobs": [
+        -51.23191261291504,
+        -51.23191261291504,
+        -51.145938873291016,
+        -50.93375205993652,
+        -50.66418504714966
+      ],
+      "evidence_drop": 0.9008673667907701,
+      "mean_placebo_drop": 0.12910661697387837,
+      "selective_evidence_drop": 0.7717607498168917,
+      "edited_positions_per_intervention": 1
+    },
+    {
+      "sample_id": "12",
+      "grounding": [
+        [
+          13.8,
+          20.0
+        ]
+      ],
+      "sampled_indices": [
+        0,
+        70,
+        140,
+        210,
+        281,
+        351,
+        421,
+        491,
+        561,
+        631,
+        701,
+        771,
+        842,
+        912,
+        982,
+        1052
+      ],
+      "evidence_indices": [
+        421,
+        491,
+        561
+      ],
+      "matched_interventions": [
+        {
+          "evidence_target": 561,
+          "evidence_donor": 631,
+          "placebo_target": 631,
+          "placebo_donor": 701
+        },
+        {
+          "evidence_target": 491,
+          "evidence_donor": 351,
+          "placebo_target": 351,
+          "placebo_donor": 281
+        },
+        {
+          "evidence_target": 421,
+          "evidence_donor": 351,
+          "placebo_target": 351,
+          "placebo_donor": 281
+        },
+        {
+          "evidence_target": 561,
+          "evidence_donor": 631,
+          "placebo_target": 771,
+          "placebo_donor": 701
+        },
+        {
+          "evidence_target": 491,
+          "evidence_donor": 351,
+          "placebo_target": 701,
+          "placebo_donor": 631
+        }
+      ],
+      "full_sequence_logprob": -41.19546031951904,
+      "evidence_replaced_sequence_logprobs": [
+        -40.42131161689758,
+        -41.44151043891907,
+        -41.349245607852936,
+        -40.42131161689758,
+        -41.44151043891907
+      ],
+      "placebo_sequence_logprobs": [
+        -42.946168065071106,
+        -41.1063489317894,
+        -41.1063489317894,
+        -41.04974544048309,
+        -41.275391817092896
+      ],
+      "evidence_drop": -0.1804823756217928,
+      "mean_placebo_drop": 0.3013403177261367,
+      "selective_evidence_drop": -0.4818226933479295,
+      "edited_positions_per_intervention": 1
+    },
+    {
+      "sample_id": "13",
+      "grounding": [
+        [
+          32.1,
+          37.4
+        ]
+      ],
+      "sampled_indices": [
+        0,
+        78,
+        156,
+        234,
+        313,
+        391,
+        469,
+        547,
+        625,
+        703,
+        781,
+        859,
+        938,
+        1016,
+        1094,
+        1172
+      ],
+      "evidence_indices": [
+        1016,
+        1094
+      ],
+      "matched_interventions": [
+        {
+          "evidence_target": 1016,
+          "evidence_donor": 938,
+          "placebo_target": 781,
+          "placebo_donor": 703
+        },
+        {
+          "evidence_target": 1094,
+          "evidence_donor": 1172,
+          "placebo_target": 1172,
+          "placebo_donor": 938
+        },
+        {
+          "evidence_target": 1016,
+          "evidence_donor": 938,
+          "placebo_target": 1172,
+          "placebo_donor": 938
+        },
+        {
+          "evidence_target": 1094,
+          "evidence_donor": 1172,
+          "placebo_target": 1172,
+          "placebo_donor": 938
+        },
+        {
+          "evidence_target": 1016,
+          "evidence_donor": 938,
+          "placebo_target": 938,
+          "placebo_donor": 859
+        }
+      ],
+      "full_sequence_logprob": -20.29960486292839,
+      "evidence_replaced_sequence_logprobs": [
+        -20.44153381884098,
+        -20.75939552858472,
+        -20.44153381884098,
+        -20.75939552858472,
+        -20.44153381884098
+      ],
+      "placebo_sequence_logprobs": [
+        -20.519875794649124,
+        -20.188227582722902,
+        -20.188227582722902,
+        -20.188227582722902,
+        -20.279999267309904
+      ],
+      "evidence_drop": 0.2690736398100846,
+      "mean_placebo_drop": -0.026693300902842054,
+      "selective_evidence_drop": 0.29576694071292664,
+      "edited_positions_per_intervention": 1
+    },
+    {
+      "sample_id": "14",
+      "grounding": [
+        [
+          22.0,
+          28.1
+        ]
+      ],
+      "sampled_indices": [
+        0,
+        83,
+        165,
+        248,
+        331,
+        413,
+        496,
+        579,
+        661,
+        744,
+        827,
+        909,
+        992,
+        1075,
+        1157,
+        1240
+      ],
+      "evidence_indices": [
+        661,
+        744,
+        827
+      ],
+      "matched_interventions": [
+        {
+          "evidence_target": 827,
+          "evidence_donor": 909,
+          "placebo_target": 579,
+          "placebo_donor": 496
+        },
+        {
+          "evidence_target": 661,
+          "evidence_donor": 579,
+          "placebo_target": 579,
+          "placebo_donor": 496
+        },
+        {
+          "evidence_target": 744,
+          "evidence_donor": 579,
+          "placebo_target": 496,
+          "placebo_donor": 413
+        },
+        {
+          "evidence_target": 827,
+          "evidence_donor": 909,
+          "placebo_target": 992,
+          "placebo_donor": 909
+        },
+        {
+          "evidence_target": 661,
+          "evidence_donor": 579,
+          "placebo_target": 909,
+          "placebo_donor": 992
+        }
+      ],
+      "full_sequence_logprob": -30.461819350719452,
+      "evidence_replaced_sequence_logprobs": [
+        -30.78243225812912,
+        -30.72770071029663,
+        -31.067978978157043,
+        -30.78243225812912,
+        -30.72770071029663
+      ],
+      "placebo_sequence_logprobs": [
+        -30.673640727996826,
+        -30.673640727996826,
+        -31.433044850826263,
+        -30.874898850917816,
+        -30.193524539470673
+      ],
+      "evidence_drop": 0.3558296322822585,
+      "mean_placebo_drop": 0.307930588722229,
+      "selective_evidence_drop": 0.0478990435600295,
+      "edited_positions_per_intervention": 1
+    },
+    {
+      "sample_id": "15",
+      "grounding": [
+        [
+          35.6,
+          56.9
+        ]
+      ],
+      "sampled_indices": [
+        0,
+        180,
+        359,
+        539,
+        719,
+        899,
+        1078,
+        1258,
+        1438,
+        1618,
+        1797,
+        1977,
+        2157,
+        2337,
+        2516,
+        2696
+      ],
+      "evidence_indices": [
+        1078,
+        1258,
+        1438,
+        1618
+      ],
+      "matched_interventions": [
+        {
+          "evidence_target": 1438,
+          "evidence_donor": 1797,
+          "placebo_target": 1977,
+          "placebo_donor": 1797
+        },
+        {
+          "evidence_target": 1618,
+          "evidence_donor": 1797,
+          "placebo_target": 899,
+          "placebo_donor": 719
+        },
+        {
+          "evidence_target": 1078,
+          "evidence_donor": 899,
+          "placebo_target": 359,
+          "placebo_donor": 180
+        },
+        {
+          "evidence_target": 1258,
+          "evidence_donor": 899,
+          "placebo_target": 719,
+          "placebo_donor": 539
+        },
+        {
+          "evidence_target": 1438,
+          "evidence_donor": 1797,
+          "placebo_target": 1977,
+          "placebo_donor": 1797
+        }
+      ],
+      "full_sequence_logprob": -24.320114821195602,
+      "evidence_replaced_sequence_logprobs": [
+        -24.391762793064117,
+        -24.979578763246536,
+        -24.625008821487427,
+        -24.723387598991394,
+        -24.391762793064117
+      ],
+      "placebo_sequence_logprobs": [
+        -24.643977224826813,
+        -24.328350126743317,
+        -24.257807970046997,
+        -24.89965033531189,
+        -24.643977224826813
+      ],
+      "evidence_drop": 0.3021853327751174,
+      "mean_placebo_drop": 0.23463775515556407,
+      "selective_evidence_drop": 0.06754757761955332,
+      "edited_positions_per_intervention": 1
+    },
+    {
+      "sample_id": "16",
+      "grounding": [
+        [
+          4.5,
+          7.5
+        ],
+        [
+          10.2,
+          13.5
+        ],
+        [
+          19.7,
+          22.7
+        ],
+        [
+          26.6,
+          28.7
+        ]
+      ],
+      "sampled_indices": [
+        0,
+        67,
+        134,
+        201,
+        268,
+        335,
+        402,
+        469,
+        536,
+        603,
+        670,
+        737,
+        804,
+        871,
+        938,
+        1005
+      ],
+      "evidence_indices": [
+        134,
+        268,
+        536,
+        670
+      ],
+      "matched_interventions": [
+        {
+          "evidence_target": 536,
+          "evidence_donor": 469,
+          "placebo_target": 335,
+          "placebo_donor": 402
+        },
+        {
+          "evidence_target": 134,
+          "evidence_donor": 67,
+          "placebo_target": 67,
+          "placebo_donor": 0
+        },
+        {
+          "evidence_target": 670,
+          "evidence_donor": 603,
+          "placebo_target": 603,
+          "placebo_donor": 469
+        },
+        {
+          "evidence_target": 268,
+          "evidence_donor": 201,
+          "placebo_target": 67,
+          "placebo_donor": 0
+        },
+        {
+          "evidence_target": 536,
+          "evidence_donor": 469,
+          "placebo_target": 469,
+          "placebo_donor": 402
+        }
+      ],
+      "full_sequence_logprob": -42.026036984752864,
+      "evidence_replaced_sequence_logprobs": [
+        -42.92910784250125,
+        -43.42111668083817,
+        -43.27184793446213,
+        -43.55222530430183,
+        -42.92910784250125
+      ],
+      "placebo_sequence_logprobs": [
+        -43.240829274989665,
+        -41.78889808477834,
+        -42.130046262871474,
+        -41.78889808477834,
+        -42.7117553523276
+      ],
+      "evidence_drop": 1.1946441361680655,
+      "mean_placebo_drop": 0.3060484271962167,
+      "selective_evidence_drop": 0.8885957089718488,
+      "edited_positions_per_intervention": 1
+    },
+    {
+      "sample_id": "17",
+      "grounding": [
+        [
+          16.7,
+          20.8
+        ]
+      ],
+      "sampled_indices": [
+        0,
+        74,
+        147,
+        221,
+        295,
+        369,
+        442,
+        516,
+        590,
+        664,
+        737,
+        811,
+        885,
+        959,
+        1032,
+        1106
+      ],
+      "evidence_indices": [
+        516,
+        590
+      ],
+      "matched_interventions": [
+        {
+          "evidence_target": 590,
+          "evidence_donor": 664,
+          "placebo_target": 664,
+          "placebo_donor": 737
+        },
+        {
+          "evidence_target": 516,
+          "evidence_donor": 442,
+          "placebo_target": 442,
+          "placebo_donor": 369
+        },
+        {
+          "evidence_target": 590,
+          "evidence_donor": 664,
+          "placebo_target": 442,
+          "placebo_donor": 369
+        },
+        {
+          "evidence_target": 516,
+          "evidence_donor": 442,
+          "placebo_target": 442,
+          "placebo_donor": 369
+        },
+        {
+          "evidence_target": 590,
+          "evidence_donor": 664,
+          "placebo_target": 664,
+          "placebo_donor": 737
+        }
+      ],
+      "full_sequence_logprob": -22.46518898010254,
+      "evidence_replaced_sequence_logprobs": [
+        -22.47654914855957,
+        -22.72698211669922,
+        -22.47654914855957,
+        -22.72698211669922,
+        -22.47654914855957
+      ],
+      "placebo_sequence_logprobs": [
+        -22.61152458190918,
+        -22.723346710205078,
+        -22.723346710205078,
+        -22.723346710205078,
+        -22.61152458190918
+      ],
+      "evidence_drop": 0.11153335571288991,
+      "mean_placebo_drop": 0.21342887878417827,
+      "selective_evidence_drop": -0.10189552307128835,
+      "edited_positions_per_intervention": 1
+    },
+    {
+      "sample_id": "18",
+      "grounding": [
+        [
+          8.4,
+          10.2
+        ]
+      ],
+      "sampled_indices": [
+        0,
+        55,
+        111,
+        166,
+        221,
+        277,
+        332,
+        387,
+        443,
+        498,
+        553,
+        609,
+        664,
+        719,
+        775,
+        830
+      ],
+      "evidence_indices": [
+        277
+      ],
+      "matched_interventions": [
+        {
+          "evidence_target": 277,
+          "evidence_donor": 332,
+          "placebo_target": 166,
+          "placebo_donor": 111
+        },
+        {
+          "evidence_target": 277,
+          "evidence_donor": 332,
+          "placebo_target": 166,
+          "placebo_donor": 111
+        },
+        {
+          "evidence_target": 277,
+          "evidence_donor": 332,
+          "placebo_target": 332,
+          "placebo_donor": 387
+        },
+        {
+          "evidence_target": 277,
+          "evidence_donor": 332,
+          "placebo_target": 221,
+          "placebo_donor": 166
+        },
+        {
+          "evidence_target": 277,
+          "evidence_donor": 332,
+          "placebo_target": 166,
+          "placebo_donor": 111
+        }
+      ],
+      "full_sequence_logprob": -31.47808301448822,
+      "evidence_replaced_sequence_logprobs": [
+        -31.5783833861351,
+        -31.5783833861351,
+        -31.5783833861351,
+        -31.5783833861351,
+        -31.5783833861351
+      ],
+      "placebo_sequence_logprobs": [
+        -31.735260367393494,
+        -31.735260367393494,
+        -30.946707010269165,
+        -31.786091804504395,
+        -31.735260367393494
+      ],
+      "evidence_drop": 0.1003003716468811,
+      "mean_placebo_drop": 0.10963296890258789,
+      "selective_evidence_drop": -0.009332597255706787,
+      "edited_positions_per_intervention": 1
+    },
+    {
+      "sample_id": "19",
+      "grounding": [
+        [
+          13.7,
+          17.2
+        ]
+      ],
+      "sampled_indices": [
+        0,
+        41,
+        82,
+        123,
+        163,
+        204,
+        245,
+        286,
+        327,
+        368,
+        409,
+        450,
+        490,
+        531,
+        572,
+        613
+      ],
+      "evidence_indices": [
+        450,
+        490
+      ],
+      "matched_interventions": [
+        {
+          "evidence_target": 450,
+          "evidence_donor": 409,
+          "placebo_target": 368,
+          "placebo_donor": 327
+        },
+        {
+          "evidence_target": 490,
+          "evidence_donor": 531,
+          "placebo_target": 572,
+          "placebo_donor": 531
+        },
+        {
+          "evidence_target": 450,
+          "evidence_donor": 409,
+          "placebo_target": 531,
+          "placebo_donor": 572
+        },
+        {
+          "evidence_target": 490,
+          "evidence_donor": 531,
+          "placebo_target": 368,
+          "placebo_donor": 327
+        },
+        {
+          "evidence_target": 450,
+          "evidence_donor": 409,
+          "placebo_target": 531,
+          "placebo_donor": 572
+        }
+      ],
+      "full_sequence_logprob": -29.052258014678955,
+      "evidence_replaced_sequence_logprobs": [
+        -30.102715969085693,
+        -31.15433168411255,
+        -30.102715969085693,
+        -31.15433168411255,
+        -30.102715969085693
+      ],
+      "placebo_sequence_logprobs": [
+        -29.10899543762207,
+        -28.62256383895874,
+        -28.929789543151855,
+        -29.10899543762207,
+        -28.929789543151855
+      ],
+      "evidence_drop": 1.471104240417482,
+      "mean_placebo_drop": -0.11223125457763672,
+      "selective_evidence_drop": 1.5833354949951186,
+      "edited_positions_per_intervention": 1
+    },
+    {
+      "sample_id": "20",
+      "grounding": [
+        [
+          0.0,
+          12.1
+        ]
+      ],
+      "sampled_indices": [
+        0,
+        64,
+        128,
+        192,
+        256,
+        320,
+        384,
+        448,
+        511,
+        575,
+        639,
+        703,
+        767,
+        831,
+        895,
+        959
+      ],
+      "evidence_indices": [
+        0,
+        64,
+        128,
+        192,
+        256,
+        320
+      ],
+      "matched_interventions": [
+        {
+          "evidence_target": 128,
+          "evidence_donor": 384,
+          "placebo_target": 575,
+          "placebo_donor": 511
+        },
+        {
+          "evidence_target": 64,
+          "evidence_donor": 384,
+          "placebo_target": 384,
+          "placebo_donor": 448
+        },
+        {
+          "evidence_target": 192,
+          "evidence_donor": 384,
+          "placebo_target": 384,
+          "placebo_donor": 448
+        },
+        {
+          "evidence_target": 256,
+          "evidence_donor": 384,
+          "placebo_target": 384,
+          "placebo_donor": 448
+        },
+        {
+          "evidence_target": 0,
+          "evidence_donor": 384,
+          "placebo_target": 511,
+          "placebo_donor": 448
+        }
+      ],
+      "full_sequence_logprob": -27.39935940504074,
+      "evidence_replaced_sequence_logprobs": [
+        -27.45546168088913,
+        -26.7115957736969,
+        -27.251586973667145,
+        -27.002832293510437,
+        -27.214435279369354
+      ],
+      "placebo_sequence_logprobs": [
+        -27.449157297611237,
+        -27.126104414463043,
+        -27.126104414463043,
+        -27.126104414463043,
+        -26.13370430469513
+      ],
+      "evidence_drop": -0.27217700481414653,
+      "mean_placebo_drop": -0.40712443590164327,
+      "selective_evidence_drop": 0.13494743108749674,
+      "edited_positions_per_intervention": 1
+    },
+    {
+      "sample_id": "21",
+      "grounding": [
+        [
+          4.2,
+          8.1
+        ]
+      ],
+      "sampled_indices": [
+        0,
+        76,
+        152,
+        228,
+        304,
+        380,
+        456,
+        532,
+        607,
+        683,
+        759,
+        835,
+        911,
+        987,
+        1063,
+        1139
+      ],
+      "evidence_indices": [
+        152,
+        228
+      ],
+      "matched_interventions": [
+        {
+          "evidence_target": 152,
+          "evidence_donor": 76,
+          "placebo_target": 0,
+          "placebo_donor": 76
+        },
+        {
+          "evidence_target": 228,
+          "evidence_donor": 304,
+          "placebo_target": 0,
+          "placebo_donor": 76
+        },
+        {
+          "evidence_target": 152,
+          "evidence_donor": 76,
+          "placebo_target": 380,
+          "placebo_donor": 304
+        },
+        {
+          "evidence_target": 228,
+          "evidence_donor": 304,
+          "placebo_target": 0,
+          "placebo_donor": 76
+        },
+        {
+          "evidence_target": 152,
+          "evidence_donor": 76,
+          "placebo_target": 76,
+          "placebo_donor": 0
+        }
+      ],
+      "full_sequence_logprob": -22.50498390197754,
+      "evidence_replaced_sequence_logprobs": [
+        -23.086671829223633,
+        -22.40515899658203,
+        -23.086671829223633,
+        -22.40515899658203,
+        -23.086671829223633
+      ],
+      "placebo_sequence_logprobs": [
+        -22.954818725585938,
+        -22.954818725585938,
+        -23.113052368164062,
+        -22.954818725585938,
+        -22.58123016357422
+      ],
+      "evidence_drop": 0.30908279418945384,
+      "mean_placebo_drop": 0.4067638397216804,
+      "selective_evidence_drop": -0.09768104553222656,
+      "edited_positions_per_intervention": 1
+    },
+    {
+      "sample_id": "22",
+      "grounding": [
+        [
+          0.1,
+          4.1
+        ]
+      ],
+      "sampled_indices": [
+        0,
+        56,
+        112,
+        167,
+        223,
+        279,
+        335,
+        391,
+        446,
+        502,
+        558,
+        614,
+        670,
+        725,
+        781,
+        837
+      ],
+      "evidence_indices": [
+        56,
+        112
+      ],
+      "matched_interventions": [
+        {
+          "evidence_target": 112,
+          "evidence_donor": 167,
+          "placebo_target": 223,
+          "placebo_donor": 167
+        },
+        {
+          "evidence_target": 56,
+          "evidence_donor": 0,
+          "placebo_target": 167,
+          "placebo_donor": 223
+        },
+        {
+          "evidence_target": 112,
+          "evidence_donor": 167,
+          "placebo_target": 0,
+          "placebo_donor": 167
+        },
+        {
+          "evidence_target": 56,
+          "evidence_donor": 0,
+          "placebo_target": 167,
+          "placebo_donor": 223
+        },
+        {
+          "evidence_target": 112,
+          "evidence_donor": 167,
+          "placebo_target": 279,
+          "placebo_donor": 223
+        }
+      ],
+      "full_sequence_logprob": -30.47087788581848,
+      "evidence_replaced_sequence_logprobs": [
+        -30.120130836963654,
+        -30.285186260938644,
+        -30.120130836963654,
+        -30.285186260938644,
+        -30.120130836963654
+      ],
+      "placebo_sequence_logprobs": [
+        -29.827515840530396,
+        -30.75885358452797,
+        -29.898847371339798,
+        -30.75885358452797,
+        -30.065083116292953
+      ],
+      "evidence_drop": -0.28472487926483225,
+      "mean_placebo_drop": -0.20904718637466502,
+      "selective_evidence_drop": -0.07567769289016724,
+      "edited_positions_per_intervention": 1
+    },
+    {
+      "sample_id": "23",
+      "grounding": [
+        [
+          0.5,
+          3.7
+        ]
+      ],
+      "sampled_indices": [
+        0,
+        23,
+        46,
+        69,
+        92,
+        115,
+        138,
+        161,
+        185,
+        208,
+        231,
+        254,
+        277,
+        300,
+        323,
+        346
+      ],
+      "evidence_indices": [
+        23,
+        46,
+        69,
+        92
+      ],
+      "matched_interventions": [
+        {
+          "evidence_target": 69,
+          "evidence_donor": 115,
+          "placebo_target": 115,
+          "placebo_donor": 138
+        },
+        {
+          "evidence_target": 23,
+          "evidence_donor": 0,
+          "placebo_target": 138,
+          "placebo_donor": 115
+        },
+        {
+          "evidence_target": 92,
+          "evidence_donor": 115,
+          "placebo_target": 161,
+          "placebo_donor": 138
+        },
+        {
+          "evidence_target": 46,
+          "evidence_donor": 0,
+          "placebo_target": 115,
+          "placebo_donor": 138
+        },
+        {
+          "evidence_target": 69,
+          "evidence_donor": 115,
+          "placebo_target": 138,
+          "placebo_donor": 115
+        }
+      ],
+      "full_sequence_logprob": -35.94372773170471,
+      "evidence_replaced_sequence_logprobs": [
+        -36.15278398990631,
+        -35.43135631084442,
+        -35.760616302490234,
+        -35.806283831596375,
+        -36.15278398990631
+      ],
+      "placebo_sequence_logprobs": [
+        -35.64276987314224,
+        -36.75696623325348,
+        -36.34693765640259,
+        -35.64276987314224,
+        -36.75696623325348
+      ],
+      "evidence_drop": -0.08296284675598287,
+      "mean_placebo_drop": 0.2855542421340971,
+      "selective_evidence_drop": -0.36851708889007995,
+      "edited_positions_per_intervention": 1
+    },
+    {
+      "sample_id": "24",
+      "grounding": [
+        [
+          15.9,
+          19.5
+        ],
+        [
+          22.8,
+          26.6
+        ],
+        [
+          29.9,
+          33.9
+        ],
+        [
+          37.2,
+          40.8
+        ]
+      ],
+      "sampled_indices": [
+        0,
+        97,
+        195,
+        292,
+        389,
+        486,
+        584,
+        681,
+        778,
+        875,
+        973,
+        1070,
+        1167,
+        1264,
+        1362,
+        1459
+      ],
+      "evidence_indices": [
+        486,
+        584,
+        778,
+        973,
+        1167
+      ],
+      "matched_interventions": [
+        {
+          "evidence_target": 1167,
+          "evidence_donor": 1070,
+          "placebo_target": 1070,
+          "placebo_donor": 1264
+        },
+        {
+          "evidence_target": 584,
+          "evidence_donor": 681,
+          "placebo_target": 875,
+          "placebo_donor": 681
+        },
+        {
+          "evidence_target": 778,
+          "evidence_donor": 681,
+          "placebo_target": 681,
+          "placebo_donor": 875
+        },
+        {
+          "evidence_target": 973,
+          "evidence_donor": 1070,
+          "placebo_target": 1264,
+          "placebo_donor": 1362
+        },
+        {
+          "evidence_target": 486,
+          "evidence_donor": 389,
+          "placebo_target": 195,
+          "placebo_donor": 292
+        }
+      ],
+      "full_sequence_logprob": -43.881792187690735,
+      "evidence_replaced_sequence_logprobs": [
+        -44.3076094686985,
+        -44.61581140756607,
+        -44.57576313614845,
+        -45.97819897532463,
+        -45.685674011707306
+      ],
+      "placebo_sequence_logprobs": [
+        -44.98723492026329,
+        -44.8425569832325,
+        -44.96501940488815,
+        -44.71456143260002,
+        -44.88170984387398
+      ],
+      "evidence_drop": 1.1508192121982574,
+      "mean_placebo_drop": 0.9964243292808561,
+      "selective_evidence_drop": 0.15439488291740133,
+      "edited_positions_per_intervention": 1
+    },
+    {
+      "sample_id": "25",
+      "grounding": [
+        [
+          1.2,
+          75.3
+        ]
+      ],
+      "sampled_indices": [
+        0,
+        151,
+        302,
+        454,
+        605,
+        756,
+        907,
+        1058,
+        1210,
+        1361,
+        1512,
+        1663,
+        1814,
+        1966,
+        2117,
+        2268
+      ],
+      "evidence_indices": [
+        151,
+        302,
+        454,
+        605,
+        756,
+        907,
+        1058,
+        1210,
+        1361,
+        1512,
+        1663,
+        1814,
+        1966,
+        2117
+      ],
+      "matched_interventions": [
+        {
+          "evidence_target": 1210,
+          "evidence_donor": 2268,
+          "placebo_target": 0,
+          "placebo_donor": 2268
+        },
+        {
+          "evidence_target": 454,
+          "evidence_donor": 0,
+          "placebo_target": 0,
+          "placebo_donor": 2268
+        },
+        {
+          "evidence_target": 756,
+          "evidence_donor": 0,
+          "placebo_target": 2268,
+          "placebo_donor": 0
+        },
+        {
+          "evidence_target": 302,
+          "evidence_donor": 0,
+          "placebo_target": 2268,
+          "placebo_donor": 0
+        },
+        {
+          "evidence_target": 1663,
+          "evidence_donor": 2268,
+          "placebo_target": 0,
+          "placebo_donor": 2268
+        }
+      ],
+      "full_sequence_logprob": -34.234246611595154,
+      "evidence_replaced_sequence_logprobs": [
+        -33.97611582279205,
+        -34.091384291648865,
+        -34.52821326255798,
+        -34.20902180671692,
+        -33.9204421043396
+      ],
+      "placebo_sequence_logprobs": [
+        -34.06097197532654,
+        -34.06097197532654,
+        -34.5856329202652,
+        -34.5856329202652,
+        -34.06097197532654
+      ],
+      "evidence_drop": -0.08921115398406698,
+      "mean_placebo_drop": 0.036589741706848145,
+      "selective_evidence_drop": -0.12580089569091513,
+      "edited_positions_per_intervention": 1
+    },
+    {
+      "sample_id": "26",
+      "grounding": [
+        [
+          3.4,
+          9.2
+        ]
+      ],
+      "sampled_indices": [
+        0,
+        20,
+        40,
+        60,
+        80,
+        100,
+        120,
+        140,
+        159,
+        179,
+        199,
+        219,
+        239,
+        259,
+        279,
+        299
+      ],
+      "evidence_indices": [
+        120,
+        140,
+        159,
+        179,
+        199,
+        219,
+        239,
+        259
+      ],
+      "matched_interventions": [
+        {
+          "evidence_target": 239,
+          "evidence_donor": 279,
+          "placebo_target": 299,
+          "placebo_donor": 279
+        },
+        {
+          "evidence_target": 219,
+          "evidence_donor": 279,
+          "placebo_target": 279,
+          "placebo_donor": 299
+        },
+        {
+          "evidence_target": 159,
+          "evidence_donor": 100,
+          "placebo_target": 60,
+          "placebo_donor": 40
+        },
+        {
+          "evidence_target": 179,
+          "evidence_donor": 100,
+          "placebo_target": 279,
+          "placebo_donor": 299
+        },
+        {
+          "evidence_target": 259,
+          "evidence_donor": 279,
+          "placebo_target": 100,
+          "placebo_donor": 80
+        }
+      ],
+      "full_sequence_logprob": -25.73091411590576,
+      "evidence_replaced_sequence_logprobs": [
+        -26.013352870941162,
+        -25.562071561813354,
+        -26.120317697525024,
+        -26.04283308982849,
+        -25.901957035064697
+      ],
+      "placebo_sequence_logprobs": [
+        -25.797914147377014,
+        -25.515045166015625,
+        -25.861002922058105,
+        -25.515045166015625,
+        -25.75394117832184
+      ],
+      "evidence_drop": 0.19719233512878276,
+      "mean_placebo_drop": -0.04232439994812154,
+      "selective_evidence_drop": 0.2395167350769043,
+      "edited_positions_per_intervention": 1
+    },
+    {
+      "sample_id": "27",
+      "grounding": [
+        [
+          0.0,
+          5.1
+        ]
+      ],
+      "sampled_indices": [
+        0,
+        49,
+        98,
+        148,
+        197,
+        246,
+        295,
+        344,
+        394,
+        443,
+        492,
+        541,
+        590,
+        640,
+        689,
+        738
+      ],
+      "evidence_indices": [
+        0,
+        49,
+        98,
+        148
+      ],
+      "matched_interventions": [
+        {
+          "evidence_target": 49,
+          "evidence_donor": 197,
+          "placebo_target": 344,
+          "placebo_donor": 295
+        },
+        {
+          "evidence_target": 98,
+          "evidence_donor": 197,
+          "placebo_target": 295,
+          "placebo_donor": 246
+        },
+        {
+          "evidence_target": 0,
+          "evidence_donor": 197,
+          "placebo_target": 344,
+          "placebo_donor": 295
+        },
+        {
+          "evidence_target": 148,
+          "evidence_donor": 197,
+          "placebo_target": 344,
+          "placebo_donor": 295
+        },
+        {
+          "evidence_target": 49,
+          "evidence_donor": 197,
+          "placebo_target": 344,
+          "placebo_donor": 295
+        }
+      ],
+      "full_sequence_logprob": -27.949846014380455,
+      "evidence_replaced_sequence_logprobs": [
+        -28.25231099128723,
+        -26.951721981167793,
+        -28.57786873728037,
+        -27.566906347870827,
+        -28.25231099128723
+      ],
+      "placebo_sequence_logprobs": [
+        -27.209368385374546,
+        -28.55755279958248,
+        -27.209368385374546,
+        -27.209368385374546,
+        -27.209368385374546
+      ],
+      "evidence_drop": -0.02962220460176468,
+      "mean_placebo_drop": -0.4708407461643205,
+      "selective_evidence_drop": 0.4412185415625558,
+      "edited_positions_per_intervention": 1
+    },
+    {
+      "sample_id": "28",
+      "grounding": [
+        [
+          9.4,
+          22.4
+        ]
+      ],
+      "sampled_indices": [
+        0,
+        90,
+        180,
+        269,
+        359,
+        449,
+        539,
+        629,
+        718,
+        808,
+        898,
+        988,
+        1078,
+        1167,
+        1257,
+        1347
+      ],
+      "evidence_indices": [
+        359,
+        449,
+        539,
+        629
+      ],
+      "matched_interventions": [
+        {
+          "evidence_target": 449,
+          "evidence_donor": 269,
+          "placebo_target": 180,
+          "placebo_donor": 269
+        },
+        {
+          "evidence_target": 629,
+          "evidence_donor": 718,
+          "placebo_target": 988,
+          "placebo_donor": 898
+        },
+        {
+          "evidence_target": 359,
+          "evidence_donor": 269,
+          "placebo_target": 269,
+          "placebo_donor": 180
+        },
+        {
+          "evidence_target": 539,
+          "evidence_donor": 718,
+          "placebo_target": 718,
+          "placebo_donor": 808
+        },
+        {
+          "evidence_target": 449,
+          "evidence_donor": 269,
+          "placebo_target": 718,
+          "placebo_donor": 808
+        }
+      ],
+      "full_sequence_logprob": -21.418003916740417,
+      "evidence_replaced_sequence_logprobs": [
+        -21.099450320005417,
+        -21.524112045764923,
+        -20.839921444654465,
+        -20.810171127319336,
+        -21.099450320005417
+      ],
+      "placebo_sequence_logprobs": [
+        -21.118553787469864,
+        -20.967957824468613,
+        -21.351194083690643,
+        -20.98696106672287,
+        -20.98696106672287
+      ],
+      "evidence_drop": -0.343382865190506,
+      "mean_placebo_drop": -0.33567835092544485,
+      "selective_evidence_drop": -0.007704514265061135,
+      "edited_positions_per_intervention": 1
+    },
+    {
+      "sample_id": "29",
+      "grounding": [
+        [
+          34.9,
+          43.8
+        ]
+      ],
+      "sampled_indices": [
+        0,
+        95,
+        190,
+        284,
+        379,
+        474,
+        569,
+        664,
+        758,
+        853,
+        948,
+        1043,
+        1138,
+        1232,
+        1327,
+        1422
+      ],
+      "evidence_indices": [
+        1138,
+        1232
+      ],
+      "matched_interventions": [
+        {
+          "evidence_target": 1138,
+          "evidence_donor": 1043,
+          "placebo_target": 1043,
+          "placebo_donor": 948
+        },
+        {
+          "evidence_target": 1232,
+          "evidence_donor": 1327,
+          "placebo_target": 1422,
+          "placebo_donor": 1327
+        },
+        {
+          "evidence_target": 1138,
+          "evidence_donor": 1043,
+          "placebo_target": 1422,
+          "placebo_donor": 1327
+        },
+        {
+          "evidence_target": 1232,
+          "evidence_donor": 1327,
+          "placebo_target": 1043,
+          "placebo_donor": 948
+        },
+        {
+          "evidence_target": 1138,
+          "evidence_donor": 1043,
+          "placebo_target": 1043,
+          "placebo_donor": 948
+        }
+      ],
+      "full_sequence_logprob": -26.4263653755188,
+      "evidence_replaced_sequence_logprobs": [
+        -26.992874145507812,
+        -27.205402851104736,
+        -26.992874145507812,
+        -27.205402851104736,
+        -26.992874145507812
+      ],
+      "placebo_sequence_logprobs": [
+        -26.34299087524414,
+        -26.097712516784668,
+        -26.097712516784668,
+        -26.34299087524414,
+        -26.34299087524414
+      ],
+      "evidence_drop": 0.6515202522277832,
+      "mean_placebo_drop": -0.18148584365844656,
+      "selective_evidence_drop": 0.8330060958862298,
+      "edited_positions_per_intervention": 1
+    },
+    {
+      "sample_id": "31",
+      "grounding": [
+        [
+          0.1,
+          3.2
+        ]
+      ],
+      "sampled_indices": [
+        0,
+        21,
+        43,
+        64,
+        86,
+        107,
+        128,
+        150,
+        171,
+        193,
+        214,
+        235,
+        257,
+        278,
+        300,
+        321
+      ],
+      "evidence_indices": [
+        21,
+        43
+      ],
+      "matched_interventions": [
+        {
+          "evidence_target": 21,
+          "evidence_donor": 0,
+          "placebo_target": 0,
+          "placebo_donor": 64
+        },
+        {
+          "evidence_target": 43,
+          "evidence_donor": 64,
+          "placebo_target": 64,
+          "placebo_donor": 86
+        },
+        {
+          "evidence_target": 21,
+          "evidence_donor": 0,
+          "placebo_target": 0,
+          "placebo_donor": 64
+        },
+        {
+          "evidence_target": 43,
+          "evidence_donor": 64,
+          "placebo_target": 64,
+          "placebo_donor": 86
+        },
+        {
+          "evidence_target": 21,
+          "evidence_donor": 0,
+          "placebo_target": 107,
+          "placebo_donor": 86
+        }
+      ],
+      "full_sequence_logprob": -22.70049285888672,
+      "evidence_replaced_sequence_logprobs": [
+        -23.0738468170166,
+        -23.319440841674805,
+        -23.0738468170166,
+        -23.319440841674805,
+        -23.0738468170166
+      ],
+      "placebo_sequence_logprobs": [
+        -23.196399688720703,
+        -22.76300621032715,
+        -23.196399688720703,
+        -22.76300621032715,
+        -22.958620071411133
+      ],
+      "evidence_drop": 0.4715915679931655,
+      "mean_placebo_drop": 0.27499351501464986,
+      "selective_evidence_drop": 0.19659805297851562,
+      "edited_positions_per_intervention": 1
+    },
+    {
+      "sample_id": "33",
+      "grounding": [
+        [
+          15.8,
+          20.6
+        ]
+      ],
+      "sampled_indices": [
+        0,
+        54,
+        109,
+        163,
+        218,
+        272,
+        326,
+        381,
+        435,
+        490,
+        544,
+        598,
+        653,
+        707,
+        762,
+        816
+      ],
+      "evidence_indices": [
+        490,
+        544,
+        598
+      ],
+      "matched_interventions": [
+        {
+          "evidence_target": 490,
+          "evidence_donor": 435,
+          "placebo_target": 326,
+          "placebo_donor": 272
+        },
+        {
+          "evidence_target": 544,
+          "evidence_donor": 435,
+          "placebo_target": 707,
+          "placebo_donor": 653
+        },
+        {
+          "evidence_target": 598,
+          "evidence_donor": 653,
+          "placebo_target": 653,
+          "placebo_donor": 707
+        },
+        {
+          "evidence_target": 490,
+          "evidence_donor": 435,
+          "placebo_target": 435,
+          "placebo_donor": 381
+        },
+        {
+          "evidence_target": 544,
+          "evidence_donor": 435,
+          "placebo_target": 707,
+          "placebo_donor": 653
+        }
+      ],
+      "full_sequence_logprob": -33.57227748632431,
+      "evidence_replaced_sequence_logprobs": [
+        -33.63771831989288,
+        -33.247498691082,
+        -33.48061913251877,
+        -33.63771831989288,
+        -33.247498691082
+      ],
+      "placebo_sequence_logprobs": [
+        -33.6380997300148,
+        -33.49236434698105,
+        -33.51336860656738,
+        -33.212725043296814,
+        -33.49236434698105
+      ],
+      "evidence_drop": -0.12206685543060303,
+      "mean_placebo_drop": -0.10249307155608989,
+      "selective_evidence_drop": -0.01957378387451314,
+      "edited_positions_per_intervention": 1
+    },
+    {
+      "sample_id": "35",
+      "grounding": [
+        [
+          8.4,
+          11.9
+        ]
+      ],
+      "sampled_indices": [
+        0,
+        43,
+        87,
+        130,
+        174,
+        217,
+        261,
+        304,
+        348,
+        391,
+        435,
+        478,
+        522,
+        565,
+        609,
+        652
+      ],
+      "evidence_indices": [
+        261,
+        304,
+        348
+      ],
+      "matched_interventions": [
+        {
+          "evidence_target": 261,
+          "evidence_donor": 217,
+          "placebo_target": 217,
+          "placebo_donor": 174
+        },
+        {
+          "evidence_target": 348,
+          "evidence_donor": 391,
+          "placebo_target": 435,
+          "placebo_donor": 478
+        },
+        {
+          "evidence_target": 304,
+          "evidence_donor": 217,
+          "placebo_target": 217,
+          "placebo_donor": 174
+        },
+        {
+          "evidence_target": 261,
+          "evidence_donor": 217,
+          "placebo_target": 217,
+          "placebo_donor": 174
+        },
+        {
+          "evidence_target": 348,
+          "evidence_donor": 391,
+          "placebo_target": 217,
+          "placebo_donor": 174
+        }
+      ],
+      "full_sequence_logprob": -32.338211357593536,
+      "evidence_replaced_sequence_logprobs": [
+        -32.11640536785126,
+        -31.530833691358566,
+        -31.801924735307693,
+        -32.11640536785126,
+        -31.530833691358566
+      ],
+      "placebo_sequence_logprobs": [
+        -33.03657075762749,
+        -32.32217359542847,
+        -33.03657075762749,
+        -33.03657075762749,
+        -33.03657075762749
+      ],
+      "evidence_drop": -0.5189307868480668,
+      "mean_placebo_drop": 0.5554799675941453,
+      "selective_evidence_drop": -1.0744107544422121,
+      "edited_positions_per_intervention": 1
+    },
+    {
+      "sample_id": "36",
+      "grounding": [
+        [
+          46.0,
+          51.3
+        ]
+      ],
+      "sampled_indices": [
+        0,
+        128,
+        256,
+        384,
+        513,
+        641,
+        769,
+        897,
+        1025,
+        1153,
+        1281,
+        1409,
+        1538,
+        1666,
+        1794,
+        1922
+      ],
+      "evidence_indices": [
+        1409
+      ],
+      "matched_interventions": [
+        {
+          "evidence_target": 1409,
+          "evidence_donor": 1281,
+          "placebo_target": 1153,
+          "placebo_donor": 1025
+        },
+        {
+          "evidence_target": 1409,
+          "evidence_donor": 1281,
+          "placebo_target": 1281,
+          "placebo_donor": 1153
+        },
+        {
+          "evidence_target": 1409,
+          "evidence_donor": 1281,
+          "placebo_target": 1538,
+          "placebo_donor": 1666
+        },
+        {
+          "evidence_target": 1409,
+          "evidence_donor": 1281,
+          "placebo_target": 1538,
+          "placebo_donor": 1666
+        },
+        {
+          "evidence_target": 1409,
+          "evidence_donor": 1281,
+          "placebo_target": 1153,
+          "placebo_donor": 1025
+        }
+      ],
+      "full_sequence_logprob": -57.81159472465515,
+      "evidence_replaced_sequence_logprobs": [
+        -58.43783485889435,
+        -58.43783485889435,
+        -58.43783485889435,
+        -58.43783485889435,
+        -58.43783485889435
+      ],
+      "placebo_sequence_logprobs": [
+        -57.31002390384674,
+        -57.64123237133026,
+        -56.8189115524292,
+        -56.8189115524292,
+        -57.31002390384674
+      ],
+      "evidence_drop": 0.6262401342391968,
+      "mean_placebo_drop": -0.6317740678787231,
+      "selective_evidence_drop": 1.25801420211792,
+      "edited_positions_per_intervention": 1
+    },
+    {
+      "sample_id": "37",
+      "grounding": [
+        [
+          1.1,
+          8.3
+        ]
+      ],
+      "sampled_indices": [
+        0,
+        53,
+        106,
+        159,
+        211,
+        264,
+        317,
+        370,
+        423,
+        476,
+        529,
+        582,
+        634,
+        687,
+        740,
+        793
+      ],
+      "evidence_indices": [
+        53,
+        106,
+        159,
+        211
+      ],
+      "matched_interventions": [
+        {
+          "evidence_target": 106,
+          "evidence_donor": 0,
+          "placebo_target": 370,
+          "placebo_donor": 317
+        },
+        {
+          "evidence_target": 53,
+          "evidence_donor": 0,
+          "placebo_target": 264,
+          "placebo_donor": 317
+        },
+        {
+          "evidence_target": 211,
+          "evidence_donor": 264,
+          "placebo_target": 317,
+          "placebo_donor": 264
+        },
+        {
+          "evidence_target": 159,
+          "evidence_donor": 264,
+          "placebo_target": 0,
+          "placebo_donor": 264
+        },
+        {
+          "evidence_target": 106,
+          "evidence_donor": 0,
+          "placebo_target": 370,
+          "placebo_donor": 317
+        }
+      ],
+      "full_sequence_logprob": -43.42633807659149,
+      "evidence_replaced_sequence_logprobs": [
+        -43.76560860872269,
+        -42.66518712043762,
+        -42.797203063964844,
+        -43.880324602127075,
+        -43.76560860872269
+      ],
+      "placebo_sequence_logprobs": [
+        -44.14753556251526,
+        -43.27401518821716,
+        -43.947993993759155,
+        -44.51875060796738,
+        -44.14753556251526
+      ],
+      "evidence_drop": -0.05155167579651021,
+      "mean_placebo_drop": 0.5808281064033523,
+      "selective_evidence_drop": -0.6323797821998625,
+      "edited_positions_per_intervention": 1
+    },
+    {
+      "sample_id": "38",
+      "grounding": [
+        [
+          55.5,
+          60
+        ]
+      ],
+      "sampled_indices": [
+        0,
+        121,
+        242,
+        362,
+        483,
+        604,
+        725,
+        846,
+        966,
+        1087,
+        1208,
+        1329,
+        1450,
+        1570,
+        1691,
+        1812
+      ],
+      "evidence_indices": [
+        1691
+      ],
+      "matched_interventions": [
+        {
+          "evidence_target": 1691,
+          "evidence_donor": 1570,
+          "placebo_target": 1570,
+          "placebo_donor": 1450
+        },
+        {
+          "evidence_target": 1691,
+          "evidence_donor": 1570,
+          "placebo_target": 1570,
+          "placebo_donor": 1450
+        },
+        {
+          "evidence_target": 1691,
+          "evidence_donor": 1570,
+          "placebo_target": 1570,
+          "placebo_donor": 1450
+        },
+        {
+          "evidence_target": 1691,
+          "evidence_donor": 1570,
+          "placebo_target": 1570,
+          "placebo_donor": 1450
+        },
+        {
+          "evidence_target": 1691,
+          "evidence_donor": 1570,
+          "placebo_target": 1450,
+          "placebo_donor": 1570
+        }
+      ],
+      "full_sequence_logprob": -41.37497329711914,
+      "evidence_replaced_sequence_logprobs": [
+        -41.40715980529785,
+        -41.40715980529785,
+        -41.40715980529785,
+        -41.40715980529785,
+        -41.40715980529785
+      ],
+      "placebo_sequence_logprobs": [
+        -41.28498363494873,
+        -41.28498363494873,
+        -41.28498363494873,
+        -41.28498363494873,
+        -41.372727394104004
+      ],
+      "evidence_drop": 0.03218650817871094,
+      "mean_placebo_drop": -0.07244091033935263,
+      "selective_evidence_drop": 0.10462741851806356,
+      "edited_positions_per_intervention": 1
+    },
+    {
+      "sample_id": "39",
+      "grounding": [
+        [
+          -0.0,
+          4.8
+        ]
+      ],
+      "sampled_indices": [
+        0,
+        27,
+        53,
+        80,
+        107,
+        133,
+        160,
+        187,
+        213,
+        240,
+        267,
+        293,
+        320,
+        347,
+        373,
+        400
+      ],
+      "evidence_indices": [
+        0,
+        27,
+        53,
+        80,
+        107,
+        133
+      ],
+      "matched_interventions": [
+        {
+          "evidence_target": 107,
+          "evidence_donor": 160,
+          "placebo_target": 240,
+          "placebo_donor": 213
+        },
+        {
+          "evidence_target": 53,
+          "evidence_donor": 160,
+          "placebo_target": 240,
+          "placebo_donor": 213
+        },
+        {
+          "evidence_target": 80,
+          "evidence_donor": 160,
+          "placebo_target": 187,
+          "placebo_donor": 213
+        },
+        {
+          "evidence_target": 27,
+          "evidence_donor": 160,
+          "placebo_target": 213,
+          "placebo_donor": 187
+        },
+        {
+          "evidence_target": 133,
+          "evidence_donor": 160,
+          "placebo_target": 187,
+          "placebo_donor": 213
+        }
+      ],
+      "full_sequence_logprob": -21.240446090698242,
+      "evidence_replaced_sequence_logprobs": [
+        -21.142723083496094,
+        -21.031171798706055,
+        -20.99116325378418,
+        -21.470911026000977,
+        -21.046165466308594
+      ],
+      "placebo_sequence_logprobs": [
+        -21.39081382751465,
+        -21.39081382751465,
+        -20.685197830200195,
+        -21.036497116088867,
+        -20.685197830200195
+      ],
+      "evidence_drop": -0.1040191650390625,
+      "mean_placebo_drop": -0.20274200439452983,
+      "selective_evidence_drop": 0.09872283935546733,
+      "edited_positions_per_intervention": 1
+    },
+    {
+      "sample_id": "40",
+      "grounding": [
+        [
+          4.2,
+          7.1
+        ],
+        [
+          34.7,
+          37.4
+        ],
+        [
+          42.4,
+          44.7
+        ],
+        [
+          49.7,
+          52.8
+        ],
+        [
+          70.6,
+          73.3
+        ]
+      ],
+      "sampled_indices": [
+        0,
+        151,
+        302,
+        453,
+        605,
+        756,
+        907,
+        1058,
+        1209,
+        1360,
+        1511,
+        1662,
+        1814,
+        1965,
+        2116,
+        2267
+      ],
+      "evidence_indices": [
+        151,
+        1058,
+        1511,
+        2116
+      ],
+      "matched_interventions": [
+        {
+          "evidence_target": 1058,
+          "evidence_donor": 907,
+          "placebo_target": 907,
+          "placebo_donor": 756
+        },
+        {
+          "evidence_target": 151,
+          "evidence_donor": 0,
+          "placebo_target": 605,
+          "placebo_donor": 756
+        },
+        {
+          "evidence_target": 1511,
+          "evidence_donor": 1360,
+          "placebo_target": 1814,
+          "placebo_donor": 1965
+        },
+        {
+          "evidence_target": 2116,
+          "evidence_donor": 1965,
+          "placebo_target": 1814,
+          "placebo_donor": 1965
+        },
+        {
+          "evidence_target": 1058,
+          "evidence_donor": 907,
+          "placebo_target": 1360,
+          "placebo_donor": 1209
+        }
+      ],
+      "full_sequence_logprob": -29.096482753753662,
+      "evidence_replaced_sequence_logprobs": [
+        -29.132237911224365,
+        -29.15826177597046,
+        -29.200089931488037,
+        -29.04020881652832,
+        -29.132237911224365
+      ],
+      "placebo_sequence_logprobs": [
+        -29.57406234741211,
+        -29.460012435913086,
+        -28.62524700164795,
+        -28.62524700164795,
+        -28.731865406036377
+      ],
+      "evidence_drop": 0.036124515533447976,
+      "mean_placebo_drop": -0.09319591522216797,
+      "selective_evidence_drop": 0.12932043075561594,
+      "edited_positions_per_intervention": 1
+    },
+    {
+      "sample_id": "41",
+      "grounding": [
+        [
+          3.2,
+          10.5
+        ]
+      ],
+      "sampled_indices": [
+        0,
+        28,
+        55,
+        83,
+        110,
+        138,
+        166,
+        193,
+        221,
+        248,
+        276,
+        304,
+        331,
+        359,
+        386,
+        414
+      ],
+      "evidence_indices": [
+        110,
+        138,
+        166,
+        193,
+        221,
+        248,
+        276,
+        304
+      ],
+      "matched_interventions": [
+        {
+          "evidence_target": 276,
+          "evidence_donor": 331,
+          "placebo_target": 359,
+          "placebo_donor": 386
+        },
+        {
+          "evidence_target": 110,
+          "evidence_donor": 83,
+          "placebo_target": 28,
+          "placebo_donor": 55
+        },
+        {
+          "evidence_target": 138,
+          "evidence_donor": 83,
+          "placebo_target": 55,
+          "placebo_donor": 28
+        },
+        {
+          "evidence_target": 193,
+          "evidence_donor": 83,
+          "placebo_target": 55,
+          "placebo_donor": 28
+        },
+        {
+          "evidence_target": 304,
+          "evidence_donor": 331,
+          "placebo_target": 414,
+          "placebo_donor": 386
+        }
+      ],
+      "full_sequence_logprob": -24.7872576713562,
+      "evidence_replaced_sequence_logprobs": [
+        -25.02006435394287,
+        -24.866782903671265,
+        -24.776772022247314,
+        -24.31324028968811,
+        -24.21531105041504
+      ],
+      "placebo_sequence_logprobs": [
+        -24.428606748580933,
+        -24.08855152130127,
+        -24.87306308746338,
+        -24.87306308746338,
+        -24.084469318389893
+      ],
+      "evidence_drop": -0.14882354736328196,
+      "mean_placebo_drop": -0.3177069187164321,
+      "selective_evidence_drop": 0.16888337135315012,
+      "edited_positions_per_intervention": 1
+    },
+    {
+      "sample_id": "42",
+      "grounding": [
+        [
+          68.2,
+          75
+        ]
+      ],
+      "sampled_indices": [
+        0,
+        150,
+        300,
+        450,
+        600,
+        750,
+        900,
+        1050,
+        1200,
+        1350,
+        1500,
+        1650,
+        1800,
+        1950,
+        2100,
+        2250
+      ],
+      "evidence_indices": [
+        2100
+      ],
+      "matched_interventions": [
+        {
+          "evidence_target": 2100,
+          "evidence_donor": 1950,
+          "placebo_target": 1650,
+          "placebo_donor": 1500
+        },
+        {
+          "evidence_target": 2100,
+          "evidence_donor": 1950,
+          "placebo_target": 1800,
+          "placebo_donor": 1650
+        },
+        {
+          "evidence_target": 2100,
+          "evidence_donor": 1950,
+          "placebo_target": 2250,
+          "placebo_donor": 1950
+        },
+        {
+          "evidence_target": 2100,
+          "evidence_donor": 1950,
+          "placebo_target": 1650,
+          "placebo_donor": 1500
+        },
+        {
+          "evidence_target": 2100,
+          "evidence_donor": 1950,
+          "placebo_target": 1800,
+          "placebo_donor": 1650
+        }
+      ],
+      "full_sequence_logprob": -40.36223478615284,
+      "evidence_replaced_sequence_logprobs": [
+        -39.70355108380318,
+        -39.70355108380318,
+        -39.70355108380318,
+        -39.70355108380318,
+        -39.70355108380318
+      ],
+      "placebo_sequence_logprobs": [
+        -40.53207232058048,
+        -39.68977015465498,
+        -40.31256315112114,
+        -40.53207232058048,
+        -39.68977015465498
+      ],
+      "evidence_drop": -0.6586837023496628,
+      "mean_placebo_drop": -0.21098516583442972,
+      "selective_evidence_drop": -0.44769853651523306,
+      "edited_positions_per_intervention": 1
+    },
+    {
+      "sample_id": "43",
+      "grounding": [
+        [
+          40.7,
+          60.7
+        ]
+      ],
+      "sampled_indices": [
+        0,
+        130,
+        260,
+        389,
+        519,
+        649,
+        779,
+        909,
+        1038,
+        1168,
+        1298,
+        1428,
+        1558,
+        1687,
+        1817,
+        1947
+      ],
+      "evidence_indices": [
+        1038,
+        1168,
+        1298,
+        1428
+      ],
+      "matched_interventions": [
+        {
+          "evidence_target": 1428,
+          "evidence_donor": 1558,
+          "placebo_target": 1687,
+          "placebo_donor": 1558
+        },
+        {
+          "evidence_target": 1168,
+          "evidence_donor": 909,
+          "placebo_target": 649,
+          "placebo_donor": 519
+        },
+        {
+          "evidence_target": 1298,
+          "evidence_donor": 1558,
+          "placebo_target": 779,
+          "placebo_donor": 649
+        },
+        {
+          "evidence_target": 1038,
+          "evidence_donor": 909,
+          "placebo_target": 649,
+          "placebo_donor": 519
+        },
+        {
+          "evidence_target": 1428,
+          "evidence_donor": 1558,
+          "placebo_target": 1558,
+          "placebo_donor": 1687
+        }
+      ],
+      "full_sequence_logprob": -37.29016923904419,
+      "evidence_replaced_sequence_logprobs": [
+        -36.66588735580444,
+        -37.465790033340454,
+        -37.055659532547,
+        -37.176504135131836,
+        -36.66588735580444
+      ],
+      "placebo_sequence_logprobs": [
+        -38.535643577575684,
+        -37.68842792510986,
+        -37.95328760147095,
+        -37.68842792510986,
+        -38.3664755821228
+      ],
+      "evidence_drop": -0.2842235565185547,
+      "mean_placebo_drop": 0.7562832832336426,
+      "selective_evidence_drop": -1.0405068397521973,
+      "edited_positions_per_intervention": 1
+    },
+    {
+      "sample_id": "44",
+      "grounding": [
+        [
+          9.3,
+          13.9
+        ]
+      ],
+      "sampled_indices": [
+        0,
+        46,
+        92,
+        138,
+        184,
+        230,
+        276,
+        322,
+        368,
+        414,
+        460,
+        506,
+        552,
+        598,
+        644,
+        690
+      ],
+      "evidence_indices": [
+        322,
+        368,
+        414
+      ],
+      "matched_interventions": [
+        {
+          "evidence_target": 414,
+          "evidence_donor": 460,
+          "placebo_target": 552,
+          "placebo_donor": 506
+        },
+        {
+          "evidence_target": 368,
+          "evidence_donor": 276,
+          "placebo_target": 460,
+          "placebo_donor": 506
+        },
+        {
+          "evidence_target": 322,
+          "evidence_donor": 276,
+          "placebo_target": 460,
+          "placebo_donor": 506
+        },
+        {
+          "evidence_target": 414,
+          "evidence_donor": 460,
+          "placebo_target": 460,
+          "placebo_donor": 506
+        },
+        {
+          "evidence_target": 368,
+          "evidence_donor": 276,
+          "placebo_target": 230,
+          "placebo_donor": 184
+        }
+      ],
+      "full_sequence_logprob": -28.16965627670288,
+      "evidence_replaced_sequence_logprobs": [
+        -27.5294126868248,
+        -27.358246386051178,
+        -27.602546095848083,
+        -27.5294126868248,
+        -27.358246386051178
+      ],
+      "placebo_sequence_logprobs": [
+        -27.5072563290596,
+        -27.79042536020279,
+        -27.79042536020279,
+        -27.79042536020279,
+        -27.27605891227722
+      ],
+      "evidence_drop": -0.694083428382875,
+      "mean_placebo_drop": -0.5387380123138428,
+      "selective_evidence_drop": -0.15534541606903218,
+      "edited_positions_per_intervention": 1
+    },
+    {
+      "sample_id": "45",
+      "grounding": [
+        [
+          30.2,
+          33.6
+        ]
+      ],
+      "sampled_indices": [
+        0,
+        56,
+        112,
+        168,
+        223,
+        279,
+        335,
+        391,
+        447,
+        503,
+        559,
+        615,
+        670,
+        726,
+        782,
+        838
+      ],
+      "evidence_indices": [
+        726,
+        782
+      ],
+      "matched_interventions": [
+        {
+          "evidence_target": 726,
+          "evidence_donor": 670,
+          "placebo_target": 559,
+          "placebo_donor": 503
+        },
+        {
+          "evidence_target": 782,
+          "evidence_donor": 838,
+          "placebo_target": 559,
+          "placebo_donor": 503
+        },
+        {
+          "evidence_target": 726,
+          "evidence_donor": 670,
+          "placebo_target": 559,
+          "placebo_donor": 503
+        },
+        {
+          "evidence_target": 782,
+          "evidence_donor": 838,
+          "placebo_target": 838,
+          "placebo_donor": 670
+        },
+        {
+          "evidence_target": 726,
+          "evidence_donor": 670,
+          "placebo_target": 615,
+          "placebo_donor": 670
+        }
+      ],
+      "full_sequence_logprob": -34.455204248428345,
+      "evidence_replaced_sequence_logprobs": [
+        -34.3158215880394,
+        -33.457036942243576,
+        -34.3158215880394,
+        -33.457036942243576,
+        -34.3158215880394
+      ],
+      "placebo_sequence_logprobs": [
+        -34.706300526857376,
+        -34.706300526857376,
+        -34.706300526857376,
+        -35.17115831375122,
+        -33.33181697130203
+      ],
+      "evidence_drop": -0.48289651870727823,
+      "mean_placebo_drop": 0.06917112469673015,
+      "selective_evidence_drop": -0.5520676434040084,
+      "edited_positions_per_intervention": 1
+    },
+    {
+      "sample_id": "46",
+      "grounding": [
+        [
+          30.0,
+          34.2
+        ]
+      ],
+      "sampled_indices": [
+        0,
+        103,
+        206,
+        310,
+        413,
+        516,
+        619,
+        722,
+        826,
+        929,
+        1032,
+        1135,
+        1238,
+        1342,
+        1445,
+        1548
+      ],
+      "evidence_indices": [
+        722
+      ],
+      "matched_interventions": [
+        {
+          "evidence_target": 722,
+          "evidence_donor": 619,
+          "placebo_target": 826,
+          "placebo_donor": 929
+        },
+        {
+          "evidence_target": 722,
+          "evidence_donor": 619,
+          "placebo_target": 929,
+          "placebo_donor": 826
+        },
+        {
+          "evidence_target": 722,
+          "evidence_donor": 619,
+          "placebo_target": 929,
+          "placebo_donor": 826
+        },
+        {
+          "evidence_target": 722,
+          "evidence_donor": 619,
+          "placebo_target": 516,
+          "placebo_donor": 413
+        },
+        {
+          "evidence_target": 722,
+          "evidence_donor": 619,
+          "placebo_target": 929,
+          "placebo_donor": 826
+        }
+      ],
+      "full_sequence_logprob": -60.10632610321045,
+      "evidence_replaced_sequence_logprobs": [
+        -58.104891777038574,
+        -58.104891777038574,
+        -58.104891777038574,
+        -58.104891777038574,
+        -58.104891777038574
+      ],
+      "placebo_sequence_logprobs": [
+        -62.89823818206787,
+        -61.859745025634766,
+        -61.859745025634766,
+        -59.55024290084839,
+        -61.859745025634766
+      ],
+      "evidence_drop": -2.001434326171875,
+      "mean_placebo_drop": 1.4992171287536635,
+      "selective_evidence_drop": -3.5006514549255385,
+      "edited_positions_per_intervention": 1
+    },
+    {
+      "sample_id": "47",
+      "grounding": [
+        [
+          37.1,
+          40.3
+        ]
+      ],
+      "sampled_indices": [
+        0,
+        97,
+        194,
+        290,
+        387,
+        484,
+        581,
+        678,
+        774,
+        871,
+        968,
+        1065,
+        1162,
+        1258,
+        1355,
+        1452
+      ],
+      "evidence_indices": [
+        1162
+      ],
+      "matched_interventions": [
+        {
+          "evidence_target": 1162,
+          "evidence_donor": 1258,
+          "placebo_target": 1355,
+          "placebo_donor": 1258
+        },
+        {
+          "evidence_target": 1162,
+          "evidence_donor": 1258,
+          "placebo_target": 1258,
+          "placebo_donor": 1355
+        },
+        {
+          "evidence_target": 1162,
+          "evidence_donor": 1258,
+          "placebo_target": 968,
+          "placebo_donor": 871
+        },
+        {
+          "evidence_target": 1162,
+          "evidence_donor": 1258,
+          "placebo_target": 968,
+          "placebo_donor": 871
+        },
+        {
+          "evidence_target": 1162,
+          "evidence_donor": 1258,
+          "placebo_target": 968,
+          "placebo_donor": 871
+        }
+      ],
+      "full_sequence_logprob": -36.72130590677261,
+      "evidence_replaced_sequence_logprobs": [
+        -37.09748184680939,
+        -37.09748184680939,
+        -37.09748184680939,
+        -37.09748184680939,
+        -37.09748184680939
+      ],
+      "placebo_sequence_logprobs": [
+        -36.75296634435654,
+        -37.72229623794556,
+        -37.3595757484436,
+        -37.3595757484436,
+        -37.3595757484436
+      ],
+      "evidence_drop": 0.3761759400367737,
+      "mean_placebo_drop": 0.5894920587539687,
+      "selective_evidence_drop": -0.21331611871719502,
+      "edited_positions_per_intervention": 1
+    },
+    {
+      "sample_id": "48",
+      "grounding": [
+        [
+          16.2,
+          23.2
+        ]
+      ],
+      "sampled_indices": [
+        0,
+        49,
+        99,
+        148,
+        197,
+        246,
+        296,
+        345,
+        394,
+        443,
+        493,
+        542,
+        591,
+        640,
+        690,
+        739
+      ],
+      "evidence_indices": [
+        394,
+        443,
+        493,
+        542
+      ],
+      "matched_interventions": [
+        {
+          "evidence_target": 394,
+          "evidence_donor": 345,
+          "placebo_target": 246,
+          "placebo_donor": 197
+        },
+        {
+          "evidence_target": 542,
+          "evidence_donor": 591,
+          "placebo_target": 591,
+          "placebo_donor": 640
+        },
+        {
+          "evidence_target": 443,
+          "evidence_donor": 345,
+          "placebo_target": 246,
+          "placebo_donor": 197
+        },
+        {
+          "evidence_target": 493,
+          "evidence_donor": 591,
+          "placebo_target": 591,
+          "placebo_donor": 640
+        },
+        {
+          "evidence_target": 394,
+          "evidence_donor": 345,
+          "placebo_target": 296,
+          "placebo_donor": 345
+        }
+      ],
+      "full_sequence_logprob": -33.173920914530754,
+      "evidence_replaced_sequence_logprobs": [
+        -33.02680650353432,
+        -32.67318484187126,
+        -30.9562765955925,
+        -33.09549868106842,
+        -33.02680650353432
+      ],
+      "placebo_sequence_logprobs": [
+        -32.20171478390694,
+        -32.82175077497959,
+        -32.20171478390694,
+        -32.82175077497959,
+        -32.802863866090775
+      ],
+      "evidence_drop": -0.618206289410594,
+      "mean_placebo_drop": -0.6039619177579851,
+      "selective_evidence_drop": -0.014244371652608834,
+      "edited_positions_per_intervention": 1
+    },
+    {
+      "sample_id": "49",
+      "grounding": [
+        [
+          5.6,
+          23.2
+        ]
+      ],
+      "sampled_indices": [
+        0,
+        130,
+        260,
+        390,
+        520,
+        650,
+        780,
+        910,
+        1039,
+        1169,
+        1299,
+        1429,
+        1559,
+        1689,
+        1819,
+        1949
+      ],
+      "evidence_indices": [
+        260,
+        390,
+        520,
+        650
+      ],
+      "matched_interventions": [
+        {
+          "evidence_target": 390,
+          "evidence_donor": 130,
+          "placebo_target": 780,
+          "placebo_donor": 910
+        },
+        {
+          "evidence_target": 520,
+          "evidence_donor": 780,
+          "placebo_target": 130,
+          "placebo_donor": 0
+        },
+        {
+          "evidence_target": 260,
+          "evidence_donor": 130,
+          "placebo_target": 910,
+          "placebo_donor": 1039
+        },
+        {
+          "evidence_target": 650,
+          "evidence_donor": 780,
+          "placebo_target": 1169,
+          "placebo_donor": 1039
+        },
+        {
+          "evidence_target": 390,
+          "evidence_donor": 130,
+          "placebo_target": 910,
+          "placebo_donor": 1039
+        }
+      ],
+      "full_sequence_logprob": -47.03105545043945,
+      "evidence_replaced_sequence_logprobs": [
+        -46.41310691833496,
+        -46.82183265686035,
+        -47.728230476379395,
+        -47.638078689575195,
+        -46.41310691833496
+      ],
+      "placebo_sequence_logprobs": [
+        -49.27328872680664,
+        -46.95329570770264,
+        -47.67177772521973,
+        -48.797383308410645,
+        -47.67177772521973
+      ],
+      "evidence_drop": -0.028184318542479048,
+      "mean_placebo_drop": 1.0424491882324247,
+      "selective_evidence_drop": -1.0706335067749038,
+      "edited_positions_per_intervention": 1
+    },
+    {
+      "sample_id": "50",
+      "grounding": [
+        [
+          24.5,
+          26.9
+        ]
+      ],
+      "sampled_indices": [
+        0,
+        54,
+        107,
+        161,
+        215,
+        269,
+        322,
+        376,
+        430,
+        484,
+        537,
+        591,
+        645,
+        699,
+        752,
+        806
+      ],
+      "evidence_indices": [
+        752,
+        806
+      ],
+      "matched_interventions": [
+        {
+          "evidence_target": 752,
+          "evidence_donor": 699,
+          "placebo_target": 645,
+          "placebo_donor": 591
+        },
+        {
+          "evidence_target": 806,
+          "evidence_donor": 699,
+          "placebo_target": 591,
+          "placebo_donor": 537
+        },
+        {
+          "evidence_target": 752,
+          "evidence_donor": 699,
+          "placebo_target": 699,
+          "placebo_donor": 645
+        },
+        {
+          "evidence_target": 806,
+          "evidence_donor": 699,
+          "placebo_target": 537,
+          "placebo_donor": 484
+        },
+        {
+          "evidence_target": 752,
+          "evidence_donor": 699,
+          "placebo_target": 645,
+          "placebo_donor": 591
+        }
+      ],
+      "full_sequence_logprob": -28.53593711555004,
+      "evidence_replaced_sequence_logprobs": [
+        -27.762590542435646,
+        -28.50901471078396,
+        -27.762590542435646,
+        -28.50901471078396,
+        -27.762590542435646
+      ],
+      "placebo_sequence_logprobs": [
+        -28.418115258216858,
+        -27.907814487814903,
+        -28.06374703347683,
+        -28.312765657901764,
+        -28.418115258216858
+      ],
+      "evidence_drop": -0.4747769057750695,
+      "mean_placebo_drop": -0.3118255764245994,
+      "selective_evidence_drop": -0.16295132935047008,
+      "edited_positions_per_intervention": 1
+    },
+    {
+      "sample_id": "51",
+      "grounding": [
+        [
+          3.6,
+          7.4
+        ]
+      ],
+      "sampled_indices": [
+        0,
+        22,
+        45,
+        67,
+        89,
+        111,
+        134,
+        156,
+        178,
+        200,
+        223,
+        245,
+        267,
+        289,
+        312,
+        334
+      ],
+      "evidence_indices": [
+        111,
+        134,
+        156,
+        178,
+        200
+      ],
+      "matched_interventions": [
+        {
+          "evidence_target": 156,
+          "evidence_donor": 89,
+          "placebo_target": 223,
+          "placebo_donor": 245
+        },
+        {
+          "evidence_target": 178,
+          "evidence_donor": 223,
+          "placebo_target": 267,
+          "placebo_donor": 245
+        },
+        {
+          "evidence_target": 134,
+          "evidence_donor": 89,
+          "placebo_target": 45,
+          "placebo_donor": 67
+        },
+        {
+          "evidence_target": 111,
+          "evidence_donor": 89,
+          "placebo_target": 67,
+          "placebo_donor": 45
+        },
+        {
+          "evidence_target": 200,
+          "evidence_donor": 223,
+          "placebo_target": 289,
+          "placebo_donor": 267
+        }
+      ],
+      "full_sequence_logprob": -34.44899541139603,
+      "evidence_replaced_sequence_logprobs": [
+        -35.716689229011536,
+        -33.72731256484985,
+        -35.25175100564957,
+        -35.080405950546265,
+        -33.23398447036743
+      ],
+      "placebo_sequence_logprobs": [
+        -34.7087162733078,
+        -34.231998682022095,
+        -34.58145534992218,
+        -36.01196962594986,
+        -34.14308279752731
+      ],
+      "evidence_drop": 0.15303323268890523,
+      "mean_placebo_drop": 0.286449134349823,
+      "selective_evidence_drop": -0.13341590166091777,
+      "edited_positions_per_intervention": 1
+    },
+    {
+      "sample_id": "52",
+      "grounding": [
+        [
+          43.3,
+          55.6
+        ]
+      ],
+      "sampled_indices": [
+        0,
+        124,
+        247,
+        371,
+        494,
+        618,
+        741,
+        865,
+        988,
+        1112,
+        1235,
+        1359,
+        1482,
+        1606,
+        1729,
+        1853
+      ],
+      "evidence_indices": [
+        1359,
+        1482,
+        1606
+      ],
+      "matched_interventions": [
+        {
+          "evidence_target": 1359,
+          "evidence_donor": 1235,
+          "placebo_target": 1729,
+          "placebo_donor": 1853
+        },
+        {
+          "evidence_target": 1606,
+          "evidence_donor": 1729,
+          "placebo_target": 1235,
+          "placebo_donor": 1112
+        },
+        {
+          "evidence_target": 1482,
+          "evidence_donor": 1235,
+          "placebo_target": 1112,
+          "placebo_donor": 1235
+        },
+        {
+          "evidence_target": 1359,
+          "evidence_donor": 1235,
+          "placebo_target": 1112,
+          "placebo_donor": 1235
+        },
+        {
+          "evidence_target": 1606,
+          "evidence_donor": 1729,
+          "placebo_target": 1729,
+          "placebo_donor": 1853
+        }
+      ],
+      "full_sequence_logprob": -33.508073568344116,
+      "evidence_replaced_sequence_logprobs": [
+        -32.22935536503792,
+        -32.93907529115677,
+        -33.10747891664505,
+        -32.22935536503792,
+        -32.93907529115677
+      ],
+      "placebo_sequence_logprobs": [
+        -31.58167403936386,
+        -33.43639224767685,
+        -33.765034794807434,
+        -33.765034794807434,
+        -31.58167403936386
+      ],
+      "evidence_drop": -0.8192055225372314,
+      "mean_placebo_drop": -0.6821115851402269,
+      "selective_evidence_drop": -0.1370939373970046,
+      "edited_positions_per_intervention": 1
+    },
+    {
+      "sample_id": "53",
+      "grounding": [
+        [
+          16.4,
+          25.5
+        ]
+      ],
+      "sampled_indices": [
+        0,
+        71,
+        141,
+        212,
+        283,
+        353,
+        424,
+        495,
+        565,
+        636,
+        707,
+        777,
+        848,
+        919,
+        989,
+        1060
+      ],
+      "evidence_indices": [
+        495,
+        565,
+        636,
+        707
+      ],
+      "matched_interventions": [
+        {
+          "evidence_target": 707,
+          "evidence_donor": 777,
+          "placebo_target": 919,
+          "placebo_donor": 989
+        },
+        {
+          "evidence_target": 636,
+          "evidence_donor": 777,
+          "placebo_target": 353,
+          "placebo_donor": 283
+        },
+        {
+          "evidence_target": 495,
+          "evidence_donor": 424,
+          "placebo_target": 777,
+          "placebo_donor": 848
+        },
+        {
+          "evidence_target": 565,
+          "evidence_donor": 424,
+          "placebo_target": 777,
+          "placebo_donor": 848
+        },
+        {
+          "evidence_target": 707,
+          "evidence_donor": 777,
+          "placebo_target": 848,
+          "placebo_donor": 777
+        }
+      ],
+      "full_sequence_logprob": -32.354566644877195,
+      "evidence_replaced_sequence_logprobs": [
+        -32.28719276562333,
+        -32.323265973478556,
+        -32.38372949138284,
+        -32.24548861756921,
+        -32.28719276562333
+      ],
+      "placebo_sequence_logprobs": [
+        -32.27396038174629,
+        -32.152152482420206,
+        -32.61778074502945,
+        -32.61778074502945,
+        -32.20085771381855
+      ],
+      "evidence_drop": -0.049192722141739864,
+      "mean_placebo_drop": 0.017939768731594086,
+      "selective_evidence_drop": -0.06713249087333395,
+      "edited_positions_per_intervention": 1
+    },
+    {
+      "sample_id": "54",
+      "grounding": [
+        [
+          12.7,
+          14.5
+        ]
+      ],
+      "sampled_indices": [
+        0,
+        29,
+        58,
+        87,
+        116,
+        145,
+        174,
+        203,
+        231,
+        260,
+        289,
+        318,
+        347,
+        376,
+        405,
+        434
+      ],
+      "evidence_indices": [
+        405,
+        434
+      ],
+      "matched_interventions": [
+        {
+          "evidence_target": 434,
+          "evidence_donor": 376,
+          "placebo_target": 318,
+          "placebo_donor": 289
+        },
+        {
+          "evidence_target": 405,
+          "evidence_donor": 376,
+          "placebo_target": 289,
+          "placebo_donor": 260
+        },
+        {
+          "evidence_target": 434,
+          "evidence_donor": 376,
+          "placebo_target": 318,
+          "placebo_donor": 289
+        },
+        {
+          "evidence_target": 405,
+          "evidence_donor": 376,
+          "placebo_target": 318,
+          "placebo_donor": 289
+        },
+        {
+          "evidence_target": 434,
+          "evidence_donor": 376,
+          "placebo_target": 376,
+          "placebo_donor": 347
+        }
+      ],
+      "full_sequence_logprob": -23.379090502858162,
+      "evidence_replaced_sequence_logprobs": [
+        -24.602859497070312,
+        -23.854088604450226,
+        -24.602859497070312,
+        -23.854088604450226,
+        -24.602859497070312
+      ],
+      "placebo_sequence_logprobs": [
+        -24.036675825715065,
+        -23.749899469316006,
+        -24.036675825715065,
+        -24.036675825715065,
+        -23.69364123046398
+      ],
+      "evidence_drop": 0.9242606371641173,
+      "mean_placebo_drop": 0.5316231325268745,
+      "selective_evidence_drop": 0.3926375046372428,
+      "edited_positions_per_intervention": 1
+    },
+    {
+      "sample_id": "55",
+      "grounding": [
+        [
+          0.1,
+          7.3
+        ]
+      ],
+      "sampled_indices": [
+        0,
+        29,
+        58,
+        88,
+        117,
+        146,
+        175,
+        204,
+        234,
+        263,
+        292,
+        321,
+        350,
+        380,
+        409,
+        438
+      ],
+      "evidence_indices": [
+        29,
+        58,
+        88,
+        117,
+        146,
+        175
+      ],
+      "matched_interventions": [
+        {
+          "evidence_target": 88,
+          "evidence_donor": 0,
+          "placebo_target": 204,
+          "placebo_donor": 234
+        },
+        {
+          "evidence_target": 29,
+          "evidence_donor": 0,
+          "placebo_target": 0,
+          "placebo_donor": 204
+        },
+        {
+          "evidence_target": 58,
+          "evidence_donor": 0,
+          "placebo_target": 204,
+          "placebo_donor": 234
+        },
+        {
+          "evidence_target": 117,
+          "evidence_donor": 204,
+          "placebo_target": 0,
+          "placebo_donor": 204
+        },
+        {
+          "evidence_target": 175,
+          "evidence_donor": 204,
+          "placebo_target": 234,
+          "placebo_donor": 263
+        }
+      ],
+      "full_sequence_logprob": -24.079652786254883,
+      "evidence_replaced_sequence_logprobs": [
+        -23.883694887161255,
+        -23.58270263671875,
+        -23.414538860321045,
+        -23.89229726791382,
+        -24.102542638778687
+      ],
+      "placebo_sequence_logprobs": [
+        -24.132420301437378,
+        -22.864984035491943,
+        -24.132420301437378,
+        -22.864984035491943,
+        -23.62712073326111
+      ],
+      "evidence_drop": -0.3044975280761726,
+      "mean_placebo_drop": -0.5552669048309333,
+      "selective_evidence_drop": 0.25076937675476074,
+      "edited_positions_per_intervention": 1
+    },
+    {
+      "sample_id": "56",
+      "grounding": [
+        [
+          4.9,
+          9.4
+        ]
+      ],
+      "sampled_indices": [
+        0,
+        25,
+        50,
+        75,
+        100,
+        125,
+        150,
+        175,
+        199,
+        224,
+        249,
+        274,
+        299,
+        324,
+        349,
+        374
+      ],
+      "evidence_indices": [
+        150,
+        175,
+        199,
+        224,
+        249,
+        274
+      ],
+      "matched_interventions": [
+        {
+          "evidence_target": 199,
+          "evidence_donor": 125,
+          "placebo_target": 299,
+          "placebo_donor": 324
+        },
+        {
+          "evidence_target": 274,
+          "evidence_donor": 299,
+          "placebo_target": 324,
+          "placebo_donor": 299
+        },
+        {
+          "evidence_target": 150,
+          "evidence_donor": 125,
+          "placebo_target": 75,
+          "placebo_donor": 50
+        },
+        {
+          "evidence_target": 224,
+          "evidence_donor": 299,
+          "placebo_target": 100,
+          "placebo_donor": 75
+        },
+        {
+          "evidence_target": 175,
+          "evidence_donor": 125,
+          "placebo_target": 299,
+          "placebo_donor": 324
+        }
+      ],
+      "full_sequence_logprob": -27.527216762304306,
+      "evidence_replaced_sequence_logprobs": [
+        -27.49768429994583,
+        -27.615732491016388,
+        -27.795468032360077,
+        -27.314285546541214,
+        -27.46439677476883
+      ],
+      "placebo_sequence_logprobs": [
+        -27.533024042844772,
+        -27.6225628554821,
+        -27.78889101743698,
+        -27.22088733315468,
+        -27.533024042844772
+      ],
+      "evidence_drop": 0.010296666622160444,
+      "mean_placebo_drop": 0.012461096048355103,
+      "selective_evidence_drop": -0.0021644294261946584,
+      "edited_positions_per_intervention": 1
+    },
+    {
+      "sample_id": "58",
+      "grounding": [
+        [
+          15.3,
+          16.9
+        ]
+      ],
+      "sampled_indices": [
+        0,
+        30,
+        60,
+        90,
+        120,
+        150,
+        180,
+        210,
+        239,
+        269,
+        299,
+        329,
+        359,
+        389,
+        419,
+        449
+      ],
+      "evidence_indices": [
+        239
+      ],
+      "matched_interventions": [
+        {
+          "evidence_target": 239,
+          "evidence_donor": 210,
+          "placebo_target": 269,
+          "placebo_donor": 299
+        },
+        {
+          "evidence_target": 239,
+          "evidence_donor": 210,
+          "placebo_target": 269,
+          "placebo_donor": 299
+        },
+        {
+          "evidence_target": 239,
+          "evidence_donor": 210,
+          "placebo_target": 210,
+          "placebo_donor": 180
+        },
+        {
+          "evidence_target": 239,
+          "evidence_donor": 210,
+          "placebo_target": 299,
+          "placebo_donor": 269
+        },
+        {
+          "evidence_target": 239,
+          "evidence_donor": 210,
+          "placebo_target": 210,
+          "placebo_donor": 180
+        }
+      ],
+      "full_sequence_logprob": -28.876821041107178,
+      "evidence_replaced_sequence_logprobs": [
+        -28.828277587890625,
+        -28.828277587890625,
+        -28.828277587890625,
+        -28.828277587890625,
+        -28.828277587890625
+      ],
+      "placebo_sequence_logprobs": [
+        -28.85304307937622,
+        -28.85304307937622,
+        -28.72677707672119,
+        -28.52926731109619,
+        -28.72677707672119
+      ],
+      "evidence_drop": -0.048543453216552734,
+      "mean_placebo_drop": -0.1390395164489746,
+      "selective_evidence_drop": 0.09049606323242188,
+      "edited_positions_per_intervention": 1
+    },
+    {
+      "sample_id": "59",
+      "grounding": [
+        [
+          33.0,
+          38.6
+        ]
+      ],
+      "sampled_indices": [
+        0,
+        77,
+        154,
+        231,
+        308,
+        385,
+        462,
+        539,
+        615,
+        692,
+        769,
+        846,
+        923,
+        1000,
+        1077,
+        1154
+      ],
+      "evidence_indices": [
+        1000,
+        1077,
+        1154
+      ],
+      "matched_interventions": [
+        {
+          "evidence_target": 1000,
+          "evidence_donor": 923,
+          "placebo_target": 769,
+          "placebo_donor": 692
+        },
+        {
+          "evidence_target": 1077,
+          "evidence_donor": 923,
+          "placebo_target": 846,
+          "placebo_donor": 769
+        },
+        {
+          "evidence_target": 1154,
+          "evidence_donor": 923,
+          "placebo_target": 846,
+          "placebo_donor": 769
+        },
+        {
+          "evidence_target": 1000,
+          "evidence_donor": 923,
+          "placebo_target": 692,
+          "placebo_donor": 615
+        },
+        {
+          "evidence_target": 1077,
+          "evidence_donor": 923,
+          "placebo_target": 692,
+          "placebo_donor": 615
+        }
+      ],
+      "full_sequence_logprob": -12.138153076171875,
+      "evidence_replaced_sequence_logprobs": [
+        -11.691335678100586,
+        -11.901957511901855,
+        -11.777274131774902,
+        -11.691335678100586,
+        -11.901957511901855
+      ],
+      "placebo_sequence_logprobs": [
+        -11.652177810668945,
+        -12.18429183959961,
+        -12.18429183959961,
+        -12.176297187805176,
+        -12.176297187805176
+      ],
+      "evidence_drop": -0.34538097381591726,
+      "mean_placebo_drop": -0.06348190307617152,
+      "selective_evidence_drop": -0.28189907073974574,
+      "edited_positions_per_intervention": 1
+    }
+  ]
+}

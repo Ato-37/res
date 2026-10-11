@@ -1,0 +1,15 @@
+.claude/settings.local.json
+.venv/
+.python-version
+__pycache__/
+*.pyc
+.DS_Store
+
+# Experiment outputs and local-only dataset/model files. Raw NExT-GQA videos
+# must not be committed to GitHub because of size, licensing, and privacy.
+results/
+logs/
+*.zip
+NExTVideo/
+nextgqa_sample/
+datasets/

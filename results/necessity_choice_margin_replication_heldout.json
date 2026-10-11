@@ -1,0 +1,4150 @@
+{
+  "schema_version": 1,
+  "script": "necessity_choice_margin_test.py",
+  "samples_file": "/home/ato121/res/data/nextgqa_samples_necessity_choice_replication_heldout.json",
+  "model": "Qwen/Qwen2.5-VL-7B-Instruct",
+  "quant": "4bit",
+  "dtype": "bfloat16",
+  "attn_implementation": "eager",
+  "torch_version": "2.11.0+cu128",
+  "transformers_version": "5.17.0",
+  "device": "cuda",
+  "gpu_name": "NVIDIA GeForce RTX 5070 Ti",
+  "seed": 20261009,
+  "num_frames": 16,
+  "prompt_protocol": "five NExT-GQA options; gold A-E logprob minus best foil",
+  "primary_estimand": "mean[(full margin - evidence-mask margin) - (full margin - matched-control-mask margin)] among baseline-correct samples",
+  "control_protocol": "same number of black-masked frames; non-grounding indices chosen to minimize temporal rank-distance from evidence indices",
+  "n_requested": 60,
+  "n_effective": 60,
+  "failures": [],
+  "summary": {
+    "all": {
+      "n": 60,
+      "mean": 0.2958333408451532,
+      "sd": 1.2883865908706846,
+      "ci95_pointwise": [
+        -0.04583330047122824,
+        0.6145833849460662
+      ],
+      "positive_fraction": 0.65,
+      "signflip_p_two_sided": 0.0822917708229177
+    },
+    "baseline_correct_primary": {
+      "n": 37,
+      "mean": 0.334459460490089,
+      "sd": 0.7448049638408788,
+      "ci95_pointwise": [
+        0.11148647203879443,
+        0.5810810808922995
+      ],
+      "positive_fraction": 0.6486486486486487,
+      "signflip_p_two_sided": 0.0052994700529947
+    },
+    "baseline_incorrect_secondary": {
+      "n": 23,
+      "mean": 0.23369567011199568,
+      "sd": 1.8807881881191033,
+      "ci95_pointwise": [
+        -0.5489130396314937,
+        0.9456522211270488
+      ],
+      "positive_fraction": 0.6521739130434783,
+      "signflip_p_two_sided": 0.5711428857114289
+    },
+    "correct_minus_incorrect_interaction": {
+      "mean_correct_minus_incorrect": 0.10076379037809333,
+      "ci95_pointwise": [
+        -0.660987128141926,
+        0.8998237648149935
+      ]
+    }
+  },
+  "multiplicity": "One predeclared primary cohort (baseline-correct); all-sample, baseline-incorrect, and interaction results are secondary and not multiplicity-corrected.",
+  "signflip_test": "Two-sided sample-level random sign flips of the mean contrast; assumes symmetric paired null effects.",
+  "limitations": [
+    "Black-frame masking is an out-of-distribution perturbation; equal-dose control reduces but does not remove this concern.",
+    "The gold-vs-best-foil letter margin is prompt-dependent and is not official free-generation accuracy.",
+    "Conditioning on baseline correctness is part of the prespecified primary cohort; this does not establish general XAI faithfulness or head causality."
+  ],
+  "records": [
+    {
+      "sample_id": "4286880949:7",
+      "video_id": "4286880949",
+      "qid": "7",
+      "question_type": "TN",
+      "sampled_indices": [
+        0,
+        70,
+        140,
+        210,
+        280,
+        350,
+        420,
+        490,
+        561,
+        631,
+        701,
+        771,
+        841,
+        911,
+        981,
+        1051
+      ],
+      "evidence_mask_indices": [
+        841,
+        911
+      ],
+      "control_mask_indices": [
+        771,
+        981
+      ],
+      "masked_frame_count": 2,
+      "baseline_choice_correct": false,
+      "gold_choice_index": 3,
+      "predicted_choice_index": 4,
+      "choice_logprobs": {
+        "full": [
+          -7.189926624298096,
+          -6.939926624298096,
+          -3.939926862716675,
+          -3.189926862716675,
+          -0.06492675095796585
+        ],
+        "evidence_mask": [
+          -7.178224563598633,
+          -7.178224563598633,
+          -4.053224563598633,
+          -3.428224563598633,
+          -0.053224507719278336
+        ],
+        "control_mask": [
+          -6.690695285797119,
+          -6.565695285797119,
+          -3.5656955242156982,
+          -3.4406955242156982,
+          -0.06569550186395645
+        ]
+      },
+      "margins": {
+        "full": -3.125000111758709,
+        "evidence_mask": -3.3750000558793545,
+        "control_mask": -3.375000022351742
+      },
+      "evidence_margin_drop": 0.24999994412064552,
+      "control_margin_drop": 0.24999991059303284,
+      "selective_necessity_margin_drop": 3.3527612686157227e-08
+    },
+    {
+      "sample_id": "2774457371:9",
+      "video_id": "2774457371",
+      "qid": "9",
+      "question_type": "TN",
+      "sampled_indices": [
+        0,
+        136,
+        272,
+        407,
+        543,
+        679,
+        815,
+        951,
+        1086,
+        1222,
+        1358,
+        1494,
+        1630,
+        1765,
+        1901,
+        2037
+      ],
+      "evidence_mask_indices": [
+        407,
+        815,
+        951,
+        1222,
+        1358
+      ],
+      "control_mask_indices": [
+        272,
+        543,
+        679,
+        1086,
+        1494
+      ],
+      "masked_frame_count": 5,
+      "baseline_choice_correct": true,
+      "gold_choice_index": 4,
+      "predicted_choice_index": 4,
+      "choice_logprobs": {
+        "full": [
+          -7.814916133880615,
+          -1.4399158954620361,
+          -7.939916133880615,
+          -3.439915895462036,
+          -0.3149159252643585
+        ],
+        "evidence_mask": [
+          -7.6943583488464355,
+          -1.4443581104278564,
+          -7.6943583488464355,
+          -3.3193581104278564,
+          -0.3193581700325012
+        ],
+        "control_mask": [
+          -7.541320323944092,
+          -1.5413203239440918,
+          -7.666320323944092,
+          -3.291320323944092,
+          -0.2913203239440918
+        ]
+      },
+      "margins": {
+        "full": 1.1249999701976776,
+        "evidence_mask": 1.1249999403953552,
+        "control_mask": 1.25
+      },
+      "evidence_margin_drop": 2.9802322387695312e-08,
+      "control_margin_drop": -0.1250000298023224,
+      "selective_necessity_margin_drop": 0.12500005960464478
+    },
+    {
+      "sample_id": "8150513082:4",
+      "video_id": "8150513082",
+      "qid": "4",
+      "question_type": "CW",
+      "sampled_indices": [
+        0,
+        60,
+        120,
+        180,
+        240,
+        300,
+        360,
+        420,
+        480,
+        540,
+        600,
+        660,
+        720,
+        780,
+        840,
+        900
+      ],
+      "evidence_mask_indices": [
+        240,
+        300
+      ],
+      "control_mask_indices": [
+        180,
+        360
+      ],
+      "masked_frame_count": 2,
+      "baseline_choice_correct": true,
+      "gold_choice_index": 2,
+      "predicted_choice_index": 2,
+      "choice_logprobs": {
+        "full": [
+          -6.136676788330078,
+          -6.011676788330078,
+          -0.011676657013595104,
+          -5.011676788330078,
+          -8.511676788330078
+        ],
+        "evidence_mask": [
+          -6.008553504943848,
+          -6.133553504943848,
+          -0.008553299121558666,
+          -5.633553504943848,
+          -8.633553504943848
+        ],
+        "control_mask": [
+          -5.885303020477295,
+          -6.260303020477295,
+          -0.010302811861038208,
+          -5.260303020477295,
+          -8.385302543640137
+        ]
+      },
+      "margins": {
+        "full": 5.000000131316483,
+        "evidence_mask": 5.625000205822289,
+        "control_mask": 5.250000208616257
+      },
+      "evidence_margin_drop": -0.625000074505806,
+      "control_margin_drop": -0.2500000772997737,
+      "selective_necessity_margin_drop": -0.3749999972060323
+    },
+    {
+      "sample_id": "7303386938:0",
+      "video_id": "7303386938",
+      "qid": "0",
+      "question_type": "CH",
+      "sampled_indices": [
+        0,
+        174,
+        349,
+        523,
+        697,
+        872,
+        1046,
+        1220,
+        1395,
+        1569,
+        1743,
+        1918,
+        2092,
+        2266,
+        2441,
+        2615
+      ],
+      "evidence_mask_indices": [
+        523,
+        697,
+        1743
+      ],
+      "control_mask_indices": [
+        349,
+        872,
+        1569
+      ],
+      "masked_frame_count": 3,
+      "baseline_choice_correct": false,
+      "gold_choice_index": 3,
+      "predicted_choice_index": 4,
+      "choice_logprobs": {
+        "full": [
+          -1.464871883392334,
+          -8.089871406555176,
+          -8.339871406555176,
+          -1.089871883392334,
+          -0.8398718237876892
+        ],
+        "evidence_mask": [
+          -1.708676815032959,
+          -7.833676815032959,
+          -8.208677291870117,
+          -0.833676815032959,
+          -0.958676815032959
+        ],
+        "control_mask": [
+          -1.4647510051727295,
+          -8.464751243591309,
+          -8.464751243591309,
+          -0.8397510647773743,
+          -1.0897510051727295
+        ]
+      },
+      "margins": {
+        "full": -0.2500000596046448,
+        "evidence_mask": 0.125,
+        "control_mask": 0.24999994039535522
+      },
+      "evidence_margin_drop": -0.3750000596046448,
+      "control_margin_drop": -0.5,
+      "selective_necessity_margin_drop": 0.12499994039535522
+    },
+    {
+      "sample_id": "5221530771:6",
+      "video_id": "5221530771",
+      "qid": "6",
+      "question_type": "TN",
+      "sampled_indices": [
+        0,
+        70,
+        141,
+        211,
+        281,
+        352,
+        422,
+        492,
+        563,
+        633,
+        703,
+        774,
+        844,
+        914,
+        985,
+        1055
+      ],
+      "evidence_mask_indices": [
+        0
+      ],
+      "control_mask_indices": [
+        70
+      ],
+      "masked_frame_count": 1,
+      "baseline_choice_correct": true,
+      "gold_choice_index": 4,
+      "predicted_choice_index": 4,
+      "choice_logprobs": {
+        "full": [
+          -5.291990280151367,
+          -7.291990280151367,
+          -3.4169905185699463,
+          -6.166990280151367,
+          -0.04199040308594704
+        ],
+        "evidence_mask": [
+          -5.657085418701172,
+          -7.657085418701172,
+          -3.657085657119751,
+          -6.532085418701172,
+          -0.0320855937898159
+        ],
+        "control_mask": [
+          -5.536500930786133,
+          -7.536500930786133,
+          -3.536501169204712,
+          -6.286500930786133,
+          -0.036501072347164154
+        ]
+      },
+      "margins": {
+        "full": 3.3750001154839993,
+        "evidence_mask": 3.625000063329935,
+        "control_mask": 3.5000000968575478
+      },
+      "evidence_margin_drop": -0.24999994784593582,
+      "control_margin_drop": -0.12499998137354851,
+      "selective_necessity_margin_drop": -0.12499996647238731
+    },
+    {
+      "sample_id": "3969677780:7",
+      "video_id": "3969677780",
+      "qid": "7",
+      "question_type": "TC",
+      "sampled_indices": [
+        0,
+        180,
+        359,
+        539,
+        719,
+        899,
+        1078,
+        1258,
+        1438,
+        1618,
+        1797,
+        1977,
+        2157,
+        2337,
+        2516,
+        2696
+      ],
+      "evidence_mask_indices": [
+        180
+      ],
+      "control_mask_indices": [
+        0
+      ],
+      "masked_frame_count": 1,
+      "baseline_choice_correct": false,
+      "gold_choice_index": 1,
+      "predicted_choice_index": 2,
+      "choice_logprobs": {
+        "full": [
+          -5.296077251434326,
+          -2.1710774898529053,
+          -0.6710774302482605,
+          -4.046077251434326,
+          -1.0460774898529053
+        ],
+        "evidence_mask": [
+          -5.359678268432617,
+          -1.9846782684326172,
+          -0.4846782684326172,
+          -4.234678268432617,
+          -1.4846782684326172
+        ],
+        "control_mask": [
+          -5.388704299926758,
+          -1.7637040615081787,
+          -0.6387041211128235,
+          -4.388704299926758,
+          -1.2637040615081787
+        ]
+      },
+      "margins": {
+        "full": -1.5000000596046448,
+        "evidence_mask": -1.5,
+        "control_mask": -1.1249999403953552
+      },
+      "evidence_margin_drop": -5.960464477539063e-08,
+      "control_margin_drop": -0.37500011920928955,
+      "selective_necessity_margin_drop": 0.3750000596046448
+    },
+    {
+      "sample_id": "6577341237:9",
+      "video_id": "6577341237",
+      "qid": "9",
+      "question_type": "TC",
+      "sampled_indices": [
+        0,
+        68,
+        135,
+        203,
+        271,
+        338,
+        406,
+        474,
+        541,
+        609,
+        677,
+        744,
+        812,
+        880,
+        947,
+        1015
+      ],
+      "evidence_mask_indices": [
+        474,
+        541,
+        609
+      ],
+      "control_mask_indices": [
+        338,
+        406,
+        677
+      ],
+      "masked_frame_count": 3,
+      "baseline_choice_correct": false,
+      "gold_choice_index": 4,
+      "predicted_choice_index": 2,
+      "choice_logprobs": {
+        "full": [
+          -4.370232582092285,
+          -6.620232582092285,
+          -0.12023256719112396,
+          -3.370232582092285,
+          -2.745232582092285
+        ],
+        "evidence_mask": [
+          -3.6507134437561035,
+          -6.1507134437561035,
+          -0.27571338415145874,
+          -2.7757134437561035,
+          -1.9007134437561035
+        ],
+        "control_mask": [
+          -4.08603048324585,
+          -5.96103048324585,
+          -0.21103043854236603,
+          -3.0860304832458496,
+          -2.0860304832458496
+        ]
+      },
+      "margins": {
+        "full": -2.625000014901161,
+        "evidence_mask": -1.6250000596046448,
+        "control_mask": -1.8750000447034836
+      },
+      "evidence_margin_drop": -0.9999999552965164,
+      "control_margin_drop": -0.7499999701976776,
+      "selective_necessity_margin_drop": -0.2499999850988388
+    },
+    {
+      "sample_id": "5589529025:4",
+      "video_id": "5589529025",
+      "qid": "4",
+      "question_type": "TC",
+      "sampled_indices": [
+        0,
+        60,
+        120,
+        180,
+        240,
+        300,
+        360,
+        420,
+        479,
+        539,
+        599,
+        659,
+        719,
+        779,
+        839,
+        899
+      ],
+      "evidence_mask_indices": [
+        60,
+        120,
+        180,
+        240,
+        300
+      ],
+      "control_mask_indices": [
+        0,
+        360,
+        420,
+        479,
+        539
+      ],
+      "masked_frame_count": 5,
+      "baseline_choice_correct": true,
+      "gold_choice_index": 3,
+      "predicted_choice_index": 3,
+      "choice_logprobs": {
+        "full": [
+          -4.6552228927612305,
+          -5.1552228927612305,
+          -4.7802228927612305,
+          -0.03022276982665062,
+          -5.1552228927612305
+        ],
+        "evidence_mask": [
+          -2.545323610305786,
+          -3.545323610305786,
+          -3.545323610305786,
+          -0.17032361030578613,
+          -3.920323610305786
+        ],
+        "control_mask": [
+          -5.139559268951416,
+          -5.514559268951416,
+          -6.014559268951416,
+          -0.01455922145396471,
+          -6.264559268951416
+        ]
+      },
+      "margins": {
+        "full": 4.62500012293458,
+        "evidence_mask": 2.375,
+        "control_mask": 5.125000047497451
+      },
+      "evidence_margin_drop": 2.25000012293458,
+      "control_margin_drop": -0.49999992456287146,
+      "selective_necessity_margin_drop": 2.7500000474974513
+    },
+    {
+      "sample_id": "8029969533:7",
+      "video_id": "8029969533",
+      "qid": "7",
+      "question_type": "CH",
+      "sampled_indices": [
+        0,
+        128,
+        256,
+        384,
+        512,
+        640,
+        768,
+        896,
+        1024,
+        1152,
+        1280,
+        1408,
+        1536,
+        1664,
+        1792,
+        1920
+      ],
+      "evidence_mask_indices": [
+        128
+      ],
+      "control_mask_indices": [
+        0
+      ],
+      "masked_frame_count": 1,
+      "baseline_choice_correct": false,
+      "gold_choice_index": 2,
+      "predicted_choice_index": 4,
+      "choice_logprobs": {
+        "full": [
+          -4.931021213531494,
+          -3.181020975112915,
+          -1.556020975112915,
+          -5.806021213531494,
+          -0.3060210347175598
+        ],
+        "evidence_mask": [
+          -4.958810806274414,
+          -3.208810806274414,
+          -1.458810806274414,
+          -5.833810806274414,
+          -0.3338107466697693
+        ],
+        "control_mask": [
+          -5.113988876342773,
+          -3.2389888763427734,
+          -1.3639888763427734,
+          -5.738988876342773,
+          -0.36398884654045105
+        ]
+      },
+      "margins": {
+        "full": -1.2499999403953552,
+        "evidence_mask": -1.1250000596046448,
+        "control_mask": -1.0000000298023224
+      },
+      "evidence_margin_drop": -0.12499988079071045,
+      "control_margin_drop": -0.24999991059303284,
+      "selective_necessity_margin_drop": 0.1250000298023224
+    },
+    {
+      "sample_id": "3992773451:1",
+      "video_id": "3992773451",
+      "qid": "1",
+      "question_type": "TC",
+      "sampled_indices": [
+        0,
+        50,
+        99,
+        149,
+        198,
+        248,
+        297,
+        347,
+        396,
+        446,
+        495,
+        545,
+        594,
+        644,
+        693,
+        743
+      ],
+      "evidence_mask_indices": [
+        743
+      ],
+      "control_mask_indices": [
+        693
+      ],
+      "masked_frame_count": 1,
+      "baseline_choice_correct": true,
+      "gold_choice_index": 4,
+      "predicted_choice_index": 4,
+      "choice_logprobs": {
+        "full": [
+          -7.904061317443848,
+          -5.904061317443848,
+          -4.904061317443848,
+          -4.029061317443848,
+          -0.029061095789074898
+        ],
+        "evidence_mask": [
+          -7.418274402618408,
+          -5.793274402618408,
+          -4.668274402618408,
+          -3.543274402618408,
+          -0.04327450692653656
+        ],
+        "control_mask": [
+          -7.283902168273926,
+          -5.908902168273926,
+          -4.658902168273926,
+          -3.9089019298553467,
+          -0.03390197455883026
+        ]
+      },
+      "margins": {
+        "full": 4.000000221654773,
+        "evidence_mask": 3.4999998956918716,
+        "control_mask": 3.8749999552965164
+      },
+      "evidence_margin_drop": 0.5000003259629011,
+      "control_margin_drop": 0.12500026635825634,
+      "selective_necessity_margin_drop": 0.3750000596046448
+    },
+    {
+      "sample_id": "3804458046:1",
+      "video_id": "3804458046",
+      "qid": "1",
+      "question_type": "CW",
+      "sampled_indices": [
+        0,
+        95,
+        190,
+        285,
+        380,
+        475,
+        570,
+        665,
+        761,
+        856,
+        951,
+        1046,
+        1141,
+        1236,
+        1331,
+        1426
+      ],
+      "evidence_mask_indices": [
+        190,
+        285
+      ],
+      "control_mask_indices": [
+        95,
+        380
+      ],
+      "masked_frame_count": 2,
+      "baseline_choice_correct": true,
+      "gold_choice_index": 2,
+      "predicted_choice_index": 2,
+      "choice_logprobs": {
+        "full": [
+          -6.163934230804443,
+          -7.038934230804443,
+          -0.16393423080444336,
+          -3.4139342308044434,
+          -2.1639342308044434
+        ],
+        "evidence_mask": [
+          -6.3170928955078125,
+          -7.0670928955078125,
+          -0.1920926719903946,
+          -3.5670926570892334,
+          -1.9420926570892334
+        ],
+        "control_mask": [
+          -5.588794231414795,
+          -6.463794231414795,
+          -0.21379421651363373,
+          -3.588794231414795,
+          -1.838794231414795
+        ]
+      },
+      "margins": {
+        "full": 2.0,
+        "evidence_mask": 1.7499999850988388,
+        "control_mask": 1.6250000149011612
+      },
+      "evidence_margin_drop": 0.2500000149011612,
+      "control_margin_drop": 0.3749999850988388,
+      "selective_necessity_margin_drop": -0.12499997019767761
+    },
+    {
+      "sample_id": "8028122153:7",
+      "video_id": "8028122153",
+      "qid": "7",
+      "question_type": "TC",
+      "sampled_indices": [
+        0,
+        68,
+        135,
+        203,
+        271,
+        339,
+        406,
+        474,
+        542,
+        610,
+        677,
+        745,
+        813,
+        881,
+        948,
+        1016
+      ],
+      "evidence_mask_indices": [
+        542
+      ],
+      "control_mask_indices": [
+        474
+      ],
+      "masked_frame_count": 1,
+      "baseline_choice_correct": true,
+      "gold_choice_index": 1,
+      "predicted_choice_index": 1,
+      "choice_logprobs": {
+        "full": [
+          -6.27095890045166,
+          -0.020958853885531425,
+          -8.52095890045166,
+          -4.27095890045166,
+          -5.39595890045166
+        ],
+        "evidence_mask": [
+          -5.9044904708862305,
+          -0.029490254819393158,
+          -8.40449047088623,
+          -3.9044902324676514,
+          -5.1544904708862305
+        ],
+        "control_mask": [
+          -6.392618179321289,
+          -0.01761811040341854,
+          -8.642618179321289,
+          -4.517618179321289,
+          -5.392618179321289
+        ]
+      },
+      "margins": {
+        "full": 4.250000046566129,
+        "evidence_mask": 3.874999977648258,
+        "control_mask": 4.5000000689178705
+      },
+      "evidence_margin_drop": 0.3750000689178705,
+      "control_margin_drop": -0.2500000223517418,
+      "selective_necessity_margin_drop": 0.6250000912696123
+    },
+    {
+      "sample_id": "5579224246:4",
+      "video_id": "5579224246",
+      "qid": "4",
+      "question_type": "CW",
+      "sampled_indices": [
+        0,
+        180,
+        359,
+        539,
+        719,
+        899,
+        1078,
+        1258,
+        1438,
+        1618,
+        1797,
+        1977,
+        2157,
+        2337,
+        2516,
+        2696
+      ],
+      "evidence_mask_indices": [
+        899
+      ],
+      "control_mask_indices": [
+        719
+      ],
+      "masked_frame_count": 1,
+      "baseline_choice_correct": true,
+      "gold_choice_index": 0,
+      "predicted_choice_index": 0,
+      "choice_logprobs": {
+        "full": [
+          -0.4358721971511841,
+          -4.3108720779418945,
+          -6.1858720779418945,
+          -2.0608720779418945,
+          -1.560872197151184
+        ],
+        "evidence_mask": [
+          -0.38769078254699707,
+          -3.887690782546997,
+          -6.262690544128418,
+          -2.262690782546997,
+          -1.637690782546997
+        ],
+        "control_mask": [
+          -0.4320327639579773,
+          -4.057032585144043,
+          -6.182032585144043,
+          -1.932032823562622,
+          -1.682032823562622
+        ]
+      },
+      "margins": {
+        "full": 1.125,
+        "evidence_mask": 1.25,
+        "control_mask": 1.2500000596046448
+      },
+      "evidence_margin_drop": -0.125,
+      "control_margin_drop": -0.12500005960464478,
+      "selective_necessity_margin_drop": 5.960464477539063e-08
+    },
+    {
+      "sample_id": "5904456747:1",
+      "video_id": "5904456747",
+      "qid": "1",
+      "question_type": "TN",
+      "sampled_indices": [
+        0,
+        46,
+        93,
+        139,
+        185,
+        231,
+        278,
+        324,
+        370,
+        416,
+        463,
+        509,
+        555,
+        601,
+        648,
+        694
+      ],
+      "evidence_mask_indices": [
+        324,
+        370
+      ],
+      "control_mask_indices": [
+        278,
+        416
+      ],
+      "masked_frame_count": 2,
+      "baseline_choice_correct": true,
+      "gold_choice_index": 1,
+      "predicted_choice_index": 1,
+      "choice_logprobs": {
+        "full": [
+          -8.250658988952637,
+          -0.0006591292913071811,
+          -8.625658988952637,
+          -8.875658988952637,
+          -10.500658988952637
+        ],
+        "evidence_mask": [
+          -7.75120210647583,
+          -0.0012020989088341594,
+          -7.87620210647583,
+          -8.376201629638672,
+          -9.501201629638672
+        ],
+        "control_mask": [
+          -8.250828742980957,
+          -0.0008283997885882854,
+          -8.250828742980957,
+          -8.625828742980957,
+          -9.875828742980957
+        ]
+      },
+      "margins": {
+        "full": 8.24999985966133,
+        "evidence_mask": 7.750000007566996,
+        "control_mask": 8.250000343192369
+      },
+      "evidence_margin_drop": 0.4999998520943336,
+      "control_margin_drop": -4.835310392081738e-07,
+      "selective_necessity_margin_drop": 0.5000003356253728
+    },
+    {
+      "sample_id": "5441902119:5",
+      "video_id": "5441902119",
+      "qid": "5",
+      "question_type": "TP",
+      "sampled_indices": [
+        0,
+        55,
+        110,
+        164,
+        219,
+        274,
+        329,
+        384,
+        438,
+        493,
+        548,
+        603,
+        658,
+        712,
+        767,
+        822
+      ],
+      "evidence_mask_indices": [
+        274,
+        329,
+        384
+      ],
+      "control_mask_indices": [
+        164,
+        219,
+        438
+      ],
+      "masked_frame_count": 3,
+      "baseline_choice_correct": false,
+      "gold_choice_index": 4,
+      "predicted_choice_index": 1,
+      "choice_logprobs": {
+        "full": [
+          -2.834221363067627,
+          -0.3342214822769165,
+          -3.209221363067627,
+          -5.834221363067627,
+          -1.7092214822769165
+        ],
+        "evidence_mask": [
+          -3.330368995666504,
+          -0.20536890625953674,
+          -3.330368995666504,
+          -5.830368995666504,
+          -2.205368995666504
+        ],
+        "control_mask": [
+          -1.7111515998840332,
+          -2.711151599884033,
+          -3.336151599884033,
+          -6.211151599884033,
+          -0.3361515700817108
+        ]
+      },
+      "margins": {
+        "full": -1.375,
+        "evidence_mask": -2.000000089406967,
+        "control_mask": 1.3750000298023224
+      },
+      "evidence_margin_drop": 0.6250000894069672,
+      "control_margin_drop": -2.7500000298023224,
+      "selective_necessity_margin_drop": 3.3750001192092896
+    },
+    {
+      "sample_id": "2440996945:5",
+      "video_id": "2440996945",
+      "qid": "5",
+      "question_type": "TC",
+      "sampled_indices": [
+        0,
+        130,
+        260,
+        390,
+        520,
+        650,
+        780,
+        910,
+        1041,
+        1171,
+        1301,
+        1431,
+        1561,
+        1691,
+        1821,
+        1951
+      ],
+      "evidence_mask_indices": [
+        1431,
+        1561
+      ],
+      "control_mask_indices": [
+        1301,
+        1691
+      ],
+      "masked_frame_count": 2,
+      "baseline_choice_correct": false,
+      "gold_choice_index": 4,
+      "predicted_choice_index": 1,
+      "choice_logprobs": {
+        "full": [
+          -2.591639995574951,
+          -0.9666401147842407,
+          -2.591639995574951,
+          -1.4666401147842407,
+          -1.4666401147842407
+        ],
+        "evidence_mask": [
+          -2.3456692695617676,
+          -0.970669150352478,
+          -2.4706692695617676,
+          -1.595669150352478,
+          -1.470669150352478
+        ],
+        "control_mask": [
+          -2.4316816329956055,
+          -1.0566816329956055,
+          -3.3066816329956055,
+          -1.5566816329956055,
+          -1.1816816329956055
+        ]
+      },
+      "margins": {
+        "full": -0.5,
+        "evidence_mask": -0.5,
+        "control_mask": -0.125
+      },
+      "evidence_margin_drop": 0.0,
+      "control_margin_drop": -0.375,
+      "selective_necessity_margin_drop": 0.375
+    },
+    {
+      "sample_id": "2589833495:1",
+      "video_id": "2589833495",
+      "qid": "1",
+      "question_type": "CW",
+      "sampled_indices": [
+        0,
+        180,
+        359,
+        539,
+        719,
+        899,
+        1078,
+        1258,
+        1438,
+        1618,
+        1797,
+        1977,
+        2157,
+        2337,
+        2516,
+        2696
+      ],
+      "evidence_mask_indices": [
+        180,
+        359
+      ],
+      "control_mask_indices": [
+        0,
+        539
+      ],
+      "masked_frame_count": 2,
+      "baseline_choice_correct": true,
+      "gold_choice_index": 3,
+      "predicted_choice_index": 3,
+      "choice_logprobs": {
+        "full": [
+          -1.9120829105377197,
+          -7.037082672119141,
+          -7.162082672119141,
+          -0.16208286583423615,
+          -9.03708267211914
+        ],
+        "evidence_mask": [
+          -1.603447437286377,
+          -6.603447437286377,
+          -6.603447437286377,
+          -0.22844743728637695,
+          -8.603446960449219
+        ],
+        "control_mask": [
+          -1.6029192209243774,
+          -6.727919101715088,
+          -6.852919101715088,
+          -0.22791919112205505,
+          -8.852919578552246
+        ]
+      },
+      "margins": {
+        "full": 1.7500000447034836,
+        "evidence_mask": 1.375,
+        "control_mask": 1.3750000298023224
+      },
+      "evidence_margin_drop": 0.3750000447034836,
+      "control_margin_drop": 0.3750000149011612,
+      "selective_necessity_margin_drop": 2.9802322387695312e-08
+    },
+    {
+      "sample_id": "10488004303:5",
+      "video_id": "10488004303",
+      "qid": "5",
+      "question_type": "CW",
+      "sampled_indices": [
+        0,
+        166,
+        332,
+        498,
+        665,
+        831,
+        997,
+        1163,
+        1329,
+        1495,
+        1661,
+        1827,
+        1994,
+        2160,
+        2326,
+        2492
+      ],
+      "evidence_mask_indices": [
+        1163,
+        1329,
+        1495,
+        1661,
+        1827,
+        1994
+      ],
+      "control_mask_indices": [
+        665,
+        831,
+        997,
+        2160,
+        2326,
+        2492
+      ],
+      "masked_frame_count": 6,
+      "baseline_choice_correct": false,
+      "gold_choice_index": 2,
+      "predicted_choice_index": 3,
+      "choice_logprobs": {
+        "full": [
+          -7.1377387046813965,
+          -4.7627387046813965,
+          -2.1377387046813965,
+          -0.13773880898952484,
+          -6.8877387046813965
+        ],
+        "evidence_mask": [
+          -6.839895248413086,
+          -4.714895248413086,
+          -0.8398950099945068,
+          -0.5898950099945068,
+          -5.714895248413086
+        ],
+        "control_mask": [
+          -6.784116268157959,
+          -4.284116268157959,
+          -2.034116268157959,
+          -0.15911637246608734,
+          -6.909116268157959
+        ]
+      },
+      "margins": {
+        "full": -1.9999998956918716,
+        "evidence_mask": -0.25,
+        "control_mask": -1.8749998956918716
+      },
+      "evidence_margin_drop": -1.7499998956918716,
+      "control_margin_drop": -0.125,
+      "selective_necessity_margin_drop": -1.6249998956918716
+    },
+    {
+      "sample_id": "5647715900:7",
+      "video_id": "5647715900",
+      "qid": "7",
+      "question_type": "CW",
+      "sampled_indices": [
+        0,
+        118,
+        236,
+        353,
+        471,
+        589,
+        707,
+        825,
+        942,
+        1060,
+        1178,
+        1296,
+        1414,
+        1531,
+        1649,
+        1767
+      ],
+      "evidence_mask_indices": [
+        825
+      ],
+      "control_mask_indices": [
+        707
+      ],
+      "masked_frame_count": 1,
+      "baseline_choice_correct": true,
+      "gold_choice_index": 0,
+      "predicted_choice_index": 0,
+      "choice_logprobs": {
+        "full": [
+          -0.0009308296139352024,
+          -8.375930786132812,
+          -8.250930786132812,
+          -8.250930786132812,
+          -8.750930786132812
+        ],
+        "evidence_mask": [
+          -0.0009473841637372971,
+          -8.375946998596191,
+          -8.250946998596191,
+          -8.250946998596191,
+          -8.625946998596191
+        ],
+        "control_mask": [
+          -0.0010369406081736088,
+          -8.376036643981934,
+          -8.376036643981934,
+          -8.251036643981934,
+          -8.126036643981934
+        ]
+      },
+      "margins": {
+        "full": 8.249999956518877,
+        "evidence_mask": 8.249999614432454,
+        "control_mask": 8.12499970337376
+      },
+      "evidence_margin_drop": 3.4208642318844795e-07,
+      "control_margin_drop": 0.1250002531451173,
+      "selective_necessity_margin_drop": -0.12499991105869412
+    },
+    {
+      "sample_id": "2965378944:7",
+      "video_id": "2965378944",
+      "qid": "7",
+      "question_type": "CH",
+      "sampled_indices": [
+        0,
+        44,
+        87,
+        131,
+        175,
+        219,
+        262,
+        306,
+        350,
+        394,
+        437,
+        481,
+        525,
+        569,
+        612,
+        656
+      ],
+      "evidence_mask_indices": [
+        525,
+        569,
+        612
+      ],
+      "control_mask_indices": [
+        437,
+        481,
+        656
+      ],
+      "masked_frame_count": 3,
+      "baseline_choice_correct": true,
+      "gold_choice_index": 2,
+      "predicted_choice_index": 2,
+      "choice_logprobs": {
+        "full": [
+          -10.625120162963867,
+          -9.500120162963867,
+          -0.00011979816190432757,
+          -11.625120162963867,
+          -13.625120162963867
+        ],
+        "evidence_mask": [
+          -9.500243186950684,
+          -8.875243186950684,
+          -0.0002431573811918497,
+          -11.250243186950684,
+          -12.875243186950684
+        ],
+        "control_mask": [
+          -10.625118255615234,
+          -9.500118255615234,
+          -0.00011872540198964998,
+          -11.875118255615234,
+          -13.625118255615234
+        ]
+      },
+      "margins": {
+        "full": 9.500000364801963,
+        "evidence_mask": 8.875000029569492,
+        "control_mask": 9.499999530213245
+      },
+      "evidence_margin_drop": 0.6250003352324711,
+      "control_margin_drop": 8.345887181349099e-07,
+      "selective_necessity_margin_drop": 0.624999500643753
+    },
+    {
+      "sample_id": "5460127828:1",
+      "video_id": "5460127828",
+      "qid": "1",
+      "question_type": "CW",
+      "sampled_indices": [
+        0,
+        43,
+        87,
+        130,
+        174,
+        217,
+        261,
+        304,
+        348,
+        391,
+        435,
+        478,
+        522,
+        565,
+        609,
+        652
+      ],
+      "evidence_mask_indices": [
+        217
+      ],
+      "control_mask_indices": [
+        174
+      ],
+      "masked_frame_count": 1,
+      "baseline_choice_correct": false,
+      "gold_choice_index": 4,
+      "predicted_choice_index": 1,
+      "choice_logprobs": {
+        "full": [
+          -6.24991512298584,
+          -0.49991536140441895,
+          -6.12491512298584,
+          -3.874915361404419,
+          -0.999915361404419
+        ],
+        "evidence_mask": [
+          -6.383455276489258,
+          -0.38345545530319214,
+          -6.133455276489258,
+          -3.508455514907837,
+          -1.258455514907837
+        ],
+        "control_mask": [
+          -6.097049236297607,
+          -0.3470490574836731,
+          -5.847049236297607,
+          -2.8470489978790283,
+          -1.4720489978790283
+        ]
+      },
+      "margins": {
+        "full": -0.5,
+        "evidence_mask": -0.8750000596046448,
+        "control_mask": -1.1249999403953552
+      },
+      "evidence_margin_drop": 0.3750000596046448,
+      "control_margin_drop": 0.6249999403953552,
+      "selective_necessity_margin_drop": -0.24999988079071045
+    },
+    {
+      "sample_id": "8617546237:4",
+      "video_id": "8617546237",
+      "qid": "4",
+      "question_type": "TC",
+      "sampled_indices": [
+        0,
+        45,
+        90,
+        136,
+        181,
+        226,
+        271,
+        316,
+        362,
+        407,
+        452,
+        497,
+        542,
+        588,
+        633,
+        678
+      ],
+      "evidence_mask_indices": [
+        588,
+        633,
+        678
+      ],
+      "control_mask_indices": [
+        452,
+        497,
+        542
+      ],
+      "masked_frame_count": 3,
+      "baseline_choice_correct": false,
+      "gold_choice_index": 2,
+      "predicted_choice_index": 4,
+      "choice_logprobs": {
+        "full": [
+          -5.6683149337768555,
+          -6.0433149337768555,
+          -1.9183149337768555,
+          -6.5433149337768555,
+          -0.16831491887569427
+        ],
+        "evidence_mask": [
+          -5.835084915161133,
+          -6.335084915161133,
+          -2.585085153579712,
+          -7.085084915161133,
+          -0.08508510887622833
+        ],
+        "control_mask": [
+          -5.496443748474121,
+          -5.996443748474121,
+          -2.2464439868927,
+          -6.746443748474121,
+          -0.12144394963979721
+        ]
+      },
+      "margins": {
+        "full": -1.7500000149011612,
+        "evidence_mask": -2.5000000447034836,
+        "control_mask": -2.125000037252903
+      },
+      "evidence_margin_drop": 0.7500000298023224,
+      "control_margin_drop": 0.3750000223517418,
+      "selective_necessity_margin_drop": 0.3750000074505806
+    },
+    {
+      "sample_id": "3728184329:0",
+      "video_id": "3728184329",
+      "qid": "0",
+      "question_type": "CW",
+      "sampled_indices": [
+        0,
+        60,
+        119,
+        179,
+        238,
+        298,
+        357,
+        417,
+        476,
+        536,
+        595,
+        655,
+        714,
+        774,
+        833,
+        893
+      ],
+      "evidence_mask_indices": [
+        0,
+        60,
+        119,
+        179
+      ],
+      "control_mask_indices": [
+        238,
+        298,
+        357,
+        417
+      ],
+      "masked_frame_count": 4,
+      "baseline_choice_correct": true,
+      "gold_choice_index": 4,
+      "predicted_choice_index": 4,
+      "choice_logprobs": {
+        "full": [
+          -8.755845069885254,
+          -10.130845069885254,
+          -8.005845069885254,
+          -5.255844593048096,
+          -0.005844764411449432
+        ],
+        "evidence_mask": [
+          -9.253536224365234,
+          -10.628536224365234,
+          -8.628536224365234,
+          -5.753536224365234,
+          -0.0035361635964363813
+        ],
+        "control_mask": [
+          -8.883211135864258,
+          -10.133211135864258,
+          -8.008211135864258,
+          -4.883211135864258,
+          -0.00821106880903244
+        ]
+      },
+      "margins": {
+        "full": 5.249999828636646,
+        "evidence_mask": 5.750000060768798,
+        "control_mask": 4.875000067055225
+      },
+      "evidence_margin_drop": -0.5000002321321517,
+      "control_margin_drop": 0.3749997615814209,
+      "selective_necessity_margin_drop": -0.8749999937135726
+    },
+    {
+      "sample_id": "2506141110:0",
+      "video_id": "2506141110",
+      "qid": "0",
+      "question_type": "TC",
+      "sampled_indices": [
+        0,
+        87,
+        173,
+        260,
+        347,
+        434,
+        520,
+        607,
+        694,
+        781,
+        867,
+        954,
+        1041,
+        1128,
+        1214,
+        1301
+      ],
+      "evidence_mask_indices": [
+        260
+      ],
+      "control_mask_indices": [
+        173
+      ],
+      "masked_frame_count": 1,
+      "baseline_choice_correct": true,
+      "gold_choice_index": 2,
+      "predicted_choice_index": 2,
+      "choice_logprobs": {
+        "full": [
+          -3.7456161975860596,
+          -1.2456161975860596,
+          -0.49561625719070435,
+          -2.8706161975860596,
+          -3.8706161975860596
+        ],
+        "evidence_mask": [
+          -4.232216835021973,
+          -1.6072169542312622,
+          -0.3572169840335846,
+          -2.7322170734405518,
+          -3.9822170734405518
+        ],
+        "control_mask": [
+          -4.273887634277344,
+          -1.3988876342773438,
+          -0.398887574672699,
+          -3.0238876342773438,
+          -4.023887634277344
+        ]
+      },
+      "margins": {
+        "full": 0.7499999403953552,
+        "evidence_mask": 1.2499999701976776,
+        "control_mask": 1.0000000596046448
+      },
+      "evidence_margin_drop": -0.5000000298023224,
+      "control_margin_drop": -0.25000011920928955,
+      "selective_necessity_margin_drop": -0.24999991059303284
+    },
+    {
+      "sample_id": "6071633426:5",
+      "video_id": "6071633426",
+      "qid": "5",
+      "question_type": "TC",
+      "sampled_indices": [
+        0,
+        178,
+        356,
+        535,
+        713,
+        891,
+        1069,
+        1247,
+        1426,
+        1604,
+        1782,
+        1960,
+        2138,
+        2317,
+        2495,
+        2673
+      ],
+      "evidence_mask_indices": [
+        1426,
+        1782
+      ],
+      "control_mask_indices": [
+        1247,
+        1604
+      ],
+      "masked_frame_count": 2,
+      "baseline_choice_correct": false,
+      "gold_choice_index": 0,
+      "predicted_choice_index": 2,
+      "choice_logprobs": {
+        "full": [
+          -4.551849365234375,
+          -4.051849365234375,
+          -0.05184922739863396,
+          -3.926849126815796,
+          -6.176849365234375
+        ],
+        "evidence_mask": [
+          -0.3364715278148651,
+          -4.7114715576171875,
+          -1.3364715576171875,
+          -4.8364715576171875,
+          -5.2114715576171875
+        ],
+        "control_mask": [
+          -4.786773204803467,
+          -4.286773204803467,
+          -0.036773089319467545,
+          -4.411773204803467,
+          -6.786773204803467
+        ]
+      },
+      "margins": {
+        "full": -4.500000137835741,
+        "evidence_mask": 1.0000000298023224,
+        "control_mask": -4.750000115483999
+      },
+      "evidence_margin_drop": -5.500000167638063,
+      "control_margin_drop": 0.2499999776482582,
+      "selective_necessity_margin_drop": -5.750000145286322
+    },
+    {
+      "sample_id": "3501167063:1",
+      "video_id": "3501167063",
+      "qid": "1",
+      "question_type": "CW",
+      "sampled_indices": [
+        0,
+        96,
+        191,
+        287,
+        382,
+        478,
+        573,
+        669,
+        764,
+        860,
+        955,
+        1051,
+        1146,
+        1242,
+        1337,
+        1433
+      ],
+      "evidence_mask_indices": [
+        287,
+        573,
+        860,
+        1242
+      ],
+      "control_mask_indices": [
+        191,
+        478,
+        764,
+        1146
+      ],
+      "masked_frame_count": 4,
+      "baseline_choice_correct": true,
+      "gold_choice_index": 3,
+      "predicted_choice_index": 3,
+      "choice_logprobs": {
+        "full": [
+          -4.7064361572265625,
+          -0.956436038017273,
+          -3.0814361572265625,
+          -0.706436038017273,
+          -2.7064361572265625
+        ],
+        "evidence_mask": [
+          -5.028854846954346,
+          -1.2788547277450562,
+          -3.7788548469543457,
+          -0.5288547277450562,
+          -2.2788548469543457
+        ],
+        "control_mask": [
+          -4.500370025634766,
+          -1.6253697872161865,
+          -3.0003697872161865,
+          -0.5003697872161865,
+          -2.0003697872161865
+        ]
+      },
+      "margins": {
+        "full": 0.25,
+        "evidence_mask": 0.75,
+        "control_mask": 1.125
+      },
+      "evidence_margin_drop": -0.5,
+      "control_margin_drop": -0.875,
+      "selective_necessity_margin_drop": 0.375
+    },
+    {
+      "sample_id": "4522298433:5",
+      "video_id": "4522298433",
+      "qid": "5",
+      "question_type": "TC",
+      "sampled_indices": [
+        0,
+        39,
+        78,
+        117,
+        156,
+        195,
+        234,
+        273,
+        311,
+        350,
+        389,
+        428,
+        467,
+        506,
+        545,
+        584
+      ],
+      "evidence_mask_indices": [
+        39,
+        78,
+        117
+      ],
+      "control_mask_indices": [
+        0,
+        156,
+        195
+      ],
+      "masked_frame_count": 3,
+      "baseline_choice_correct": false,
+      "gold_choice_index": 0,
+      "predicted_choice_index": 3,
+      "choice_logprobs": {
+        "full": [
+          -0.9031652808189392,
+          -5.528165340423584,
+          -7.903165340423584,
+          -0.5281652808189392,
+          -7.778165340423584
+        ],
+        "evidence_mask": [
+          -0.7655653953552246,
+          -5.015565395355225,
+          -7.515565395355225,
+          -0.6405653953552246,
+          -7.640565395355225
+        ],
+        "control_mask": [
+          -0.6397427916526794,
+          -5.264742851257324,
+          -6.764742851257324,
+          -0.7647427916526794,
+          -7.639742851257324
+        ]
+      },
+      "margins": {
+        "full": -0.375,
+        "evidence_mask": -0.125,
+        "control_mask": 0.125
+      },
+      "evidence_margin_drop": -0.25,
+      "control_margin_drop": -0.5,
+      "selective_necessity_margin_drop": 0.25
+    },
+    {
+      "sample_id": "2399811629:3",
+      "video_id": "2399811629",
+      "qid": "3",
+      "question_type": "TN",
+      "sampled_indices": [
+        0,
+        32,
+        65,
+        97,
+        129,
+        161,
+        194,
+        226,
+        258,
+        290,
+        323,
+        355,
+        387,
+        419,
+        452,
+        484
+      ],
+      "evidence_mask_indices": [
+        258,
+        290,
+        323,
+        355,
+        387
+      ],
+      "control_mask_indices": [
+        161,
+        194,
+        226,
+        419,
+        452
+      ],
+      "masked_frame_count": 5,
+      "baseline_choice_correct": false,
+      "gold_choice_index": 3,
+      "predicted_choice_index": 0,
+      "choice_logprobs": {
+        "full": [
+          -0.762506365776062,
+          -3.0125064849853516,
+          -6.137506484985352,
+          -1.012506365776062,
+          -2.1375064849853516
+        ],
+        "evidence_mask": [
+          -0.508501410484314,
+          -2.2585015296936035,
+          -6.0085015296936035,
+          -2.1335015296936035,
+          -1.758501410484314
+        ],
+        "control_mask": [
+          -0.4678552746772766,
+          -2.967855215072632,
+          -6.092855453491211,
+          -1.7178552150726318,
+          -1.9678552150726318
+        ]
+      },
+      "margins": {
+        "full": -0.25,
+        "evidence_mask": -1.6250001192092896,
+        "control_mask": -1.2499999403953552
+      },
+      "evidence_margin_drop": 1.3750001192092896,
+      "control_margin_drop": 0.9999999403953552,
+      "selective_necessity_margin_drop": 0.3750001788139343
+    },
+    {
+      "sample_id": "3381752581:7",
+      "video_id": "3381752581",
+      "qid": "7",
+      "question_type": "CW",
+      "sampled_indices": [
+        0,
+        102,
+        204,
+        306,
+        408,
+        510,
+        612,
+        714,
+        815,
+        917,
+        1019,
+        1121,
+        1223,
+        1325,
+        1427,
+        1529
+      ],
+      "evidence_mask_indices": [
+        917,
+        1019
+      ],
+      "control_mask_indices": [
+        815,
+        1121
+      ],
+      "masked_frame_count": 2,
+      "baseline_choice_correct": true,
+      "gold_choice_index": 3,
+      "predicted_choice_index": 3,
+      "choice_logprobs": {
+        "full": [
+          -6.6288580894470215,
+          -8.253857612609863,
+          -6.8788580894470215,
+          -0.0038579099345952272,
+          -6.7538580894470215
+        ],
+        "evidence_mask": [
+          -6.503939151763916,
+          -8.378938674926758,
+          -6.503939151763916,
+          -0.003939012996852398,
+          -7.378939151763916
+        ],
+        "control_mask": [
+          -7.626015663146973,
+          -9.876015663146973,
+          -8.251015663146973,
+          -0.0010155049385502934,
+          -8.626015663146973
+        ]
+      },
+      "margins": {
+        "full": 6.625000179512426,
+        "evidence_mask": 6.500000138767064,
+        "control_mask": 7.625000158208422
+      },
+      "evidence_margin_drop": 0.12500004074536264,
+      "control_margin_drop": -0.9999999786959961,
+      "selective_necessity_margin_drop": 1.1250000194413587
+    },
+    {
+      "sample_id": "5600915537:9",
+      "video_id": "5600915537",
+      "qid": "9",
+      "question_type": "TN",
+      "sampled_indices": [
+        0,
+        85,
+        170,
+        255,
+        340,
+        425,
+        510,
+        595,
+        679,
+        764,
+        849,
+        934,
+        1019,
+        1104,
+        1189,
+        1274
+      ],
+      "evidence_mask_indices": [
+        255,
+        340,
+        1019,
+        1104
+      ],
+      "control_mask_indices": [
+        170,
+        425,
+        934,
+        1189
+      ],
+      "masked_frame_count": 4,
+      "baseline_choice_correct": true,
+      "gold_choice_index": 2,
+      "predicted_choice_index": 2,
+      "choice_logprobs": {
+        "full": [
+          -7.7509074211120605,
+          -8.500907897949219,
+          -0.0009074860718101263,
+          -9.000907897949219,
+          -10.375907897949219
+        ],
+        "evidence_mask": [
+          -7.001999855041504,
+          -7.626999855041504,
+          -0.0019996424671262503,
+          -8.251999855041504,
+          -9.126999855041504
+        ],
+        "control_mask": [
+          -7.37632417678833,
+          -8.126324653625488,
+          -0.0013243722496554255,
+          -8.501324653625488,
+          -10.001324653625488
+        ]
+      },
+      "margins": {
+        "full": 7.74999993504025,
+        "evidence_mask": 7.000000212574378,
+        "control_mask": 7.374999804538675
+      },
+      "evidence_margin_drop": 0.7499997224658728,
+      "control_margin_drop": 0.37500013050157577,
+      "selective_necessity_margin_drop": 0.374999591964297
+    },
+    {
+      "sample_id": "5353486947:4",
+      "video_id": "5353486947",
+      "qid": "4",
+      "question_type": "TC",
+      "sampled_indices": [
+        0,
+        31,
+        62,
+        93,
+        123,
+        154,
+        185,
+        216,
+        247,
+        278,
+        309,
+        340,
+        370,
+        401,
+        432,
+        463
+      ],
+      "evidence_mask_indices": [
+        0,
+        31
+      ],
+      "control_mask_indices": [
+        62,
+        93
+      ],
+      "masked_frame_count": 2,
+      "baseline_choice_correct": true,
+      "gold_choice_index": 0,
+      "predicted_choice_index": 0,
+      "choice_logprobs": {
+        "full": [
+          -0.001430917764082551,
+          -8.75143051147461,
+          -6.751430988311768,
+          -9.75143051147461,
+          -11.00143051147461
+        ],
+        "evidence_mask": [
+          -0.0018339019734412432,
+          -8.50183391571045,
+          -6.501833915710449,
+          -9.50183391571045,
+          -10.87683391571045
+        ],
+        "control_mask": [
+          -0.0014621054287999868,
+          -8.62646198272705,
+          -6.751461982727051,
+          -9.62646198272705,
+          -11.00146198272705
+        ]
+      },
+      "margins": {
+        "full": 6.750000070547685,
+        "evidence_mask": 6.500000013737008,
+        "control_mask": 6.749999877298251
+      },
+      "evidence_margin_drop": 0.25000005681067705,
+      "control_margin_drop": 1.932494342327118e-07,
+      "selective_necessity_margin_drop": 0.24999986356124282
+    },
+    {
+      "sample_id": "2488260327:2",
+      "video_id": "2488260327",
+      "qid": "2",
+      "question_type": "TC",
+      "sampled_indices": [
+        0,
+        80,
+        160,
+        240,
+        320,
+        400,
+        480,
+        560,
+        639,
+        719,
+        799,
+        879,
+        959,
+        1039,
+        1119,
+        1199
+      ],
+      "evidence_mask_indices": [
+        799,
+        879,
+        959
+      ],
+      "control_mask_indices": [
+        639,
+        719,
+        1039
+      ],
+      "masked_frame_count": 3,
+      "baseline_choice_correct": false,
+      "gold_choice_index": 3,
+      "predicted_choice_index": 4,
+      "choice_logprobs": {
+        "full": [
+          -4.309823036193848,
+          -5.559823036193848,
+          -3.5598227977752686,
+          -1.1848227977752686,
+          -0.43482279777526855
+        ],
+        "evidence_mask": [
+          -6.766148090362549,
+          -7.266148090362549,
+          -5.516148090362549,
+          -4.641148090362549,
+          -0.01614825241267681
+        ],
+        "control_mask": [
+          -4.509665489196777,
+          -5.884665489196777,
+          -3.8846652507781982,
+          -1.2596652507781982,
+          -0.384665310382843
+        ]
+      },
+      "margins": {
+        "full": -0.75,
+        "evidence_mask": -4.624999837949872,
+        "control_mask": -0.8749999403953552
+      },
+      "evidence_margin_drop": 3.874999837949872,
+      "control_margin_drop": 0.12499994039535522,
+      "selective_necessity_margin_drop": 3.749999897554517
+    },
+    {
+      "sample_id": "7526364640:3",
+      "video_id": "7526364640",
+      "qid": "3",
+      "question_type": "CW",
+      "sampled_indices": [
+        0,
+        180,
+        359,
+        539,
+        719,
+        899,
+        1078,
+        1258,
+        1438,
+        1618,
+        1797,
+        1977,
+        2157,
+        2337,
+        2516,
+        2696
+      ],
+      "evidence_mask_indices": [
+        539
+      ],
+      "control_mask_indices": [
+        359
+      ],
+      "masked_frame_count": 1,
+      "baseline_choice_correct": false,
+      "gold_choice_index": 2,
+      "predicted_choice_index": 4,
+      "choice_logprobs": {
+        "full": [
+          -5.386560440063477,
+          -5.511560440063477,
+          -2.1365606784820557,
+          -8.011560440063477,
+          -0.13656064867973328
+        ],
+        "evidence_mask": [
+          -5.622278690338135,
+          -5.372278690338135,
+          -2.2472784519195557,
+          -7.747278690338135,
+          -0.12227849662303925
+        ],
+        "control_mask": [
+          -5.60813570022583,
+          -5.73313570022583,
+          -2.358135938644409,
+          -7.98313570022583,
+          -0.10813590884208679
+        ]
+      },
+      "margins": {
+        "full": -2.0000000298023224,
+        "evidence_mask": -2.1249999552965164,
+        "control_mask": -2.2500000298023224
+      },
+      "evidence_margin_drop": 0.12499992549419403,
+      "control_margin_drop": 0.25,
+      "selective_necessity_margin_drop": -0.12500007450580597
+    },
+    {
+      "sample_id": "2500623285:5",
+      "video_id": "2500623285",
+      "qid": "5",
+      "question_type": "CW",
+      "sampled_indices": [
+        0,
+        30,
+        60,
+        90,
+        120,
+        150,
+        180,
+        210,
+        239,
+        269,
+        299,
+        329,
+        359,
+        389,
+        419,
+        449
+      ],
+      "evidence_mask_indices": [
+        269,
+        299,
+        329,
+        359
+      ],
+      "control_mask_indices": [
+        210,
+        239,
+        389,
+        419
+      ],
+      "masked_frame_count": 4,
+      "baseline_choice_correct": true,
+      "gold_choice_index": 4,
+      "predicted_choice_index": 4,
+      "choice_logprobs": {
+        "full": [
+          -6.752756118774414,
+          -6.752756118774414,
+          -8.127756118774414,
+          -10.377756118774414,
+          -0.0027558940928429365
+        ],
+        "evidence_mask": [
+          -6.504400253295898,
+          -6.129400253295898,
+          -7.629400253295898,
+          -9.629400253295898,
+          -0.00440009543672204
+        ],
+        "control_mask": [
+          -6.2544846534729,
+          -6.2544846534729,
+          -7.7544846534729,
+          -9.754484176635742,
+          -0.004484596196562052
+        ]
+      },
+      "margins": {
+        "full": 6.750000224681571,
+        "evidence_mask": 6.125000157859176,
+        "control_mask": 6.250000057276338
+      },
+      "evidence_margin_drop": 0.6250000668223947,
+      "control_margin_drop": 0.5000001674052328,
+      "selective_necessity_margin_drop": 0.12499989941716194
+    },
+    {
+      "sample_id": "3434653211:3",
+      "video_id": "3434653211",
+      "qid": "3",
+      "question_type": "CW",
+      "sampled_indices": [
+        0,
+        28,
+        56,
+        84,
+        112,
+        140,
+        168,
+        196,
+        224,
+        252,
+        280,
+        308,
+        336,
+        364,
+        392,
+        420
+      ],
+      "evidence_mask_indices": [
+        84,
+        112,
+        140
+      ],
+      "control_mask_indices": [
+        28,
+        56,
+        168
+      ],
+      "masked_frame_count": 3,
+      "baseline_choice_correct": true,
+      "gold_choice_index": 0,
+      "predicted_choice_index": 0,
+      "choice_logprobs": {
+        "full": [
+          -0.004769377876073122,
+          -5.879769325256348,
+          -6.629769325256348,
+          -8.254769325256348,
+          -8.129769325256348
+        ],
+        "evidence_mask": [
+          -0.006497921887785196,
+          -5.631497859954834,
+          -6.256497859954834,
+          -7.881497859954834,
+          -7.631497859954834
+        ],
+        "control_mask": [
+          -0.004439617041498423,
+          -6.004439830780029,
+          -6.504439830780029,
+          -8.504439353942871,
+          -8.504439353942871
+        ]
+      },
+      "margins": {
+        "full": 5.8749999473802745,
+        "evidence_mask": 5.624999938067049,
+        "control_mask": 6.000000213738531
+      },
+      "evidence_margin_drop": 0.25000000931322575,
+      "control_margin_drop": -0.12500026635825634,
+      "selective_necessity_margin_drop": 0.3750002756714821
+    },
+    {
+      "sample_id": "2881352518:0",
+      "video_id": "2881352518",
+      "qid": "0",
+      "question_type": "CW",
+      "sampled_indices": [
+        0,
+        133,
+        266,
+        400,
+        533,
+        666,
+        799,
+        932,
+        1066,
+        1199,
+        1332,
+        1465,
+        1598,
+        1732,
+        1865,
+        1998
+      ],
+      "evidence_mask_indices": [
+        1998
+      ],
+      "control_mask_indices": [
+        1865
+      ],
+      "masked_frame_count": 1,
+      "baseline_choice_correct": false,
+      "gold_choice_index": 4,
+      "predicted_choice_index": 1,
+      "choice_logprobs": {
+        "full": [
+          -3.9272170066833496,
+          -0.6772169470787048,
+          -7.17721700668335,
+          -3.8022170066833496,
+          -0.8022169470787048
+        ],
+        "evidence_mask": [
+          -3.992856502532959,
+          -0.6178565621376038,
+          -7.117856502532959,
+          -3.867856502532959,
+          -0.8678565621376038
+        ],
+        "control_mask": [
+          -4.096694469451904,
+          -0.7216945886611938,
+          -7.346694469451904,
+          -4.596694469451904,
+          -0.7216945886611938
+        ]
+      },
+      "margins": {
+        "full": -0.125,
+        "evidence_mask": -0.25,
+        "control_mask": 0.0
+      },
+      "evidence_margin_drop": 0.125,
+      "control_margin_drop": -0.125,
+      "selective_necessity_margin_drop": 0.25
+    },
+    {
+      "sample_id": "6802770639:1",
+      "video_id": "6802770639",
+      "qid": "1",
+      "question_type": "CW",
+      "sampled_indices": [
+        0,
+        164,
+        329,
+        493,
+        658,
+        822,
+        987,
+        1151,
+        1316,
+        1480,
+        1645,
+        1809,
+        1974,
+        2138,
+        2303,
+        2467
+      ],
+      "evidence_mask_indices": [
+        1809
+      ],
+      "control_mask_indices": [
+        1645
+      ],
+      "masked_frame_count": 1,
+      "baseline_choice_correct": false,
+      "gold_choice_index": 2,
+      "predicted_choice_index": 1,
+      "choice_logprobs": {
+        "full": [
+          -7.21524715423584,
+          -0.0902472659945488,
+          -2.46524715423584,
+          -8.59024715423584,
+          -8.84024715423584
+        ],
+        "evidence_mask": [
+          -7.215211868286133,
+          -0.0902116522192955,
+          -2.4652116298675537,
+          -8.715211868286133,
+          -8.840211868286133
+        ],
+        "control_mask": [
+          -7.099904537200928,
+          -0.3499046266078949,
+          -1.2249046564102173,
+          -8.474905014038086,
+          -8.974905014038086
+        ]
+      },
+      "margins": {
+        "full": -2.374999888241291,
+        "evidence_mask": -2.374999977648258,
+        "control_mask": -0.8750000298023224
+      },
+      "evidence_margin_drop": 8.940696716308594e-08,
+      "control_margin_drop": -1.4999998584389687,
+      "selective_necessity_margin_drop": 1.4999999478459358
+    },
+    {
+      "sample_id": "4740345442:1",
+      "video_id": "4740345442",
+      "qid": "1",
+      "question_type": "CH",
+      "sampled_indices": [
+        0,
+        60,
+        119,
+        179,
+        238,
+        298,
+        357,
+        417,
+        476,
+        536,
+        595,
+        655,
+        714,
+        774,
+        833,
+        893
+      ],
+      "evidence_mask_indices": [
+        0
+      ],
+      "control_mask_indices": [
+        60
+      ],
+      "masked_frame_count": 1,
+      "baseline_choice_correct": false,
+      "gold_choice_index": 4,
+      "predicted_choice_index": 1,
+      "choice_logprobs": {
+        "full": [
+          -3.392512321472168,
+          -1.017512321472168,
+          -1.267512321472168,
+          -5.642512321472168,
+          -1.142512321472168
+        ],
+        "evidence_mask": [
+          -4.064775466918945,
+          -1.3147754669189453,
+          -1.3147754669189453,
+          -6.064775466918945,
+          -0.8147754669189453
+        ],
+        "control_mask": [
+          -4.390235424041748,
+          -1.140235424041748,
+          -0.8902353644371033,
+          -4.890235424041748,
+          -1.390235424041748
+        ]
+      },
+      "margins": {
+        "full": -0.125,
+        "evidence_mask": 0.5,
+        "control_mask": -0.5000000596046448
+      },
+      "evidence_margin_drop": -0.625,
+      "control_margin_drop": 0.3750000596046448,
+      "selective_necessity_margin_drop": -1.0000000596046448
+    },
+    {
+      "sample_id": "4032595511:2",
+      "video_id": "4032595511",
+      "qid": "2",
+      "question_type": "CW",
+      "sampled_indices": [
+        0,
+        63,
+        126,
+        190,
+        253,
+        316,
+        379,
+        442,
+        506,
+        569,
+        632,
+        695,
+        758,
+        822,
+        885,
+        948
+      ],
+      "evidence_mask_indices": [
+        253,
+        316,
+        379
+      ],
+      "control_mask_indices": [
+        126,
+        190,
+        442
+      ],
+      "masked_frame_count": 3,
+      "baseline_choice_correct": false,
+      "gold_choice_index": 4,
+      "predicted_choice_index": 1,
+      "choice_logprobs": {
+        "full": [
+          -4.900529384613037,
+          -0.025529494509100914,
+          -5.775529384613037,
+          -6.400529384613037,
+          -4.400529384613037
+        ],
+        "evidence_mask": [
+          -5.025530815124512,
+          -0.025530656799674034,
+          -5.650530815124512,
+          -6.275530815124512,
+          -4.400530815124512
+        ],
+        "control_mask": [
+          -5.515508651733398,
+          -0.015508764423429966,
+          -5.890508651733398,
+          -6.640508651733398,
+          -5.015508651733398
+        ]
+      },
+      "margins": {
+        "full": -4.374999890103936,
+        "evidence_mask": -4.375000158324838,
+        "control_mask": -4.9999998873099685
+      },
+      "evidence_margin_drop": 2.682209014892578e-07,
+      "control_margin_drop": 0.6249999972060323,
+      "selective_necessity_margin_drop": -0.6249997289851308
+    },
+    {
+      "sample_id": "3258993991:2",
+      "video_id": "3258993991",
+      "qid": "2",
+      "question_type": "CW",
+      "sampled_indices": [
+        0,
+        92,
+        184,
+        276,
+        368,
+        460,
+        552,
+        644,
+        735,
+        827,
+        919,
+        1011,
+        1103,
+        1195,
+        1287,
+        1379
+      ],
+      "evidence_mask_indices": [
+        1011,
+        1103,
+        1195,
+        1287
+      ],
+      "control_mask_indices": [
+        735,
+        827,
+        919,
+        1379
+      ],
+      "masked_frame_count": 4,
+      "baseline_choice_correct": true,
+      "gold_choice_index": 1,
+      "predicted_choice_index": 1,
+      "choice_logprobs": {
+        "full": [
+          -7.626884460449219,
+          -0.0018842339050024748,
+          -6.876884460449219,
+          -9.626884460449219,
+          -8.626884460449219
+        ],
+        "evidence_mask": [
+          -7.128164768218994,
+          -0.003164761932566762,
+          -6.378164768218994,
+          -9.128164291381836,
+          -7.878164768218994
+        ],
+        "control_mask": [
+          -7.751977443695068,
+          -0.001977275824174285,
+          -6.751977443695068,
+          -9.62697696685791,
+          -8.50197696685791
+        ]
+      },
+      "margins": {
+        "full": 6.875000226544216,
+        "evidence_mask": 6.375000006286427,
+        "control_mask": 6.750000167870894
+      },
+      "evidence_margin_drop": 0.5000002202577889,
+      "control_margin_drop": 0.1250000586733222,
+      "selective_necessity_margin_drop": 0.3750001615844667
+    },
+    {
+      "sample_id": "2868301160:1",
+      "video_id": "2868301160",
+      "qid": "1",
+      "question_type": "CW",
+      "sampled_indices": [
+        0,
+        25,
+        50,
+        75,
+        101,
+        126,
+        151,
+        176,
+        201,
+        226,
+        251,
+        276,
+        302,
+        327,
+        352,
+        377
+      ],
+      "evidence_mask_indices": [
+        25,
+        50,
+        75,
+        101,
+        126,
+        151
+      ],
+      "control_mask_indices": [
+        0,
+        176,
+        201,
+        226,
+        251,
+        276
+      ],
+      "masked_frame_count": 6,
+      "baseline_choice_correct": true,
+      "gold_choice_index": 1,
+      "predicted_choice_index": 1,
+      "choice_logprobs": {
+        "full": [
+          -2.738682985305786,
+          -0.36368298530578613,
+          -2.863682985305786,
+          -5.238682746887207,
+          -1.7386829853057861
+        ],
+        "evidence_mask": [
+          -3.504154920578003,
+          -0.37915489077568054,
+          -2.254154920578003,
+          -5.379154682159424,
+          -1.754154920578003
+        ],
+        "control_mask": [
+          -3.208075523376465,
+          -0.45807555317878723,
+          -3.833075523376465,
+          -5.583075523376465,
+          -1.2080755233764648
+        ]
+      },
+      "margins": {
+        "full": 1.375,
+        "evidence_mask": 1.3750000298023224,
+        "control_mask": 0.7499999701976776
+      },
+      "evidence_margin_drop": -2.9802322387695312e-08,
+      "control_margin_drop": 0.6250000298023224,
+      "selective_necessity_margin_drop": -0.6250000596046448
+    },
+    {
+      "sample_id": "3575108079:8",
+      "video_id": "3575108079",
+      "qid": "8",
+      "question_type": "TC",
+      "sampled_indices": [
+        0,
+        102,
+        203,
+        305,
+        407,
+        508,
+        610,
+        712,
+        813,
+        915,
+        1017,
+        1118,
+        1220,
+        1322,
+        1423,
+        1525
+      ],
+      "evidence_mask_indices": [
+        1322
+      ],
+      "control_mask_indices": [
+        1220
+      ],
+      "masked_frame_count": 1,
+      "baseline_choice_correct": true,
+      "gold_choice_index": 4,
+      "predicted_choice_index": 4,
+      "choice_logprobs": {
+        "full": [
+          -4.886942386627197,
+          -2.8869423866271973,
+          -5.136942386627197,
+          -1.3869423866271973,
+          -0.3869423568248749
+        ],
+        "evidence_mask": [
+          -4.697819232940674,
+          -2.572819232940674,
+          -4.947819232940674,
+          -1.3228192329406738,
+          -0.44781920313835144
+        ],
+        "control_mask": [
+          -4.6272077560424805,
+          -2.6272077560424805,
+          -4.8772077560424805,
+          -1.5022077560424805,
+          -0.37720778584480286
+        ]
+      },
+      "margins": {
+        "full": 1.0000000298023224,
+        "evidence_mask": 0.8750000298023224,
+        "control_mask": 1.1249999701976776
+      },
+      "evidence_margin_drop": 0.125,
+      "control_margin_drop": -0.12499994039535522,
+      "selective_necessity_margin_drop": 0.24999994039535522
+    },
+    {
+      "sample_id": "6216509632:7",
+      "video_id": "6216509632",
+      "qid": "7",
+      "question_type": "CH",
+      "sampled_indices": [
+        0,
+        41,
+        81,
+        122,
+        163,
+        204,
+        244,
+        285,
+        326,
+        367,
+        407,
+        448,
+        489,
+        530,
+        570,
+        611
+      ],
+      "evidence_mask_indices": [
+        530,
+        570
+      ],
+      "control_mask_indices": [
+        489,
+        611
+      ],
+      "masked_frame_count": 2,
+      "baseline_choice_correct": true,
+      "gold_choice_index": 3,
+      "predicted_choice_index": 3,
+      "choice_logprobs": {
+        "full": [
+          -8.250946044921875,
+          -10.250946044921875,
+          -7.375946521759033,
+          -0.0009463122696615756,
+          -12.125946044921875
+        ],
+        "evidence_mask": [
+          -7.876376628875732,
+          -9.87637710571289,
+          -7.001376628875732,
+          -0.0013767535565420985,
+          -11.62637710571289
+        ],
+        "control_mask": [
+          -7.876497268676758,
+          -9.876497268676758,
+          -6.876497268676758,
+          -0.0014973392244428396,
+          -11.626497268676758
+        ]
+      },
+      "margins": {
+        "full": 7.375000209489372,
+        "evidence_mask": 6.99999987531919,
+        "control_mask": 6.874999929452315
+      },
+      "evidence_margin_drop": 0.3750003341701813,
+      "control_margin_drop": 0.5000002800370567,
+      "selective_necessity_margin_drop": -0.12499994586687535
+    },
+    {
+      "sample_id": "5412696114:7",
+      "video_id": "5412696114",
+      "qid": "7",
+      "question_type": "TN",
+      "sampled_indices": [
+        0,
+        49,
+        99,
+        148,
+        197,
+        247,
+        296,
+        345,
+        395,
+        444,
+        493,
+        543,
+        592,
+        641,
+        691,
+        740
+      ],
+      "evidence_mask_indices": [
+        493
+      ],
+      "control_mask_indices": [
+        444
+      ],
+      "masked_frame_count": 1,
+      "baseline_choice_correct": true,
+      "gold_choice_index": 3,
+      "predicted_choice_index": 3,
+      "choice_logprobs": {
+        "full": [
+          -1.4397997856140137,
+          -3.4397997856140137,
+          -7.439799785614014,
+          -0.31479978561401367,
+          -8.564800262451172
+        ],
+        "evidence_mask": [
+          -1.4399335384368896,
+          -3.4399335384368896,
+          -7.314933776855469,
+          -0.3149335980415344,
+          -8.439933776855469
+        ],
+        "control_mask": [
+          -1.0957807302474976,
+          -3.220780849456787,
+          -7.220780849456787,
+          -0.47078073024749756,
+          -8.220780372619629
+        ]
+      },
+      "margins": {
+        "full": 1.125,
+        "evidence_mask": 1.1249999403953552,
+        "control_mask": 0.625
+      },
+      "evidence_margin_drop": 5.960464477539063e-08,
+      "control_margin_drop": 0.5,
+      "selective_necessity_margin_drop": -0.4999999403953552
+    },
+    {
+      "sample_id": "2406887888:2",
+      "video_id": "2406887888",
+      "qid": "2",
+      "question_type": "TC",
+      "sampled_indices": [
+        0,
+        180,
+        359,
+        539,
+        719,
+        898,
+        1078,
+        1258,
+        1437,
+        1617,
+        1797,
+        1976,
+        2156,
+        2336,
+        2515,
+        2695
+      ],
+      "evidence_mask_indices": [
+        1797
+      ],
+      "control_mask_indices": [
+        1617
+      ],
+      "masked_frame_count": 1,
+      "baseline_choice_correct": true,
+      "gold_choice_index": 2,
+      "predicted_choice_index": 2,
+      "choice_logprobs": {
+        "full": [
+          -4.586106300354004,
+          -3.211106300354004,
+          -0.0861063078045845,
+          -3.461106300354004,
+          -9.211106300354004
+        ],
+        "evidence_mask": [
+          -4.826942443847656,
+          -3.2019424438476562,
+          -0.07694242894649506,
+          -3.7019424438476562,
+          -8.826942443847656
+        ],
+        "control_mask": [
+          -4.462605953216553,
+          -3.2126057147979736,
+          -0.0876057967543602,
+          -3.4626057147979736,
+          -8.962605476379395
+        ]
+      },
+      "margins": {
+        "full": 3.1249999925494194,
+        "evidence_mask": 3.125000014901161,
+        "control_mask": 3.1249999180436134
+      },
+      "evidence_margin_drop": -2.2351741790771484e-08,
+      "control_margin_drop": 7.450580596923828e-08,
+      "selective_necessity_margin_drop": -9.685754776000977e-08
+    },
+    {
+      "sample_id": "2983727948:5",
+      "video_id": "2983727948",
+      "qid": "5",
+      "question_type": "CH",
+      "sampled_indices": [
+        0,
+        43,
+        85,
+        128,
+        171,
+        214,
+        256,
+        299,
+        342,
+        385,
+        427,
+        470,
+        513,
+        556,
+        598,
+        641
+      ],
+      "evidence_mask_indices": [
+        171,
+        214,
+        256,
+        299
+      ],
+      "control_mask_indices": [
+        85,
+        128,
+        342,
+        385
+      ],
+      "masked_frame_count": 4,
+      "baseline_choice_correct": true,
+      "gold_choice_index": 1,
+      "predicted_choice_index": 1,
+      "choice_logprobs": {
+        "full": [
+          -8.376153945922852,
+          -0.0011541141429916024,
+          -8.751153945922852,
+          -7.876153945922852,
+          -8.001153945922852
+        ],
+        "evidence_mask": [
+          -7.006072521209717,
+          -0.00607240479439497,
+          -7.381072521209717,
+          -6.006072521209717,
+          -6.256072521209717
+        ],
+        "control_mask": [
+          -8.251073837280273,
+          -0.0010740946745499969,
+          -8.501073837280273,
+          -7.876074314117432,
+          -8.626073837280273
+        ]
+      },
+      "margins": {
+        "full": 7.87499983177986,
+        "evidence_mask": 6.000000116415322,
+        "control_mask": 7.875000219442882
+      },
+      "evidence_margin_drop": 1.8749997153645381,
+      "control_margin_drop": -3.8766302168369293e-07,
+      "selective_necessity_margin_drop": 1.8750001030275598
+    },
+    {
+      "sample_id": "4641631235:8",
+      "video_id": "4641631235",
+      "qid": "8",
+      "question_type": "TN",
+      "sampled_indices": [
+        0,
+        107,
+        214,
+        321,
+        428,
+        535,
+        642,
+        749,
+        855,
+        962,
+        1069,
+        1176,
+        1283,
+        1390,
+        1497,
+        1604
+      ],
+      "evidence_mask_indices": [
+        1604
+      ],
+      "control_mask_indices": [
+        1497
+      ],
+      "masked_frame_count": 1,
+      "baseline_choice_correct": true,
+      "gold_choice_index": 3,
+      "predicted_choice_index": 3,
+      "choice_logprobs": {
+        "full": [
+          -4.838213920593262,
+          -2.9632139205932617,
+          -5.213213920593262,
+          -0.08821380138397217,
+          -3.9632139205932617
+        ],
+        "evidence_mask": [
+          -4.599823951721191,
+          -2.8498241901397705,
+          -4.849823951721191,
+          -0.09982410073280334,
+          -3.9748241901397705
+        ],
+        "control_mask": [
+          -4.823877811431885,
+          -3.3238778114318848,
+          -5.323877811431885,
+          -0.07387775182723999,
+          -3.8238778114318848
+        ]
+      },
+      "margins": {
+        "full": 2.8750001192092896,
+        "evidence_mask": 2.750000089406967,
+        "control_mask": 3.2500000596046448
+      },
+      "evidence_margin_drop": 0.1250000298023224,
+      "control_margin_drop": -0.3749999403953552,
+      "selective_necessity_margin_drop": 0.4999999701976776
+    },
+    {
+      "sample_id": "2402178262:6",
+      "video_id": "2402178262",
+      "qid": "6",
+      "question_type": "TC",
+      "sampled_indices": [
+        0,
+        86,
+        171,
+        257,
+        342,
+        428,
+        514,
+        599,
+        685,
+        770,
+        856,
+        942,
+        1027,
+        1113,
+        1198,
+        1284
+      ],
+      "evidence_mask_indices": [
+        1198,
+        1284
+      ],
+      "control_mask_indices": [
+        1027,
+        1113
+      ],
+      "masked_frame_count": 2,
+      "baseline_choice_correct": true,
+      "gold_choice_index": 1,
+      "predicted_choice_index": 1,
+      "choice_logprobs": {
+        "full": [
+          -2.5126419067382812,
+          -0.1376419961452484,
+          -4.387641906738281,
+          -6.887641906738281,
+          -3.3876419067382812
+        ],
+        "evidence_mask": [
+          -2.514650344848633,
+          -0.13965027034282684,
+          -4.264650344848633,
+          -6.639650344848633,
+          -3.389650344848633
+        ],
+        "control_mask": [
+          -2.5189545154571533,
+          -0.14395447075366974,
+          -4.268954277038574,
+          -6.768954277038574,
+          -3.2689545154571533
+        ]
+      },
+      "margins": {
+        "full": 2.374999910593033,
+        "evidence_mask": 2.375000074505806,
+        "control_mask": 2.3750000447034836
+      },
+      "evidence_margin_drop": -1.6391277313232422e-07,
+      "control_margin_drop": -1.341104507446289e-07,
+      "selective_necessity_margin_drop": -2.9802322387695312e-08
+    },
+    {
+      "sample_id": "2603758280:2",
+      "video_id": "2603758280",
+      "qid": "2",
+      "question_type": "TC",
+      "sampled_indices": [
+        0,
+        123,
+        246,
+        369,
+        492,
+        615,
+        738,
+        861,
+        984,
+        1107,
+        1230,
+        1353,
+        1476,
+        1599,
+        1722,
+        1845
+      ],
+      "evidence_mask_indices": [
+        1230
+      ],
+      "control_mask_indices": [
+        1107
+      ],
+      "masked_frame_count": 1,
+      "baseline_choice_correct": true,
+      "gold_choice_index": 4,
+      "predicted_choice_index": 4,
+      "choice_logprobs": {
+        "full": [
+          -7.602255344390869,
+          -6.852255344390869,
+          -0.9772555232048035,
+          -8.227255821228027,
+          -0.47725552320480347
+        ],
+        "evidence_mask": [
+          -7.6815009117126465,
+          -6.9315009117126465,
+          -1.0565011501312256,
+          -8.431501388549805,
+          -0.4315011203289032
+        ],
+        "control_mask": [
+          -7.931086540222168,
+          -7.056086540222168,
+          -1.056086540222168,
+          -8.806086540222168,
+          -0.43108654022216797
+        ]
+      },
+      "margins": {
+        "full": 0.5,
+        "evidence_mask": 0.6250000298023224,
+        "control_mask": 0.625
+      },
+      "evidence_margin_drop": -0.1250000298023224,
+      "control_margin_drop": -0.125,
+      "selective_necessity_margin_drop": -2.9802322387695312e-08
+    },
+    {
+      "sample_id": "2481132749:7",
+      "video_id": "2481132749",
+      "qid": "7",
+      "question_type": "TN",
+      "sampled_indices": [
+        0,
+        45,
+        89,
+        134,
+        179,
+        223,
+        268,
+        313,
+        357,
+        402,
+        447,
+        491,
+        536,
+        581,
+        625,
+        670
+      ],
+      "evidence_mask_indices": [
+        179
+      ],
+      "control_mask_indices": [
+        134
+      ],
+      "masked_frame_count": 1,
+      "baseline_choice_correct": true,
+      "gold_choice_index": 3,
+      "predicted_choice_index": 3,
+      "choice_logprobs": {
+        "full": [
+          -6.752114772796631,
+          -8.252115249633789,
+          -8.127115249633789,
+          -0.002114800037816167,
+          -8.502115249633789
+        ],
+        "evidence_mask": [
+          -6.502567768096924,
+          -8.127568244934082,
+          -8.252568244934082,
+          -0.0025679252576082945,
+          -8.127568244934082
+        ],
+        "control_mask": [
+          -6.627305507659912,
+          -8.25230598449707,
+          -8.12730598449707,
+          -0.0023057085927575827,
+          -8.37730598449707
+        ]
+      },
+      "margins": {
+        "full": 6.749999972758815,
+        "evidence_mask": 6.4999998428393155,
+        "control_mask": 6.6249997990671545
+      },
+      "evidence_margin_drop": 0.25000012991949916,
+      "control_margin_drop": 0.12500017369166017,
+      "selective_necessity_margin_drop": 0.124999956227839
+    },
+    {
+      "sample_id": "4180380438:3",
+      "video_id": "4180380438",
+      "qid": "3",
+      "question_type": "TN",
+      "sampled_indices": [
+        0,
+        58,
+        116,
+        175,
+        233,
+        291,
+        349,
+        407,
+        466,
+        524,
+        582,
+        640,
+        698,
+        757,
+        815,
+        873
+      ],
+      "evidence_mask_indices": [
+        349,
+        407
+      ],
+      "control_mask_indices": [
+        291,
+        466
+      ],
+      "masked_frame_count": 2,
+      "baseline_choice_correct": false,
+      "gold_choice_index": 4,
+      "predicted_choice_index": 2,
+      "choice_logprobs": {
+        "full": [
+          -3.2531938552856445,
+          -2.7531938552856445,
+          -0.12819385528564453,
+          -6.8781938552856445,
+          -4.1281938552856445
+        ],
+        "evidence_mask": [
+          -3.4830162525177,
+          -2.9830162525177,
+          -0.10801617801189423,
+          -6.733016014099121,
+          -3.9830162525177
+        ],
+        "control_mask": [
+          -3.047516345977783,
+          -2.422516345977783,
+          -0.17251630127429962,
+          -6.547516345977783,
+          -3.922516345977783
+        ]
+      },
+      "margins": {
+        "full": -4.0,
+        "evidence_mask": -3.875000074505806,
+        "control_mask": -3.7500000447034836
+      },
+      "evidence_margin_drop": -0.12499992549419403,
+      "control_margin_drop": -0.24999995529651642,
+      "selective_necessity_margin_drop": 0.1250000298023224
+    },
+    {
+      "sample_id": "10864382765:8",
+      "video_id": "10864382765",
+      "qid": "8",
+      "question_type": "CW",
+      "sampled_indices": [
+        0,
+        31,
+        61,
+        92,
+        122,
+        153,
+        183,
+        214,
+        244,
+        275,
+        305,
+        336,
+        366,
+        397,
+        427,
+        458
+      ],
+      "evidence_mask_indices": [
+        275,
+        305,
+        336,
+        366,
+        397
+      ],
+      "control_mask_indices": [
+        183,
+        214,
+        244,
+        427,
+        458
+      ],
+      "masked_frame_count": 5,
+      "baseline_choice_correct": true,
+      "gold_choice_index": 4,
+      "predicted_choice_index": 4,
+      "choice_logprobs": {
+        "full": [
+          -7.262327194213867,
+          -8.637327194213867,
+          -5.637327194213867,
+          -0.762327253818512,
+          -0.637327253818512
+        ],
+        "evidence_mask": [
+          -7.3931074142456055,
+          -8.643107414245605,
+          -5.2681074142456055,
+          -0.3931073248386383,
+          -1.143107295036316
+        ],
+        "control_mask": [
+          -6.679931640625,
+          -7.679931640625,
+          -4.054931640625,
+          -1.929931640625,
+          -0.17993158102035522
+        ]
+      },
+      "margins": {
+        "full": 0.125,
+        "evidence_mask": -0.7499999701976776,
+        "control_mask": 1.7500000596046448
+      },
+      "evidence_margin_drop": 0.8749999701976776,
+      "control_margin_drop": -1.6250000596046448,
+      "selective_necessity_margin_drop": 2.5000000298023224
+    },
+    {
+      "sample_id": "2916577028:2",
+      "video_id": "2916577028",
+      "qid": "2",
+      "question_type": "CW",
+      "sampled_indices": [
+        0,
+        29,
+        58,
+        87,
+        116,
+        145,
+        174,
+        203,
+        231,
+        260,
+        289,
+        318,
+        347,
+        376,
+        405,
+        434
+      ],
+      "evidence_mask_indices": [
+        58,
+        87
+      ],
+      "control_mask_indices": [
+        29,
+        116
+      ],
+      "masked_frame_count": 2,
+      "baseline_choice_correct": false,
+      "gold_choice_index": 3,
+      "predicted_choice_index": 2,
+      "choice_logprobs": {
+        "full": [
+          -4.454235553741455,
+          -4.329235553741455,
+          -0.45423561334609985,
+          -1.079235553741455,
+          -9.204236030578613
+        ],
+        "evidence_mask": [
+          -4.495788097381592,
+          -4.620788097381592,
+          -0.49578800797462463,
+          -0.9957879781723022,
+          -9.120787620544434
+        ],
+        "control_mask": [
+          -4.211365699768066,
+          -4.086365699768066,
+          -0.46136587858200073,
+          -1.0863659381866455,
+          -8.836365699768066
+        ]
+      },
+      "margins": {
+        "full": -0.6249999403953552,
+        "evidence_mask": -0.4999999701976776,
+        "control_mask": -0.6250000596046448
+      },
+      "evidence_margin_drop": -0.12499997019767761,
+      "control_margin_drop": 1.1920928955078125e-07,
+      "selective_necessity_margin_drop": -0.12500008940696716
+    },
+    {
+      "sample_id": "3081360150:8",
+      "video_id": "3081360150",
+      "qid": "8",
+      "question_type": "CW",
+      "sampled_indices": [
+        0,
+        119,
+        237,
+        356,
+        474,
+        593,
+        712,
+        830,
+        949,
+        1067,
+        1186,
+        1305,
+        1423,
+        1542,
+        1660,
+        1779
+      ],
+      "evidence_mask_indices": [
+        1542
+      ],
+      "control_mask_indices": [
+        1423
+      ],
+      "masked_frame_count": 1,
+      "baseline_choice_correct": true,
+      "gold_choice_index": 3,
+      "predicted_choice_index": 3,
+      "choice_logprobs": {
+        "full": [
+          -7.139235019683838,
+          -4.389235019683838,
+          -7.514235019683838,
+          -0.014234906062483788,
+          -8.13923454284668
+        ],
+        "evidence_mask": [
+          -7.014387130737305,
+          -4.389387130737305,
+          -7.514387130737305,
+          -0.014387206174433231,
+          -8.014387130737305
+        ],
+        "control_mask": [
+          -7.261319637298584,
+          -4.636319637298584,
+          -7.636319637298584,
+          -0.01131981797516346,
+          -8.136320114135742
+        ]
+      },
+      "margins": {
+        "full": 4.375000113621354,
+        "evidence_mask": 4.3749999245628715,
+        "control_mask": 4.6249998193234205
+      },
+      "evidence_margin_drop": 1.8905848264694214e-07,
+      "control_margin_drop": -0.24999970570206642,
+      "selective_necessity_margin_drop": 0.24999989476054907
+    },
+    {
+      "sample_id": "2466853140:7",
+      "video_id": "2466853140",
+      "qid": "7",
+      "question_type": "CH",
+      "sampled_indices": [
+        0,
+        82,
+        163,
+        245,
+        326,
+        408,
+        489,
+        571,
+        652,
+        734,
+        815,
+        897,
+        978,
+        1060,
+        1141,
+        1223
+      ],
+      "evidence_mask_indices": [
+        815,
+        897,
+        978,
+        1060
+      ],
+      "control_mask_indices": [
+        652,
+        734,
+        1141,
+        1223
+      ],
+      "masked_frame_count": 4,
+      "baseline_choice_correct": false,
+      "gold_choice_index": 1,
+      "predicted_choice_index": 0,
+      "choice_logprobs": {
+        "full": [
+          -0.03325771540403366,
+          -3.6582577228546143,
+          -6.908257484436035,
+          -5.783257484436035,
+          -5.908257484436035
+        ],
+        "evidence_mask": [
+          -0.0261277686804533,
+          -6.651127815246582,
+          -6.776127815246582,
+          -4.901127815246582,
+          -4.151127815246582
+        ],
+        "control_mask": [
+          -0.0556991808116436,
+          -3.055699110031128,
+          -6.555699348449707,
+          -5.680699348449707,
+          -6.180699348449707
+        ]
+      },
+      "margins": {
+        "full": -3.6250000074505806,
+        "evidence_mask": -6.625000046566129,
+        "control_mask": -2.9999999292194843
+      },
+      "evidence_margin_drop": 3.000000039115548,
+      "control_margin_drop": -0.6250000782310963,
+      "selective_necessity_margin_drop": 3.6250001173466444
+    },
+    {
+      "sample_id": "4167294363:4",
+      "video_id": "4167294363",
+      "qid": "4",
+      "question_type": "CW",
+      "sampled_indices": [
+        0,
+        127,
+        253,
+        380,
+        507,
+        633,
+        760,
+        887,
+        1013,
+        1140,
+        1267,
+        1393,
+        1520,
+        1647,
+        1773,
+        1900
+      ],
+      "evidence_mask_indices": [
+        887
+      ],
+      "control_mask_indices": [
+        760
+      ],
+      "masked_frame_count": 1,
+      "baseline_choice_correct": false,
+      "gold_choice_index": 0,
+      "predicted_choice_index": 1,
+      "choice_logprobs": {
+        "full": [
+          -3.556257963180542,
+          -0.056257933378219604,
+          -7.806257724761963,
+          -8.806258201599121,
+          -3.681257963180542
+        ],
+        "evidence_mask": [
+          -4.164949417114258,
+          -0.03994953632354736,
+          -7.789949417114258,
+          -8.664949417114258,
+          -3.789949417114258
+        ],
+        "control_mask": [
+          -3.67797589302063,
+          -0.05297592282295227,
+          -7.802976131439209,
+          -8.67797565460205,
+          -3.67797589302063
+        ]
+      },
+      "margins": {
+        "full": -3.5000000298023224,
+        "evidence_mask": -4.1249998807907104,
+        "control_mask": -3.6249999701976776
+      },
+      "evidence_margin_drop": 0.6249998509883881,
+      "control_margin_drop": 0.12499994039535522,
+      "selective_necessity_margin_drop": 0.49999991059303284
+    },
+    {
+      "sample_id": "2828927371:7",
+      "video_id": "2828927371",
+      "qid": "7",
+      "question_type": "CH",
+      "sampled_indices": [
+        0,
+        94,
+        188,
+        282,
+        375,
+        469,
+        563,
+        657,
+        751,
+        845,
+        939,
+        1033,
+        1126,
+        1220,
+        1314,
+        1408
+      ],
+      "evidence_mask_indices": [
+        1126,
+        1220,
+        1314,
+        1408
+      ],
+      "control_mask_indices": [
+        751,
+        845,
+        939,
+        1033
+      ],
+      "masked_frame_count": 4,
+      "baseline_choice_correct": true,
+      "gold_choice_index": 1,
+      "predicted_choice_index": 1,
+      "choice_logprobs": {
+        "full": [
+          -6.326829433441162,
+          -0.4518292546272278,
+          -6.826829433441162,
+          -2.826829195022583,
+          -1.201829195022583
+        ],
+        "evidence_mask": [
+          -6.194384574890137,
+          -0.5693845152854919,
+          -6.694384574890137,
+          -2.4443845748901367,
+          -1.0693845748901367
+        ],
+        "control_mask": [
+          -6.1738200187683105,
+          -0.29881995916366577,
+          -6.6738200187683105,
+          -2.4238200187683105,
+          -1.7988200187683105
+        ]
+      },
+      "margins": {
+        "full": 0.7499999403953552,
+        "evidence_mask": 0.5000000596046448,
+        "control_mask": 1.5000000596046448
+      },
+      "evidence_margin_drop": 0.24999988079071045,
+      "control_margin_drop": -0.7500001192092896,
+      "selective_necessity_margin_drop": 1.0
+    },
+    {
+      "sample_id": "2597214137:4",
+      "video_id": "2597214137",
+      "qid": "4",
+      "question_type": "CH",
+      "sampled_indices": [
+        0,
+        180,
+        359,
+        539,
+        719,
+        899,
+        1078,
+        1258,
+        1438,
+        1618,
+        1797,
+        1977,
+        2157,
+        2337,
+        2516,
+        2696
+      ],
+      "evidence_mask_indices": [
+        180,
+        359
+      ],
+      "control_mask_indices": [
+        0,
+        539
+      ],
+      "masked_frame_count": 2,
+      "baseline_choice_correct": true,
+      "gold_choice_index": 1,
+      "predicted_choice_index": 1,
+      "choice_logprobs": {
+        "full": [
+          -5.028811454772949,
+          -0.40381157398223877,
+          -2.028811454772949,
+          -6.403811454772949,
+          -1.6538115739822388
+        ],
+        "evidence_mask": [
+          -5.291536808013916,
+          -0.4165366291999817,
+          -1.791536569595337,
+          -6.791536808013916,
+          -1.791536569595337
+        ],
+        "control_mask": [
+          -5.169751167297363,
+          -0.2947514057159424,
+          -2.2947514057159424,
+          -6.919751167297363,
+          -1.9197514057159424
+        ]
+      },
+      "margins": {
+        "full": 1.25,
+        "evidence_mask": 1.3749999403953552,
+        "control_mask": 1.625
+      },
+      "evidence_margin_drop": -0.12499994039535522,
+      "control_margin_drop": -0.375,
+      "selective_necessity_margin_drop": 0.2500000596046448
+    },
+    {
+      "sample_id": "6975125131:3",
+      "video_id": "6975125131",
+      "qid": "3",
+      "question_type": "CH",
+      "sampled_indices": [
+        0,
+        23,
+        46,
+        70,
+        93,
+        116,
+        139,
+        162,
+        186,
+        209,
+        232,
+        255,
+        278,
+        302,
+        325,
+        348
+      ],
+      "evidence_mask_indices": [
+        116,
+        139,
+        162,
+        186,
+        209
+      ],
+      "control_mask_indices": [
+        46,
+        70,
+        93,
+        232,
+        255
+      ],
+      "masked_frame_count": 5,
+      "baseline_choice_correct": true,
+      "gold_choice_index": 2,
+      "predicted_choice_index": 2,
+      "choice_logprobs": {
+        "full": [
+          -4.031544208526611,
+          -1.5315443277359009,
+          -0.2815442979335785,
+          -5.656544208526611,
+          -4.906544208526611
+        ],
+        "evidence_mask": [
+          -4.309515476226807,
+          -1.4345154762268066,
+          -0.30951541662216187,
+          -5.684515476226807,
+          -4.559515476226807
+        ],
+        "control_mask": [
+          -4.302727222442627,
+          -1.427727222442627,
+          -0.30272722244262695,
+          -5.552727222442627,
+          -5.677727222442627
+        ]
+      },
+      "margins": {
+        "full": 1.2500000298023224,
+        "evidence_mask": 1.1250000596046448,
+        "control_mask": 1.125
+      },
+      "evidence_margin_drop": 0.12499997019767761,
+      "control_margin_drop": 0.1250000298023224,
+      "selective_necessity_margin_drop": -5.960464477539063e-08
+    },
+    {
+      "sample_id": "4015487071:6",
+      "video_id": "4015487071",
+      "qid": "6",
+      "question_type": "CW",
+      "sampled_indices": [
+        0,
+        41,
+        82,
+        123,
+        163,
+        204,
+        245,
+        286,
+        327,
+        368,
+        409,
+        450,
+        490,
+        531,
+        572,
+        613
+      ],
+      "evidence_mask_indices": [
+        41,
+        82,
+        123,
+        163
+      ],
+      "control_mask_indices": [
+        0,
+        204,
+        245,
+        286
+      ],
+      "masked_frame_count": 4,
+      "baseline_choice_correct": true,
+      "gold_choice_index": 3,
+      "predicted_choice_index": 3,
+      "choice_logprobs": {
+        "full": [
+          -4.4171624183654785,
+          -2.2921626567840576,
+          -3.2921626567840576,
+          -0.16716256737709045,
+          -5.7921624183654785
+        ],
+        "evidence_mask": [
+          -2.6443097591400146,
+          -1.0193097591400146,
+          -1.1443097591400146,
+          -1.5193097591400146,
+          -3.5193097591400146
+        ],
+        "control_mask": [
+          -3.514315605163574,
+          -1.1393156051635742,
+          -1.5143156051635742,
+          -0.8893156051635742,
+          -4.014315605163574
+        ]
+      },
+      "margins": {
+        "full": 2.125000089406967,
+        "evidence_mask": -0.5,
+        "control_mask": 0.25
+      },
+      "evidence_margin_drop": 2.625000089406967,
+      "control_margin_drop": 1.8750000894069672,
+      "selective_necessity_margin_drop": 0.75
+    }
+  ]
+}

@@ -1,0 +1,121 @@
+{
+  "script": "analyze_necessity_choice_mask_fill.py",
+  "black_input": "results/necessity_choice_margin_replication_heldout.json",
+  "blur_input": "results/necessity_choice_margin_replication_blur_heldout.json",
+  "n_paired": 60,
+  "failures_black": [],
+  "failures_blur": [],
+  "comparisons": {
+    "all": {
+      "n": 60,
+      "black": {
+        "n": 60,
+        "mean": 0.2958333408451532,
+        "sd": 1.2883865908706846,
+        "ci95_pointwise": [
+          -0.03333335019366738,
+          0.6104166856609178
+        ],
+        "positive_fraction": 0.65,
+        "signflip_p_two_sided": 0.0805919408059194
+      },
+      "blur": {
+        "n": 60,
+        "mean": 0.3604166617219259,
+        "sd": 1.465545620534323,
+        "ci95_pointwise": [
+          -0.025000018922340436,
+          0.7104166955628898
+        ],
+        "positive_fraction": 0.6333333333333333,
+        "signflip_p_two_sided": 0.060993900609939006
+      },
+      "blur_minus_black": {
+        "n": 60,
+        "mean": 0.06458332087677263,
+        "sd": 0.4752851481148173,
+        "ci95_pointwise": [
+          -0.049999963042985957,
+          0.1895832922754683
+        ],
+        "positive_fraction": 0.5166666666666667,
+        "signflip_p_two_sided": 0.3100689931006899
+      }
+    },
+    "baseline_correct_primary": {
+      "n": 37,
+      "black": {
+        "n": 37,
+        "mean": 0.334459460490089,
+        "sd": 0.7448049638408788,
+        "ci95_pointwise": [
+          0.11148646947903389,
+          0.5878378441669377
+        ],
+        "positive_fraction": 0.6486486486486487,
+        "signflip_p_two_sided": 0.0059994000599940004
+      },
+      "blur": {
+        "n": 37,
+        "mean": 0.4560810530265617,
+        "sd": 0.9317956976755122,
+        "ci95_pointwise": [
+          0.17905404481004822,
+          0.7702701943753464
+        ],
+        "positive_fraction": 0.6756756756756757,
+        "signflip_p_two_sided": 0.004199580041995801
+      },
+      "blur_minus_black": {
+        "n": 37,
+        "mean": 0.12162159253647267,
+        "sd": 0.44241922349351015,
+        "ci95_pointwise": [
+          -0.006756787472113501,
+          0.2770269836039153
+        ],
+        "positive_fraction": 0.5945945945945946,
+        "signflip_p_two_sided": 0.0994900509949005
+      }
+    },
+    "baseline_incorrect_secondary": {
+      "n": 23,
+      "black": {
+        "n": 23,
+        "mean": 0.23369567011199568,
+        "sd": 1.8807881881191033,
+        "ci95_pointwise": [
+          -0.5706522025815819,
+          0.9510869960017179
+        ],
+        "positive_fraction": 0.6521739130434783,
+        "signflip_p_two_sided": 0.5671432856714329
+      },
+      "blur": {
+        "n": 23,
+        "mean": 0.20652177136229433,
+        "sd": 2.0734416089512364,
+        "ci95_pointwise": [
+          -0.6847825591330943,
+          0.9945652595032817
+        ],
+        "positive_fraction": 0.5652173913043478,
+        "signflip_p_two_sided": 0.6461353864613538
+      },
+      "blur_minus_black": {
+        "n": 23,
+        "mean": -0.027173898749701355,
+        "sd": 0.5208118775923393,
+        "ci95_pointwise": [
+          -0.22826081587244634,
+          0.18478260598266902
+        ],
+        "positive_fraction": 0.391304347826087,
+        "signflip_p_two_sided": 0.8155184481551845
+      }
+    }
+  },
+  "inference_note": "Pointwise bootstrap intervals and sample-level sign-flip tests; the paired fill contrast is a robustness analysis, not an independent replication.",
+  "bootstrap_draws": 10000,
+  "seed": 20261010
+}

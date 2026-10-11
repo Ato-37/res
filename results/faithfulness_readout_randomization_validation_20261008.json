@@ -1,0 +1,385 @@
+{
+  "schema_version": 1,
+  "experiment": "head_attribution_output_readout_randomization_sanity",
+  "status": "exploratory_sanity_check_not_faithfulness_test",
+  "n_requested": 3,
+  "n_effective": 3,
+  "n_failures": 0,
+  "failures": [],
+  "records": [
+    {
+      "sample_key": "sample_000",
+      "baseline_prediction_index": 0,
+      "baseline_margin": 1.625,
+      "randomized_readout_runs": [
+        {
+          "spearman_rho": 0.45132391341484246,
+          "top_k_overlap_count": 0,
+          "top_k_overlap_fraction": 0.0,
+          "original_top_indices": [
+            699,
+            562,
+            409,
+            586
+          ],
+          "randomized_top_indices": [
+            532,
+            697,
+            629,
+            769
+          ],
+          "randomized_prediction_index": 0,
+          "randomized_margin": 5.59375
+        },
+        {
+          "spearman_rho": 0.4429336417193717,
+          "top_k_overlap_count": 0,
+          "top_k_overlap_fraction": 0.0,
+          "original_top_indices": [
+            699,
+            562,
+            409,
+            586
+          ],
+          "randomized_top_indices": [
+            768,
+            578,
+            697,
+            769
+          ],
+          "randomized_prediction_index": 2,
+          "randomized_margin": 13.45703125
+        },
+        {
+          "spearman_rho": 0.4467646360103453,
+          "top_k_overlap_count": 0,
+          "top_k_overlap_fraction": 0.0,
+          "original_top_indices": [
+            699,
+            562,
+            409,
+            586
+          ],
+          "randomized_top_indices": [
+            578,
+            462,
+            713,
+            15
+          ],
+          "randomized_prediction_index": 1,
+          "randomized_margin": 1.0234375
+        },
+        {
+          "spearman_rho": 0.4569960351077982,
+          "top_k_overlap_count": 0,
+          "top_k_overlap_fraction": 0.0,
+          "original_top_indices": [
+            699,
+            562,
+            409,
+            586
+          ],
+          "randomized_top_indices": [
+            769,
+            766,
+            737,
+            768
+          ],
+          "randomized_prediction_index": 4,
+          "randomized_margin": 5.948243141174316
+        },
+        {
+          "spearman_rho": 0.4590214869167522,
+          "top_k_overlap_count": 2,
+          "top_k_overlap_fraction": 0.5,
+          "original_top_indices": [
+            699,
+            562,
+            409,
+            586
+          ],
+          "randomized_top_indices": [
+            713,
+            562,
+            409,
+            480
+          ],
+          "randomized_prediction_index": 2,
+          "randomized_margin": 4.640625
+        }
+      ],
+      "mean_spearman_rho": 0.45140794263382195,
+      "mean_top4_overlap_fraction": 0.1,
+      "elapsed_seconds": 14.012255396926776
+    },
+    {
+      "sample_key": "sample_001",
+      "baseline_prediction_index": 1,
+      "baseline_margin": 4.375,
+      "randomized_readout_runs": [
+        {
+          "spearman_rho": 0.5464909135189328,
+          "top_k_overlap_count": 0,
+          "top_k_overlap_fraction": 0.0,
+          "original_top_indices": [
+            606,
+            462,
+            699,
+            641
+          ],
+          "randomized_top_indices": [
+            480,
+            714,
+            568,
+            718
+          ],
+          "randomized_prediction_index": 1,
+          "randomized_margin": 0.65625
+        },
+        {
+          "spearman_rho": 0.4303661635970004,
+          "top_k_overlap_count": 0,
+          "top_k_overlap_fraction": 0.0,
+          "original_top_indices": [
+            606,
+            462,
+            699,
+            641
+          ],
+          "randomized_top_indices": [
+            532,
+            750,
+            588,
+            562
+          ],
+          "randomized_prediction_index": 2,
+          "randomized_margin": 0.83984375
+        },
+        {
+          "spearman_rho": 0.4966382833974061,
+          "top_k_overlap_count": 0,
+          "top_k_overlap_fraction": 0.0,
+          "original_top_indices": [
+            606,
+            462,
+            699,
+            641
+          ],
+          "randomized_top_indices": [
+            737,
+            753,
+            568,
+            754
+          ],
+          "randomized_prediction_index": 4,
+          "randomized_margin": 1.7109375
+        },
+        {
+          "spearman_rho": 0.43304307593159536,
+          "top_k_overlap_count": 1,
+          "top_k_overlap_fraction": 0.25,
+          "original_top_indices": [
+            606,
+            462,
+            699,
+            641
+          ],
+          "randomized_top_indices": [
+            462,
+            754,
+            409,
+            698
+          ],
+          "randomized_prediction_index": 0,
+          "randomized_margin": 2.03125
+        },
+        {
+          "spearman_rho": 0.5105556227908837,
+          "top_k_overlap_count": 1,
+          "top_k_overlap_fraction": 0.25,
+          "original_top_indices": [
+            606,
+            462,
+            699,
+            641
+          ],
+          "randomized_top_indices": [
+            559,
+            462,
+            737,
+            664
+          ],
+          "randomized_prediction_index": 0,
+          "randomized_margin": 0.875
+        }
+      ],
+      "mean_spearman_rho": 0.48341881184716373,
+      "mean_top4_overlap_fraction": 0.1,
+      "elapsed_seconds": 12.364262250019237
+    },
+    {
+      "sample_key": "sample_002",
+      "baseline_prediction_index": 0,
+      "baseline_margin": 7.5,
+      "randomized_readout_runs": [
+        {
+          "spearman_rho": 0.4765238638101115,
+          "top_k_overlap_count": 0,
+          "top_k_overlap_fraction": 0.0,
+          "original_top_indices": [
+            699,
+            462,
+            532,
+            550
+          ],
+          "randomized_top_indices": [
+            409,
+            480,
+            693,
+            715
+          ],
+          "randomized_prediction_index": 0,
+          "randomized_margin": 1.484375
+        },
+        {
+          "spearman_rho": 0.4518610489806875,
+          "top_k_overlap_count": 0,
+          "top_k_overlap_fraction": 0.0,
+          "original_top_indices": [
+            699,
+            462,
+            532,
+            550
+          ],
+          "randomized_top_indices": [
+            768,
+            718,
+            750,
+            588
+          ],
+          "randomized_prediction_index": 2,
+          "randomized_margin": 1.4375
+        },
+        {
+          "spearman_rho": 0.5141604822615773,
+          "top_k_overlap_count": 0,
+          "top_k_overlap_fraction": 0.0,
+          "original_top_indices": [
+            699,
+            462,
+            532,
+            550
+          ],
+          "randomized_top_indices": [
+            559,
+            578,
+            766,
+            769
+          ],
+          "randomized_prediction_index": 4,
+          "randomized_margin": 3.03125
+        },
+        {
+          "spearman_rho": 0.42749984685286374,
+          "top_k_overlap_count": 0,
+          "top_k_overlap_fraction": 0.0,
+          "original_top_indices": [
+            699,
+            462,
+            532,
+            550
+          ],
+          "randomized_top_indices": [
+            768,
+            715,
+            766,
+            769
+          ],
+          "randomized_prediction_index": 1,
+          "randomized_margin": 2.85546875
+        },
+        {
+          "spearman_rho": 0.4504644467055436,
+          "top_k_overlap_count": 0,
+          "top_k_overlap_fraction": 0.0,
+          "original_top_indices": [
+            699,
+            462,
+            532,
+            550
+          ],
+          "randomized_top_indices": [
+            568,
+            409,
+            480,
+            741
+          ],
+          "randomized_prediction_index": 4,
+          "randomized_margin": 7.078125953674316
+        }
+      ],
+      "mean_spearman_rho": 0.4641019377221568,
+      "mean_top4_overlap_fraction": 0.0,
+      "elapsed_seconds": 13.853593157953583
+    }
+  ],
+  "randomizations_per_sample": 5,
+  "randomized_parameter_scope": "five A-E output-readout rows only; transformer layers unchanged",
+  "initializer_std": 0.02,
+  "mean_sample_spearman_rho": 0.4663095640677142,
+  "mean_sample_top4_overlap_fraction": 0.06666666666666667,
+  "seed": 20261011,
+  "model": "Qwen/Qwen2.5-VL-7B-Instruct",
+  "model_revision": "cc594898137f460bfe9f0759e9844b3ce807cfb5",
+  "quant": "4bit",
+  "dtype": "bfloat16",
+  "device": "cuda",
+  "gpu": "NVIDIA GeForce RTX 5070 Ti",
+  "torch": "2.11.0+cu128",
+  "transformers": "5.17.0",
+  "opencv": "5.0.0",
+  "python": "3.12.14",
+  "attention_implementation": "sdpa",
+  "gradient_checkpointing": "non_reentrant",
+  "num_frames": 16,
+  "layers": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11,
+    12,
+    13,
+    14,
+    15,
+    16,
+    17,
+    18,
+    19,
+    20,
+    21,
+    22,
+    23,
+    24,
+    25,
+    26,
+    27
+  ],
+  "num_heads_per_layer": 28,
+  "top_k": 4,
+  "runtime_seconds": 40.2313068510266,
+  "limitations": [
+    "Only the five choice-token output-readout rows are randomized; transformer layers are unchanged.",
+    "This is a limited parameter-randomization sanity diagnostic, not the full layer-wise Adebayo test.",
+    "Rank change does not establish causal faithfulness; rank stability is a warning signal, not a standalone rejection rule.",
+    "The random readout rows use the model config initializer_range and may not match trained-row statistics.",
+    "A-E choice-token margins are tied to the registered prompt and are not free-generation accuracy."
+  ]
+}

@@ -1,0 +1,419 @@
+[
+  {
+    "video": "/home/ato121/nextgqa_sample/NExTVideo/1001/3932142423.mp4",
+    "question": "how did the girl stretch her leg in the middle of the video",
+    "answer": "lift one leg up",
+    "grounding": [
+      [
+        61.9,
+        65.7
+      ]
+    ]
+  },
+  {
+    "video": "/home/ato121/nextgqa_sample/NExTVideo/1016/7516286866.mp4",
+    "question": "what did the baby do after he hold the blue toy",
+    "answer": "throw away the blue toy",
+    "grounding": [
+      [
+        3.2,
+        6.2
+      ]
+    ]
+  },
+  {
+    "video": "/home/ato121/nextgqa_sample/NExTVideo/1006/7389955172.mp4",
+    "question": "what does the baby do as the camera is filming at the start",
+    "answer": "smile into camera",
+    "grounding": [
+      [
+        3.3,
+        8.7
+      ]
+    ]
+  },
+  {
+    "video": "/home/ato121/nextgqa_sample/NExTVideo/1021/4784858772.mp4",
+    "question": "what does the shirtless man do after the woman with white headscarf raises her hand at the start",
+    "answer": "walk to her",
+    "grounding": [
+      [
+        6.6,
+        10.7
+      ]
+    ]
+  },
+  {
+    "video": "/home/ato121/nextgqa_sample/NExTVideo/1007/4578166923.mp4",
+    "question": "what was the lady without spectacles doing when the man with beard was talking",
+    "answer": "to scratch and relieve itch",
+    "grounding": [
+      [
+        59.4,
+        63
+      ]
+    ]
+  },
+  {
+    "video": "/home/ato121/nextgqa_sample/NExTVideo/0049/3377976885.mp4",
+    "question": "why do the pandas climb over the logs of wood in between",
+    "answer": "to cross",
+    "grounding": [
+      [
+        3.4,
+        7.8
+      ]
+    ]
+  },
+  {
+    "video": "/home/ato121/nextgqa_sample/NExTVideo/1018/6579160577.mp4",
+    "question": "what was the position of the lady in black while she listened to the boy in blue playing piano",
+    "answer": "kneel behind him",
+    "grounding": [
+      [
+        28.5,
+        32.5
+      ]
+    ]
+  },
+  {
+    "video": "/home/ato121/nextgqa_sample/NExTVideo/1107/3465242353.mp4",
+    "question": "what is the lady doing as the girl dances outside the toilet",
+    "answer": "cleaning the boy with tissue",
+    "grounding": [
+      [
+        0.1,
+        3.6
+      ]
+    ]
+  },
+  {
+    "video": "/home/ato121/nextgqa_sample/NExTVideo/1013/2657975235.mp4",
+    "question": "how did the man in blue shirt stand up stably from the chair",
+    "answer": "by holding armrests on both sides",
+    "grounding": [
+      [
+        8.6,
+        11.6
+      ]
+    ]
+  },
+  {
+    "video": "/home/ato121/nextgqa_sample/NExTVideo/0013/2700856270.mp4",
+    "question": "what happens to the girl after turing around near the end",
+    "answer": "fall down",
+    "grounding": [
+      [
+        24.7,
+        27
+      ]
+    ]
+  },
+  {
+    "video": "/home/ato121/nextgqa_sample/NExTVideo/1011/3495630576.mp4",
+    "question": "why is the dog in the house",
+    "answer": "stay dry",
+    "grounding": [
+      [
+        7.2,
+        11.7
+      ]
+    ]
+  },
+  {
+    "video": "/home/ato121/nextgqa_sample/NExTVideo/1001/6016853978.mp4",
+    "question": "how does the old man react after the girl makes the funny face back at him",
+    "answer": "laugh",
+    "grounding": [
+      [
+        6.4,
+        8.6
+      ]
+    ]
+  },
+  {
+    "video": "/home/ato121/nextgqa_sample/NExTVideo/1164/4768807796.mp4",
+    "question": "why did the baby in red move her head to face the dog when the dog walked away",
+    "answer": "attracted by dog",
+    "grounding": [
+      [
+        4.9,
+        9.4
+      ]
+    ]
+  },
+  {
+    "video": "/home/ato121/nextgqa_sample/NExTVideo/1023/7823823944.mp4",
+    "question": "how did the man in blue kept the ropes tidy as he walked on the wall",
+    "answer": "hold in his hands",
+    "grounding": [
+      [
+        28.8,
+        31.2
+      ]
+    ]
+  },
+  {
+    "video": "/home/ato121/nextgqa_sample/NExTVideo/1024/3485338448.mp4",
+    "question": "why did the baby put his hand inside his mouth",
+    "answer": "suck thumb",
+    "grounding": [
+      [
+        0.1,
+        5.8
+      ]
+    ]
+  },
+  {
+    "video": "/home/ato121/nextgqa_sample/NExTVideo/1002/9134100603.mp4",
+    "question": "how does the girl feel near the end of the video",
+    "answer": "sleepy",
+    "grounding": [
+      [
+        6.7,
+        11.8
+      ]
+    ]
+  },
+  {
+    "video": "/home/ato121/nextgqa_sample/NExTVideo/1052/3222849599.mp4",
+    "question": "how does baby rock the horse",
+    "answer": "bounce up and down",
+    "grounding": [
+      [
+        12.4,
+        18.2
+      ],
+      [
+        30.1,
+        33.7
+      ]
+    ]
+  },
+  {
+    "video": "/home/ato121/nextgqa_sample/NExTVideo/1001/2639154995.mp4",
+    "question": "why are the people standing by the side looking up",
+    "answer": "watching fireworks",
+    "grounding": [
+      [
+        0.1,
+        5.3
+      ],
+      [
+        17.1,
+        21.6
+      ]
+    ]
+  },
+  {
+    "video": "/home/ato121/nextgqa_sample/NExTVideo/1164/6653111897.mp4",
+    "question": "why did the woman grab a book in the beginning",
+    "answer": "read herself",
+    "grounding": [
+      [
+        3.8,
+        10.2
+      ]
+    ]
+  },
+  {
+    "video": "/home/ato121/nextgqa_sample/NExTVideo/1106/9023339404.mp4",
+    "question": "what does the man with a white hat do as the elephant is moving",
+    "answer": "guiding the elephant",
+    "grounding": [
+      [
+        16.5,
+        57.7
+      ],
+      [
+        68.0,
+        83
+      ]
+    ]
+  },
+  {
+    "video": "/home/ato121/nextgqa_sample/NExTVideo/1016/4458449046.mp4",
+    "question": "why does the man in black in white bend his legs in the beginning",
+    "answer": "to hit ball with good pressure",
+    "grounding": [
+      [
+        0.1,
+        11.9
+      ]
+    ]
+  },
+  {
+    "video": "/home/ato121/nextgqa_sample/NExTVideo/0091/5608598769.mp4",
+    "question": "how does the white hamster find food at the beginning of the video",
+    "answer": "digging through hay",
+    "grounding": [
+      [
+        0.0,
+        6.0
+      ]
+    ]
+  },
+  {
+    "video": "/home/ato121/nextgqa_sample/NExTVideo/1027/4937654460.mp4",
+    "question": "why did the small dog run away after biting the big dog at its mouth",
+    "answer": "escape",
+    "grounding": [
+      [
+        23.0,
+        40.6
+      ]
+    ]
+  },
+  {
+    "video": "/home/ato121/nextgqa_sample/NExTVideo/1014/8132052550.mp4",
+    "question": "what does the boy do after jumping on the spot continuously",
+    "answer": "move body",
+    "grounding": [
+      [
+        33.4,
+        37.9
+      ]
+    ]
+  },
+  {
+    "video": "/home/ato121/nextgqa_sample/NExTVideo/1202/3383323177.mp4",
+    "question": "what does the dog do after it turned around from the steps",
+    "answer": "go towards the man",
+    "grounding": [
+      [
+        43.9,
+        49.5
+      ]
+    ]
+  },
+  {
+    "video": "/home/ato121/nextgqa_sample/NExTVideo/1161/4363482648.mp4",
+    "question": "what did the lady and dog do after they reached the other side of the ring",
+    "answer": "turn back and run",
+    "grounding": [
+      [
+        7.7,
+        12.7
+      ]
+    ]
+  },
+  {
+    "video": "/home/ato121/nextgqa_sample/NExTVideo/1052/6257273545.mp4",
+    "question": "why was the man lying backwards at the end",
+    "answer": "laughing",
+    "grounding": [
+      [
+        85.6,
+        89.9
+      ]
+    ]
+  },
+  {
+    "video": "/home/ato121/nextgqa_sample/NExTVideo/1103/3510222236.mp4",
+    "question": "why is the person in white shirt holding a camera",
+    "answer": "filming",
+    "grounding": [
+      [
+        3.0,
+        7.9
+      ]
+    ]
+  },
+  {
+    "video": "/home/ato121/nextgqa_sample/NExTVideo/1001/2667165452.mp4",
+    "question": "why did the lady in black smile at the camera",
+    "answer": "as she was being recorded",
+    "grounding": [
+      [
+        0.8,
+        3.5
+      ]
+    ]
+  },
+  {
+    "video": "/home/ato121/nextgqa_sample/NExTVideo/1014/4389226223.mp4",
+    "question": "what does the baby do after the man picks up a apple in the middle",
+    "answer": "tries to grab",
+    "grounding": [
+      [
+        14.6,
+        16.9
+      ]
+    ]
+  },
+  {
+    "video": "/home/ato121/nextgqa_sample/NExTVideo/1100/3006009155.mp4",
+    "question": "how does the blonde lady help the boy in red to keep his balance at the end of the video",
+    "answer": "hold him",
+    "grounding": [
+      [
+        9.9,
+        12
+      ]
+    ]
+  },
+  {
+    "video": "/home/ato121/nextgqa_sample/NExTVideo/1105/4775972536.mp4",
+    "question": "how are the babies being supported and kept safe in the car",
+    "answer": "baby chair and belt",
+    "grounding": [
+      [
+        0.1,
+        37.0
+      ]
+    ]
+  },
+  {
+    "video": "/home/ato121/nextgqa_sample/NExTVideo/1017/7080108581.mp4",
+    "question": "what is the girl in purple pants doing at the start of the video",
+    "answer": "getting more paint on the paintbrush",
+    "grounding": [
+      [
+        0.2,
+        4.0
+      ]
+    ]
+  },
+  {
+    "video": "/home/ato121/nextgqa_sample/NExTVideo/1002/8201826598.mp4",
+    "question": "what does the boy do after chewing the food",
+    "answer": "puts away the residue",
+    "grounding": [
+      [
+        11.0,
+        12.0
+      ],
+      [
+        21.1,
+        22.8
+      ],
+      [
+        33.5,
+        35.6
+      ],
+      [
+        41.8,
+        44.7
+      ],
+      [
+        51.1,
+        51.6
+      ],
+      [
+        57.6,
+        59.5
+      ]
+    ]
+  },
+  {
+    "video": "/home/ato121/nextgqa_sample/NExTVideo/0059/5279956242.mp4",
+    "question": "what did the man in white do as the lady in black walked back near the middle",
+    "answer": "turn back and smile",
+    "grounding": [
+      [
+        7.4,
+        10.8
+      ]
+    ]
+  }
+]

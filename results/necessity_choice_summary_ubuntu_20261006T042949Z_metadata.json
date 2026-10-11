@@ -1,0 +1,26 @@
+{
+  "script": "plot_necessity_choice_results.py",
+  "created_utc": "2026-10-06T04:29:49.807456+00:00",
+  "source_git_commit": "1ac9778",
+  "input_sha256": {
+    "/home/ato121/res/results/necessity_choice_margin_replication_heldout.json": "6471d05bb8187cdceeb67f09b14ab1ee4b315b94fc5a0378fbadc5e744243ba3",
+    "/home/ato121/res/results/necessity_choice_margin_replication_blur_heldout.json": "4c478f06766e0faf0b2f1c8235000eee8d5211ddcdc4b262cae3e5653ef2d3ba",
+    "/home/ato121/res/results/necessity_choice_margin_replication_mask_fill_comparison.json": "9f5598c377d8725b0a842470012a51b035b733c4b33a9f53fba4c4e8eedf2c34"
+  },
+  "model": "Qwen/Qwen2.5-VL-7B-Instruct",
+  "quant": "4bit",
+  "dtype": "bfloat16",
+  "num_frames": 16,
+  "n_paired": 60,
+  "blur_intervention": {
+    "fill": "blur",
+    "blur_radius": 12.0
+  },
+  "interval": "pointwise percentile bootstrap 95%",
+  "multiplicity": "No correction across cohorts or fill comparisons.",
+  "limitations": [
+    "Black and blur conditions are perturbations and may be out of distribution.",
+    "The primary estimate is conditioned on baseline-correct samples.",
+    "The fill comparison uses the same videos and is not an independent replication."
+  ]
+}

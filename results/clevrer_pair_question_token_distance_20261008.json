@@ -1,0 +1,129 @@
+{
+  "audit": "clevrer_counterfactual_program_schema",
+  "created_utc": "2026-10-08T13:03:27.187678+00:00",
+  "interpretation": "Schema feasibility only; program/rationale agreement is not internal faithfulness.",
+  "files": [
+    {
+      "file_name": "train.json",
+      "sha256": "11181da673d223f41fb596aacfbbd3ff83d39af7f09a3210549e98cb283714b4",
+      "counts": {
+        "top_level_type": "list",
+        "top_level_records": 10000,
+        "question_count": 152572,
+        "question_with_answer": 152572,
+        "question_with_program": 152572,
+        "question_with_nonempty_program_payload": 152572,
+        "question_with_choices": 42620,
+        "choice_count": 141211,
+        "choice_with_answer": 141211,
+        "choice_with_program": 141211,
+        "choice_with_nonempty_program_payload": 141211,
+        "question_with_scene_link": 152572,
+        "counterfactual_count_by_type_field": 18642,
+        "counterfactual_with_answer": 18642,
+        "counterfactual_with_program": 18642,
+        "counterfactual_with_nonempty_program_payload": 18642,
+        "counterfactual_program_schema": {
+          "question_level": {
+            "root_type_counts": {},
+            "field_type_counts": {},
+            "list_item_type_counts": {},
+            "dict_node_count": 0
+          },
+          "choice_level": {
+            "root_type_counts": {
+              "list": 66043
+            },
+            "field_type_counts": {},
+            "list_item_type_counts": {
+              "str": 945994
+            },
+            "dict_node_count": 0
+          },
+          "question_program_source_counts": {
+            "choice_level": 18642
+          },
+          "empty_question_program_with_choice_program_count": 0
+        },
+        "counterfactual_scene_count": 10000,
+        "counterfactual_scenes_with_2plus_questions": 8642,
+        "counterfactual_scenes_with_2plus_program_signatures": 8641,
+        "paired_scenes_distinct_programs_same_operator_trace": 104,
+        "paired_scenes_distinct_programs_different_operator_trace": 8537,
+        "paired_scenes_operator_trace_unavailable": 0,
+        "same_operator_trace_pairs_question_token_edit_distance": {
+          "candidate_pairs": 104,
+          "bins": {
+            "0": 0,
+            "1": 0,
+            "2-3": 9,
+            "4+": 95,
+            "unavailable": 0
+          }
+        },
+        "max_counterfactual_questions_per_scene": 2
+      }
+    },
+    {
+      "file_name": "validation.json",
+      "sha256": "fdf841678a476655b906165e6ee4b0ed1516785c5ab927c8d0a4614e4e27e10d",
+      "counts": {
+        "top_level_type": "list",
+        "top_level_records": 5000,
+        "question_count": 76368,
+        "question_with_answer": 76368,
+        "question_with_program": 76368,
+        "question_with_nonempty_program_payload": 76368,
+        "question_with_choices": 21378,
+        "choice_count": 70862,
+        "choice_with_answer": 70862,
+        "choice_with_program": 70862,
+        "choice_with_nonempty_program_payload": 70862,
+        "question_with_scene_link": 76368,
+        "counterfactual_count_by_type_field": 9333,
+        "counterfactual_with_answer": 9333,
+        "counterfactual_with_program": 9333,
+        "counterfactual_with_nonempty_program_payload": 9333,
+        "counterfactual_program_schema": {
+          "question_level": {
+            "root_type_counts": {},
+            "field_type_counts": {},
+            "list_item_type_counts": {},
+            "dict_node_count": 0
+          },
+          "choice_level": {
+            "root_type_counts": {
+              "list": 33051
+            },
+            "field_type_counts": {},
+            "list_item_type_counts": {
+              "str": 473280
+            },
+            "dict_node_count": 0
+          },
+          "question_program_source_counts": {
+            "choice_level": 9333
+          },
+          "empty_question_program_with_choice_program_count": 0
+        },
+        "counterfactual_scene_count": 5000,
+        "counterfactual_scenes_with_2plus_questions": 4333,
+        "counterfactual_scenes_with_2plus_program_signatures": 4333,
+        "paired_scenes_distinct_programs_same_operator_trace": 54,
+        "paired_scenes_distinct_programs_different_operator_trace": 4279,
+        "paired_scenes_operator_trace_unavailable": 0,
+        "same_operator_trace_pairs_question_token_edit_distance": {
+          "candidate_pairs": 54,
+          "bins": {
+            "0": 0,
+            "1": 0,
+            "2-3": 3,
+            "4+": 51,
+            "unavailable": 0
+          }
+        },
+        "max_counterfactual_questions_per_scene": 2
+      }
+    }
+  ]
+}

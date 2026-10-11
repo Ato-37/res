@@ -1,0 +1,68 @@
+[
+  {
+    "video": "/home/ato121/nextgqa_sample/NExTVideo/1014/13125896183.mp4",
+    "video_id": "13125896183",
+    "qid": "3",
+    "question_type": "CW",
+    "question": "why is the dog suddenly jump out of the pillow",
+    "answer": "for food",
+    "choices": [
+      "play with the person",
+      "for food",
+      "to catch the torchlight",
+      "to move pillow",
+      "wants to keep the pillow down"
+    ],
+    "answer_choice_index": 1,
+    "grounding": [
+      [
+        23.4,
+        30.9
+      ]
+    ]
+  },
+  {
+    "video": "/home/ato121/nextgqa_sample/NExTVideo/1025/6176571322.mp4",
+    "video_id": "6176571322",
+    "qid": "6",
+    "question_type": "TN",
+    "question": "what does the girl in pink do after bowing",
+    "answer": "walks away",
+    "choices": [
+      "hug puppet and smile",
+      "walks away",
+      "sit down",
+      "make more bubbles",
+      "stand up"
+    ],
+    "answer_choice_index": 1,
+    "grounding": [
+      [
+        3.9,
+        9.5
+      ]
+    ]
+  },
+  {
+    "video": "/home/ato121/nextgqa_sample/NExTVideo/0062/5080289573.mp4",
+    "video_id": "5080289573",
+    "qid": "9",
+    "question_type": "CW",
+    "question": "why did the girl in red held the head of the girl in blue and shaked",
+    "answer": "get water out from hat",
+    "choices": [
+      "prevent falling",
+      "she wants her drink",
+      "get water out from hat",
+      "dancing",
+      "feed ostrich"
+    ],
+    "answer_choice_index": 2,
+    "grounding": [
+      [
+        11.5,
+        15.9
+      ]
+    ]
+  }
+]

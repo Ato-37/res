@@ -1,0 +1,697 @@
+[
+  {
+    "video": "~/nextgqa_sample/NExTVideo/1101/2574374895.mp4",
+    "question": "What did the baby do after throwing the green cup away while on the floor near the end?",
+    "answer": "lay on floor",
+    "grounding": [
+      [
+        23.0,
+        27.7
+      ]
+    ]
+  },
+  {
+    "video": "~/nextgqa_sample/NExTVideo/0067/3083302557.mp4",
+    "question": "What did the lady do while turning back?",
+    "answer": "thumbs up",
+    "grounding": [
+      [
+        10.8,
+        12.3
+      ]
+    ]
+  },
+  {
+    "video": "~/nextgqa_sample/NExTVideo/1027/3621121750.mp4",
+    "question": "Why did the boy punch his hand forwards in the middle of the video?",
+    "answer": "listening to music and dancing",
+    "grounding": [
+      [
+        15.9,
+        20.2
+      ]
+    ]
+  },
+  {
+    "video": "~/nextgqa_sample/NExTVideo/1052/4522565412.mp4",
+    "question": "How did the man move the sides of the cube quickly?",
+    "answer": "twist it",
+    "grounding": [
+      [
+        8.1,
+        27.3
+      ]
+    ]
+  },
+  {
+    "video": "~/nextgqa_sample/NExTVideo/0094/3747186945.mp4",
+    "question": "How did the girl in braids feel after she finally found the item under the sofa at the end of the video?",
+    "answer": "happy and excited",
+    "grounding": [
+      [
+        39.1,
+        42.9
+      ]
+    ]
+  },
+  {
+    "video": "~/nextgqa_sample/NExTVideo/1001/9289576155.mp4",
+    "question": "Why does the brown cat watch the other cat eat food?",
+    "answer": "waiting for his turn",
+    "grounding": [
+      [
+        33.8,
+        49.9
+      ]
+    ]
+  },
+  {
+    "video": "~/nextgqa_sample/NExTVideo/1201/4188739935.mp4",
+    "question": "What did the man do after he finished taking the boy's photo?",
+    "answer": "stand up",
+    "grounding": [
+      [
+        28.1,
+        30.1
+      ]
+    ]
+  },
+  {
+    "video": "~/nextgqa_sample/NExTVideo/1122/6885309190.mp4",
+    "question": "How did the baby rest his head a few times in the video?",
+    "answer": "on the cushion",
+    "grounding": [
+      [
+        6.0,
+        7.3
+      ],
+      [
+        14.0,
+        15.7
+      ]
+    ]
+  },
+  {
+    "video": "~/nextgqa_sample/NExTVideo/1025/7064920441.mp4",
+    "question": "How does the baby react after the man in green shows his phone?",
+    "answer": "lean forward to look",
+    "grounding": [
+      [
+        62.7,
+        70.6
+      ]
+    ]
+  },
+  {
+    "video": "~/nextgqa_sample/NExTVideo/1008/3205604574.mp4",
+    "question": "What did the girl do near the middle of the video?",
+    "answer": "walks away",
+    "grounding": [
+      [
+        42.1,
+        45.9
+      ]
+    ]
+  },
+  {
+    "video": "~/nextgqa_sample/NExTVideo/1001/11169386614.mp4",
+    "question": "Why is the man running with the white dog?",
+    "answer": "guiding the dog",
+    "grounding": [
+      [
+        14.0,
+        16.3
+      ]
+    ]
+  },
+  {
+    "video": "~/nextgqa_sample/NExTVideo/1103/4827069441.mp4",
+    "question": "Why did the boy bend his head towards the rabbit in the middle of the video?",
+    "answer": "kiss it",
+    "grounding": [
+      [
+        5.0,
+        8.5
+      ]
+    ]
+  },
+  {
+    "video": "~/nextgqa_sample/NExTVideo/1123/3425409935.mp4",
+    "question": "Why does the lady assist the baby in the beginning?",
+    "answer": "to guide",
+    "grounding": [
+      [
+        0.0,
+        5.4
+      ]
+    ]
+  },
+  {
+    "video": "~/nextgqa_sample/NExTVideo/1021/4129080039.mp4",
+    "question": "How does the nearest parrot move across the cage?",
+    "answer": "use beak to pull itself",
+    "grounding": [
+      [
+        0.0,
+        9.1
+      ]
+    ]
+  },
+  {
+    "video": "~/nextgqa_sample/NExTVideo/1101/6097011028.mp4",
+    "question": "Why did the lady with flower shirt moved her hands in the middle of the video?",
+    "answer": "to turn the frame",
+    "grounding": [
+      [
+        15.8,
+        20.4
+      ]
+    ]
+  },
+  {
+    "video": "~/nextgqa_sample/NExTVideo/0053/4890173699.mp4",
+    "question": "Why does the man put his hand on the tiger?",
+    "answer": "caress it",
+    "grounding": [
+      [
+        20.0,
+        25.4
+      ]
+    ]
+  },
+  {
+    "video": "~/nextgqa_sample/NExTVideo/1010/3255908815.mp4",
+    "question": "Why does the boy put his hands over the camera?",
+    "answer": "playing",
+    "grounding": [
+      [
+        12.1,
+        40.7
+      ]
+    ]
+  },
+  {
+    "video": "~/nextgqa_sample/NExTVideo/1010/3086276600.mp4",
+    "question": "How does the lady in orange help the boy in blue?",
+    "answer": "push the swing",
+    "grounding": [
+      [
+        37.9,
+        52.4
+      ],
+      [
+        81.4,
+        89.8
+      ]
+    ]
+  },
+  {
+    "video": "~/nextgqa_sample/NExTVideo/0070/4839003204.mp4",
+    "question": "Why does the woman in blue swipe her eyes near the end of the video?",
+    "answer": "wipe tears",
+    "grounding": [
+      [
+        11.6,
+        19
+      ]
+    ]
+  },
+  {
+    "video": "~/nextgqa_sample/NExTVideo/1015/3844880628.mp4",
+    "question": "What is the other kid near the lady doing?",
+    "answer": "picking up the ball",
+    "grounding": [
+      [
+        9.8,
+        11.6
+      ]
+    ]
+  },
+  {
+    "video": "~/nextgqa_sample/NExTVideo/1001/7618872538.mp4",
+    "question": "How does the lady in white bounce the boy?",
+    "answer": "shake leg",
+    "grounding": [
+      [
+        0.1,
+        6.4
+      ]
+    ]
+  },
+  {
+    "video": "~/nextgqa_sample/NExTVideo/1103/3557601110.mp4",
+    "question": "What does the bike rider do after falling down from the bridge?",
+    "answer": "grab the bridge for support",
+    "grounding": [
+      [
+        10.7,
+        12.8
+      ]
+    ]
+  },
+  {
+    "video": "~/nextgqa_sample/NExTVideo/1011/6447803681.mp4",
+    "question": "What does the baby do as the lady brings the ball closer at the start?",
+    "answer": "bite it",
+    "grounding": [
+      [
+        18.6,
+        42.4
+      ]
+    ]
+  },
+  {
+    "video": "~/nextgqa_sample/NExTVideo/1101/3426605205.mp4",
+    "question": "What did the baby do after the hand adjusted the food on the table at the middle of the video?",
+    "answer": "put food on bib",
+    "grounding": [
+      [
+        24.1,
+        30.4
+      ]
+    ]
+  },
+  {
+    "video": "~/nextgqa_sample/NExTVideo/1105/10495085476.mp4",
+    "question": "Why did the adult squat down and opened his arm at the end of the video?",
+    "answer": "want to hug child",
+    "grounding": [
+      [
+        22.5,
+        30.7
+      ]
+    ]
+  },
+  {
+    "video": "~/nextgqa_sample/NExTVideo/0018/5338232189.mp4",
+    "question": "Why does everyone focus on the lady in white sitting on the floor?",
+    "answer": "she is opening something",
+    "grounding": [
+      [
+        4.0,
+        12.0
+      ]
+    ]
+  },
+  {
+    "video": "~/nextgqa_sample/NExTVideo/1012/5866947362.mp4",
+    "question": "How is the woman in green feeling watching the man in brown and the girl?",
+    "answer": "happy",
+    "grounding": [
+      [
+        1.9,
+        4.8
+      ],
+      [
+        28.1,
+        30.2
+      ]
+    ]
+  },
+  {
+    "video": "~/nextgqa_sample/NExTVideo/1110/4625256813.mp4",
+    "question": "What does the man do after falling out from the skateboard?",
+    "answer": "pick up skateboard",
+    "grounding": [
+      [
+        13.4,
+        15.8
+      ]
+    ]
+  },
+  {
+    "video": "~/nextgqa_sample/NExTVideo/1104/5508995205.mp4",
+    "question": "What did the lady do when the baby in pink lost her red toy?",
+    "answer": "push baby towards toy",
+    "grounding": [
+      [
+        16.6,
+        20.2
+      ]
+    ]
+  },
+  {
+    "video": "~/nextgqa_sample/NExTVideo/1026/11589691386.mp4",
+    "question": "Why is the cars in the street not moving?",
+    "answer": "parked",
+    "grounding": [
+      [
+        0.3,
+        6.0
+      ]
+    ]
+  },
+  {
+    "video": "~/nextgqa_sample/NExTVideo/0031/2925959064.mp4",
+    "question": "Why is the white bird perched on a rock?",
+    "answer": "resting",
+    "grounding": [
+      [
+        0.1,
+        5.2
+      ]
+    ]
+  },
+  {
+    "video": "~/nextgqa_sample/NExTVideo/0059/2400084970.mp4",
+    "question": "Why did the lady in green cover her mouth and bend down in the middle?",
+    "answer": "laughing",
+    "grounding": [
+      [
+        7.3,
+        11.0
+      ]
+    ]
+  },
+  {
+    "video": "~/nextgqa_sample/NExTVideo/1017/4326843514.mp4",
+    "question": "How does the lady react when the baby unrolls the toilet paper?",
+    "answer": "stares at camera",
+    "grounding": [
+      [
+        17.7,
+        19.7
+      ]
+    ]
+  },
+  {
+    "video": "~/nextgqa_sample/NExTVideo/1005/2676529856.mp4",
+    "question": "Why does the baby stomp very hard as he walks around?",
+    "answer": "he was playing",
+    "grounding": [
+      [
+        0.0,
+        5.0
+      ]
+    ]
+  },
+  {
+    "video": "~/nextgqa_sample/NExTVideo/1107/3672431760.mp4",
+    "question": "How does the lady react when the dog fetches the twig?",
+    "answer": "watches dog run away",
+    "grounding": [
+      [
+        16.1,
+        22.5
+      ]
+    ]
+  },
+  {
+    "video": "~/nextgqa_sample/NExTVideo/1019/3739319683.mp4",
+    "question": "Why did the the woman with apron bend down after moving to the left of the stage?",
+    "answer": "pick up something",
+    "grounding": [
+      [
+        9.4,
+        12.0
+      ]
+    ]
+  },
+  {
+    "video": "~/nextgqa_sample/NExTVideo/1012/2969688375.mp4",
+    "question": "What does the kid try to do during the second time he approaches the lady?",
+    "answer": "tries to hug the lady",
+    "grounding": [
+      [
+        11.7,
+        13.9
+      ]
+    ]
+  },
+  {
+    "video": "~/nextgqa_sample/NExTVideo/1025/6000221920.mp4",
+    "question": "Why is the man in green playing the instrument wearing a cap?",
+    "answer": "to protect from the sun",
+    "grounding": [
+      [
+        0.0,
+        1.6
+      ],
+      [
+        31.7,
+        34.5
+      ],
+      [
+        41.9,
+        43
+      ]
+    ]
+  },
+  {
+    "video": "~/nextgqa_sample/NExTVideo/1200/5832442216.mp4",
+    "question": "Why does the person in red step forward when hitting the other person with the sword?",
+    "answer": "to reach him",
+    "grounding": [
+      [
+        3.4,
+        5.8
+      ]
+    ]
+  },
+  {
+    "video": "~/nextgqa_sample/NExTVideo/1162/4967866673.mp4",
+    "question": "Why did the person hold tightly to the handle in the water sport?",
+    "answer": "hold for balance",
+    "grounding": [
+      [
+        0.6,
+        34.6
+      ]
+    ]
+  },
+  {
+    "video": "~/nextgqa_sample/NExTVideo/1202/3701219945.mp4",
+    "question": "Why is there a woman dancing and moving along next to the car?",
+    "answer": "express excited",
+    "grounding": [
+      [
+        23.0,
+        29.7
+      ]
+    ]
+  },
+  {
+    "video": "~/nextgqa_sample/NExTVideo/1099/8696216243.mp4",
+    "question": "Why does the lady in green place the red toy in front of the baby in purple?",
+    "answer": "let the baby play",
+    "grounding": [
+      [
+        4.2,
+        8.1
+      ]
+    ]
+  },
+  {
+    "video": "~/nextgqa_sample/NExTVideo/1104/3529392983.mp4",
+    "question": "Why were there flashes of light at the baby seat near the start?",
+    "answer": "from the toy",
+    "grounding": [
+      [
+        0.1,
+        5.0
+      ]
+    ]
+  },
+  {
+    "video": "~/nextgqa_sample/NExTVideo/1102/4675888059.mp4",
+    "question": "Why did the lady in blue shirt hold the car wheels in the middle of the video?",
+    "answer": "prevent car from moving",
+    "grounding": [
+      [
+        20.0,
+        53.1
+      ]
+    ]
+  },
+  {
+    "video": "~/nextgqa_sample/NExTVideo/1099/5826069843.mp4",
+    "question": "What did the boy do after he flipped the boat over?",
+    "answer": "stablise himself",
+    "grounding": [
+      [
+        4.1,
+        6.3
+      ],
+      [
+        18.3,
+        20
+      ]
+    ]
+  },
+  {
+    "video": "~/nextgqa_sample/NExTVideo/1202/5207564483.mp4",
+    "question": "Why is the stick on the floor near the end of the video?",
+    "answer": "dark brown dog dropped it",
+    "grounding": [
+      [
+        28.9,
+        32.0
+      ]
+    ]
+  },
+  {
+    "video": "~/nextgqa_sample/NExTVideo/1120/3425596660.mp4",
+    "question": "Why is the man with the cap waiting for the bald man?",
+    "answer": "bald man gets in calling",
+    "grounding": [
+      [
+        5.3,
+        11.6
+      ]
+    ]
+  },
+  {
+    "video": "~/nextgqa_sample/NExTVideo/1023/10728284944.mp4",
+    "question": "Why is the girl doing some hand actions?",
+    "answer": "showing magic tricks",
+    "grounding": [
+      [
+        0.0,
+        73.1
+      ]
+    ]
+  },
+  {
+    "video": "~/nextgqa_sample/NExTVideo/1155/8148337178.mp4",
+    "question": "Why did the lady with curly hair hold onto her microphone at the end?",
+    "answer": "adjusting it",
+    "grounding": [
+      [
+        82.9,
+        90.0
+      ]
+    ]
+  },
+  {
+    "video": "~/nextgqa_sample/NExTVideo/1162/5965267539.mp4",
+    "question": "What did the boy in red do after the adult stretched her hand towards him near the start?",
+    "answer": "touch the food",
+    "grounding": [
+      [
+        3.6,
+        7.4
+      ]
+    ]
+  },
+  {
+    "video": "~/nextgqa_sample/NExTVideo/1000/5275599750.mp4",
+    "question": "What did the guy in grey shirt do after the other guy raised his hand?",
+    "answer": "point at the screen",
+    "grounding": [
+      [
+        66.6,
+        68.8
+      ]
+    ]
+  },
+  {
+    "video": "~/nextgqa_sample/NExTVideo/1007/5880312109.mp4",
+    "question": "What did the girl do after she walked to the opposite direction after spinning?",
+    "answer": "walk back to the lady",
+    "grounding": [
+      [
+        26.1,
+        28.4
+      ]
+    ]
+  },
+  {
+    "video": "~/nextgqa_sample/NExTVideo/0053/2669597217.mp4",
+    "question": "What does the guy in red do after pointing at the shark at the start?",
+    "answer": "stroke the shark",
+    "grounding": [
+      [
+        0.0,
+        2.1
+      ]
+    ]
+  },
+  {
+    "video": "~/nextgqa_sample/NExTVideo/1011/11848898333.mp4",
+    "question": "Why are the people dressed in raincoats?",
+    "answer": "raining",
+    "grounding": [
+      [
+        28.0,
+        33.4
+      ]
+    ]
+  },
+  {
+    "video": "~/nextgqa_sample/NExTVideo/1110/4070768447.mp4",
+    "question": "How did the baby reach for toys that are further to him?",
+    "answer": "move body forward",
+    "grounding": [
+      [
+        4.8,
+        11.3
+      ]
+    ]
+  },
+  {
+    "video": "~/nextgqa_sample/NExTVideo/1202/3305288577.mp4",
+    "question": "What did the girl do at the end of the video after holding her cheeks for a while?",
+    "answer": "crawl away",
+    "grounding": [
+      [
+        24.8,
+        26
+      ]
+    ]
+  },
+  {
+    "video": "~/nextgqa_sample/NExTVideo/1105/13503538465.mp4",
+    "question": "How did the girl get from one bed to another?",
+    "answer": "jump over",
+    "grounding": [
+      [
+        10.4,
+        13.4
+      ]
+    ]
+  },
+  {
+    "video": "~/nextgqa_sample/NExTVideo/0032/3343269521.mp4",
+    "question": "How did the cat pee?",
+    "answer": "sit on toilet",
+    "grounding": [
+      [
+        0.0,
+        50.0
+      ]
+    ]
+  },
+  {
+    "video": "~/nextgqa_sample/NExTVideo/1015/3332670362.mp4",
+    "question": "How did the boy bring the swing to a stop before pushing it again?",
+    "answer": "grab the swing",
+    "grounding": [
+      [
+        7.2,
+        12.1
+      ]
+    ]
+  },
+  {
+    "video": "~/nextgqa_sample/NExTVideo/1025/9048165540.mp4",
+    "question": "Why did the man in blue go over to the bench near the fencing match?",
+    "answer": "take his clothings",
+    "grounding": [
+      [
+        5.6,
+        24.1
+      ]
+    ]
+  },
+  {
+    "video": "~/nextgqa_sample/NExTVideo/1018/3386797396.mp4",
+    "question": "How did the man tried to film the goat?",
+    "answer": "put camera in front of goat",
+    "grounding": [
+      [
+        0.2,
+        4.7
+      ]
+    ]
+  }
+]

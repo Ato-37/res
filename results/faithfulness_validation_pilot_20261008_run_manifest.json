@@ -1,0 +1,18 @@
+{
+  "experiment": "gradient_activation_head_faithfulness",
+  "created_utc": "2026-10-07T18:19:29.337707+00:00",
+  "samples_sha256": "968ed130684510de8c6fe7e91a4c0ed90db2cac90a8b2200ff3b55254cd77875",
+  "model": "Qwen/Qwen2.5-VL-7B-Instruct",
+  "quant": "4bit",
+  "seed": 20261009,
+  "layers": "all",
+  "top_k": 4,
+  "alpha": 0.5,
+  "control_repeats": 5,
+  "num_frames": 16,
+  "cap_pixels_per_frame": true,
+  "max_pixels": 200704,
+  "n_requested": 30,
+  "n_effective": 30,
+  "n_failures": 0
+}

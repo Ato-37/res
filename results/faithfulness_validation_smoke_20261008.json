@@ -1,0 +1,504 @@
+{
+  "schema_version": 1,
+  "experiment": "gradient_activation_head_faithfulness",
+  "research_status": "smoke",
+  "model": "Qwen/Qwen2.5-VL-7B-Instruct",
+  "model_revision": "cc594898137f460bfe9f0759e9844b3ce807cfb5",
+  "quant": "4bit",
+  "dtype": "bfloat16",
+  "attention_implementation": "sdpa",
+  "gradient_checkpointing": "non_reentrant",
+  "model_parameters_trainable": false,
+  "cap_pixels_per_frame": true,
+  "device": "cuda",
+  "gpu": "NVIDIA GeForce RTX 5070 Ti",
+  "python": "3.12.14",
+  "torch": "2.11.0+cu128",
+  "transformers": "5.17.0",
+  "opencv": "5.0.0",
+  "seed": 20261008,
+  "layers": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11,
+    12,
+    13,
+    14,
+    15,
+    16,
+    17,
+    18,
+    19,
+    20,
+    21,
+    22,
+    23,
+    24,
+    25,
+    26,
+    27
+  ],
+  "num_heads_per_layer": 28,
+  "head_dim": 128,
+  "num_frames": 16,
+  "top_k": 4,
+  "alpha": 0.5,
+  "control_repeats": 5,
+  "control_matching": "exact layer histogram; nearest activation L2 norm in log-ratio; disjoint groups",
+  "score_definition": "log p(baseline predicted option) minus strongest foil option; prediction frozen after baseline",
+  "primary_estimand": "mean(target margin drop minus mean matched-control margin drop), one independent video per sample",
+  "practical_threshold_nat": 0.25,
+  "primary_summary": {
+    "mean": 0.10833333333333334,
+    "sd": 0.15069284433354269,
+    "ci95_t": [
+      -0.2660084441665421,
+      0.4826751108332088
+    ],
+    "test_null_mean": 0.25,
+    "t_statistic_vs_threshold": -1.6283046848759573,
+    "p_two_sided_vs_threshold": 0.24500349413664324,
+    "bootstrap_ci95_pointwise": [
+      -0.05000000000000001,
+      0.25
+    ],
+    "signflip_p_two_sided_vs_threshold": 0.5061493850614939,
+    "positive_fraction": 0.6666666666666666,
+    "fraction_above_practical_threshold": 0.0,
+    "primary_threshold_supported": false
+  },
+  "secondary_descriptives": {
+    "n_baseline_correct": 2,
+    "baseline_choice_accuracy": 0.6666666666666666,
+    "note": "Descriptive only; primary estimand includes every successful sample regardless of baseline correctness."
+  },
+  "n_requested": 3,
+  "n_effective": 3,
+  "n_failures": 0,
+  "runtime_seconds": 27.425530072068796,
+  "termination_reason": "completed",
+  "failures": [],
+  "records": [
+    {
+      "sample_key": "sample_000",
+      "baseline_margin": 1.625,
+      "baseline_prediction_index": 0,
+      "baseline_foil_index": 2,
+      "baseline_choice_correct": true,
+      "selected_heads": [
+        {
+          "layer": 24,
+          "head": 27,
+          "score": 0.36918738996610045
+        },
+        {
+          "layer": 20,
+          "head": 2,
+          "score": 0.20481334440410137
+        },
+        {
+          "layer": 14,
+          "head": 17,
+          "score": 0.13525474607013166
+        },
+        {
+          "layer": 20,
+          "head": 26,
+          "score": 0.1302915542619303
+        }
+      ],
+      "selected_attribution_sum": 0.8395470347022638,
+      "target_margin_after_intervention": 1.375,
+      "target_margin_drop": 0.25,
+      "control_groups": [
+        [
+          {
+            "layer": 14,
+            "head": 25
+          },
+          {
+            "layer": 20,
+            "head": 5
+          },
+          {
+            "layer": 20,
+            "head": 16
+          },
+          {
+            "layer": 24,
+            "head": 25
+          }
+        ],
+        [
+          {
+            "layer": 14,
+            "head": 13
+          },
+          {
+            "layer": 20,
+            "head": 8
+          },
+          {
+            "layer": 20,
+            "head": 6
+          },
+          {
+            "layer": 24,
+            "head": 21
+          }
+        ],
+        [
+          {
+            "layer": 14,
+            "head": 11
+          },
+          {
+            "layer": 20,
+            "head": 18
+          },
+          {
+            "layer": 20,
+            "head": 23
+          },
+          {
+            "layer": 24,
+            "head": 22
+          }
+        ],
+        [
+          {
+            "layer": 14,
+            "head": 14
+          },
+          {
+            "layer": 20,
+            "head": 3
+          },
+          {
+            "layer": 20,
+            "head": 21
+          },
+          {
+            "layer": 24,
+            "head": 26
+          }
+        ],
+        [
+          {
+            "layer": 14,
+            "head": 0
+          },
+          {
+            "layer": 20,
+            "head": 1
+          },
+          {
+            "layer": 20,
+            "head": 22
+          },
+          {
+            "layer": 24,
+            "head": 24
+          }
+        ]
+      ],
+      "control_margin_drops": [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "mean_control_margin_drop": 0.0,
+      "selective_margin_drop": 0.25,
+      "mean_abs_log_activation_norm_ratio": 0.2717998674697618,
+      "elapsed_seconds": 8.8218552719336
+    },
+    {
+      "sample_key": "sample_001",
+      "baseline_margin": 4.375,
+      "baseline_prediction_index": 1,
+      "baseline_foil_index": 0,
+      "baseline_choice_correct": false,
+      "selected_heads": [
+        {
+          "layer": 21,
+          "head": 18,
+          "score": 0.5038838759064674
+        },
+        {
+          "layer": 16,
+          "head": 14,
+          "score": 0.3933499399572611
+        },
+        {
+          "layer": 24,
+          "head": 27,
+          "score": 0.36224223126191646
+        },
+        {
+          "layer": 22,
+          "head": 25,
+          "score": 0.3437931772787124
+        }
+      ],
+      "selected_attribution_sum": 1.6032692244043574,
+      "target_margin_after_intervention": 4.5,
+      "target_margin_drop": -0.125,
+      "control_groups": [
+        [
+          {
+            "layer": 16,
+            "head": 15
+          },
+          {
+            "layer": 21,
+            "head": 15
+          },
+          {
+            "layer": 22,
+            "head": 27
+          },
+          {
+            "layer": 24,
+            "head": 22
+          }
+        ],
+        [
+          {
+            "layer": 16,
+            "head": 17
+          },
+          {
+            "layer": 21,
+            "head": 14
+          },
+          {
+            "layer": 22,
+            "head": 24
+          },
+          {
+            "layer": 24,
+            "head": 26
+          }
+        ],
+        [
+          {
+            "layer": 16,
+            "head": 1
+          },
+          {
+            "layer": 21,
+            "head": 6
+          },
+          {
+            "layer": 22,
+            "head": 26
+          },
+          {
+            "layer": 24,
+            "head": 21
+          }
+        ],
+        [
+          {
+            "layer": 16,
+            "head": 20
+          },
+          {
+            "layer": 21,
+            "head": 22
+          },
+          {
+            "layer": 22,
+            "head": 23
+          },
+          {
+            "layer": 24,
+            "head": 5
+          }
+        ],
+        [
+          {
+            "layer": 16,
+            "head": 26
+          },
+          {
+            "layer": 21,
+            "head": 19
+          },
+          {
+            "layer": 22,
+            "head": 8
+          },
+          {
+            "layer": 24,
+            "head": 24
+          }
+        ]
+      ],
+      "control_margin_drops": [
+        -0.125,
+        0.0,
+        0.0,
+        -0.25,
+        0.0
+      ],
+      "mean_control_margin_drop": -0.075,
+      "selective_margin_drop": -0.05,
+      "mean_abs_log_activation_norm_ratio": 0.3607278145538644,
+      "elapsed_seconds": 8.510830385959707
+    },
+    {
+      "sample_key": "sample_002",
+      "baseline_margin": 7.5,
+      "baseline_prediction_index": 0,
+      "baseline_foil_index": 3,
+      "baseline_choice_correct": true,
+      "selected_heads": [
+        {
+          "layer": 24,
+          "head": 27,
+          "score": 0.5005404301828094
+        },
+        {
+          "layer": 16,
+          "head": 14,
+          "score": 0.46843579690903425
+        },
+        {
+          "layer": 19,
+          "head": 0,
+          "score": 0.45520748384296894
+        },
+        {
+          "layer": 19,
+          "head": 18,
+          "score": 0.42161641269922256
+        }
+      ],
+      "selected_attribution_sum": 1.8458001236340351,
+      "target_margin_after_intervention": 7.25,
+      "target_margin_drop": 0.25,
+      "control_groups": [
+        [
+          {
+            "layer": 16,
+            "head": 15
+          },
+          {
+            "layer": 19,
+            "head": 15
+          },
+          {
+            "layer": 19,
+            "head": 17
+          },
+          {
+            "layer": 24,
+            "head": 24
+          }
+        ],
+        [
+          {
+            "layer": 16,
+            "head": 17
+          },
+          {
+            "layer": 19,
+            "head": 21
+          },
+          {
+            "layer": 19,
+            "head": 14
+          },
+          {
+            "layer": 24,
+            "head": 26
+          }
+        ],
+        [
+          {
+            "layer": 16,
+            "head": 1
+          },
+          {
+            "layer": 19,
+            "head": 23
+          },
+          {
+            "layer": 19,
+            "head": 19
+          },
+          {
+            "layer": 24,
+            "head": 22
+          }
+        ],
+        [
+          {
+            "layer": 16,
+            "head": 20
+          },
+          {
+            "layer": 19,
+            "head": 11
+          },
+          {
+            "layer": 19,
+            "head": 4
+          },
+          {
+            "layer": 24,
+            "head": 21
+          }
+        ],
+        [
+          {
+            "layer": 16,
+            "head": 26
+          },
+          {
+            "layer": 19,
+            "head": 22
+          },
+          {
+            "layer": 19,
+            "head": 27
+          },
+          {
+            "layer": 24,
+            "head": 5
+          }
+        ]
+      ],
+      "control_margin_drops": [
+        0.375,
+        -0.125,
+        0.0,
+        0.125,
+        0.25
+      ],
+      "mean_control_margin_drop": 0.125,
+      "selective_margin_drop": 0.125,
+      "mean_abs_log_activation_norm_ratio": 0.3565484303465087,
+      "elapsed_seconds": 9.736399000044912
+    }
+  ],
+  "limitations": [
+    "Gradient-times-activation is a local attribution score, not itself a causal effect.",
+    "Internal attenuation may move activations off the model data manifold; matched controls reduce but do not eliminate this concern.",
+    "Choice-letter margin is specific to the fixed five-choice prompt and is not free-generation accuracy.",
+    "Temporal grounding attention analysis is not included in this primary-only implementation.",
+    "Smoke samples are engineering checks and are excluded from confirmatory inference."
+  ]
+}

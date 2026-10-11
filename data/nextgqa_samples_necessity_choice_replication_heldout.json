@@ -1,0 +1,1374 @@
+[
+  {
+    "video": "/home/ato121/nextgqa_sample/NExTVideo/1019/4286880949.mp4",
+    "video_id": "4286880949",
+    "qid": "7",
+    "question_type": "TN",
+    "question": "what did the girl in stripes do after blowing out the candles",
+    "answer": "take out candles",
+    "choices": [
+      "kneel down to take photo",
+      "sit down on armchair",
+      "look at boy",
+      "take out candles",
+      "clap hands"
+    ],
+    "answer_choice_index": 3,
+    "grounding": [
+      [
+        27.3,
+        32.3
+      ]
+    ]
+  },
+  {
+    "video": "/home/ato121/nextgqa_sample/NExTVideo/0085/2774457371.mp4",
+    "video_id": "2774457371",
+    "qid": "9",
+    "question_type": "TN",
+    "question": "what did the cat do after each time it drank abit of water from the tap",
+    "answer": "raise its head",
+    "choices": [
+      "climb up the broom",
+      "lick mouth",
+      "lifts her shirt",
+      "walks across",
+      "raise its head"
+    ],
+    "answer_choice_index": 4,
+    "grounding": [
+      [
+        10.0,
+        13.9
+      ],
+      [
+        23.9,
+        33.0
+      ],
+      [
+        39.0,
+        46.0
+      ]
+    ]
+  },
+  {
+    "video": "/home/ato121/nextgqa_sample/NExTVideo/1165/8150513082.mp4",
+    "video_id": "8150513082",
+    "qid": "4",
+    "question_type": "CW",
+    "question": "why does the cat in the middle walk away in the middle of the video",
+    "answer": "distracted",
+    "choices": [
+      "snuggle into blanket",
+      "referring to cat",
+      "distracted",
+      "look for food",
+      "keep itself calm"
+    ],
+    "answer_choice_index": 2,
+    "grounding": [
+      [
+        8.0,
+        11.5
+      ]
+    ]
+  },
+  {
+    "video": "/home/ato121/nextgqa_sample/NExTVideo/1024/7303386938.mp4",
+    "video_id": "7303386938",
+    "qid": "0",
+    "question_type": "CH",
+    "question": "how did the baby drink from the bottle",
+    "answer": "using the straw",
+    "choices": [
+      "sucked it",
+      "poured it into a cup",
+      "scoop using a spoon",
+      "using the straw",
+      "directly through the bottle"
+    ],
+    "answer_choice_index": 3,
+    "grounding": [
+      [
+        0.1,
+        2.0
+      ],
+      [
+        16.0,
+        17.6
+      ],
+      [
+        22.4,
+        24.1
+      ],
+      [
+        56.8,
+        59.9
+      ]
+    ]
+  },
+  {
+    "video": "/home/ato121/nextgqa_sample/NExTVideo/1018/5221530771.mp4",
+    "video_id": "5221530771",
+    "qid": "6",
+    "question_type": "TN",
+    "question": "what did the blonde woman do after she looked at the camera at the start",
+    "answer": "play the accordion",
+    "choices": [
+      "cry",
+      "opening a packet",
+      "dance",
+      "starts running",
+      "play the accordion"
+    ],
+    "answer_choice_index": 4,
+    "grounding": [
+      [
+        0.0,
+        2.5
+      ]
+    ]
+  },
+  {
+    "video": "/home/ato121/nextgqa_sample/NExTVideo/1111/3969677780.mp4",
+    "video_id": "3969677780",
+    "qid": "7",
+    "question_type": "TC",
+    "question": "what did the man in red do at the beginning of the video as the man with spectacles is talking",
+    "answer": "looked down briefly",
+    "choices": [
+      "take picture with camera",
+      "looked down briefly",
+      "look at him",
+      "laugh",
+      "moves forward"
+    ],
+    "answer_choice_index": 1,
+    "grounding": [
+      [
+        2.8,
+        6.8
+      ]
+    ]
+  },
+  {
+    "video": "/home/ato121/nextgqa_sample/NExTVideo/1028/6577341237.mp4",
+    "video_id": "6577341237",
+    "qid": "9",
+    "question_type": "TC",
+    "question": "what did the girl do when she turned away from the tablet",
+    "answer": "look away",
+    "choices": [
+      "smiling",
+      "walk back to the lady",
+      "hold the ice cream",
+      "put down tablet",
+      "look away"
+    ],
+    "answer_choice_index": 4,
+    "grounding": [
+      [
+        15.2,
+        22.1
+      ]
+    ]
+  },
+  {
+    "video": "/home/ato121/nextgqa_sample/NExTVideo/1099/5589529025.mp4",
+    "video_id": "5589529025",
+    "qid": "4",
+    "question_type": "TC",
+    "question": "what does the lady do at the start while the baby in white was sitting on the floor",
+    "answer": "unwrap the present",
+    "choices": [
+      "show baby a soft toy",
+      "talking",
+      "playing",
+      "unwrap the present",
+      "lying down"
+    ],
+    "answer_choice_index": 3,
+    "grounding": [
+      [
+        1.9,
+        10.3
+      ]
+    ]
+  },
+  {
+    "video": "/home/ato121/nextgqa_sample/NExTVideo/1023/8029969533.mp4",
+    "video_id": "8029969533",
+    "qid": "7",
+    "question_type": "CH",
+    "question": "how did the two ladies greet the camera",
+    "answer": "wave their hands",
+    "choices": [
+      "made a high-five",
+      "raise their hands high",
+      "wave their hands",
+      "kiss the cameraman",
+      "look and nod"
+    ],
+    "answer_choice_index": 2,
+    "grounding": [
+      [
+        3.0,
+        4.6
+      ]
+    ]
+  },
+  {
+    "video": "/home/ato121/nextgqa_sample/NExTVideo/1106/3992773451.mp4",
+    "video_id": "3992773451",
+    "qid": "1",
+    "question_type": "TC",
+    "question": "what does the boy do when he go out of the water at the end",
+    "answer": "spit water out",
+    "choices": [
+      "cycle towards the slope",
+      "happy",
+      "sing",
+      "raise his hands",
+      "spit water out"
+    ],
+    "answer_choice_index": 4,
+    "grounding": [
+      [
+        23.5,
+        24.9
+      ]
+    ]
+  },
+  {
+    "video": "/home/ato121/nextgqa_sample/NExTVideo/1203/3804458046.mp4",
+    "video_id": "3804458046",
+    "qid": "1",
+    "question_type": "CW",
+    "question": "why did the man in brown start pointing",
+    "answer": "to show soemthing",
+    "choices": [
+      "call for help",
+      "wanted a water",
+      "to show soemthing",
+      "wanted his phone",
+      "call the man in white"
+    ],
+    "answer_choice_index": 2,
+    "grounding": [
+      [
+        4.9,
+        7.7
+      ],
+      [
+        8.6,
+        11.7
+      ]
+    ]
+  },
+  {
+    "video": "/home/ato121/nextgqa_sample/NExTVideo/1102/8028122153.mp4",
+    "video_id": "8028122153",
+    "qid": "7",
+    "question_type": "TC",
+    "question": "how does the man holding the liquid respond when the other man lifts up the pan",
+    "answer": "tilts bottle to pour liquid in",
+    "choices": [
+      "adjust his posture",
+      "tilts bottle to pour liquid in",
+      "stablise cloth",
+      "nod his head",
+      "dip food into sauce"
+    ],
+    "answer_choice_index": 1,
+    "grounding": [
+      [
+        20.9,
+        23.6
+      ]
+    ]
+  },
+  {
+    "video": "/home/ato121/nextgqa_sample/NExTVideo/0080/5579224246.mp4",
+    "video_id": "5579224246",
+    "qid": "4",
+    "question_type": "CW",
+    "question": "why did the kid look into the jar",
+    "answer": "locate the chocolate",
+    "choices": [
+      "locate the chocolate",
+      "the jar light up",
+      "the jar break",
+      "saw ants",
+      "the knife drop inside the jar"
+    ],
+    "answer_choice_index": 0,
+    "grounding": [
+      [
+        24.4,
+        33.8
+      ],
+      [
+        42.5,
+        46.8
+      ]
+    ]
+  },
+  {
+    "video": "/home/ato121/nextgqa_sample/NExTVideo/1002/5904456747.mp4",
+    "video_id": "5904456747",
+    "qid": "1",
+    "question_type": "TN",
+    "question": "what did the lady in red do after putting the object into the drawer",
+    "answer": "close the drawer",
+    "choices": [
+      "close car door",
+      "close the drawer",
+      "drive in circles",
+      "walk to the shop",
+      "put in her mouth"
+    ],
+    "answer_choice_index": 1,
+    "grounding": [
+      [
+        9.5,
+        12.7
+      ]
+    ]
+  },
+  {
+    "video": "/home/ato121/nextgqa_sample/NExTVideo/1150/5441902119.mp4",
+    "video_id": "5441902119",
+    "qid": "5",
+    "question_type": "TP",
+    "question": "what did the shorter boy do before the taller boy took his cap",
+    "answer": "moving and making funny faces",
+    "choices": [
+      "points at camera",
+      "hold boy back",
+      "walked away hurriedly",
+      "find adult",
+      "moving and making funny faces"
+    ],
+    "answer_choice_index": 4,
+    "grounding": [
+      [
+        8.8,
+        13.7
+      ]
+    ]
+  },
+  {
+    "video": "/home/ato121/nextgqa_sample/NExTVideo/1009/2440996945.mp4",
+    "video_id": "2440996945",
+    "qid": "5",
+    "question_type": "TC",
+    "question": "what did the child play with near the wardrobe at the end of the video",
+    "answer": "a strap",
+    "choices": [
+      "a string",
+      "oy",
+      "pony toy",
+      "vacumm clearner",
+      "a strap"
+    ],
+    "answer_choice_index": 4,
+    "grounding": [
+      [
+        47.2,
+        56.2
+      ]
+    ]
+  },
+  {
+    "video": "/home/ato121/nextgqa_sample/NExTVideo/1160/2589833495.mp4",
+    "video_id": "2589833495",
+    "qid": "1",
+    "question_type": "CW",
+    "question": "why does the man slowly move towards the microphone while playing the guitar at the beginning of the video",
+    "answer": "to amplify his voice",
+    "choices": [
+      "adjust the height of microphone",
+      "clean the microphone",
+      "pose for camera",
+      "to amplify his voice",
+      "someone pushed him fom behind"
+    ],
+    "answer_choice_index": 3,
+    "grounding": [
+      [
+        3.0,
+        12.9
+      ]
+    ]
+  },
+  {
+    "video": "/home/ato121/nextgqa_sample/NExTVideo/1161/10488004303.mp4",
+    "video_id": "10488004303",
+    "qid": "5",
+    "question_type": "CW",
+    "question": "why did the boy start to flip the book when he picked up the book",
+    "answer": "interested to look at the pictures",
+    "choices": [
+      "teasing baby",
+      "completed the page",
+      "interested to look at the pictures",
+      "gravity",
+      "to show man"
+    ],
+    "answer_choice_index": 2,
+    "grounding": [
+      [
+        46.5,
+        84.1
+      ]
+    ]
+  },
+  {
+    "video": "/home/ato121/nextgqa_sample/NExTVideo/1016/5647715900.mp4",
+    "video_id": "5647715900",
+    "qid": "7",
+    "question_type": "CW",
+    "question": "why did the girl clap her hand in the middle",
+    "answer": "the dog caught the branch",
+    "choices": [
+      "the dog caught the branch",
+      "to hold the ball",
+      "practice performance",
+      "dance routine",
+      "amazed by performance"
+    ],
+    "answer_choice_index": 0,
+    "grounding": [
+      [
+        25.3,
+        29.1
+      ]
+    ]
+  },
+  {
+    "video": "/home/ato121/nextgqa_sample/NExTVideo/0098/2965378944.mp4",
+    "video_id": "2965378944",
+    "qid": "7",
+    "question_type": "CH",
+    "question": "how is the horse domesticated and prevented from running away",
+    "answer": "kept within the fence",
+    "choices": [
+      "attached to a handle",
+      "using rope",
+      "kept within the fence",
+      "kept with many horse",
+      "attracted with food"
+    ],
+    "answer_choice_index": 2,
+    "grounding": [
+      [
+        20.0,
+        26
+      ]
+    ]
+  },
+  {
+    "video": "/home/ato121/nextgqa_sample/NExTVideo/1107/5460127828.mp4",
+    "video_id": "5460127828",
+    "qid": "1",
+    "question_type": "CW",
+    "question": "why did the boy in red stretched his right hand out in the middle of the video",
+    "answer": "reach for the boy in white",
+    "choices": [
+      "draw cards",
+      "stop the boy in white",
+      "get better shot in camera",
+      "push the boy in black",
+      "reach for the boy in white"
+    ],
+    "answer_choice_index": 4,
+    "grounding": [
+      [
+        6.2,
+        8.4
+      ]
+    ]
+  },
+  {
+    "video": "/home/ato121/nextgqa_sample/NExTVideo/1018/8617546237.mp4",
+    "video_id": "8617546237",
+    "qid": "4",
+    "question_type": "TC",
+    "question": "what did the girl in white do at the end of the video",
+    "answer": "jump off seat and spread arms",
+    "choices": [
+      "smile and look back at boys",
+      "begin snowboarding",
+      "jump off seat and spread arms",
+      "how long the kiss is",
+      "leave hands of lady in purple"
+    ],
+    "answer_choice_index": 2,
+    "grounding": [
+      [
+        19.6,
+        22.7
+      ]
+    ]
+  },
+  {
+    "video": "/home/ato121/nextgqa_sample/NExTVideo/1014/3728184329.mp4",
+    "video_id": "3728184329",
+    "qid": "0",
+    "question_type": "CW",
+    "question": "why is the man standing on the high platform at the start",
+    "answer": "preparing to jump",
+    "choices": [
+      "having a conversation",
+      "show what he talks about",
+      "oversees the kids",
+      "stand on sticks",
+      "preparing to jump"
+    ],
+    "answer_choice_index": 4,
+    "grounding": [
+      [
+        0.0,
+        7.6
+      ]
+    ]
+  },
+  {
+    "video": "/home/ato121/nextgqa_sample/NExTVideo/1120/2506141110.mp4",
+    "video_id": "2506141110",
+    "qid": "0",
+    "question_type": "TC",
+    "question": "what does the lady with a bun do as another person walked in near the start",
+    "answer": "dance",
+    "choices": [
+      "put hands on instrument",
+      "listening",
+      "dance",
+      "bring to man",
+      "hold onto handle"
+    ],
+    "answer_choice_index": 2,
+    "grounding": [
+      [
+        6.9,
+        9.1
+      ]
+    ]
+  },
+  {
+    "video": "/home/ato121/nextgqa_sample/NExTVideo/1102/6071633426.mp4",
+    "video_id": "6071633426",
+    "qid": "5",
+    "question_type": "TC",
+    "question": "what are the baby holding as he sat at the table",
+    "answer": "pen",
+    "choices": [
+      "pen",
+      "tissue",
+      "a toy",
+      "ball",
+      "paper"
+    ],
+    "answer_choice_index": 0,
+    "grounding": [
+      [
+        1.3,
+        3.7
+      ],
+      [
+        47.2,
+        49.7
+      ],
+      [
+        57.6,
+        60.4
+      ]
+    ]
+  },
+  {
+    "video": "/home/ato121/nextgqa_sample/NExTVideo/1099/3501167063.mp4",
+    "video_id": "3501167063",
+    "qid": "1",
+    "question_type": "CW",
+    "question": "why did the cameraman put her hand forwards to the kid s face occasionally",
+    "answer": "to play with the kid",
+    "choices": [
+      "signalling to boy",
+      "mimic movement",
+      "to hit the kid",
+      "to play with the kid",
+      "kiss the kid"
+    ],
+    "answer_choice_index": 3,
+    "grounding": [
+      [
+        10.7,
+        14.0
+      ],
+      [
+        22.1,
+        24.7
+      ],
+      [
+        34.8,
+        37.5
+      ],
+      [
+        49.5,
+        52.7
+      ]
+    ]
+  },
+  {
+    "video": "/home/ato121/nextgqa_sample/NExTVideo/1200/4522298433.mp4",
+    "video_id": "4522298433",
+    "qid": "5",
+    "question_type": "TC",
+    "question": "what did the white dog do when the cat first ran to the side",
+    "answer": "chased it",
+    "choices": [
+      "chased it",
+      "touch newspaper",
+      "lick toy bone",
+      "back away",
+      "stroke its furs"
+    ],
+    "answer_choice_index": 0,
+    "grounding": [
+      [
+        0.5,
+        4.4
+      ]
+    ]
+  },
+  {
+    "video": "/home/ato121/nextgqa_sample/NExTVideo/1019/2399811629.mp4",
+    "video_id": "2399811629",
+    "qid": "3",
+    "question_type": "TN",
+    "question": "what did the man do after he slid down the railing at the end of the video",
+    "answer": "check his pants",
+    "choices": [
+      "fell",
+      "walk away from room",
+      "stop dancing",
+      "check his pants",
+      "rolled get back up"
+    ],
+    "answer_choice_index": 3,
+    "grounding": [
+      [
+        7.8,
+        13.5
+      ]
+    ]
+  },
+  {
+    "video": "/home/ato121/nextgqa_sample/NExTVideo/0057/3381752581.mp4",
+    "video_id": "3381752581",
+    "qid": "7",
+    "question_type": "CW",
+    "question": "why did the cat stand up on its hind legs",
+    "answer": "touch cupboard",
+    "choices": [
+      "it is scared",
+      "cat was nudged to move forward",
+      "finished peeing",
+      "touch cupboard",
+      "change playing position"
+    ],
+    "answer_choice_index": 3,
+    "grounding": [
+      [
+        29.2,
+        34.2
+      ]
+    ]
+  },
+  {
+    "video": "/home/ato121/nextgqa_sample/NExTVideo/1019/5600915537.mp4",
+    "video_id": "5600915537",
+    "qid": "9",
+    "question_type": "TN",
+    "question": "what does the man do after stopping half way",
+    "answer": "changes direction",
+    "choices": [
+      "exit stage",
+      "adjust the tricycle",
+      "changes direction",
+      "lower the camera on his shirt",
+      "jumps to cross the water"
+    ],
+    "answer_choice_index": 2,
+    "grounding": [
+      [
+        8.2,
+        11.8
+      ],
+      [
+        33.1,
+        37.2
+      ]
+    ]
+  },
+  {
+    "video": "/home/ato121/nextgqa_sample/NExTVideo/1052/5353486947.mp4",
+    "video_id": "5353486947",
+    "qid": "4",
+    "question_type": "TC",
+    "question": "what does the baby do as the woman covers her eyes at the start of the video",
+    "answer": "cover eyes",
+    "choices": [
+      "cover eyes",
+      "put bag on her shoulder",
+      "wave to camera",
+      "picking the bags up",
+      "put food on table"
+    ],
+    "answer_choice_index": 0,
+    "grounding": [
+      [
+        0.0,
+        1.6
+      ]
+    ]
+  },
+  {
+    "video": "/home/ato121/nextgqa_sample/NExTVideo/1006/2488260327.mp4",
+    "video_id": "2488260327",
+    "qid": "2",
+    "question_type": "TC",
+    "question": "what does the girl hold in her hands while resting against the lady",
+    "answer": "phone",
+    "choices": [
+      "leash",
+      "mirror",
+      "pin woman s hair",
+      "phone",
+      "stuff toy"
+    ],
+    "answer_choice_index": 3,
+    "grounding": [
+      [
+        30.5,
+        40.6
+      ]
+    ]
+  },
+  {
+    "video": "/home/ato121/nextgqa_sample/NExTVideo/1008/7526364640.mp4",
+    "video_id": "7526364640",
+    "qid": "3",
+    "question_type": "CW",
+    "question": "why is the woman wearing black and white talking to the boy in blue near the start",
+    "answer": "playing with him",
+    "choices": [
+      "to give him a present",
+      "ask him to tidy up table",
+      "playing with him",
+      "invite him to a movie",
+      "scolding him"
+    ],
+    "answer_choice_index": 2,
+    "grounding": [
+      [
+        17.5,
+        21.4
+      ]
+    ]
+  },
+  {
+    "video": "/home/ato121/nextgqa_sample/NExTVideo/1105/2500623285.mp4",
+    "video_id": "2500623285",
+    "qid": "5",
+    "question_type": "CW",
+    "question": "why did the dog leap to the shore when the waves came",
+    "answer": "avoid getting wet",
+    "choices": [
+      "playing on beach",
+      "distracted by the man s foot",
+      "stunt",
+      "shape of the pool",
+      "avoid getting wet"
+    ],
+    "answer_choice_index": 4,
+    "grounding": [
+      [
+        8.9,
+        12.9
+      ]
+    ]
+  },
+  {
+    "video": "/home/ato121/nextgqa_sample/NExTVideo/1100/3434653211.mp4",
+    "video_id": "3434653211",
+    "qid": "3",
+    "question_type": "CW",
+    "question": "why did the boy walk to the exhibit",
+    "answer": "look at it",
+    "choices": [
+      "look at it",
+      "finding someone",
+      "take pictures",
+      "call for help",
+      "looking for popcorns"
+    ],
+    "answer_choice_index": 0,
+    "grounding": [
+      [
+        1.9,
+        5.4
+      ]
+    ]
+  },
+  {
+    "video": "/home/ato121/nextgqa_sample/NExTVideo/0050/2881352518.mp4",
+    "video_id": "2881352518",
+    "qid": "0",
+    "question_type": "CW",
+    "question": "why did the lady wriggle her toes near the end",
+    "answer": "posing",
+    "choices": [
+      "tripped",
+      "someone asked her to do that",
+      "finish playing guitar",
+      "check where to put",
+      "posing"
+    ],
+    "answer_choice_index": 4,
+    "grounding": [
+      [
+        64.2,
+        66.7
+      ]
+    ]
+  },
+  {
+    "video": "/home/ato121/nextgqa_sample/NExTVideo/1000/6802770639.mp4",
+    "video_id": "6802770639",
+    "qid": "1",
+    "question_type": "CW",
+    "question": "why did the man in brown bend down near the end of the video",
+    "answer": "take a drink",
+    "choices": [
+      "pick up skateboard",
+      "pick something up",
+      "take a drink",
+      "looking at the view",
+      "look at the dogs"
+    ],
+    "answer_choice_index": 2,
+    "grounding": [
+      [
+        58.7,
+        64.2
+      ]
+    ]
+  },
+  {
+    "video": "/home/ato121/nextgqa_sample/NExTVideo/0034/4740345442.mp4",
+    "video_id": "4740345442",
+    "qid": "1",
+    "question_type": "CH",
+    "question": "how does the child in the dark blue jacket maintain balance",
+    "answer": "hold firmly to wood",
+    "choices": [
+      "grab attached metal chain",
+      "walk in the centre",
+      "hold on to railing",
+      "swing body opposite to car motion",
+      "hold firmly to wood"
+    ],
+    "answer_choice_index": 4,
+    "grounding": [
+      [
+        -0.0,
+        1.2
+      ]
+    ]
+  },
+  {
+    "video": "/home/ato121/nextgqa_sample/NExTVideo/1203/4032595511.mp4",
+    "video_id": "4032595511",
+    "qid": "2",
+    "question_type": "CW",
+    "question": "why does not the bald man do anything",
+    "answer": "instructor",
+    "choices": [
+      "to cut the cardboard piece",
+      "sleepy",
+      "traditional costume",
+      "water sports",
+      "instructor"
+    ],
+    "answer_choice_index": 4,
+    "grounding": [
+      [
+        8.1,
+        13.5
+      ]
+    ]
+  },
+  {
+    "video": "/home/ato121/nextgqa_sample/NExTVideo/1002/3258993991.mp4",
+    "video_id": "3258993991",
+    "qid": "2",
+    "question_type": "CW",
+    "question": "why does the dog sniff the floor in between",
+    "answer": "looking for food",
+    "choices": [
+      "tired",
+      "looking for food",
+      "smelt drugs",
+      "signalling for a bath",
+      "smelt a bomb"
+    ],
+    "answer_choice_index": 1,
+    "grounding": [
+      [
+        30.9,
+        46
+      ]
+    ]
+  },
+  {
+    "video": "/home/ato121/nextgqa_sample/NExTVideo/0024/2868301160.mp4",
+    "video_id": "2868301160",
+    "qid": "1",
+    "question_type": "CW",
+    "question": "why is the man with walking stick looking at man in blue counting money",
+    "answer": "checking",
+    "choices": [
+      "to snatch money",
+      "checking",
+      "celebrate the moment",
+      "get wall to light up",
+      "looking for directions"
+    ],
+    "answer_choice_index": 1,
+    "grounding": [
+      [
+        0.1,
+        7.0
+      ]
+    ]
+  },
+  {
+    "video": "/home/ato121/nextgqa_sample/NExTVideo/1024/3575108079.mp4",
+    "video_id": "3575108079",
+    "qid": "8",
+    "question_type": "TC",
+    "question": "what did the lady in white do when she was laughing",
+    "answer": "touch man in black s arm",
+    "choices": [
+      "pullups",
+      "use tongue touch teeth",
+      "touching baby s hand",
+      "smiling",
+      "touch man in black s arm"
+    ],
+    "answer_choice_index": 4,
+    "grounding": [
+      [
+        41.4,
+        44.3
+      ]
+    ]
+  },
+  {
+    "video": "/home/ato121/nextgqa_sample/NExTVideo/1021/6216509632.mp4",
+    "video_id": "6216509632",
+    "qid": "7",
+    "question_type": "CH",
+    "question": "how does the girl show where she wants to go next at the end",
+    "answer": "point",
+    "choices": [
+      "pull woman s hands",
+      "follow a routine",
+      "move her arms up down",
+      "point",
+      "move her walker"
+    ],
+    "answer_choice_index": 3,
+    "grounding": [
+      [
+        17.3,
+        19.3
+      ]
+    ]
+  },
+  {
+    "video": "/home/ato121/nextgqa_sample/NExTVideo/0052/5412696114.mp4",
+    "video_id": "5412696114",
+    "qid": "7",
+    "question_type": "TN",
+    "question": "what does the girl do after the baby falls on his belly",
+    "answer": "pat baby",
+    "choices": [
+      "look into the camera",
+      "clap her hands",
+      "points to the flower",
+      "pat baby",
+      "touch the bib"
+    ],
+    "answer_choice_index": 3,
+    "grounding": [
+      [
+        30.3,
+        34.9
+      ]
+    ]
+  },
+  {
+    "video": "/home/ato121/nextgqa_sample/NExTVideo/1018/2406887888.mp4",
+    "video_id": "2406887888",
+    "qid": "2",
+    "question_type": "TC",
+    "question": "how did the cat react when the baby went on top of it",
+    "answer": "move away",
+    "choices": [
+      "lie tightly besides the person",
+      "walk forward",
+      "move away",
+      "paws at the string",
+      "look at the flower vase"
+    ],
+    "answer_choice_index": 2,
+    "grounding": [
+      [
+        58.5,
+        60.6
+      ]
+    ]
+  },
+  {
+    "video": "/home/ato121/nextgqa_sample/NExTVideo/0011/2983727948.mp4",
+    "video_id": "2983727948",
+    "qid": "5",
+    "question_type": "CH",
+    "question": "how do the people express that they are happy",
+    "answer": "smile",
+    "choices": [
+      "dance together",
+      "smile",
+      "claps",
+      "jump",
+      "kiss each other"
+    ],
+    "answer_choice_index": 1,
+    "grounding": [
+      [
+        5.5,
+        11.3
+      ]
+    ]
+  },
+  {
+    "video": "/home/ato121/nextgqa_sample/NExTVideo/1001/4641631235.mp4",
+    "video_id": "4641631235",
+    "qid": "8",
+    "question_type": "TN",
+    "question": "what did the lady and the girl both do after their performance",
+    "answer": "stand up",
+    "choices": [
+      "hands over the remote",
+      "crying",
+      "swing her right hand",
+      "stand up",
+      "tear the music script"
+    ],
+    "answer_choice_index": 3,
+    "grounding": [
+      [
+        52.7,
+        53.6
+      ]
+    ]
+  },
+  {
+    "video": "/home/ato121/nextgqa_sample/NExTVideo/0080/2402178262.mp4",
+    "video_id": "2402178262",
+    "qid": "6",
+    "question_type": "TC",
+    "question": "what did the man in black do when the man with spectacles stopped dancing",
+    "answer": "continued",
+    "choices": [
+      "dances",
+      "continued",
+      "rub his eye",
+      "adjust them",
+      "shake finger"
+    ],
+    "answer_choice_index": 1,
+    "grounding": [
+      [
+        37.6,
+        42.9
+      ]
+    ]
+  },
+  {
+    "video": "/home/ato121/nextgqa_sample/NExTVideo/0090/2603758280.mp4",
+    "video_id": "2603758280",
+    "qid": "2",
+    "question_type": "TC",
+    "question": "what is the activity featured in the video",
+    "answer": "paragliding",
+    "choices": [
+      "turning the canoe",
+      "enjoying a cable car ride",
+      "trekking",
+      "martial arts",
+      "paragliding"
+    ],
+    "answer_choice_index": 4,
+    "grounding": [
+      [
+        46.6,
+        55.0
+      ]
+    ]
+  },
+  {
+    "video": "/home/ato121/nextgqa_sample/NExTVideo/1024/2481132749.mp4",
+    "video_id": "2481132749",
+    "qid": "7",
+    "question_type": "TN",
+    "question": "what did the man in black do after he bend down in the middle of the video",
+    "answer": "pick something up",
+    "choices": [
+      "hand gesture to push it away",
+      "turned the car",
+      "using computer",
+      "pick something up",
+      "put finger in the mouth"
+    ],
+    "answer_choice_index": 3,
+    "grounding": [
+      [
+        4.7,
+        6.8
+      ]
+    ]
+  },
+  {
+    "video": "/home/ato121/nextgqa_sample/NExTVideo/1009/4180380438.mp4",
+    "video_id": "4180380438",
+    "qid": "3",
+    "question_type": "TN",
+    "question": "what does the lady do after she walks down the stairs",
+    "answer": "cross her arms",
+    "choices": [
+      "touch her hair",
+      "swing her body",
+      "stopped",
+      "shakes the ribbon",
+      "cross her arms"
+    ],
+    "answer_choice_index": 4,
+    "grounding": [
+      [
+        10.0,
+        14.1
+      ]
+    ]
+  },
+  {
+    "video": "/home/ato121/nextgqa_sample/NExTVideo/1020/10864382765.mp4",
+    "video_id": "10864382765",
+    "qid": "8",
+    "question_type": "CW",
+    "question": "why did the girl pick up the ball after it was on the floor for",
+    "answer": "to play with it",
+    "choices": [
+      "give to the dog",
+      "roll it to the baby",
+      "takes a picture with it",
+      "to start playing basketball",
+      "to play with it"
+    ],
+    "answer_choice_index": 4,
+    "grounding": [
+      [
+        8.8,
+        13.4
+      ]
+    ]
+  },
+  {
+    "video": "/home/ato121/nextgqa_sample/NExTVideo/1013/2916577028.mp4",
+    "video_id": "2916577028",
+    "qid": "2",
+    "question_type": "CW",
+    "question": "why did the man in blue lunge forward when he served the ball at the start",
+    "answer": "to hit the ball",
+    "choices": [
+      "running after ball",
+      "get the bullet",
+      "try to reach",
+      "to hit the ball",
+      "filming him"
+    ],
+    "answer_choice_index": 3,
+    "grounding": [
+      [
+        1.0,
+        3.1
+      ]
+    ]
+  },
+  {
+    "video": "/home/ato121/nextgqa_sample/NExTVideo/0059/3081360150.mp4",
+    "video_id": "3081360150",
+    "qid": "8",
+    "question_type": "CW",
+    "question": "why is the snake moving fast in random directions near the end",
+    "answer": "trying to escape",
+    "choices": [
+      "find more food",
+      "avoiding the girl from hitting it",
+      "looking at something",
+      "trying to escape",
+      "attracted by the food"
+    ],
+    "answer_choice_index": 3,
+    "grounding": [
+      [
+        49.2,
+        53.2
+      ]
+    ]
+  },
+  {
+    "video": "/home/ato121/nextgqa_sample/NExTVideo/1100/2466853140.mp4",
+    "video_id": "2466853140",
+    "qid": "7",
+    "question_type": "CH",
+    "question": "how did the dog with the vest got up to the land from the water",
+    "answer": "climbed up the stairs",
+    "choices": [
+      "climb out",
+      "climbed up the stairs",
+      "mouth",
+      "make dog jump",
+      "rolling around"
+    ],
+    "answer_choice_index": 1,
+    "grounding": [
+      [
+        26.2,
+        36.8
+      ]
+    ]
+  },
+  {
+    "video": "/home/ato121/nextgqa_sample/NExTVideo/1006/4167294363.mp4",
+    "video_id": "4167294363",
+    "qid": "4",
+    "question_type": "CW",
+    "question": "why did the lady touch the boy s left hand and shook it around",
+    "answer": "acted like cowboy",
+    "choices": [
+      "acted like cowboy",
+      "shake hands",
+      "man does not finish the beer",
+      "greet someone on another cruise",
+      "try to get the camera"
+    ],
+    "answer_choice_index": 0,
+    "grounding": [
+      [
+        28.6,
+        32.7
+      ]
+    ]
+  },
+  {
+    "video": "/home/ato121/nextgqa_sample/NExTVideo/1009/2828927371.mp4",
+    "video_id": "2828927371",
+    "qid": "7",
+    "question_type": "CH",
+    "question": "how does the lady in red touch the baby",
+    "answer": "hold baby s finger",
+    "choices": [
+      "with a scarf",
+      "hold baby s finger",
+      "with a balloon",
+      "touched her legs",
+      "patted her"
+    ],
+    "answer_choice_index": 1,
+    "grounding": [
+      [
+        37.1,
+        47.0
+      ]
+    ]
+  },
+  {
+    "video": "/home/ato121/nextgqa_sample/NExTVideo/1100/2597214137.mp4",
+    "video_id": "2597214137",
+    "qid": "4",
+    "question_type": "CH",
+    "question": "how did the baby play with his toy telephone",
+    "answer": "pull the string",
+    "choices": [
+      "jump around it",
+      "pull the string",
+      "reach feet towards toys",
+      "throwing the toy in water",
+      "twirl with the toy"
+    ],
+    "answer_choice_index": 1,
+    "grounding": [
+      [
+        5.0,
+        13.2
+      ]
+    ]
+  },
+  {
+    "video": "/home/ato121/nextgqa_sample/NExTVideo/1014/6975125131.mp4",
+    "video_id": "6975125131",
+    "qid": "3",
+    "question_type": "CH",
+    "question": "how did the car tried to get up the slope",
+    "answer": "drive up",
+    "choices": [
+      "use hands push it",
+      "turning the wheel",
+      "drive up",
+      "lady push it",
+      "autotransportation"
+    ],
+    "answer_choice_index": 2,
+    "grounding": [
+      [
+        3.3,
+        7.4
+      ]
+    ]
+  },
+  {
+    "video": "/home/ato121/nextgqa_sample/NExTVideo/1002/4015487071.mp4",
+    "video_id": "4015487071",
+    "qid": "6",
+    "question_type": "CW",
+    "question": "why did the speaker move towards the table",
+    "answer": "take fire extinguisher",
+    "choices": [
+      "take food",
+      "take paper",
+      "take cup",
+      "take fire extinguisher",
+      "take sun glasses"
+    ],
+    "answer_choice_index": 3,
+    "grounding": [
+      [
+        1.0,
+        6.3
+      ]
+    ]
+  }
+]

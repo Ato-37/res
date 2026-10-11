@@ -1,0 +1,6 @@
+{
+  "script": "publish_existing_head_group_result.py",
+  "created_utc": "2026-10-02T12:24:14.806017+00:00",
+  "input": "results/head_group_all_layers_heldout.json",
+  "analysis": "results/head_group_all_layers_heldout_analysis.json"
+}

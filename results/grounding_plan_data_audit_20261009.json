@@ -1,0 +1,288 @@
+{
+  "schema_version": 1,
+  "created_utc": "2026-10-08T17:20:48.407314+00:00",
+  "audit_type": "counts_only_grounding_data_feasibility",
+  "inputs": {
+    "val_csv": {
+      "name": "val.csv",
+      "size_bytes": 638860,
+      "sha256": "ac5a1eb1d6dee9cd84ab7f9c94ab345b2404646f24b79ac182cd2aa9e2d424c1"
+    },
+    "gsub_val_json": {
+      "name": "gsub_val.json",
+      "size_bytes": 115228,
+      "sha256": "4feb23e53102cb2d4779e857ff8f9fd9b552fc38435621406b2ed9b0bf76204b"
+    },
+    "test_csv": {
+      "name": "test.csv",
+      "size_bytes": 1052149,
+      "sha256": "0443ede53f521de4cbfb5e4fb02253926b90f81f62041b18bd17207a3511d114"
+    },
+    "gsub_test_json": {
+      "name": "gsub_test.json",
+      "size_bytes": 195500,
+      "sha256": "0c16c31699238a0f2b8ace45aeed7f193149ce2f011d6ed4f1ef7170ef5d41e9"
+    },
+    "video_map_json": {
+      "name": "map_vid_vidorID.json",
+      "size_bytes": 331540,
+      "sha256": "1955d89e7a175346faf8d4a582297ff349619231394f59fd7872f459ac8a8685"
+    },
+    "frame2time_val_json": {
+      "name": "frame2time_val.json",
+      "size_bytes": 112598,
+      "sha256": "61dca3cc960848127e3bc7aa173a64a28f1df730e32b9f4c8c0399d04b04f029"
+    },
+    "frame2time_test_json": {
+      "name": "frame2time_test.json",
+      "size_bytes": 196789,
+      "sha256": "e2a043e8c5141f15a212536343cd7d329ab212eac4917eb53aadf341abb30820"
+    }
+  },
+  "excluded_manifest_count": 15,
+  "excluded_sample_record_count": 504,
+  "unique_previously_used_video_count": 415,
+  "excluded_manifests": [
+    {
+      "name": "nextgqa_samples.json",
+      "sample_records_with_video_path": 16
+    },
+    {
+      "name": "nextgqa_samples_big.json",
+      "sample_records_with_video_path": 61
+    },
+    {
+      "name": "nextgqa_samples_big_heldout.json",
+      "sample_records_with_video_path": 25
+    },
+    {
+      "name": "nextgqa_samples_choice_confirmation_heldout.json",
+      "sample_records_with_video_path": 60
+    },
+    {
+      "name": "nextgqa_samples_choice_confirmation_smoke.json",
+      "sample_records_with_video_path": 3
+    },
+    {
+      "name": "nextgqa_samples_confirm_heldout.json",
+      "sample_records_with_video_path": 25
+    },
+    {
+      "name": "nextgqa_samples_confirm_smoke.json",
+      "sample_records_with_video_path": 3
+    },
+    {
+      "name": "nextgqa_samples_evidence_control_heldout.json",
+      "sample_records_with_video_path": 60
+    },
+    {
+      "name": "nextgqa_samples_heldout.json",
+      "sample_records_with_video_path": 10
+    },
+    {
+      "name": "nextgqa_samples_necessity_choice_heldout.json",
+      "sample_records_with_video_path": 60
+    },
+    {
+      "name": "nextgqa_samples_necessity_choice_replication_candidates.json",
+      "sample_records_with_video_path": 80
+    },
+    {
+      "name": "nextgqa_samples_necessity_choice_replication_heldout.json",
+      "sample_records_with_video_path": 60
+    },
+    {
+      "name": "nextgqa_samples_necessity_choice_replication_smoke.json",
+      "sample_records_with_video_path": 3
+    },
+    {
+      "name": "nextgqa_samples_necessity_choice_smoke.json",
+      "sample_records_with_video_path": 3
+    },
+    {
+      "name": "nextgqa_samples_singleton_confirmation.json",
+      "sample_records_with_video_path": 35
+    }
+  ],
+  "video_map_entries": 10000,
+  "splits": {
+    "validation": {
+      "csv_rows": 3358,
+      "unique_video_questions": 3358,
+      "duplicate_video_question_rows": 0,
+      "question_type_counts": {
+        "CH": 481,
+        "CW": 1474,
+        "TC": 472,
+        "TN": 879,
+        "TP": 52
+      },
+      "gsub_video_entries": 570,
+      "rows_with_gsub_key": 3358,
+      "rows_without_gsub_key": 0,
+      "rows_with_valid_intervals": 3355,
+      "annotation_value_shape_counts": {
+        "list_of_pairs": 3358
+      },
+      "rows_with_structurally_valid_intervals": 3358,
+      "rows_with_any_malformed_interval": 0,
+      "rows_with_interval_ending_after_video_duration": 3,
+      "video_duration_seconds": {
+        "min": 10.0,
+        "median": 37.0,
+        "max": 180.0,
+        "mean": 43.977069684335916
+      },
+      "interval_count_total": 3926,
+      "intervals_per_valid_question": {
+        "min": 1,
+        "median": 1,
+        "max": 11,
+        "mean": 1.170193740685544
+      },
+      "interval_duration_seconds": {
+        "min": 0.09999999999999964,
+        "median": 4.5,
+        "max": 82.6,
+        "mean": 7.310825267447783
+      },
+      "interval_start_seconds": {
+        "min": 0.0,
+        "median": 12.2,
+        "max": 113.3,
+        "mean": 18.05333672949567
+      },
+      "interval_end_seconds": {
+        "min": 0.7,
+        "median": 19.5,
+        "max": 125.0,
+        "mean": 25.36416199694345
+      },
+      "rows_with_video_map": 3358,
+      "unique_annotated_video_count": 567,
+      "rows_on_previously_used_videos": 0,
+      "unique_eligible_annotated_videos_after_exclusion": 567,
+      "interval_unit": "seconds, as documented in the local NExT-GQA dataset README"
+    },
+    "test": {
+      "csv_rows": 5553,
+      "unique_video_questions": 5553,
+      "duplicate_video_question_rows": 0,
+      "question_type_counts": {
+        "CH": 796,
+        "CW": 2456,
+        "TC": 852,
+        "TN": 1356,
+        "TP": 93
+      },
+      "gsub_video_entries": 999,
+      "rows_with_gsub_key": 5553,
+      "rows_without_gsub_key": 0,
+      "rows_with_valid_intervals": 5517,
+      "annotation_value_shape_counts": {
+        "list_of_pairs": 5553
+      },
+      "rows_with_structurally_valid_intervals": 5517,
+      "rows_with_any_malformed_interval": 36,
+      "rows_with_interval_ending_after_video_duration": 0,
+      "video_duration_seconds": {
+        "min": 10.0,
+        "median": 34.0,
+        "max": 180.0,
+        "mean": 40.437961462272646
+      },
+      "interval_count_total": 6560,
+      "intervals_per_valid_question": {
+        "min": 1,
+        "median": 1,
+        "max": 16,
+        "mean": 1.18905202102592
+      },
+      "interval_duration_seconds": {
+        "min": 0.1999999999999993,
+        "median": 4.100000000000001,
+        "max": 91.8,
+        "mean": 6.63280487804878
+      },
+      "interval_start_seconds": {
+        "min": 0.0,
+        "median": 12.1,
+        "max": 169.5,
+        "mean": 17.79082317073171
+      },
+      "interval_end_seconds": {
+        "min": 0.2,
+        "median": 18.4,
+        "max": 179.8,
+        "mean": 24.423628048780486
+      },
+      "rows_with_video_map": 5553,
+      "unique_annotated_video_count": 990,
+      "rows_on_previously_used_videos": 2611,
+      "unique_eligible_annotated_videos_after_exclusion": 575,
+      "interval_unit": "seconds, as documented in the local NExT-GQA dataset README"
+    }
+  },
+  "frame2time_shape": {
+    "val": {
+      "top_level_type": "dict",
+      "top_level_entries": 570,
+      "nested_value_type_counts": {
+        "dict": 1,
+        "float": 18240,
+        "list": 570
+      },
+      "finite_numeric_value_count": 18240,
+      "numeric_time_vector_count": 570,
+      "time_vector_length": {
+        "min": 32,
+        "median": 32.0,
+        "max": 32,
+        "mean": 32.0
+      },
+      "non_monotonic_time_vector_count": 0,
+      "duplicate_adjacent_time_vector_count": 63,
+      "timestamp_value_range": {
+        "min": 0.2,
+        "median": 15.7,
+        "max": 175.2,
+        "mean": 21.30718201754386
+      }
+    },
+    "test": {
+      "top_level_type": "dict",
+      "top_level_entries": 999,
+      "nested_value_type_counts": {
+        "dict": 1,
+        "float": 31968,
+        "list": 999
+      },
+      "finite_numeric_value_count": 31968,
+      "numeric_time_vector_count": 999,
+      "time_vector_length": {
+        "min": 32,
+        "median": 32,
+        "max": 32,
+        "mean": 32.0
+      },
+      "non_monotonic_time_vector_count": 0,
+      "duplicate_adjacent_time_vector_count": 123,
+      "timestamp_value_range": {
+        "min": 0.2,
+        "median": 14.7,
+        "max": 175.2,
+        "mean": 19.94466654154154
+      }
+    }
+  },
+  "privacy": {
+    "contains_raw_question_or_answer_text": false,
+    "contains_video_or_question_identifiers": false,
+    "contains_absolute_paths": false
+  },
+  "limitations": [
+    "Counts and interval-shape checks do not establish that an interval semantically supports a generated claim.",
+    "Local dataset docs define intervals and frame2time values in seconds; correspondence to Qwen visual chunks remains unverified.",
+    "No video decoding, model inference, intervention, or faithfulness test was run."
+  ]
+}

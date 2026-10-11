@@ -1,0 +1,62 @@
+[
+  {
+    "video": "~/nextgqa_sample/NExTVideo/1010/3255908815.mp4",
+    "question": "Why does the boy put his hands over the camera?",
+    "answer": "playing",
+    "grounding": [[12.1, 40.7]]
+  },
+  {
+    "video": "~/nextgqa_sample/NExTVideo/1010/3086276600.mp4",
+    "question": "How does the lady in orange help the boy in blue?",
+    "answer": "push the swing",
+    "grounding": [[37.9, 52.4], [81.4, 89.8]]
+  },
+  {
+    "video": "~/nextgqa_sample/NExTVideo/0070/4839003204.mp4",
+    "question": "Why does the woman in blue swipe her eyes near the end of the video?",
+    "answer": "wipe tears",
+    "grounding": [[11.6, 19]]
+  },
+  {
+    "video": "~/nextgqa_sample/NExTVideo/1015/3844880628.mp4",
+    "question": "What is the other kid near the lady doing?",
+    "answer": "picking up the ball",
+    "grounding": [[9.8, 11.6]]
+  },
+  {
+    "video": "~/nextgqa_sample/NExTVideo/1001/7618872538.mp4",
+    "question": "How does the lady in white bounce the boy?",
+    "answer": "shake leg",
+    "grounding": [[0.1, 6.4]]
+  },
+  {
+    "video": "~/nextgqa_sample/NExTVideo/1103/3557601110.mp4",
+    "question": "What does the bike rider do after falling down from the bridge?",
+    "answer": "grab the bridge for support",
+    "grounding": [[10.7, 12.8]]
+  },
+  {
+    "video": "~/nextgqa_sample/NExTVideo/1011/6447803681.mp4",
+    "question": "What does the baby do as the lady brings the ball closer at the start?",
+    "answer": "bite it",
+    "grounding": [[18.6, 42.4]]
+  },
+  {
+    "video": "~/nextgqa_sample/NExTVideo/1101/3426605205.mp4",
+    "question": "What did the baby do after the hand adjusted the food on the table at the middle of the video?",
+    "answer": "put food on bib",
+    "grounding": [[24.1, 30.4]]
+  },
+  {
+    "video": "~/nextgqa_sample/NExTVideo/1105/10495085476.mp4",
+    "question": "Why did the adult squat down and opened his arm at the end of the video?",
+    "answer": "want to hug child",
+    "grounding": [[22.5, 30.7]]
+  },
+  {
+    "video": "~/nextgqa_sample/NExTVideo/0018/5338232189.mp4",
+    "question": "Why does everyone focus on the lady in white sitting on the floor?",
+    "answer": "she is opening something",
+    "grounding": [[4.0, 12.0]]
+  }
+]

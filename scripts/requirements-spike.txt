@@ -1,0 +1,10 @@
+# torch and torchvision are installed separately with a CUDA-matched index url.
+# See docs/remote_run.md; the exact index depends on the remote GPU/driver.
+transformers>=4.49
+accelerate
+qwen-vl-utils
+pillow
+bitsandbytes
+opencv-python-headless
+numpy>=1.24
+scipy>=1.10

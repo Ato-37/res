@@ -1,0 +1,98 @@
+[
+  {
+    "video": "~/nextgqa_sample/NExTVideo/1101/2574374895.mp4",
+    "question": "What did the baby do after throwing the green cup away while on the floor near the end?",
+    "answer": "lay on floor",
+    "grounding": [[23.0, 27.7]]
+  },
+  {
+    "video": "~/nextgqa_sample/NExTVideo/0067/3083302557.mp4",
+    "question": "What did the lady do while turning back?",
+    "answer": "thumbs up",
+    "grounding": [[10.8, 12.3]]
+  },
+  {
+    "video": "~/nextgqa_sample/NExTVideo/1027/3621121750.mp4",
+    "question": "Why did the boy punch his hand forwards in the middle of the video?",
+    "answer": "listening to music and dancing",
+    "grounding": [[15.9, 20.2]]
+  },
+  {
+    "video": "~/nextgqa_sample/NExTVideo/1052/4522565412.mp4",
+    "question": "How did the man move the sides of the cube quickly?",
+    "answer": "twist it",
+    "grounding": [[8.1, 27.3]]
+  },
+  {
+    "video": "~/nextgqa_sample/NExTVideo/0094/3747186945.mp4",
+    "question": "How did the girl in braids feel after she finally found the item under the sofa at the end of the video?",
+    "answer": "happy and excited",
+    "grounding": [[39.1, 42.9]]
+  },
+  {
+    "video": "~/nextgqa_sample/NExTVideo/1001/9289576155.mp4",
+    "question": "Why does the brown cat watch the other cat eat food?",
+    "answer": "waiting for his turn",
+    "grounding": [[33.8, 49.9]]
+  },
+  {
+    "video": "~/nextgqa_sample/NExTVideo/1201/4188739935.mp4",
+    "question": "What did the man do after he finished taking the boy's photo?",
+    "answer": "stand up",
+    "grounding": [[28.1, 30.1]]
+  },
+  {
+    "video": "~/nextgqa_sample/NExTVideo/1122/6885309190.mp4",
+    "question": "How did the baby rest his head a few times in the video?",
+    "answer": "on the cushion",
+    "grounding": [[6.0, 7.3], [14.0, 15.7]]
+  },
+  {
+    "video": "~/nextgqa_sample/NExTVideo/1025/7064920441.mp4",
+    "question": "How does the baby react after the man in green shows his phone?",
+    "answer": "lean forward to look",
+    "grounding": [[62.7, 70.6]]
+  },
+  {
+    "video": "~/nextgqa_sample/NExTVideo/1008/3205604574.mp4",
+    "question": "What did the girl do near the middle of the video?",
+    "answer": "walks away",
+    "grounding": [[42.1, 45.9]]
+  },
+  {
+    "video": "~/nextgqa_sample/NExTVideo/1001/11169386614.mp4",
+    "question": "Why is the man running with the white dog?",
+    "answer": "guiding the dog",
+    "grounding": [[14.0, 16.3]]
+  },
+  {
+    "video": "~/nextgqa_sample/NExTVideo/1103/4827069441.mp4",
+    "question": "Why did the boy bend his head towards the rabbit in the middle of the video?",
+    "answer": "kiss it",
+    "grounding": [[5.0, 8.5]]
+  },
+  {
+    "video": "~/nextgqa_sample/NExTVideo/1123/3425409935.mp4",
+    "question": "Why does the lady assist the baby in the beginning?",
+    "answer": "to guide",
+    "grounding": [[0.0, 5.4]]
+  },
+  {
+    "video": "~/nextgqa_sample/NExTVideo/1021/4129080039.mp4",
+    "question": "How does the nearest parrot move across the cage?",
+    "answer": "use beak to pull itself",
+    "grounding": [[0.0, 9.1]]
+  },
+  {
+    "video": "~/nextgqa_sample/NExTVideo/1101/6097011028.mp4",
+    "question": "Why did the lady with flower shirt moved her hands in the middle of the video?",
+    "answer": "to turn the frame",
+    "grounding": [[15.8, 20.4]]
+  },
+  {
+    "video": "~/nextgqa_sample/NExTVideo/0053/4890173699.mp4",
+    "question": "Why does the man put his hand on the tiger?",
+    "answer": "caress it",
+    "grounding": [[20.0, 25.4]]
+  }
+]

@@ -1,0 +1,68 @@
+[
+  {
+    "video": "/home/ato121/nextgqa_sample/NExTVideo/1162/4178472052.mp4",
+    "video_id": "4178472052",
+    "qid": "1",
+    "question_type": "CW",
+    "question": "why does the man in checked shirt holds a gun for a while in the beginning",
+    "answer": "help adjust",
+    "choices": [
+      "take bullet out",
+      "to demonstrate methods of holding gun",
+      "change gun",
+      "to control the screens",
+      "help adjust"
+    ],
+    "answer_choice_index": 4,
+    "grounding": [
+      [
+        0.0,
+        0.2
+      ]
+    ]
+  },
+  {
+    "video": "/home/ato121/nextgqa_sample/NExTVideo/1023/5553110507.mp4",
+    "video_id": "5553110507",
+    "qid": "0",
+    "question_type": "CW",
+    "question": "why did the person in red stretch his arm out before the middle part of the video",
+    "answer": "take his mug to drink",
+    "choices": [
+      "to wipe his hands",
+      "adjust screen",
+      "to call someone",
+      "take his mug to drink",
+      "touch the boy in stripes"
+    ],
+    "answer_choice_index": 3,
+    "grounding": [
+      [
+        19.5,
+        23.6
+      ]
+    ]
+  },
+  {
+    "video": "/home/ato121/nextgqa_sample/NExTVideo/1018/12298809926.mp4",
+    "video_id": "12298809926",
+    "qid": "11",
+    "question_type": "TP",
+    "question": "how does the man position himself before hitting",
+    "answer": "beside the ball",
+    "choices": [
+      "beside the ball",
+      "cycling",
+      "take out the paper",
+      "guitar controller",
+      "bowls again"
+    ],
+    "answer_choice_index": 0,
+    "grounding": [
+      [
+        4.4,
+        7.6
+      ]
+    ]
+  }
+]

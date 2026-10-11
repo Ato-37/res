@@ -1,0 +1,5163 @@
+{
+  "schema_version": 1,
+  "script": "evidence_control_choice_confirmation.py",
+  "samples_file": "/home/ato121/res/data/nextgqa_samples_choice_confirmation_heldout.json",
+  "model": "Qwen/Qwen2.5-VL-7B-Instruct",
+  "quant": "4bit",
+  "dtype": "bfloat16",
+  "seed": 20261006,
+  "num_frames": 16,
+  "placebo_repeats": 5,
+  "prompt_protocol": "five NExT-GQA options; gold A-E logprob minus best foil",
+  "primary_cohort": "unperturbed prompt predicts the dataset gold choice",
+  "primary_estimand": "mean selective margin drop among baseline-correct samples",
+  "n_requested": 60,
+  "n_effective": 57,
+  "failures": [
+    {
+      "sample_id": "3201948915:6",
+      "video": "/home/ato121/nextgqa_sample/NExTVideo/1165/3201948915.mp4",
+      "error": "RuntimeError('Cannot construct matched interventions; evidence=[], non_evidence=16')"
+    },
+    {
+      "sample_id": "4226455621:0",
+      "video": "/home/ato121/nextgqa_sample/NExTVideo/1020/4226455621.mp4",
+      "error": "RuntimeError('Cannot construct matched interventions; evidence=[], non_evidence=16')"
+    },
+    {
+      "sample_id": "3593365697:1",
+      "video": "/home/ato121/nextgqa_sample/NExTVideo/1018/3593365697.mp4",
+      "error": "RuntimeError('Cannot construct matched interventions; evidence=[], non_evidence=16')"
+    }
+  ],
+  "summary": {
+    "all": {
+      "n": 57,
+      "mean": 0.10175438672665395,
+      "sd": 0.6322942073606609,
+      "ci95_pointwise": [
+        -0.059649116678593406,
+        0.2701754298399528
+      ],
+      "positive_fraction": 0.5263157894736842,
+      "signflip_p_two_sided": 0.2298770122987701
+    },
+    "baseline_correct_primary": {
+      "n": 38,
+      "mean": 0.08486842072473474,
+      "sd": 0.5867782787516633,
+      "ci95_pointwise": [
+        -0.09276314341031573,
+        0.2743421020644936
+      ],
+      "positive_fraction": 0.5263157894736842,
+      "signflip_p_two_sided": 0.39376062393760625
+    },
+    "baseline_incorrect_secondary": {
+      "n": 19,
+      "mean": 0.13552631873049234,
+      "sd": 0.7309295772076765,
+      "ci95_pointwise": [
+        -0.16973684790887328,
+        0.4736841995465128
+      ],
+      "positive_fraction": 0.5263157894736842,
+      "signflip_p_two_sided": 0.45265473452654736
+    },
+    "correct_minus_incorrect_interaction": {
+      "mean_correct_minus_incorrect": -0.050657898005757596,
+      "ci95_pointwise": [
+        -0.42500000968248075,
+        0.305921051632858
+      ]
+    }
+  },
+  "multiplicity": "One predeclared primary cohort; other cohorts and interaction are secondary; no multiplicity correction.",
+  "limitations": [
+    "Fresh video IDs are required for independent confirmation.",
+    "Baseline-correct subgroup hypothesis was motivated by a prior exploratory post-hoc split; this run must be interpreted as confirmation only if sample IDs were not previously used.",
+    "Choice-letter scores depend on this prompt and are not official free-generation scores.",
+    "Single-frame replacements create hybrid/OOD inputs; this measures input-level sensitivity, not head causality or general explanation validity."
+  ],
+  "records": [
+    {
+      "sample_id": "5780852028:6",
+      "video_id": "5780852028",
+      "qid": "6",
+      "question_type": "TN",
+      "sampled_indices": [
+        0,
+        96,
+        192,
+        287,
+        383,
+        479,
+        575,
+        671,
+        766,
+        862,
+        958,
+        1054,
+        1150,
+        1245,
+        1341,
+        1437
+      ],
+      "evidence_indices": [
+        1150,
+        1245
+      ],
+      "baseline_choice_correct": false,
+      "gold_choice_index": 0,
+      "predicted_choice_index": 2,
+      "full_choice_logprobs": [
+        -3.7087841033935547,
+        -5.333784103393555,
+        -0.08378422260284424,
+        -3.0837841033935547,
+        -5.333784103393555
+      ],
+      "full_correct_vs_best_foil_margin": -3.6249998807907104,
+      "evidence_replaced_margins": [
+        -3.374999962747097,
+        -3.7499999925494194,
+        -3.374999962747097,
+        -3.7499999925494194,
+        -3.374999962747097
+      ],
+      "placebo_replaced_margins": [
+        -3.624999962747097,
+        -2.2500000447034836,
+        -3.500000111758709,
+        -3.624999962747097,
+        -3.7500000968575478
+      ],
+      "evidence_margin_drop": -0.09999990612268439,
+      "mean_placebo_margin_drop": -0.2749998450279234,
+      "selective_margin_drop": 0.17499993890523902,
+      "matched_interventions": [
+        {
+          "evidence_target": 1150,
+          "evidence_donor": 1054,
+          "placebo_target": 1054,
+          "placebo_donor": 958
+        },
+        {
+          "evidence_target": 1245,
+          "evidence_donor": 1341,
+          "placebo_target": 1437,
+          "placebo_donor": 1341
+        },
+        {
+          "evidence_target": 1150,
+          "evidence_donor": 1054,
+          "placebo_target": 958,
+          "placebo_donor": 862
+        },
+        {
+          "evidence_target": 1245,
+          "evidence_donor": 1341,
+          "placebo_target": 1054,
+          "placebo_donor": 958
+        },
+        {
+          "evidence_target": 1150,
+          "evidence_donor": 1054,
+          "placebo_target": 1341,
+          "placebo_donor": 1437
+        }
+      ]
+    },
+    {
+      "sample_id": "9046447320:11",
+      "video_id": "9046447320",
+      "qid": "11",
+      "question_type": "TN",
+      "sampled_indices": [
+        0,
+        25,
+        50,
+        74,
+        99,
+        124,
+        149,
+        174,
+        198,
+        223,
+        248,
+        273,
+        298,
+        322,
+        347,
+        372
+      ],
+      "evidence_indices": [
+        198,
+        223,
+        248,
+        273,
+        298,
+        322,
+        347
+      ],
+      "baseline_choice_correct": false,
+      "gold_choice_index": 1,
+      "predicted_choice_index": 2,
+      "full_choice_logprobs": [
+        -2.8368170261383057,
+        -0.9618170857429504,
+        -0.5868170857429504,
+        -5.961817264556885,
+        -8.586816787719727
+      ],
+      "full_correct_vs_best_foil_margin": -0.375,
+      "evidence_replaced_margins": [
+        -0.5,
+        -0.25,
+        -0.25,
+        -0.125,
+        -0.625
+      ],
+      "placebo_replaced_margins": [
+        -0.375,
+        -0.375,
+        -0.375,
+        -0.375,
+        -0.375
+      ],
+      "evidence_margin_drop": -0.025000000000000022,
+      "mean_placebo_margin_drop": 0.0,
+      "selective_margin_drop": -0.025000000000000022,
+      "matched_interventions": [
+        {
+          "evidence_target": 248,
+          "evidence_donor": 174,
+          "placebo_target": 372,
+          "placebo_donor": 174
+        },
+        {
+          "evidence_target": 322,
+          "evidence_donor": 372,
+          "placebo_target": 149,
+          "placebo_donor": 124
+        },
+        {
+          "evidence_target": 298,
+          "evidence_donor": 372,
+          "placebo_target": 149,
+          "placebo_donor": 124
+        },
+        {
+          "evidence_target": 347,
+          "evidence_donor": 372,
+          "placebo_target": 174,
+          "placebo_donor": 149
+        },
+        {
+          "evidence_target": 223,
+          "evidence_donor": 174,
+          "placebo_target": 149,
+          "placebo_donor": 124
+        }
+      ]
+    },
+    {
+      "sample_id": "2493035685:0",
+      "video_id": "2493035685",
+      "qid": "0",
+      "question_type": "CW",
+      "sampled_indices": [
+        0,
+        150,
+        300,
+        449,
+        599,
+        749,
+        899,
+        1049,
+        1198,
+        1348,
+        1498,
+        1648,
+        1798,
+        1947,
+        2097,
+        2247
+      ],
+      "evidence_indices": [
+        0
+      ],
+      "baseline_choice_correct": false,
+      "gold_choice_index": 4,
+      "predicted_choice_index": 1,
+      "full_choice_logprobs": [
+        -8.041119575500488,
+        -0.04111946001648903,
+        -6.041119575500488,
+        -8.416119575500488,
+        -3.2911195755004883
+      ],
+      "full_correct_vs_best_foil_margin": -3.2500001154839993,
+      "evidence_replaced_margins": [
+        -2.125000022351742,
+        -2.125000022351742,
+        -2.125000022351742,
+        -2.125000022351742,
+        -2.125000022351742
+      ],
+      "placebo_replaced_margins": [
+        -3.375000089406967,
+        -2.875,
+        -3.874999886378646,
+        -3.375000089406967,
+        -3.874999886378646
+      ],
+      "evidence_margin_drop": -1.1250000931322575,
+      "mean_placebo_margin_drop": 0.22499987483024597,
+      "selective_margin_drop": -1.3499999679625034,
+      "matched_interventions": [
+        {
+          "evidence_target": 0,
+          "evidence_donor": 150,
+          "placebo_target": 599,
+          "placebo_donor": 449
+        },
+        {
+          "evidence_target": 0,
+          "evidence_donor": 150,
+          "placebo_target": 150,
+          "placebo_donor": 300
+        },
+        {
+          "evidence_target": 0,
+          "evidence_donor": 150,
+          "placebo_target": 449,
+          "placebo_donor": 300
+        },
+        {
+          "evidence_target": 0,
+          "evidence_donor": 150,
+          "placebo_target": 599,
+          "placebo_donor": 449
+        },
+        {
+          "evidence_target": 0,
+          "evidence_donor": 150,
+          "placebo_target": 449,
+          "placebo_donor": 300
+        }
+      ]
+    },
+    {
+      "sample_id": "4845929158:2",
+      "video_id": "4845929158",
+      "qid": "2",
+      "question_type": "CW",
+      "sampled_indices": [
+        0,
+        81,
+        161,
+        242,
+        322,
+        403,
+        484,
+        564,
+        645,
+        725,
+        806,
+        887,
+        967,
+        1048,
+        1128,
+        1209
+      ],
+      "evidence_indices": [
+        0,
+        81,
+        161,
+        242
+      ],
+      "baseline_choice_correct": false,
+      "gold_choice_index": 2,
+      "predicted_choice_index": 1,
+      "full_choice_logprobs": [
+        -2.9503509998321533,
+        -0.20035101473331451,
+        -2.9503509998321533,
+        -4.700351238250732,
+        -2.7003509998321533
+      ],
+      "full_correct_vs_best_foil_margin": -2.749999985098839,
+      "evidence_replaced_margins": [
+        -2.5000000596046448,
+        -2.0000000298023224,
+        -2.6250000447034836,
+        -2.2500000596046448,
+        -2.5000000596046448
+      ],
+      "placebo_replaced_margins": [
+        -2.3750000596046448,
+        -2.3749999552965164,
+        -2.3750000596046448,
+        -2.6250001192092896,
+        -2.3750000596046448
+      ],
+      "evidence_margin_drop": -0.37499993443489066,
+      "mean_placebo_margin_drop": -0.32499993443489084,
+      "selective_margin_drop": -0.04999999999999982,
+      "matched_interventions": [
+        {
+          "evidence_target": 0,
+          "evidence_donor": 322,
+          "placebo_target": 564,
+          "placebo_donor": 484
+        },
+        {
+          "evidence_target": 242,
+          "evidence_donor": 322,
+          "placebo_target": 403,
+          "placebo_donor": 322
+        },
+        {
+          "evidence_target": 81,
+          "evidence_donor": 322,
+          "placebo_target": 564,
+          "placebo_donor": 484
+        },
+        {
+          "evidence_target": 161,
+          "evidence_donor": 322,
+          "placebo_target": 322,
+          "placebo_donor": 403
+        },
+        {
+          "evidence_target": 0,
+          "evidence_donor": 322,
+          "placebo_target": 564,
+          "placebo_donor": 484
+        }
+      ]
+    },
+    {
+      "sample_id": "8044317011:3",
+      "video_id": "8044317011",
+      "qid": "3",
+      "question_type": "CW",
+      "sampled_indices": [
+        0,
+        180,
+        359,
+        539,
+        719,
+        899,
+        1078,
+        1258,
+        1438,
+        1618,
+        1797,
+        1977,
+        2157,
+        2337,
+        2516,
+        2696
+      ],
+      "evidence_indices": [
+        2696
+      ],
+      "baseline_choice_correct": true,
+      "gold_choice_index": 1,
+      "predicted_choice_index": 1,
+      "full_choice_logprobs": [
+        -5.764610290527344,
+        -0.014610325917601585,
+        -4.514610290527344,
+        -8.639610290527344,
+        -8.639610290527344
+      ],
+      "full_correct_vs_best_foil_margin": 4.499999964609742,
+      "evidence_replaced_margins": [
+        4.5000000931322575,
+        4.5000000931322575,
+        4.5000000931322575,
+        4.5000000931322575,
+        4.5000000931322575
+      ],
+      "placebo_replaced_margins": [
+        4.625000038184226,
+        4.500000027939677,
+        4.625000038184226,
+        4.250000026077032,
+        4.500000027939677
+      ],
+      "evidence_margin_drop": -1.2852251529693604e-07,
+      "mean_placebo_margin_drop": -6.705522537231445e-08,
+      "selective_margin_drop": -6.146728992462158e-08,
+      "matched_interventions": [
+        {
+          "evidence_target": 2696,
+          "evidence_donor": 2516,
+          "placebo_target": 2516,
+          "placebo_donor": 2337
+        },
+        {
+          "evidence_target": 2696,
+          "evidence_donor": 2516,
+          "placebo_target": 2157,
+          "placebo_donor": 1977
+        },
+        {
+          "evidence_target": 2696,
+          "evidence_donor": 2516,
+          "placebo_target": 2516,
+          "placebo_donor": 2337
+        },
+        {
+          "evidence_target": 2696,
+          "evidence_donor": 2516,
+          "placebo_target": 1977,
+          "placebo_donor": 1797
+        },
+        {
+          "evidence_target": 2696,
+          "evidence_donor": 2516,
+          "placebo_target": 2157,
+          "placebo_donor": 1977
+        }
+      ]
+    },
+    {
+      "sample_id": "2814476910:9",
+      "video_id": "2814476910",
+      "qid": "9",
+      "question_type": "TN",
+      "sampled_indices": [
+        0,
+        47,
+        95,
+        142,
+        189,
+        237,
+        284,
+        331,
+        379,
+        426,
+        473,
+        521,
+        568,
+        615,
+        663,
+        710
+      ],
+      "evidence_indices": [
+        663
+      ],
+      "baseline_choice_correct": true,
+      "gold_choice_index": 0,
+      "predicted_choice_index": 0,
+      "full_choice_logprobs": [
+        -0.03514574468135834,
+        -7.0351457595825195,
+        -4.9101457595825195,
+        -3.6601457595825195,
+        -8.53514575958252
+      ],
+      "full_correct_vs_best_foil_margin": 3.625000014901161,
+      "evidence_replaced_margins": [
+        3.625000085681677,
+        3.625000085681677,
+        3.625000085681677,
+        3.625000085681677,
+        3.625000085681677
+      ],
+      "placebo_replaced_margins": [
+        3.7499998845160007,
+        3.7500000447034836,
+        3.7500000447034836,
+        3.7500000447034836,
+        3.7500000447034836
+      ],
+      "evidence_margin_drop": -7.078051567077637e-08,
+      "mean_placebo_margin_drop": -0.12499999776482573,
+      "selective_margin_drop": 0.12499992698431006,
+      "matched_interventions": [
+        {
+          "evidence_target": 663,
+          "evidence_donor": 710,
+          "placebo_target": 568,
+          "placebo_donor": 521
+        },
+        {
+          "evidence_target": 663,
+          "evidence_donor": 710,
+          "placebo_target": 710,
+          "placebo_donor": 615
+        },
+        {
+          "evidence_target": 663,
+          "evidence_donor": 710,
+          "placebo_target": 710,
+          "placebo_donor": 615
+        },
+        {
+          "evidence_target": 663,
+          "evidence_donor": 710,
+          "placebo_target": 710,
+          "placebo_donor": 615
+        },
+        {
+          "evidence_target": 663,
+          "evidence_donor": 710,
+          "placebo_target": 710,
+          "placebo_donor": 615
+        }
+      ]
+    },
+    {
+      "sample_id": "4127483344:3",
+      "video_id": "4127483344",
+      "qid": "3",
+      "question_type": "TC",
+      "sampled_indices": [
+        0,
+        91,
+        181,
+        272,
+        363,
+        454,
+        544,
+        635,
+        726,
+        817,
+        907,
+        998,
+        1089,
+        1180,
+        1270,
+        1361
+      ],
+      "evidence_indices": [
+        272,
+        363
+      ],
+      "baseline_choice_correct": true,
+      "gold_choice_index": 2,
+      "predicted_choice_index": 2,
+      "full_choice_logprobs": [
+        -1.63376784324646,
+        -1.75876784324646,
+        -0.50876784324646,
+        -7.008768081665039,
+        -3.50876784324646
+      ],
+      "full_correct_vs_best_foil_margin": 1.125,
+      "evidence_replaced_margins": [
+        1.0000000596046448,
+        0.8750000596046448,
+        1.0000000596046448,
+        0.8750000596046448,
+        1.0000000596046448
+      ],
+      "placebo_replaced_margins": [
+        1.6250000298023224,
+        1.1250000596046448,
+        1.3749999403953552,
+        1.6250000298023224,
+        1.3749999403953552
+      ],
+      "evidence_margin_drop": 0.17499994039535527,
+      "mean_placebo_margin_drop": -0.30000000000000004,
+      "selective_margin_drop": 0.4749999403953553,
+      "matched_interventions": [
+        {
+          "evidence_target": 272,
+          "evidence_donor": 181,
+          "placebo_target": 91,
+          "placebo_donor": 181
+        },
+        {
+          "evidence_target": 363,
+          "evidence_donor": 454,
+          "placebo_target": 454,
+          "placebo_donor": 544
+        },
+        {
+          "evidence_target": 272,
+          "evidence_donor": 181,
+          "placebo_target": 0,
+          "placebo_donor": 91
+        },
+        {
+          "evidence_target": 363,
+          "evidence_donor": 454,
+          "placebo_target": 91,
+          "placebo_donor": 181
+        },
+        {
+          "evidence_target": 272,
+          "evidence_donor": 181,
+          "placebo_target": 0,
+          "placebo_donor": 91
+        }
+      ]
+    },
+    {
+      "sample_id": "3541006618:4",
+      "video_id": "3541006618",
+      "qid": "4",
+      "question_type": "TN",
+      "sampled_indices": [
+        0,
+        34,
+        69,
+        103,
+        137,
+        172,
+        206,
+        240,
+        275,
+        309,
+        343,
+        378,
+        412,
+        446,
+        481,
+        515
+      ],
+      "evidence_indices": [
+        309,
+        343,
+        378,
+        412
+      ],
+      "baseline_choice_correct": true,
+      "gold_choice_index": 3,
+      "predicted_choice_index": 3,
+      "full_choice_logprobs": [
+        -7.38032865524292,
+        -7.13032865524292,
+        -6.00532865524292,
+        -0.005328500177711248,
+        -6.63032865524292
+      ],
+      "full_correct_vs_best_foil_margin": 6.000000155065209,
+      "evidence_replaced_margins": [
+        5.999999844003469,
+        5.750000214204192,
+        5.749999877531081,
+        6.124999950174242,
+        5.999999844003469
+      ],
+      "placebo_replaced_margins": [
+        5.750000031199306,
+        5.875000200700015,
+        1.7500000149011612,
+        1.7500000149011612,
+        5.624999891966581
+      ],
+      "evidence_margin_drop": 0.07500020908191818,
+      "mean_placebo_margin_drop": 1.8500001243315634,
+      "selective_margin_drop": -1.7749999152496452,
+      "matched_interventions": [
+        {
+          "evidence_target": 309,
+          "evidence_donor": 275,
+          "placebo_target": 240,
+          "placebo_donor": 206
+        },
+        {
+          "evidence_target": 343,
+          "evidence_donor": 275,
+          "placebo_target": 446,
+          "placebo_donor": 481
+        },
+        {
+          "evidence_target": 412,
+          "evidence_donor": 446,
+          "placebo_target": 275,
+          "placebo_donor": 240
+        },
+        {
+          "evidence_target": 378,
+          "evidence_donor": 446,
+          "placebo_target": 275,
+          "placebo_donor": 240
+        },
+        {
+          "evidence_target": 309,
+          "evidence_donor": 275,
+          "placebo_target": 206,
+          "placebo_donor": 172
+        }
+      ]
+    },
+    {
+      "sample_id": "5498789102:8",
+      "video_id": "5498789102",
+      "qid": "8",
+      "question_type": "CW",
+      "sampled_indices": [
+        0,
+        58,
+        116,
+        174,
+        233,
+        291,
+        349,
+        407,
+        465,
+        523,
+        581,
+        639,
+        698,
+        756,
+        814,
+        872
+      ],
+      "evidence_indices": [
+        698
+      ],
+      "baseline_choice_correct": true,
+      "gold_choice_index": 3,
+      "predicted_choice_index": 3,
+      "full_choice_logprobs": [
+        -6.006549835205078,
+        -3.631549835205078,
+        -1.0065499544143677,
+        -0.5065499544143677,
+        -6.006549835205078
+      ],
+      "full_correct_vs_best_foil_margin": 0.5,
+      "evidence_replaced_margins": [
+        0.7500000298023224,
+        0.7500000298023224,
+        0.7500000298023224,
+        0.7500000298023224,
+        0.7500000298023224
+      ],
+      "placebo_replaced_margins": [
+        0.6250000298023224,
+        0.6250000596046448,
+        0.375,
+        0.6250000298023224,
+        0.6250000298023224
+      ],
+      "evidence_margin_drop": -0.2500000298023224,
+      "mean_placebo_margin_drop": -0.07500002980232234,
+      "selective_margin_drop": -0.17500000000000004,
+      "matched_interventions": [
+        {
+          "evidence_target": 698,
+          "evidence_donor": 756,
+          "placebo_target": 581,
+          "placebo_donor": 523
+        },
+        {
+          "evidence_target": 698,
+          "evidence_donor": 756,
+          "placebo_target": 639,
+          "placebo_donor": 581
+        },
+        {
+          "evidence_target": 698,
+          "evidence_donor": 756,
+          "placebo_target": 814,
+          "placebo_donor": 756
+        },
+        {
+          "evidence_target": 698,
+          "evidence_donor": 756,
+          "placebo_target": 581,
+          "placebo_donor": 523
+        },
+        {
+          "evidence_target": 698,
+          "evidence_donor": 756,
+          "placebo_target": 581,
+          "placebo_donor": 523
+        }
+      ]
+    },
+    {
+      "sample_id": "3028133743:7",
+      "video_id": "3028133743",
+      "qid": "7",
+      "question_type": "CH",
+      "sampled_indices": [
+        0,
+        33,
+        66,
+        99,
+        131,
+        164,
+        197,
+        230,
+        263,
+        296,
+        329,
+        362,
+        394,
+        427,
+        460,
+        493
+      ],
+      "evidence_indices": [
+        394,
+        427,
+        460
+      ],
+      "baseline_choice_correct": false,
+      "gold_choice_index": 4,
+      "predicted_choice_index": 2,
+      "full_choice_logprobs": [
+        -4.814858913421631,
+        -4.439858913421631,
+        -0.6898590922355652,
+        -1.56485915184021,
+        -1.31485915184021
+      ],
+      "full_correct_vs_best_foil_margin": -0.6250000596046448,
+      "evidence_replaced_margins": [
+        -0.6250000596046448,
+        -0.375,
+        -0.5000000596046448,
+        -0.6250000596046448,
+        -0.375
+      ],
+      "placebo_replaced_margins": [
+        -0.4999999403953552,
+        -0.4999999403953552,
+        -0.4999999403953552,
+        -0.4999999403953552,
+        -1.5000000298023224
+      ],
+      "evidence_margin_drop": -0.12500002384185793,
+      "mean_placebo_margin_drop": 0.07499989867210388,
+      "selective_margin_drop": -0.19999992251396181,
+      "matched_interventions": [
+        {
+          "evidence_target": 394,
+          "evidence_donor": 362,
+          "placebo_target": 329,
+          "placebo_donor": 296
+        },
+        {
+          "evidence_target": 427,
+          "evidence_donor": 362,
+          "placebo_target": 329,
+          "placebo_donor": 296
+        },
+        {
+          "evidence_target": 460,
+          "evidence_donor": 493,
+          "placebo_target": 362,
+          "placebo_donor": 329
+        },
+        {
+          "evidence_target": 394,
+          "evidence_donor": 362,
+          "placebo_target": 362,
+          "placebo_donor": 329
+        },
+        {
+          "evidence_target": 427,
+          "evidence_donor": 362,
+          "placebo_target": 296,
+          "placebo_donor": 263
+        }
+      ]
+    },
+    {
+      "sample_id": "5750350083:2",
+      "video_id": "5750350083",
+      "qid": "2",
+      "question_type": "CW",
+      "sampled_indices": [
+        0,
+        41,
+        81,
+        122,
+        162,
+        203,
+        243,
+        284,
+        324,
+        365,
+        405,
+        446,
+        486,
+        527,
+        567,
+        608
+      ],
+      "evidence_indices": [
+        446,
+        486,
+        527,
+        567
+      ],
+      "baseline_choice_correct": true,
+      "gold_choice_index": 1,
+      "predicted_choice_index": 1,
+      "full_choice_logprobs": [
+        -4.511694431304932,
+        -0.011694212444126606,
+        -8.261693954467773,
+        -8.136693954467773,
+        -10.636693954467773
+      ],
+      "full_correct_vs_best_foil_margin": 4.500000218860805,
+      "evidence_replaced_margins": [
+        4.7500001499429345,
+        4.374999864026904,
+        3.9999999161809683,
+        3.9999999701976776,
+        4.7500001499429345
+      ],
+      "placebo_replaced_margins": [
+        4.250000043772161,
+        4.6249999068677425,
+        4.250000070780516,
+        4.5000002309679985,
+        4.749999933876097
+      ],
+      "evidence_margin_drop": 0.12500020880252105,
+      "mean_placebo_margin_drop": 0.025000181607902405,
+      "selective_margin_drop": 0.10000002719461865,
+      "matched_interventions": [
+        {
+          "evidence_target": 567,
+          "evidence_donor": 608,
+          "placebo_target": 365,
+          "placebo_donor": 405
+        },
+        {
+          "evidence_target": 486,
+          "evidence_donor": 405,
+          "placebo_target": 324,
+          "placebo_donor": 284
+        },
+        {
+          "evidence_target": 527,
+          "evidence_donor": 608,
+          "placebo_target": 608,
+          "placebo_donor": 405
+        },
+        {
+          "evidence_target": 446,
+          "evidence_donor": 405,
+          "placebo_target": 284,
+          "placebo_donor": 324
+        },
+        {
+          "evidence_target": 567,
+          "evidence_donor": 608,
+          "placebo_target": 405,
+          "placebo_donor": 365
+        }
+      ]
+    },
+    {
+      "sample_id": "9528960175:10",
+      "video_id": "9528960175",
+      "qid": "10",
+      "question_type": "CW",
+      "sampled_indices": [
+        0,
+        300,
+        600,
+        900,
+        1200,
+        1500,
+        1800,
+        2100,
+        2399,
+        2699,
+        2999,
+        3299,
+        3599,
+        3899,
+        4199,
+        4499
+      ],
+      "evidence_indices": [
+        1200,
+        1800,
+        2100,
+        2999,
+        3599,
+        3899
+      ],
+      "baseline_choice_correct": true,
+      "gold_choice_index": 1,
+      "predicted_choice_index": 1,
+      "full_choice_logprobs": [
+        -7.899181365966797,
+        -0.024181311950087547,
+        -8.024181365966797,
+        -9.274181365966797,
+        -3.774181365966797
+      ],
+      "full_correct_vs_best_foil_margin": 3.7500000540167093,
+      "evidence_replaced_margins": [
+        4.124999839812517,
+        3.7500000428408384,
+        3.7500000204890966,
+        4.624999926425517,
+        3.7499999944120646
+      ],
+      "placebo_replaced_margins": [
+        3.750000037252903,
+        3.9999999217689037,
+        3.749999886378646,
+        4.125000236555934,
+        3.749999886378646
+      ],
+      "evidence_margin_drop": -0.24999991077929717,
+      "mean_placebo_margin_drop": -0.12499993965029699,
+      "selective_margin_drop": -0.12499997112900019,
+      "matched_interventions": [
+        {
+          "evidence_target": 3899,
+          "evidence_donor": 4199,
+          "placebo_target": 4199,
+          "placebo_donor": 4499
+        },
+        {
+          "evidence_target": 3599,
+          "evidence_donor": 3299,
+          "placebo_target": 4499,
+          "placebo_donor": 4199
+        },
+        {
+          "evidence_target": 2100,
+          "evidence_donor": 2399,
+          "placebo_target": 3299,
+          "placebo_donor": 2699
+        },
+        {
+          "evidence_target": 1200,
+          "evidence_donor": 900,
+          "placebo_target": 900,
+          "placebo_donor": 600
+        },
+        {
+          "evidence_target": 2999,
+          "evidence_donor": 2699,
+          "placebo_target": 3299,
+          "placebo_donor": 2699
+        }
+      ]
+    },
+    {
+      "sample_id": "6320611157:9",
+      "video_id": "6320611157",
+      "qid": "9",
+      "question_type": "CW",
+      "sampled_indices": [
+        0,
+        148,
+        296,
+        444,
+        592,
+        740,
+        888,
+        1036,
+        1183,
+        1331,
+        1479,
+        1627,
+        1775,
+        1923,
+        2071,
+        2219
+      ],
+      "evidence_indices": [
+        592,
+        740,
+        888,
+        1036
+      ],
+      "baseline_choice_correct": true,
+      "gold_choice_index": 3,
+      "predicted_choice_index": 3,
+      "full_choice_logprobs": [
+        -7.635112762451172,
+        -7.385112762451172,
+        -4.760112762451172,
+        -0.01011283416301012,
+        -8.135112762451172
+      ],
+      "full_correct_vs_best_foil_margin": 4.749999928288162,
+      "evidence_replaced_margins": [
+        4.5000002374872565,
+        4.750000054948032,
+        4.749999975785613,
+        4.750000203028321,
+        4.5000002374872565
+      ],
+      "placebo_replaced_margins": [
+        4.2500001937150955,
+        4.000000165775418,
+        4.000000165775418,
+        5.124999904539436,
+        4.375000233761966
+      ],
+      "evidence_margin_drop": 0.09999978654086572,
+      "mean_placebo_margin_drop": 0.3999997955746952,
+      "selective_margin_drop": -0.3000000090338295,
+      "matched_interventions": [
+        {
+          "evidence_target": 1036,
+          "evidence_donor": 1183,
+          "placebo_target": 1183,
+          "placebo_donor": 1331
+        },
+        {
+          "evidence_target": 740,
+          "evidence_donor": 444,
+          "placebo_target": 296,
+          "placebo_donor": 148
+        },
+        {
+          "evidence_target": 592,
+          "evidence_donor": 444,
+          "placebo_target": 296,
+          "placebo_donor": 148
+        },
+        {
+          "evidence_target": 888,
+          "evidence_donor": 1183,
+          "placebo_target": 1479,
+          "placebo_donor": 1331
+        },
+        {
+          "evidence_target": 1036,
+          "evidence_donor": 1183,
+          "placebo_target": 1331,
+          "placebo_donor": 1183
+        }
+      ]
+    },
+    {
+      "sample_id": "10128261054:8",
+      "video_id": "10128261054",
+      "qid": "8",
+      "question_type": "TN",
+      "sampled_indices": [
+        0,
+        38,
+        76,
+        114,
+        152,
+        190,
+        228,
+        266,
+        304,
+        342,
+        380,
+        418,
+        456,
+        494,
+        532,
+        570
+      ],
+      "evidence_indices": [
+        190,
+        228,
+        266,
+        304,
+        342,
+        380,
+        418,
+        456,
+        494
+      ],
+      "baseline_choice_correct": false,
+      "gold_choice_index": 0,
+      "predicted_choice_index": 2,
+      "full_choice_logprobs": [
+        -0.8602652549743652,
+        -4.110265254974365,
+        -0.7352652549743652,
+        -2.6102652549743652,
+        -5.110265254974365
+      ],
+      "full_correct_vs_best_foil_margin": -0.125,
+      "evidence_replaced_margins": [
+        -0.375,
+        -0.125,
+        -0.125,
+        -0.375,
+        0.0
+      ],
+      "placebo_replaced_margins": [
+        0.75,
+        -0.125,
+        -0.375,
+        -0.125,
+        0.75
+      ],
+      "evidence_margin_drop": 0.07500000000000001,
+      "mean_placebo_margin_drop": -0.3,
+      "selective_margin_drop": 0.375,
+      "matched_interventions": [
+        {
+          "evidence_target": 190,
+          "evidence_donor": 152,
+          "placebo_target": 38,
+          "placebo_donor": 0
+        },
+        {
+          "evidence_target": 456,
+          "evidence_donor": 532,
+          "placebo_target": 570,
+          "placebo_donor": 532
+        },
+        {
+          "evidence_target": 494,
+          "evidence_donor": 532,
+          "placebo_target": 152,
+          "placebo_donor": 114
+        },
+        {
+          "evidence_target": 418,
+          "evidence_donor": 532,
+          "placebo_target": 570,
+          "placebo_donor": 532
+        },
+        {
+          "evidence_target": 266,
+          "evidence_donor": 152,
+          "placebo_target": 38,
+          "placebo_donor": 0
+        }
+      ]
+    },
+    {
+      "sample_id": "3727471969:1",
+      "video_id": "3727471969",
+      "qid": "1",
+      "question_type": "TN",
+      "sampled_indices": [
+        0,
+        69,
+        138,
+        207,
+        276,
+        345,
+        414,
+        483,
+        551,
+        620,
+        689,
+        758,
+        827,
+        896,
+        965,
+        1034
+      ],
+      "evidence_indices": [
+        758,
+        827
+      ],
+      "baseline_choice_correct": true,
+      "gold_choice_index": 3,
+      "predicted_choice_index": 3,
+      "full_choice_logprobs": [
+        -8.002511978149414,
+        -6.252512454986572,
+        -9.002511978149414,
+        -0.002512395614758134,
+        -10.002511978149414
+      ],
+      "full_correct_vs_best_foil_margin": 6.250000059371814,
+      "evidence_replaced_margins": [
+        4.6250000558793545,
+        5.874999921536073,
+        4.6250000558793545,
+        5.874999921536073,
+        4.6250000558793545
+      ],
+      "placebo_replaced_margins": [
+        6.12499990593642,
+        6.6249999980209395,
+        6.12499990593642,
+        6.6249999980209395,
+        5.625000172294676
+      ],
+      "evidence_margin_drop": 1.125000057229772,
+      "mean_placebo_margin_drop": 0.02500006332993543,
+      "selective_margin_drop": 1.0999999938998366,
+      "matched_interventions": [
+        {
+          "evidence_target": 827,
+          "evidence_donor": 896,
+          "placebo_target": 620,
+          "placebo_donor": 551
+        },
+        {
+          "evidence_target": 758,
+          "evidence_donor": 689,
+          "placebo_target": 689,
+          "placebo_donor": 620
+        },
+        {
+          "evidence_target": 827,
+          "evidence_donor": 896,
+          "placebo_target": 620,
+          "placebo_donor": 551
+        },
+        {
+          "evidence_target": 758,
+          "evidence_donor": 689,
+          "placebo_target": 689,
+          "placebo_donor": 620
+        },
+        {
+          "evidence_target": 827,
+          "evidence_donor": 896,
+          "placebo_target": 896,
+          "placebo_donor": 965
+        }
+      ]
+    },
+    {
+      "sample_id": "5445670939:2",
+      "video_id": "5445670939",
+      "qid": "2",
+      "question_type": "CH",
+      "sampled_indices": [
+        0,
+        30,
+        61,
+        91,
+        122,
+        152,
+        182,
+        213,
+        243,
+        274,
+        304,
+        334,
+        365,
+        395,
+        426,
+        456
+      ],
+      "evidence_indices": [
+        122,
+        152,
+        182,
+        213,
+        243,
+        274,
+        304,
+        334
+      ],
+      "baseline_choice_correct": true,
+      "gold_choice_index": 0,
+      "predicted_choice_index": 0,
+      "full_choice_logprobs": [
+        -0.39372050762176514,
+        -6.143720626831055,
+        -7.768720626831055,
+        -5.518720626831055,
+        -1.1437205076217651
+      ],
+      "full_correct_vs_best_foil_margin": 0.75,
+      "evidence_replaced_margins": [
+        0.7500000298023224,
+        1.1249999701976776,
+        0.8749999701976776,
+        0.7499999701976776,
+        0.9999999701976776
+      ],
+      "placebo_replaced_margins": [
+        0.6250000596046448,
+        0.8749999701976776,
+        0.8749999701976776,
+        1.0000000596046448,
+        1.2500000298023224
+      ],
+      "evidence_margin_drop": -0.14999998211860655,
+      "mean_placebo_margin_drop": -0.1750000178813934,
+      "selective_margin_drop": 0.025000035762786865,
+      "matched_interventions": [
+        {
+          "evidence_target": 334,
+          "evidence_donor": 365,
+          "placebo_target": 365,
+          "placebo_donor": 395
+        },
+        {
+          "evidence_target": 213,
+          "evidence_donor": 91,
+          "placebo_target": 61,
+          "placebo_donor": 91
+        },
+        {
+          "evidence_target": 152,
+          "evidence_donor": 91,
+          "placebo_target": 61,
+          "placebo_donor": 91
+        },
+        {
+          "evidence_target": 243,
+          "evidence_donor": 365,
+          "placebo_target": 91,
+          "placebo_donor": 61
+        },
+        {
+          "evidence_target": 122,
+          "evidence_donor": 91,
+          "placebo_target": 0,
+          "placebo_donor": 30
+        }
+      ]
+    },
+    {
+      "sample_id": "6243919243:5",
+      "video_id": "6243919243",
+      "qid": "5",
+      "question_type": "TN",
+      "sampled_indices": [
+        0,
+        42,
+        84,
+        126,
+        168,
+        210,
+        252,
+        294,
+        335,
+        377,
+        419,
+        461,
+        503,
+        545,
+        587,
+        629
+      ],
+      "evidence_indices": [
+        545,
+        587,
+        629
+      ],
+      "baseline_choice_correct": true,
+      "gold_choice_index": 0,
+      "predicted_choice_index": 0,
+      "full_choice_logprobs": [
+        -0.011714006774127483,
+        -6.761713981628418,
+        -4.636713981628418,
+        -7.886713981628418,
+        -8.011713981628418
+      ],
+      "full_correct_vs_best_foil_margin": 4.6249999748542905,
+      "evidence_replaced_margins": [
+        4.500000127591193,
+        4.875000038184226,
+        4.625000229105353,
+        4.500000127591193,
+        4.875000038184226
+      ],
+      "placebo_replaced_margins": [
+        4.4999999813735485,
+        4.249999821186066,
+        4.87500006519258,
+        4.249999821186066,
+        4.87500006519258
+      ],
+      "evidence_margin_drop": -0.050000137276947854,
+      "mean_placebo_margin_drop": 0.07500002402812278,
+      "selective_margin_drop": -0.12500016130507063,
+      "matched_interventions": [
+        {
+          "evidence_target": 545,
+          "evidence_donor": 503,
+          "placebo_target": 503,
+          "placebo_donor": 461
+        },
+        {
+          "evidence_target": 629,
+          "evidence_donor": 503,
+          "placebo_target": 461,
+          "placebo_donor": 419
+        },
+        {
+          "evidence_target": 587,
+          "evidence_donor": 503,
+          "placebo_target": 377,
+          "placebo_donor": 335
+        },
+        {
+          "evidence_target": 545,
+          "evidence_donor": 503,
+          "placebo_target": 461,
+          "placebo_donor": 419
+        },
+        {
+          "evidence_target": 629,
+          "evidence_donor": 503,
+          "placebo_target": 377,
+          "placebo_donor": 335
+        }
+      ]
+    },
+    {
+      "sample_id": "5655025043:6",
+      "video_id": "5655025043",
+      "qid": "6",
+      "question_type": "TN",
+      "sampled_indices": [
+        0,
+        114,
+        227,
+        341,
+        455,
+        568,
+        682,
+        796,
+        909,
+        1023,
+        1137,
+        1250,
+        1364,
+        1478,
+        1591,
+        1705
+      ],
+      "evidence_indices": [
+        0,
+        114
+      ],
+      "baseline_choice_correct": false,
+      "gold_choice_index": 1,
+      "predicted_choice_index": 4,
+      "full_choice_logprobs": [
+        -5.484226703643799,
+        -2.359226703643799,
+        -5.734226703643799,
+        -7.234226703643799,
+        -0.10922672599554062
+      ],
+      "full_correct_vs_best_foil_margin": -2.249999977648258,
+      "evidence_replaced_margins": [
+        -1.7499999403953552,
+        -1.8749999105930328,
+        -1.7499999403953552,
+        -1.8749999105930328,
+        -1.7499999403953552
+      ],
+      "placebo_replaced_margins": [
+        -1.4999999552965164,
+        -1.4999999552965164,
+        -2.0000000596046448,
+        -2.000000089406967,
+        -2.0000000596046448
+      ],
+      "evidence_margin_drop": -0.45000004917383185,
+      "mean_placebo_margin_drop": -0.44999995380640034,
+      "selective_margin_drop": -9.536743150739824e-08,
+      "matched_interventions": [
+        {
+          "evidence_target": 0,
+          "evidence_donor": 227,
+          "placebo_target": 455,
+          "placebo_donor": 568
+        },
+        {
+          "evidence_target": 114,
+          "evidence_donor": 227,
+          "placebo_target": 455,
+          "placebo_donor": 568
+        },
+        {
+          "evidence_target": 0,
+          "evidence_donor": 227,
+          "placebo_target": 341,
+          "placebo_donor": 227
+        },
+        {
+          "evidence_target": 114,
+          "evidence_donor": 227,
+          "placebo_target": 568,
+          "placebo_donor": 455
+        },
+        {
+          "evidence_target": 0,
+          "evidence_donor": 227,
+          "placebo_target": 341,
+          "placebo_donor": 227
+        }
+      ]
+    },
+    {
+      "sample_id": "5481728773:8",
+      "video_id": "5481728773",
+      "qid": "8",
+      "question_type": "TN",
+      "sampled_indices": [
+        0,
+        67,
+        133,
+        200,
+        267,
+        334,
+        400,
+        467,
+        534,
+        601,
+        667,
+        734,
+        801,
+        868,
+        934,
+        1001
+      ],
+      "evidence_indices": [
+        67
+      ],
+      "baseline_choice_correct": false,
+      "gold_choice_index": 1,
+      "predicted_choice_index": 0,
+      "full_choice_logprobs": [
+        -0.8800646662712097,
+        -2.7550647258758545,
+        -1.6300647258758545,
+        -1.3800647258758545,
+        -2.6300647258758545
+      ],
+      "full_correct_vs_best_foil_margin": -1.8750000596046448,
+      "evidence_replaced_margins": [
+        -1.875,
+        -1.875,
+        -1.875,
+        -1.875,
+        -1.875
+      ],
+      "placebo_replaced_margins": [
+        -1.7500001192092896,
+        -1.7500001192092896,
+        -1.7500001192092896,
+        -1.8749999403953552,
+        -1.7500000596046448
+      ],
+      "evidence_margin_drop": -5.960464477539063e-08,
+      "mean_placebo_margin_drop": -0.09999998807907096,
+      "selective_margin_drop": 0.09999992847442618,
+      "matched_interventions": [
+        {
+          "evidence_target": 67,
+          "evidence_donor": 133,
+          "placebo_target": 133,
+          "placebo_donor": 200
+        },
+        {
+          "evidence_target": 67,
+          "evidence_donor": 133,
+          "placebo_target": 133,
+          "placebo_donor": 200
+        },
+        {
+          "evidence_target": 67,
+          "evidence_donor": 133,
+          "placebo_target": 133,
+          "placebo_donor": 200
+        },
+        {
+          "evidence_target": 67,
+          "evidence_donor": 133,
+          "placebo_target": 200,
+          "placebo_donor": 133
+        },
+        {
+          "evidence_target": 67,
+          "evidence_donor": 133,
+          "placebo_target": 267,
+          "placebo_donor": 200
+        }
+      ]
+    },
+    {
+      "sample_id": "9231896269:5",
+      "video_id": "9231896269",
+      "qid": "5",
+      "question_type": "CH",
+      "sampled_indices": [
+        0,
+        29,
+        58,
+        87,
+        115,
+        144,
+        173,
+        202,
+        231,
+        260,
+        289,
+        318,
+        346,
+        375,
+        404,
+        433
+      ],
+      "evidence_indices": [
+        231,
+        260,
+        289,
+        318
+      ],
+      "baseline_choice_correct": true,
+      "gold_choice_index": 0,
+      "predicted_choice_index": 0,
+      "full_choice_logprobs": [
+        -0.0010900514898821712,
+        -8.626090049743652,
+        -7.876090049743652,
+        -7.751090049743652,
+        -11.001090049743652
+      ],
+      "full_correct_vs_best_foil_margin": 7.74999999825377,
+      "evidence_replaced_margins": [
+        8.00000013812678,
+        7.8750000889995135,
+        7.749999970546924,
+        7.874999797088094,
+        8.00000013812678
+      ],
+      "placebo_replaced_margins": [
+        7.500000172527507,
+        8.124999898311216,
+        8.500000244937837,
+        7.875000031897798,
+        8.124999898311216
+      ],
+      "evidence_margin_drop": -0.15000002832384762,
+      "mean_placebo_margin_drop": -0.2750000509433441,
+      "selective_margin_drop": 0.1250000226194965,
+      "matched_interventions": [
+        {
+          "evidence_target": 318,
+          "evidence_donor": 346,
+          "placebo_target": 433,
+          "placebo_donor": 404
+        },
+        {
+          "evidence_target": 260,
+          "evidence_donor": 202,
+          "placebo_target": 375,
+          "placebo_donor": 346
+        },
+        {
+          "evidence_target": 231,
+          "evidence_donor": 202,
+          "placebo_target": 202,
+          "placebo_donor": 173
+        },
+        {
+          "evidence_target": 289,
+          "evidence_donor": 346,
+          "placebo_target": 404,
+          "placebo_donor": 375
+        },
+        {
+          "evidence_target": 318,
+          "evidence_donor": 346,
+          "placebo_target": 375,
+          "placebo_donor": 346
+        }
+      ]
+    },
+    {
+      "sample_id": "12764453004:6",
+      "video_id": "12764453004",
+      "qid": "6",
+      "question_type": "TC",
+      "sampled_indices": [
+        0,
+        45,
+        90,
+        135,
+        180,
+        225,
+        270,
+        315,
+        360,
+        405,
+        450,
+        495,
+        540,
+        585,
+        630,
+        675
+      ],
+      "evidence_indices": [
+        270,
+        315
+      ],
+      "baseline_choice_correct": true,
+      "gold_choice_index": 3,
+      "predicted_choice_index": 3,
+      "full_choice_logprobs": [
+        -4.641873836517334,
+        -7.016873836517334,
+        -7.266873836517334,
+        -0.01687360554933548,
+        -5.266873836517334
+      ],
+      "full_correct_vs_best_foil_margin": 4.6250002309679985,
+      "evidence_replaced_margins": [
+        4.999999959021807,
+        4.875000134110451,
+        4.999999959021807,
+        4.875000134110451,
+        4.999999959021807
+      ],
+      "placebo_replaced_margins": [
+        4.874999836087227,
+        5.125000207684934,
+        4.874999930150807,
+        5.125000207684934,
+        5.125000207684934
+      ],
+      "evidence_margin_drop": -0.3249997980892658,
+      "mean_placebo_margin_drop": -0.39999984689056856,
+      "selective_margin_drop": 0.07500004880130273,
+      "matched_interventions": [
+        {
+          "evidence_target": 315,
+          "evidence_donor": 360,
+          "placebo_target": 225,
+          "placebo_donor": 180
+        },
+        {
+          "evidence_target": 270,
+          "evidence_donor": 225,
+          "placebo_target": 180,
+          "placebo_donor": 135
+        },
+        {
+          "evidence_target": 315,
+          "evidence_donor": 360,
+          "placebo_target": 405,
+          "placebo_donor": 360
+        },
+        {
+          "evidence_target": 270,
+          "evidence_donor": 225,
+          "placebo_target": 180,
+          "placebo_donor": 135
+        },
+        {
+          "evidence_target": 315,
+          "evidence_donor": 360,
+          "placebo_target": 180,
+          "placebo_donor": 135
+        }
+      ]
+    },
+    {
+      "sample_id": "3842638015:7",
+      "video_id": "3842638015",
+      "qid": "7",
+      "question_type": "TN",
+      "sampled_indices": [
+        0,
+        122,
+        244,
+        365,
+        487,
+        609,
+        731,
+        853,
+        974,
+        1096,
+        1218,
+        1340,
+        1462,
+        1583,
+        1705,
+        1827
+      ],
+      "evidence_indices": [
+        1218,
+        1340
+      ],
+      "baseline_choice_correct": false,
+      "gold_choice_index": 2,
+      "predicted_choice_index": 0,
+      "full_choice_logprobs": [
+        -0.2903253138065338,
+        -4.915325164794922,
+        -2.915325403213501,
+        -7.290325164794922,
+        -1.6653252840042114
+      ],
+      "full_correct_vs_best_foil_margin": -2.625000089406967,
+      "evidence_replaced_margins": [
+        -4.625000238418579,
+        -4.124999791383743,
+        -4.625000238418579,
+        -4.124999791383743,
+        -4.625000238418579
+      ],
+      "placebo_replaced_margins": [
+        -2.000000089406967,
+        -2.000000089406967,
+        -2.499999910593033,
+        -2.499999910593033,
+        -2.000000089406967
+      ],
+      "evidence_margin_drop": 1.7999999701976774,
+      "mean_placebo_margin_drop": -0.42500007152557373,
+      "selective_margin_drop": 2.225000041723251,
+      "matched_interventions": [
+        {
+          "evidence_target": 1340,
+          "evidence_donor": 1462,
+          "placebo_target": 1096,
+          "placebo_donor": 974
+        },
+        {
+          "evidence_target": 1218,
+          "evidence_donor": 1096,
+          "placebo_target": 1096,
+          "placebo_donor": 974
+        },
+        {
+          "evidence_target": 1340,
+          "evidence_donor": 1462,
+          "placebo_target": 1462,
+          "placebo_donor": 1583
+        },
+        {
+          "evidence_target": 1218,
+          "evidence_donor": 1096,
+          "placebo_target": 1462,
+          "placebo_donor": 1583
+        },
+        {
+          "evidence_target": 1340,
+          "evidence_donor": 1462,
+          "placebo_target": 1096,
+          "placebo_donor": 974
+        }
+      ]
+    },
+    {
+      "sample_id": "4834895241:5",
+      "video_id": "4834895241",
+      "qid": "5",
+      "question_type": "CW",
+      "sampled_indices": [
+        0,
+        33,
+        65,
+        98,
+        130,
+        163,
+        195,
+        228,
+        260,
+        293,
+        325,
+        358,
+        390,
+        423,
+        455,
+        488
+      ],
+      "evidence_indices": [
+        455
+      ],
+      "baseline_choice_correct": false,
+      "gold_choice_index": 3,
+      "predicted_choice_index": 4,
+      "full_choice_logprobs": [
+        -7.1444244384765625,
+        -7.3944244384765625,
+        -8.519424438476562,
+        -2.0194246768951416,
+        -0.1444246619939804
+      ],
+      "full_correct_vs_best_foil_margin": -1.8750000149011612,
+      "evidence_replaced_margins": [
+        -2.125000037252903,
+        -2.125000037252903,
+        -2.125000037252903,
+        -2.125000037252903,
+        -2.125000037252903
+      ],
+      "placebo_replaced_margins": [
+        -2.1249999403953552,
+        -1.9999999403953552,
+        -1.9999999403953552,
+        -2.1249999403953552,
+        -2.250000014901161
+      ],
+      "evidence_margin_drop": 0.2500000223517418,
+      "mean_placebo_margin_drop": 0.2249999403953553,
+      "selective_margin_drop": 0.025000081956386477,
+      "matched_interventions": [
+        {
+          "evidence_target": 455,
+          "evidence_donor": 423,
+          "placebo_target": 423,
+          "placebo_donor": 390
+        },
+        {
+          "evidence_target": 455,
+          "evidence_donor": 423,
+          "placebo_target": 358,
+          "placebo_donor": 390
+        },
+        {
+          "evidence_target": 455,
+          "evidence_donor": 423,
+          "placebo_target": 358,
+          "placebo_donor": 390
+        },
+        {
+          "evidence_target": 455,
+          "evidence_donor": 423,
+          "placebo_target": 423,
+          "placebo_donor": 390
+        },
+        {
+          "evidence_target": 455,
+          "evidence_donor": 423,
+          "placebo_target": 390,
+          "placebo_donor": 358
+        }
+      ]
+    },
+    {
+      "sample_id": "11506594895:7",
+      "video_id": "11506594895",
+      "qid": "7",
+      "question_type": "TN",
+      "sampled_indices": [
+        0,
+        50,
+        101,
+        151,
+        201,
+        252,
+        302,
+        352,
+        403,
+        453,
+        503,
+        554,
+        604,
+        654,
+        705,
+        755
+      ],
+      "evidence_indices": [
+        705
+      ],
+      "baseline_choice_correct": true,
+      "gold_choice_index": 0,
+      "predicted_choice_index": 0,
+      "full_choice_logprobs": [
+        -0.18665677309036255,
+        -3.3116567134857178,
+        -2.1866567134857178,
+        -5.061656951904297,
+        -4.311656951904297
+      ],
+      "full_correct_vs_best_foil_margin": 1.9999999403953552,
+      "evidence_replaced_margins": [
+        2.125000089406967,
+        2.125000089406967,
+        2.125000089406967,
+        2.125000089406967,
+        2.125000089406967
+      ],
+      "placebo_replaced_margins": [
+        2.125000014901161,
+        1.9999999552965164,
+        2.000000089406967,
+        2.1250000447034836,
+        1.9999999552965164
+      ],
+      "evidence_margin_drop": -0.12500014901161194,
+      "mean_placebo_margin_drop": -0.05000007152557373,
+      "selective_margin_drop": -0.07500007748603821,
+      "matched_interventions": [
+        {
+          "evidence_target": 705,
+          "evidence_donor": 755,
+          "placebo_target": 654,
+          "placebo_donor": 604
+        },
+        {
+          "evidence_target": 705,
+          "evidence_donor": 755,
+          "placebo_target": 755,
+          "placebo_donor": 654
+        },
+        {
+          "evidence_target": 705,
+          "evidence_donor": 755,
+          "placebo_target": 604,
+          "placebo_donor": 554
+        },
+        {
+          "evidence_target": 705,
+          "evidence_donor": 755,
+          "placebo_target": 554,
+          "placebo_donor": 604
+        },
+        {
+          "evidence_target": 705,
+          "evidence_donor": 755,
+          "placebo_target": 755,
+          "placebo_donor": 654
+        }
+      ]
+    },
+    {
+      "sample_id": "3491310026:5",
+      "video_id": "3491310026",
+      "qid": "5",
+      "question_type": "CH",
+      "sampled_indices": [
+        0,
+        50,
+        100,
+        150,
+        200,
+        250,
+        300,
+        350,
+        399,
+        449,
+        499,
+        549,
+        599,
+        649,
+        699,
+        749
+      ],
+      "evidence_indices": [
+        50,
+        100
+      ],
+      "baseline_choice_correct": true,
+      "gold_choice_index": 0,
+      "predicted_choice_index": 0,
+      "full_choice_logprobs": [
+        -0.5820217728614807,
+        -4.332021713256836,
+        -3.207021713256836,
+        -0.9570217728614807,
+        -5.832021713256836
+      ],
+      "full_correct_vs_best_foil_margin": 0.375,
+      "evidence_replaced_margins": [
+        -0.25,
+        -0.25,
+        -0.25,
+        -0.25,
+        -0.25
+      ],
+      "placebo_replaced_margins": [
+        0.0,
+        0.0,
+        0.375,
+        0.0,
+        -0.5000000596046448
+      ],
+      "evidence_margin_drop": 0.625,
+      "mean_placebo_margin_drop": 0.40000001192092893,
+      "selective_margin_drop": 0.22499998807907107,
+      "matched_interventions": [
+        {
+          "evidence_target": 100,
+          "evidence_donor": 150,
+          "placebo_target": 150,
+          "placebo_donor": 200
+        },
+        {
+          "evidence_target": 50,
+          "evidence_donor": 0,
+          "placebo_target": 150,
+          "placebo_donor": 200
+        },
+        {
+          "evidence_target": 100,
+          "evidence_donor": 150,
+          "placebo_target": 250,
+          "placebo_donor": 200
+        },
+        {
+          "evidence_target": 50,
+          "evidence_donor": 0,
+          "placebo_target": 150,
+          "placebo_donor": 200
+        },
+        {
+          "evidence_target": 100,
+          "evidence_donor": 150,
+          "placebo_target": 0,
+          "placebo_donor": 150
+        }
+      ]
+    },
+    {
+      "sample_id": "8105331297:12",
+      "video_id": "8105331297",
+      "qid": "12",
+      "question_type": "TC",
+      "sampled_indices": [
+        0,
+        82,
+        163,
+        245,
+        326,
+        408,
+        490,
+        571,
+        653,
+        734,
+        816,
+        898,
+        979,
+        1061,
+        1142,
+        1224
+      ],
+      "evidence_indices": [
+        1224
+      ],
+      "baseline_choice_correct": false,
+      "gold_choice_index": 4,
+      "predicted_choice_index": 1,
+      "full_choice_logprobs": [
+        -3.5680642127990723,
+        -0.5680643320083618,
+        -2.9430642127990723,
+        -4.818064212799072,
+        -1.0680643320083618
+      ],
+      "full_correct_vs_best_foil_margin": -0.5,
+      "evidence_replaced_margins": [
+        -0.125,
+        -0.125,
+        -0.125,
+        -0.125,
+        -0.125
+      ],
+      "placebo_replaced_margins": [
+        -0.625,
+        -0.375,
+        -0.375,
+        -0.625,
+        -0.75
+      ],
+      "evidence_margin_drop": -0.375,
+      "mean_placebo_margin_drop": 0.050000000000000044,
+      "selective_margin_drop": -0.42500000000000004,
+      "matched_interventions": [
+        {
+          "evidence_target": 1224,
+          "evidence_donor": 1142,
+          "placebo_target": 898,
+          "placebo_donor": 979
+        },
+        {
+          "evidence_target": 1224,
+          "evidence_donor": 1142,
+          "placebo_target": 1061,
+          "placebo_donor": 1142
+        },
+        {
+          "evidence_target": 1224,
+          "evidence_donor": 1142,
+          "placebo_target": 1061,
+          "placebo_donor": 1142
+        },
+        {
+          "evidence_target": 1224,
+          "evidence_donor": 1142,
+          "placebo_target": 898,
+          "placebo_donor": 979
+        },
+        {
+          "evidence_target": 1224,
+          "evidence_donor": 1142,
+          "placebo_target": 979,
+          "placebo_donor": 898
+        }
+      ]
+    },
+    {
+      "sample_id": "8208916209:6",
+      "video_id": "8208916209",
+      "qid": "6",
+      "question_type": "TN",
+      "sampled_indices": [
+        0,
+        51,
+        102,
+        153,
+        205,
+        256,
+        307,
+        358,
+        409,
+        460,
+        511,
+        562,
+        614,
+        665,
+        716,
+        767
+      ],
+      "evidence_indices": [
+        716,
+        767
+      ],
+      "baseline_choice_correct": true,
+      "gold_choice_index": 1,
+      "predicted_choice_index": 1,
+      "full_choice_logprobs": [
+        -4.532395362854004,
+        -0.03239551559090614,
+        -3.907395601272583,
+        -7.407395362854004,
+        -8.157395362854004
+      ],
+      "full_correct_vs_best_foil_margin": 3.875000085681677,
+      "evidence_replaced_margins": [
+        3.750000011175871,
+        4.24999980814755,
+        3.750000011175871,
+        4.24999980814755,
+        3.750000011175871
+      ],
+      "placebo_replaced_margins": [
+        3.7499999962747097,
+        3.7499999962747097,
+        3.7500000558793545,
+        4.124999849125743,
+        3.7499999962747097
+      ],
+      "evidence_margin_drop": -0.07499984428286544,
+      "mean_placebo_margin_drop": 0.050000106915831566,
+      "selective_margin_drop": -0.124999951198697,
+      "matched_interventions": [
+        {
+          "evidence_target": 716,
+          "evidence_donor": 665,
+          "placebo_target": 665,
+          "placebo_donor": 614
+        },
+        {
+          "evidence_target": 767,
+          "evidence_donor": 665,
+          "placebo_target": 665,
+          "placebo_donor": 614
+        },
+        {
+          "evidence_target": 716,
+          "evidence_donor": 665,
+          "placebo_target": 614,
+          "placebo_donor": 665
+        },
+        {
+          "evidence_target": 767,
+          "evidence_donor": 665,
+          "placebo_target": 511,
+          "placebo_donor": 460
+        },
+        {
+          "evidence_target": 716,
+          "evidence_donor": 665,
+          "placebo_target": 665,
+          "placebo_donor": 614
+        }
+      ]
+    },
+    {
+      "sample_id": "7712814656:6",
+      "video_id": "7712814656",
+      "qid": "6",
+      "question_type": "CH",
+      "sampled_indices": [
+        0,
+        67,
+        134,
+        200,
+        267,
+        334,
+        401,
+        468,
+        534,
+        601,
+        668,
+        735,
+        802,
+        868,
+        935,
+        1002
+      ],
+      "evidence_indices": [
+        468,
+        534
+      ],
+      "baseline_choice_correct": true,
+      "gold_choice_index": 2,
+      "predicted_choice_index": 2,
+      "full_choice_logprobs": [
+        -4.321751594543457,
+        -3.571751594543457,
+        -0.3217517137527466,
+        -3.696751594543457,
+        -1.5717517137527466
+      ],
+      "full_correct_vs_best_foil_margin": 1.25,
+      "evidence_replaced_margins": [
+        1.1249999701976776,
+        1.3749999701976776,
+        1.1249999701976776,
+        1.3749999701976776,
+        1.1249999701976776
+      ],
+      "placebo_replaced_margins": [
+        1.2500000298023224,
+        1.1249999403953552,
+        1.1249999403953552,
+        1.2500000298023224,
+        1.2500000298023224
+      ],
+      "evidence_margin_drop": 0.0250000298023223,
+      "mean_placebo_margin_drop": 0.05000000596046439,
+      "selective_margin_drop": -0.02499997615814209,
+      "matched_interventions": [
+        {
+          "evidence_target": 468,
+          "evidence_donor": 401,
+          "placebo_target": 401,
+          "placebo_donor": 334
+        },
+        {
+          "evidence_target": 534,
+          "evidence_donor": 601,
+          "placebo_target": 668,
+          "placebo_donor": 601
+        },
+        {
+          "evidence_target": 468,
+          "evidence_donor": 401,
+          "placebo_target": 668,
+          "placebo_donor": 601
+        },
+        {
+          "evidence_target": 534,
+          "evidence_donor": 601,
+          "placebo_target": 401,
+          "placebo_donor": 334
+        },
+        {
+          "evidence_target": 468,
+          "evidence_donor": 401,
+          "placebo_target": 401,
+          "placebo_donor": 334
+        }
+      ]
+    },
+    {
+      "sample_id": "5194023015:1",
+      "video_id": "5194023015",
+      "qid": "1",
+      "question_type": "CW",
+      "sampled_indices": [
+        0,
+        75,
+        150,
+        225,
+        300,
+        375,
+        450,
+        525,
+        599,
+        674,
+        749,
+        824,
+        899,
+        974,
+        1049,
+        1124
+      ],
+      "evidence_indices": [
+        0,
+        75,
+        150,
+        225,
+        300,
+        375,
+        450
+      ],
+      "baseline_choice_correct": true,
+      "gold_choice_index": 1,
+      "predicted_choice_index": 1,
+      "full_choice_logprobs": [
+        -1.7031043767929077,
+        -0.20310433208942413,
+        -7.828104496002197,
+        -7.328104496002197,
+        -7.578104496002197
+      ],
+      "full_correct_vs_best_foil_margin": 1.5000000447034836,
+      "evidence_replaced_margins": [
+        1.2499999701976776,
+        1.4999999850988388,
+        1.3750000298023224,
+        1.2499999701976776,
+        1.2500000596046448
+      ],
+      "placebo_replaced_margins": [
+        1.5,
+        1.5,
+        1.8749998956918716,
+        1.5,
+        1.8749998956918716
+      ],
+      "evidence_margin_drop": 0.17500004172325134,
+      "mean_placebo_margin_drop": -0.14999991357326503,
+      "selective_margin_drop": 0.3249999552965164,
+      "matched_interventions": [
+        {
+          "evidence_target": 225,
+          "evidence_donor": 525,
+          "placebo_target": 525,
+          "placebo_donor": 599
+        },
+        {
+          "evidence_target": 300,
+          "evidence_donor": 525,
+          "placebo_target": 525,
+          "placebo_donor": 599
+        },
+        {
+          "evidence_target": 0,
+          "evidence_donor": 525,
+          "placebo_target": 749,
+          "placebo_donor": 674
+        },
+        {
+          "evidence_target": 375,
+          "evidence_donor": 525,
+          "placebo_target": 525,
+          "placebo_donor": 599
+        },
+        {
+          "evidence_target": 450,
+          "evidence_donor": 525,
+          "placebo_target": 749,
+          "placebo_donor": 674
+        }
+      ]
+    },
+    {
+      "sample_id": "4421898163:7",
+      "video_id": "4421898163",
+      "qid": "7",
+      "question_type": "TN",
+      "sampled_indices": [
+        0,
+        50,
+        101,
+        151,
+        202,
+        252,
+        302,
+        353,
+        403,
+        454,
+        504,
+        554,
+        605,
+        655,
+        706,
+        756
+      ],
+      "evidence_indices": [
+        403,
+        454,
+        504
+      ],
+      "baseline_choice_correct": true,
+      "gold_choice_index": 2,
+      "predicted_choice_index": 2,
+      "full_choice_logprobs": [
+        -7.886114597320557,
+        -6.386114597320557,
+        -0.011114589869976044,
+        -5.261114597320557,
+        -5.636114597320557
+      ],
+      "full_correct_vs_best_foil_margin": 5.250000007450581,
+      "evidence_replaced_margins": [
+        5.499999872408807,
+        5.249999901279807,
+        4.875000162050128,
+        5.499999872408807,
+        5.249999901279807
+      ],
+      "placebo_replaced_margins": [
+        4.7500002309679985,
+        5.250000144354999,
+        4.7500002309679985,
+        6.500000063795596,
+        5.250000144354999
+      ],
+      "evidence_margin_drop": -0.02499993443489057,
+      "mean_placebo_margin_drop": -0.05000015543773806,
+      "selective_margin_drop": 0.02500022100284749,
+      "matched_interventions": [
+        {
+          "evidence_target": 504,
+          "evidence_donor": 554,
+          "placebo_target": 554,
+          "placebo_donor": 605
+        },
+        {
+          "evidence_target": 403,
+          "evidence_donor": 353,
+          "placebo_target": 353,
+          "placebo_donor": 302
+        },
+        {
+          "evidence_target": 454,
+          "evidence_donor": 554,
+          "placebo_target": 554,
+          "placebo_donor": 605
+        },
+        {
+          "evidence_target": 504,
+          "evidence_donor": 554,
+          "placebo_target": 655,
+          "placebo_donor": 605
+        },
+        {
+          "evidence_target": 403,
+          "evidence_donor": 353,
+          "placebo_target": 353,
+          "placebo_donor": 302
+        }
+      ]
+    },
+    {
+      "sample_id": "4254626112:0",
+      "video_id": "4254626112",
+      "qid": "0",
+      "question_type": "CW",
+      "sampled_indices": [
+        0,
+        144,
+        288,
+        431,
+        575,
+        719,
+        863,
+        1007,
+        1150,
+        1294,
+        1438,
+        1582,
+        1726,
+        1869,
+        2013,
+        2157
+      ],
+      "evidence_indices": [
+        0,
+        144
+      ],
+      "baseline_choice_correct": true,
+      "gold_choice_index": 4,
+      "predicted_choice_index": 4,
+      "full_choice_logprobs": [
+        -7.850872039794922,
+        -9.225872039794922,
+        -10.100872039794922,
+        -2.350872039794922,
+        -0.1008719652891159
+      ],
+      "full_correct_vs_best_foil_margin": 2.250000074505806,
+      "evidence_replaced_margins": [
+        1.875,
+        3.0000000409781933,
+        1.875,
+        3.0000000409781933,
+        1.875
+      ],
+      "placebo_replaced_margins": [
+        1.3750000596046448,
+        2.374999985098839,
+        2.249999977648258,
+        1.3750000596046448,
+        2.374999985098839
+      ],
+      "evidence_margin_drop": -0.07499994188547143,
+      "mean_placebo_margin_drop": 0.30000006109476085,
+      "selective_margin_drop": -0.3750000029802323,
+      "matched_interventions": [
+        {
+          "evidence_target": 0,
+          "evidence_donor": 288,
+          "placebo_target": 575,
+          "placebo_donor": 431
+        },
+        {
+          "evidence_target": 144,
+          "evidence_donor": 288,
+          "placebo_target": 719,
+          "placebo_donor": 575
+        },
+        {
+          "evidence_target": 0,
+          "evidence_donor": 288,
+          "placebo_target": 288,
+          "placebo_donor": 431
+        },
+        {
+          "evidence_target": 144,
+          "evidence_donor": 288,
+          "placebo_target": 575,
+          "placebo_donor": 431
+        },
+        {
+          "evidence_target": 0,
+          "evidence_donor": 288,
+          "placebo_target": 719,
+          "placebo_donor": 575
+        }
+      ]
+    },
+    {
+      "sample_id": "3089060111:3",
+      "video_id": "3089060111",
+      "qid": "3",
+      "question_type": "TN",
+      "sampled_indices": [
+        0,
+        63,
+        125,
+        188,
+        250,
+        313,
+        376,
+        438,
+        501,
+        563,
+        626,
+        689,
+        751,
+        814,
+        876,
+        939
+      ],
+      "evidence_indices": [
+        626
+      ],
+      "baseline_choice_correct": true,
+      "gold_choice_index": 0,
+      "predicted_choice_index": 0,
+      "full_choice_logprobs": [
+        -0.17694613337516785,
+        -4.55194616317749,
+        -7.42694616317749,
+        -2.0519461631774902,
+        -3.8019461631774902
+      ],
+      "full_correct_vs_best_foil_margin": 1.8750000298023224,
+      "evidence_replaced_margins": [
+        1.7500000596046448,
+        1.7500000596046448,
+        1.7500000596046448,
+        1.7500000596046448,
+        1.7500000596046448
+      ],
+      "placebo_replaced_margins": [
+        1.0000000298023224,
+        1.0000000298023224,
+        1.0000000298023224,
+        1.875000074505806,
+        1.875000074505806
+      ],
+      "evidence_margin_drop": 0.12499997019767761,
+      "mean_placebo_margin_drop": 0.5249999821186067,
+      "selective_margin_drop": -0.40000001192092904,
+      "matched_interventions": [
+        {
+          "evidence_target": 626,
+          "evidence_donor": 563,
+          "placebo_target": 751,
+          "placebo_donor": 689
+        },
+        {
+          "evidence_target": 626,
+          "evidence_donor": 563,
+          "placebo_target": 751,
+          "placebo_donor": 689
+        },
+        {
+          "evidence_target": 626,
+          "evidence_donor": 563,
+          "placebo_target": 751,
+          "placebo_donor": 689
+        },
+        {
+          "evidence_target": 626,
+          "evidence_donor": 563,
+          "placebo_target": 563,
+          "placebo_donor": 501
+        },
+        {
+          "evidence_target": 626,
+          "evidence_donor": 563,
+          "placebo_target": 563,
+          "placebo_donor": 501
+        }
+      ]
+    },
+    {
+      "sample_id": "4265336268:3",
+      "video_id": "4265336268",
+      "qid": "3",
+      "question_type": "CW",
+      "sampled_indices": [
+        0,
+        54,
+        107,
+        161,
+        215,
+        269,
+        322,
+        376,
+        430,
+        484,
+        537,
+        591,
+        645,
+        699,
+        752,
+        806
+      ],
+      "evidence_indices": [
+        161,
+        215
+      ],
+      "baseline_choice_correct": true,
+      "gold_choice_index": 4,
+      "predicted_choice_index": 4,
+      "full_choice_logprobs": [
+        -3.1742169857025146,
+        -6.299217224121094,
+        -7.924217224121094,
+        -5.549217224121094,
+        -0.04921702295541763
+      ],
+      "full_correct_vs_best_foil_margin": 3.124999962747097,
+      "evidence_replaced_margins": [
+        3.249999985098839,
+        2.625000022351742,
+        3.249999985098839,
+        2.625000022351742,
+        3.249999985098839
+      ],
+      "placebo_replaced_margins": [
+        3.0000001154839993,
+        3.4999999217689037,
+        3.1250000409781933,
+        2.875,
+        3.1250000409781933
+      ],
+      "evidence_margin_drop": 0.12499996274709702,
+      "mean_placebo_margin_drop": -6.109476080595755e-08,
+      "selective_margin_drop": 0.12500002384185782,
+      "matched_interventions": [
+        {
+          "evidence_target": 215,
+          "evidence_donor": 269,
+          "placebo_target": 54,
+          "placebo_donor": 107
+        },
+        {
+          "evidence_target": 161,
+          "evidence_donor": 107,
+          "placebo_target": 269,
+          "placebo_donor": 322
+        },
+        {
+          "evidence_target": 215,
+          "evidence_donor": 269,
+          "placebo_target": 322,
+          "placebo_donor": 269
+        },
+        {
+          "evidence_target": 161,
+          "evidence_donor": 107,
+          "placebo_target": 107,
+          "placebo_donor": 54
+        },
+        {
+          "evidence_target": 215,
+          "evidence_donor": 269,
+          "placebo_target": 322,
+          "placebo_donor": 269
+        }
+      ]
+    },
+    {
+      "sample_id": "13887487955:8",
+      "video_id": "13887487955",
+      "qid": "8",
+      "question_type": "TC",
+      "sampled_indices": [
+        0,
+        107,
+        213,
+        320,
+        427,
+        534,
+        640,
+        747,
+        854,
+        961,
+        1067,
+        1174,
+        1281,
+        1388,
+        1494,
+        1601
+      ],
+      "evidence_indices": [
+        1281,
+        1388,
+        1494
+      ],
+      "baseline_choice_correct": false,
+      "gold_choice_index": 0,
+      "predicted_choice_index": 3,
+      "full_choice_logprobs": [
+        -1.0411558151245117,
+        -1.6661558151245117,
+        -5.541155815124512,
+        -0.7911557555198669,
+        -8.291155815124512
+      ],
+      "full_correct_vs_best_foil_margin": -0.2500000596046448,
+      "evidence_replaced_margins": [
+        0.25,
+        0.5000000596046448,
+        0.375,
+        0.25,
+        0.5000000596046448
+      ],
+      "placebo_replaced_margins": [
+        -0.25,
+        -0.25,
+        -0.375,
+        -0.25,
+        -0.3749999403953552
+      ],
+      "evidence_margin_drop": -0.6250000834465027,
+      "mean_placebo_margin_drop": 0.04999992847442625,
+      "selective_margin_drop": -0.675000011920929,
+      "matched_interventions": [
+        {
+          "evidence_target": 1281,
+          "evidence_donor": 1174,
+          "placebo_target": 1174,
+          "placebo_donor": 1067
+        },
+        {
+          "evidence_target": 1494,
+          "evidence_donor": 1601,
+          "placebo_target": 1174,
+          "placebo_donor": 1067
+        },
+        {
+          "evidence_target": 1388,
+          "evidence_donor": 1601,
+          "placebo_target": 1601,
+          "placebo_donor": 1174
+        },
+        {
+          "evidence_target": 1281,
+          "evidence_donor": 1174,
+          "placebo_target": 1174,
+          "placebo_donor": 1067
+        },
+        {
+          "evidence_target": 1494,
+          "evidence_donor": 1601,
+          "placebo_target": 961,
+          "placebo_donor": 1067
+        }
+      ]
+    },
+    {
+      "sample_id": "4484729539:8",
+      "video_id": "4484729539",
+      "qid": "8",
+      "question_type": "TC",
+      "sampled_indices": [
+        0,
+        46,
+        92,
+        137,
+        183,
+        229,
+        275,
+        321,
+        366,
+        412,
+        458,
+        504,
+        550,
+        595,
+        641,
+        687
+      ],
+      "evidence_indices": [
+        641
+      ],
+      "baseline_choice_correct": false,
+      "gold_choice_index": 1,
+      "predicted_choice_index": 2,
+      "full_choice_logprobs": [
+        -5.568500995635986,
+        -1.8185007572174072,
+        -0.1935008019208908,
+        -8.068500518798828,
+        -4.693500995635986
+      ],
+      "full_correct_vs_best_foil_margin": -1.6249999552965164,
+      "evidence_replaced_margins": [
+        -2.500000037252903,
+        -2.500000037252903,
+        -2.500000037252903,
+        -2.500000037252903,
+        -2.500000037252903
+      ],
+      "placebo_replaced_margins": [
+        -1.5000000596046448,
+        -2.250000089406967,
+        -0.8750000298023224,
+        -0.8750000298023224,
+        -1.5000000596046448
+      ],
+      "evidence_margin_drop": 0.8750000819563866,
+      "mean_placebo_margin_drop": -0.22499990165233608,
+      "selective_margin_drop": 1.0999999836087226,
+      "matched_interventions": [
+        {
+          "evidence_target": 641,
+          "evidence_donor": 595,
+          "placebo_target": 550,
+          "placebo_donor": 595
+        },
+        {
+          "evidence_target": 641,
+          "evidence_donor": 595,
+          "placebo_target": 595,
+          "placebo_donor": 550
+        },
+        {
+          "evidence_target": 641,
+          "evidence_donor": 595,
+          "placebo_target": 687,
+          "placebo_donor": 595
+        },
+        {
+          "evidence_target": 641,
+          "evidence_donor": 595,
+          "placebo_target": 687,
+          "placebo_donor": 595
+        },
+        {
+          "evidence_target": 641,
+          "evidence_donor": 595,
+          "placebo_target": 550,
+          "placebo_donor": 595
+        }
+      ]
+    },
+    {
+      "sample_id": "8111513362:6",
+      "video_id": "8111513362",
+      "qid": "6",
+      "question_type": "TN",
+      "sampled_indices": [
+        0,
+        74,
+        148,
+        223,
+        297,
+        371,
+        445,
+        519,
+        594,
+        668,
+        742,
+        816,
+        890,
+        965,
+        1039,
+        1113
+      ],
+      "evidence_indices": [
+        1039
+      ],
+      "baseline_choice_correct": true,
+      "gold_choice_index": 0,
+      "predicted_choice_index": 0,
+      "full_choice_logprobs": [
+        -0.04105733335018158,
+        -6.291057109832764,
+        -4.416057109832764,
+        -3.6660573482513428,
+        -7.916057109832764
+      ],
+      "full_correct_vs_best_foil_margin": 3.625000014901161,
+      "evidence_replaced_margins": [
+        3.2500000707805157,
+        3.2500000707805157,
+        3.2500000707805157,
+        3.2500000707805157,
+        3.2500000707805157
+      ],
+      "placebo_replaced_margins": [
+        3.8750000819563866,
+        3.8749999292194843,
+        3.3750000707805157,
+        3.5000000074505806,
+        3.5000000074505806
+      ],
+      "evidence_margin_drop": 0.3749999441206455,
+      "mean_placebo_margin_drop": -4.470348535789981e-09,
+      "selective_margin_drop": 0.37499994859099406,
+      "matched_interventions": [
+        {
+          "evidence_target": 1039,
+          "evidence_donor": 965,
+          "placebo_target": 890,
+          "placebo_donor": 816
+        },
+        {
+          "evidence_target": 1039,
+          "evidence_donor": 965,
+          "placebo_target": 965,
+          "placebo_donor": 890
+        },
+        {
+          "evidence_target": 1039,
+          "evidence_donor": 965,
+          "placebo_target": 816,
+          "placebo_donor": 742
+        },
+        {
+          "evidence_target": 1039,
+          "evidence_donor": 965,
+          "placebo_target": 1113,
+          "placebo_donor": 965
+        },
+        {
+          "evidence_target": 1039,
+          "evidence_donor": 965,
+          "placebo_target": 1113,
+          "placebo_donor": 965
+        }
+      ]
+    },
+    {
+      "sample_id": "4823383982:2",
+      "video_id": "4823383982",
+      "qid": "2",
+      "question_type": "CW",
+      "sampled_indices": [
+        0,
+        116,
+        232,
+        348,
+        465,
+        581,
+        697,
+        813,
+        929,
+        1045,
+        1161,
+        1277,
+        1394,
+        1510,
+        1626,
+        1742
+      ],
+      "evidence_indices": [
+        813,
+        929
+      ],
+      "baseline_choice_correct": false,
+      "gold_choice_index": 4,
+      "predicted_choice_index": 3,
+      "full_choice_logprobs": [
+        -7.055627822875977,
+        -7.930627822875977,
+        -7.930627822875977,
+        -0.43062764406204224,
+        -1.0556275844573975
+      ],
+      "full_correct_vs_best_foil_margin": -0.6249999403953552,
+      "evidence_replaced_margins": [
+        -0.5,
+        -0.8750000298023224,
+        -0.5,
+        -0.8750000298023224,
+        -0.5
+      ],
+      "placebo_replaced_margins": [
+        -0.5,
+        -1.3750000596046448,
+        -0.5,
+        -0.5,
+        -0.25
+      ],
+      "evidence_margin_drop": 0.025000071525573708,
+      "mean_placebo_margin_drop": 7.152557368605983e-08,
+      "selective_margin_drop": 0.025000000000000022,
+      "matched_interventions": [
+        {
+          "evidence_target": 929,
+          "evidence_donor": 1045,
+          "placebo_target": 1045,
+          "placebo_donor": 1161
+        },
+        {
+          "evidence_target": 813,
+          "evidence_donor": 697,
+          "placebo_target": 697,
+          "placebo_donor": 581
+        },
+        {
+          "evidence_target": 929,
+          "evidence_donor": 1045,
+          "placebo_target": 1045,
+          "placebo_donor": 1161
+        },
+        {
+          "evidence_target": 813,
+          "evidence_donor": 697,
+          "placebo_target": 1045,
+          "placebo_donor": 1161
+        },
+        {
+          "evidence_target": 929,
+          "evidence_donor": 1045,
+          "placebo_target": 1161,
+          "placebo_donor": 1045
+        }
+      ]
+    },
+    {
+      "sample_id": "6813372954:1",
+      "video_id": "6813372954",
+      "qid": "1",
+      "question_type": "TC",
+      "sampled_indices": [
+        0,
+        94,
+        188,
+        282,
+        376,
+        470,
+        564,
+        658,
+        753,
+        847,
+        941,
+        1035,
+        1129,
+        1223,
+        1317,
+        1411
+      ],
+      "evidence_indices": [
+        376,
+        470
+      ],
+      "baseline_choice_correct": true,
+      "gold_choice_index": 3,
+      "predicted_choice_index": 3,
+      "full_choice_logprobs": [
+        -6.488672256469727,
+        -2.6136722564697266,
+        -2.1136722564697266,
+        -0.23867224156856537,
+        -4.113672256469727
+      ],
+      "full_correct_vs_best_foil_margin": 1.8750000149011612,
+      "evidence_replaced_margins": [
+        -0.5000000596046448,
+        0.6249999403953552,
+        -0.5000000596046448,
+        0.6249999403953552,
+        -0.5000000596046448
+      ],
+      "placebo_replaced_margins": [
+        1.1249999701976776,
+        2.249999985098839,
+        3.4999999292194843,
+        1.4999999403953552,
+        2.249999985098839
+      ],
+      "evidence_margin_drop": 1.925000074505806,
+      "mean_placebo_margin_drop": -0.24999994710087758,
+      "selective_margin_drop": 2.1750000216066834,
+      "matched_interventions": [
+        {
+          "evidence_target": 470,
+          "evidence_donor": 564,
+          "placebo_target": 564,
+          "placebo_donor": 658
+        },
+        {
+          "evidence_target": 376,
+          "evidence_donor": 282,
+          "placebo_target": 188,
+          "placebo_donor": 94
+        },
+        {
+          "evidence_target": 470,
+          "evidence_donor": 564,
+          "placebo_target": 658,
+          "placebo_donor": 564
+        },
+        {
+          "evidence_target": 376,
+          "evidence_donor": 282,
+          "placebo_target": 94,
+          "placebo_donor": 0
+        },
+        {
+          "evidence_target": 470,
+          "evidence_donor": 564,
+          "placebo_target": 188,
+          "placebo_donor": 94
+        }
+      ]
+    },
+    {
+      "sample_id": "7742310064:6",
+      "video_id": "7742310064",
+      "qid": "6",
+      "question_type": "CW",
+      "sampled_indices": [
+        0,
+        42,
+        83,
+        125,
+        167,
+        208,
+        250,
+        292,
+        333,
+        375,
+        417,
+        458,
+        500,
+        542,
+        583,
+        625
+      ],
+      "evidence_indices": [
+        83,
+        125,
+        208,
+        250
+      ],
+      "baseline_choice_correct": true,
+      "gold_choice_index": 3,
+      "predicted_choice_index": 3,
+      "full_choice_logprobs": [
+        -6.554739952087402,
+        -3.5547399520874023,
+        -3.9297399520874023,
+        -0.054740000516176224,
+        -5.679739952087402
+      ],
+      "full_correct_vs_best_foil_margin": 3.499999951571226,
+      "evidence_replaced_margins": [
+        3.375000111758709,
+        3.4999998919665813,
+        3.2500000447034836,
+        3.625000037252903,
+        3.375000111758709
+      ],
+      "placebo_replaced_margins": [
+        3.2500001043081284,
+        3.124999985098839,
+        3.500000048428774,
+        3.499999936670065,
+        3.124999985098839
+      ],
+      "evidence_margin_drop": 0.07499991208314905,
+      "mean_placebo_margin_drop": 0.19999993965029716,
+      "selective_margin_drop": -0.12500002756714812,
+      "matched_interventions": [
+        {
+          "evidence_target": 125,
+          "evidence_donor": 167,
+          "placebo_target": 167,
+          "placebo_donor": 42
+        },
+        {
+          "evidence_target": 83,
+          "evidence_donor": 42,
+          "placebo_target": 292,
+          "placebo_donor": 333
+        },
+        {
+          "evidence_target": 208,
+          "evidence_donor": 167,
+          "placebo_target": 42,
+          "placebo_donor": 0
+        },
+        {
+          "evidence_target": 250,
+          "evidence_donor": 292,
+          "placebo_target": 333,
+          "placebo_donor": 292
+        },
+        {
+          "evidence_target": 125,
+          "evidence_donor": 167,
+          "placebo_target": 292,
+          "placebo_donor": 333
+        }
+      ]
+    },
+    {
+      "sample_id": "2836465095:3",
+      "video_id": "2836465095",
+      "qid": "3",
+      "question_type": "CH",
+      "sampled_indices": [
+        0,
+        121,
+        241,
+        362,
+        483,
+        604,
+        724,
+        845,
+        966,
+        1087,
+        1207,
+        1328,
+        1449,
+        1570,
+        1690,
+        1811
+      ],
+      "evidence_indices": [
+        1207,
+        1328,
+        1449,
+        1570,
+        1690
+      ],
+      "baseline_choice_correct": false,
+      "gold_choice_index": 0,
+      "predicted_choice_index": 4,
+      "full_choice_logprobs": [
+        -4.274982452392578,
+        -5.149982452392578,
+        -5.524982452392578,
+        -7.399982452392578,
+        -0.024982603266835213
+      ],
+      "full_correct_vs_best_foil_margin": -4.249999849125743,
+      "evidence_replaced_margins": [
+        -4.499999864026904,
+        -5.000000185333192,
+        -5.124999961815774,
+        -4.749999985098839,
+        -4.00000012665987
+      ],
+      "placebo_replaced_margins": [
+        -3.875000052154064,
+        -4.125000063329935,
+        -3.8750000074505806,
+        -3.874999888241291,
+        -3.874999888241291
+      ],
+      "evidence_margin_drop": 0.4250001754611734,
+      "mean_placebo_margin_drop": -0.3249998692423106,
+      "selective_margin_drop": 0.750000044703484,
+      "matched_interventions": [
+        {
+          "evidence_target": 1207,
+          "evidence_donor": 1087,
+          "placebo_target": 724,
+          "placebo_donor": 604
+        },
+        {
+          "evidence_target": 1570,
+          "evidence_donor": 1811,
+          "placebo_target": 845,
+          "placebo_donor": 724
+        },
+        {
+          "evidence_target": 1449,
+          "evidence_donor": 1087,
+          "placebo_target": 1811,
+          "placebo_donor": 1087
+        },
+        {
+          "evidence_target": 1328,
+          "evidence_donor": 1087,
+          "placebo_target": 966,
+          "placebo_donor": 845
+        },
+        {
+          "evidence_target": 1690,
+          "evidence_donor": 1811,
+          "placebo_target": 966,
+          "placebo_donor": 845
+        }
+      ]
+    },
+    {
+      "sample_id": "3329878386:6",
+      "video_id": "3329878386",
+      "qid": "6",
+      "question_type": "CH",
+      "sampled_indices": [
+        0,
+        48,
+        96,
+        144,
+        192,
+        240,
+        288,
+        336,
+        385,
+        433,
+        481,
+        529,
+        577,
+        625,
+        673,
+        721
+      ],
+      "evidence_indices": [
+        144,
+        192
+      ],
+      "baseline_choice_correct": true,
+      "gold_choice_index": 1,
+      "predicted_choice_index": 1,
+      "full_choice_logprobs": [
+        -5.19761848449707,
+        -0.07261840999126434,
+        -3.8226184844970703,
+        -3.3226184844970703,
+        -5.07261848449707
+      ],
+      "full_correct_vs_best_foil_margin": 3.250000074505806,
+      "evidence_replaced_margins": [
+        2.6249999403953552,
+        3.7499999441206455,
+        2.6249999403953552,
+        3.7499999441206455,
+        2.6249999403953552
+      ],
+      "placebo_replaced_margins": [
+        3.250000074505806,
+        2.6249999701976776,
+        2.999999985098839,
+        3.125000074505806,
+        2.6249999701976776
+      ],
+      "evidence_margin_drop": 0.17500013262033454,
+      "mean_placebo_margin_drop": 0.32500005960464495,
+      "selective_margin_drop": -0.14999992698431042,
+      "matched_interventions": [
+        {
+          "evidence_target": 144,
+          "evidence_donor": 96,
+          "placebo_target": 240,
+          "placebo_donor": 288
+        },
+        {
+          "evidence_target": 192,
+          "evidence_donor": 240,
+          "placebo_target": 96,
+          "placebo_donor": 48
+        },
+        {
+          "evidence_target": 144,
+          "evidence_donor": 96,
+          "placebo_target": 0,
+          "placebo_donor": 48
+        },
+        {
+          "evidence_target": 192,
+          "evidence_donor": 240,
+          "placebo_target": 288,
+          "placebo_donor": 240
+        },
+        {
+          "evidence_target": 144,
+          "evidence_donor": 96,
+          "placebo_target": 96,
+          "placebo_donor": 48
+        }
+      ]
+    },
+    {
+      "sample_id": "5969368435:5",
+      "video_id": "5969368435",
+      "qid": "5",
+      "question_type": "CW",
+      "sampled_indices": [
+        0,
+        167,
+        335,
+        502,
+        670,
+        837,
+        1004,
+        1172,
+        1339,
+        1507,
+        1674,
+        1841,
+        2009,
+        2176,
+        2344,
+        2511
+      ],
+      "evidence_indices": [
+        1507
+      ],
+      "baseline_choice_correct": true,
+      "gold_choice_index": 4,
+      "predicted_choice_index": 4,
+      "full_choice_logprobs": [
+        -4.142747402191162,
+        -2.267747640609741,
+        -2.392747640609741,
+        -3.767747640609741,
+        -0.2677476108074188
+      ],
+      "full_correct_vs_best_foil_margin": 2.0000000298023224,
+      "evidence_replaced_margins": [
+        2.375,
+        2.375,
+        2.375,
+        2.375,
+        2.375
+      ],
+      "placebo_replaced_margins": [
+        2.1250000596046448,
+        2.0000001192092896,
+        2.3749998956918716,
+        2.4999998956918716,
+        2.4999998956918716
+      ],
+      "evidence_margin_drop": -0.3749999701976776,
+      "mean_placebo_margin_drop": -0.29999994337558755,
+      "selective_margin_drop": -0.07500002682209006,
+      "matched_interventions": [
+        {
+          "evidence_target": 1507,
+          "evidence_donor": 1674,
+          "placebo_target": 1674,
+          "placebo_donor": 1841
+        },
+        {
+          "evidence_target": 1507,
+          "evidence_donor": 1674,
+          "placebo_target": 1841,
+          "placebo_donor": 1674
+        },
+        {
+          "evidence_target": 1507,
+          "evidence_donor": 1674,
+          "placebo_target": 1339,
+          "placebo_donor": 1172
+        },
+        {
+          "evidence_target": 1507,
+          "evidence_donor": 1674,
+          "placebo_target": 1172,
+          "placebo_donor": 1339
+        },
+        {
+          "evidence_target": 1507,
+          "evidence_donor": 1674,
+          "placebo_target": 1172,
+          "placebo_donor": 1339
+        }
+      ]
+    },
+    {
+      "sample_id": "12078592673:5",
+      "video_id": "12078592673",
+      "qid": "5",
+      "question_type": "TN",
+      "sampled_indices": [
+        0,
+        86,
+        172,
+        258,
+        344,
+        430,
+        516,
+        602,
+        689,
+        775,
+        861,
+        947,
+        1033,
+        1119,
+        1205,
+        1291
+      ],
+      "evidence_indices": [
+        602,
+        689
+      ],
+      "baseline_choice_correct": true,
+      "gold_choice_index": 4,
+      "predicted_choice_index": 4,
+      "full_choice_logprobs": [
+        -5.8851118087768555,
+        -5.6351118087768555,
+        -5.7601118087768555,
+        -9.135111808776855,
+        -0.010111772455275059
+      ],
+      "full_correct_vs_best_foil_margin": 5.62500003632158,
+      "evidence_replaced_margins": [
+        5.375000094994903,
+        5.999999766238034,
+        5.375000094994903,
+        5.999999766238034,
+        5.375000094994903
+      ],
+      "placebo_replaced_margins": [
+        6.000000237952918,
+        5.999999771360308,
+        5.499999795109034,
+        5.999999771360308,
+        5.499999771825969
+      ],
+      "evidence_margin_drop": 7.282942515729474e-08,
+      "mean_placebo_margin_drop": -0.17499983320012724,
+      "selective_margin_drop": 0.1749999060295524,
+      "matched_interventions": [
+        {
+          "evidence_target": 689,
+          "evidence_donor": 775,
+          "placebo_target": 516,
+          "placebo_donor": 430
+        },
+        {
+          "evidence_target": 602,
+          "evidence_donor": 516,
+          "placebo_target": 344,
+          "placebo_donor": 258
+        },
+        {
+          "evidence_target": 689,
+          "evidence_donor": 775,
+          "placebo_target": 861,
+          "placebo_donor": 775
+        },
+        {
+          "evidence_target": 602,
+          "evidence_donor": 516,
+          "placebo_target": 344,
+          "placebo_donor": 258
+        },
+        {
+          "evidence_target": 689,
+          "evidence_donor": 775,
+          "placebo_target": 775,
+          "placebo_donor": 861
+        }
+      ]
+    },
+    {
+      "sample_id": "4885355005:3",
+      "video_id": "4885355005",
+      "qid": "3",
+      "question_type": "CW",
+      "sampled_indices": [
+        0,
+        42,
+        84,
+        126,
+        168,
+        210,
+        252,
+        294,
+        337,
+        379,
+        421,
+        463,
+        505,
+        547,
+        589,
+        631
+      ],
+      "evidence_indices": [
+        42,
+        84
+      ],
+      "baseline_choice_correct": false,
+      "gold_choice_index": 3,
+      "predicted_choice_index": 0,
+      "full_choice_logprobs": [
+        -0.30949652194976807,
+        -2.3094964027404785,
+        -3.1844964027404785,
+        -2.3094964027404785,
+        -3.6844964027404785
+      ],
+      "full_correct_vs_best_foil_margin": -1.9999998807907104,
+      "evidence_replaced_margins": [
+        -2.2499999403953552,
+        -1.375,
+        -2.2499999403953552,
+        -1.375,
+        -2.2499999403953552
+      ],
+      "placebo_replaced_margins": [
+        -1.8750001192092896,
+        -1.8750001192092896,
+        -1.8750001192092896,
+        -1.7499999105930328,
+        -1.7499999105930328
+      ],
+      "evidence_margin_drop": -0.09999991655349727,
+      "mean_placebo_margin_drop": -0.17499984502792354,
+      "selective_margin_drop": 0.07499992847442627,
+      "matched_interventions": [
+        {
+          "evidence_target": 42,
+          "evidence_donor": 0,
+          "placebo_target": 210,
+          "placebo_donor": 168
+        },
+        {
+          "evidence_target": 84,
+          "evidence_donor": 126,
+          "placebo_target": 210,
+          "placebo_donor": 168
+        },
+        {
+          "evidence_target": 42,
+          "evidence_donor": 0,
+          "placebo_target": 210,
+          "placebo_donor": 168
+        },
+        {
+          "evidence_target": 84,
+          "evidence_donor": 126,
+          "placebo_target": 126,
+          "placebo_donor": 168
+        },
+        {
+          "evidence_target": 42,
+          "evidence_donor": 0,
+          "placebo_target": 126,
+          "placebo_donor": 168
+        }
+      ]
+    },
+    {
+      "sample_id": "5873037185:4",
+      "video_id": "5873037185",
+      "qid": "4",
+      "question_type": "CW",
+      "sampled_indices": [
+        0,
+        23,
+        46,
+        68,
+        91,
+        114,
+        137,
+        160,
+        182,
+        205,
+        228,
+        251,
+        274,
+        296,
+        319,
+        342
+      ],
+      "evidence_indices": [
+        114,
+        137,
+        160,
+        182
+      ],
+      "baseline_choice_correct": true,
+      "gold_choice_index": 0,
+      "predicted_choice_index": 0,
+      "full_choice_logprobs": [
+        -0.7832430601119995,
+        -2.408243179321289,
+        -0.9082430601119995,
+        -3.533243179321289,
+        -3.908243179321289
+      ],
+      "full_correct_vs_best_foil_margin": 0.125,
+      "evidence_replaced_margins": [
+        0.7499999403953552,
+        0.6249999403953552,
+        0.125,
+        0.0,
+        0.7499999403953552
+      ],
+      "placebo_replaced_margins": [
+        0.625,
+        -0.25,
+        -0.25,
+        1.0,
+        0.625
+      ],
+      "evidence_margin_drop": -0.3249999642372131,
+      "mean_placebo_margin_drop": -0.22499999999999998,
+      "selective_margin_drop": -0.09999996423721313,
+      "matched_interventions": [
+        {
+          "evidence_target": 114,
+          "evidence_donor": 91,
+          "placebo_target": 23,
+          "placebo_donor": 0
+        },
+        {
+          "evidence_target": 182,
+          "evidence_donor": 205,
+          "placebo_target": 251,
+          "placebo_donor": 228
+        },
+        {
+          "evidence_target": 160,
+          "evidence_donor": 205,
+          "placebo_target": 251,
+          "placebo_donor": 228
+        },
+        {
+          "evidence_target": 137,
+          "evidence_donor": 91,
+          "placebo_target": 91,
+          "placebo_donor": 68
+        },
+        {
+          "evidence_target": 114,
+          "evidence_donor": 91,
+          "placebo_target": 23,
+          "placebo_donor": 0
+        }
+      ]
+    },
+    {
+      "sample_id": "2530293734:3",
+      "video_id": "2530293734",
+      "qid": "3",
+      "question_type": "CW",
+      "sampled_indices": [
+        0,
+        60,
+        120,
+        180,
+        241,
+        301,
+        361,
+        421,
+        481,
+        541,
+        601,
+        661,
+        722,
+        782,
+        842,
+        902
+      ],
+      "evidence_indices": [
+        722,
+        782,
+        842
+      ],
+      "baseline_choice_correct": true,
+      "gold_choice_index": 3,
+      "predicted_choice_index": 3,
+      "full_choice_logprobs": [
+        -7.876229763031006,
+        -7.376229763031006,
+        -9.751229286193848,
+        -0.0012296028435230255,
+        -9.376229286193848
+      ],
+      "full_correct_vs_best_foil_margin": 7.375000160187483,
+      "evidence_replaced_margins": [
+        7.6250000623986125,
+        7.625000113679562,
+        7.3749999741557986,
+        7.6250000623986125,
+        7.625000113679562
+      ],
+      "placebo_replaced_margins": [
+        7.250000183819793,
+        7.249999786261469,
+        7.750000213563908,
+        7.250000183819793,
+        7.750000213563908
+      ],
+      "evidence_margin_drop": -0.19999990507494658,
+      "mean_placebo_margin_drop": -0.07499995601829124,
+      "selective_margin_drop": -0.12499994905665535,
+      "matched_interventions": [
+        {
+          "evidence_target": 722,
+          "evidence_donor": 661,
+          "placebo_target": 541,
+          "placebo_donor": 481
+        },
+        {
+          "evidence_target": 842,
+          "evidence_donor": 902,
+          "placebo_target": 601,
+          "placebo_donor": 541
+        },
+        {
+          "evidence_target": 782,
+          "evidence_donor": 902,
+          "placebo_target": 902,
+          "placebo_donor": 661
+        },
+        {
+          "evidence_target": 722,
+          "evidence_donor": 661,
+          "placebo_target": 541,
+          "placebo_donor": 481
+        },
+        {
+          "evidence_target": 842,
+          "evidence_donor": 902,
+          "placebo_target": 902,
+          "placebo_donor": 661
+        }
+      ]
+    },
+    {
+      "sample_id": "6625133293:6",
+      "video_id": "6625133293",
+      "qid": "6",
+      "question_type": "CW",
+      "sampled_indices": [
+        0,
+        27,
+        54,
+        81,
+        108,
+        135,
+        162,
+        189,
+        217,
+        244,
+        271,
+        298,
+        325,
+        352,
+        379,
+        406
+      ],
+      "evidence_indices": [
+        189,
+        217,
+        244
+      ],
+      "baseline_choice_correct": false,
+      "gold_choice_index": 4,
+      "predicted_choice_index": 2,
+      "full_choice_logprobs": [
+        -2.6302270889282227,
+        -4.130227088928223,
+        -0.5052272081375122,
+        -2.8802270889282227,
+        -1.3802272081375122
+      ],
+      "full_correct_vs_best_foil_margin": -0.875,
+      "evidence_replaced_margins": [
+        -1.0,
+        -0.7499999403953552,
+        -0.8750000596046448,
+        -1.0,
+        -0.7499999403953552
+      ],
+      "placebo_replaced_margins": [
+        -1.2500000596046448,
+        -0.75,
+        -0.875,
+        -0.75,
+        -0.75
+      ],
+      "evidence_margin_drop": -1.1920928910669204e-08,
+      "mean_placebo_margin_drop": 1.1920928910669204e-08,
+      "selective_margin_drop": -2.3841857821338408e-08,
+      "matched_interventions": [
+        {
+          "evidence_target": 189,
+          "evidence_donor": 162,
+          "placebo_target": 162,
+          "placebo_donor": 135
+        },
+        {
+          "evidence_target": 217,
+          "evidence_donor": 271,
+          "placebo_target": 271,
+          "placebo_donor": 298
+        },
+        {
+          "evidence_target": 244,
+          "evidence_donor": 271,
+          "placebo_target": 325,
+          "placebo_donor": 298
+        },
+        {
+          "evidence_target": 189,
+          "evidence_donor": 162,
+          "placebo_target": 135,
+          "placebo_donor": 108
+        },
+        {
+          "evidence_target": 217,
+          "evidence_donor": 271,
+          "placebo_target": 135,
+          "placebo_donor": 108
+        }
+      ]
+    },
+    {
+      "sample_id": "2822110402:8",
+      "video_id": "2822110402",
+      "qid": "8",
+      "question_type": "TC",
+      "sampled_indices": [
+        0,
+        61,
+        122,
+        183,
+        245,
+        306,
+        367,
+        428,
+        489,
+        550,
+        611,
+        672,
+        734,
+        795,
+        856,
+        917
+      ],
+      "evidence_indices": [
+        61,
+        122,
+        183,
+        245,
+        306,
+        367,
+        428,
+        489,
+        550,
+        611,
+        672,
+        734,
+        795,
+        856
+      ],
+      "baseline_choice_correct": true,
+      "gold_choice_index": 1,
+      "predicted_choice_index": 1,
+      "full_choice_logprobs": [
+        -12.500020980834961,
+        -2.13382354559144e-05,
+        -12.250020980834961,
+        -11.875020980834961,
+        -14.500020980834961
+      ],
+      "full_correct_vs_best_foil_margin": 11.874999642599505,
+      "evidence_replaced_margins": [
+        11.874999881012627,
+        11.749999523459337,
+        12.249999761686922,
+        11.87500011940756,
+        11.999999880994437
+      ],
+      "placebo_replaced_margins": [
+        11.874999881012627,
+        11.749999881056283,
+        11.749999881056283,
+        11.749999881056283,
+        11.874999881012627
+      ],
+      "evidence_margin_drop": -0.07500019071267161,
+      "mean_placebo_margin_drop": 0.07499976156068477,
+      "selective_margin_drop": -0.14999995227335639,
+      "matched_interventions": [
+        {
+          "evidence_target": 734,
+          "evidence_donor": 917,
+          "placebo_target": 0,
+          "placebo_donor": 917
+        },
+        {
+          "evidence_target": 489,
+          "evidence_donor": 917,
+          "placebo_target": 917,
+          "placebo_donor": 0
+        },
+        {
+          "evidence_target": 795,
+          "evidence_donor": 917,
+          "placebo_target": 917,
+          "placebo_donor": 0
+        },
+        {
+          "evidence_target": 856,
+          "evidence_donor": 917,
+          "placebo_target": 917,
+          "placebo_donor": 0
+        },
+        {
+          "evidence_target": 61,
+          "evidence_donor": 0,
+          "placebo_target": 0,
+          "placebo_donor": 917
+        }
+      ]
+    },
+    {
+      "sample_id": "9371342049:0",
+      "video_id": "9371342049",
+      "qid": "0",
+      "question_type": "CW",
+      "sampled_indices": [
+        0,
+        24,
+        49,
+        73,
+        97,
+        121,
+        146,
+        170,
+        194,
+        218,
+        243,
+        267,
+        291,
+        315,
+        340,
+        364
+      ],
+      "evidence_indices": [
+        24,
+        49,
+        73,
+        97,
+        121,
+        146,
+        170,
+        194,
+        218,
+        243,
+        267
+      ],
+      "baseline_choice_correct": true,
+      "gold_choice_index": 3,
+      "predicted_choice_index": 3,
+      "full_choice_logprobs": [
+        -7.250829219818115,
+        -10.375828742980957,
+        -9.625828742980957,
+        -0.0008291144040413201,
+        -12.875828742980957
+      ],
+      "full_correct_vs_best_foil_margin": 7.250000105414074,
+      "evidence_replaced_margins": [
+        6.875000092666596,
+        6.250000233994797,
+        7.24999985541217,
+        7.249999978404958,
+        7.249999984691385
+      ],
+      "placebo_replaced_margins": [
+        7.249999855819624,
+        7.249999855819624,
+        7.249999855819624,
+        7.1250000654836185,
+        7.249999855819624
+      ],
+      "evidence_margin_drop": 0.27500007638009283,
+      "mean_placebo_margin_drop": 0.025000207661650897,
+      "selective_margin_drop": 0.24999986871844193,
+      "matched_interventions": [
+        {
+          "evidence_target": 267,
+          "evidence_donor": 291,
+          "placebo_target": 291,
+          "placebo_donor": 315
+        },
+        {
+          "evidence_target": 121,
+          "evidence_donor": 0,
+          "placebo_target": 291,
+          "placebo_donor": 315
+        },
+        {
+          "evidence_target": 146,
+          "evidence_donor": 291,
+          "placebo_target": 291,
+          "placebo_donor": 315
+        },
+        {
+          "evidence_target": 170,
+          "evidence_donor": 291,
+          "placebo_target": 340,
+          "placebo_donor": 364
+        },
+        {
+          "evidence_target": 73,
+          "evidence_donor": 0,
+          "placebo_target": 291,
+          "placebo_donor": 315
+        }
+      ]
+    },
+    {
+      "sample_id": "10149430394:3",
+      "video_id": "10149430394",
+      "qid": "3",
+      "question_type": "CW",
+      "sampled_indices": [
+        0,
+        45,
+        90,
+        135,
+        180,
+        225,
+        270,
+        315,
+        359,
+        404,
+        449,
+        494,
+        539,
+        584,
+        629,
+        674
+      ],
+      "evidence_indices": [
+        494,
+        539,
+        584,
+        629,
+        674
+      ],
+      "baseline_choice_correct": true,
+      "gold_choice_index": 4,
+      "predicted_choice_index": 4,
+      "full_choice_logprobs": [
+        -8.773594856262207,
+        -5.898594856262207,
+        -9.898594856262207,
+        -3.898594617843628,
+        -0.023594679310917854
+      ],
+      "full_correct_vs_best_foil_margin": 3.87499993853271,
+      "evidence_replaced_margins": [
+        4.500000152736902,
+        4.1249998565763235,
+        3.9999999161809683,
+        4.000000236555934,
+        4.125000124797225
+      ],
+      "placebo_replaced_margins": [
+        4.124999929219484,
+        4.125000128522515,
+        4.375000058673322,
+        4.124999929219484,
+        4.375000058673322
+      ],
+      "evidence_margin_drop": -0.27500011883676034,
+      "mean_placebo_margin_drop": -0.3500000823289158,
+      "selective_margin_drop": 0.07499996349215543,
+      "matched_interventions": [
+        {
+          "evidence_target": 494,
+          "evidence_donor": 449,
+          "placebo_target": 359,
+          "placebo_donor": 315
+        },
+        {
+          "evidence_target": 629,
+          "evidence_donor": 449,
+          "placebo_target": 404,
+          "placebo_donor": 359
+        },
+        {
+          "evidence_target": 539,
+          "evidence_donor": 449,
+          "placebo_target": 449,
+          "placebo_donor": 404
+        },
+        {
+          "evidence_target": 674,
+          "evidence_donor": 449,
+          "placebo_target": 359,
+          "placebo_donor": 315
+        },
+        {
+          "evidence_target": 584,
+          "evidence_donor": 449,
+          "placebo_target": 449,
+          "placebo_donor": 404
+        }
+      ]
+    },
+    {
+      "sample_id": "4315349265:1",
+      "video_id": "4315349265",
+      "qid": "1",
+      "question_type": "TC",
+      "sampled_indices": [
+        0,
+        109,
+        219,
+        328,
+        438,
+        547,
+        657,
+        766,
+        876,
+        985,
+        1095,
+        1204,
+        1314,
+        1423,
+        1533,
+        1642
+      ],
+      "evidence_indices": [
+        0,
+        109,
+        219
+      ],
+      "baseline_choice_correct": true,
+      "gold_choice_index": 3,
+      "predicted_choice_index": 3,
+      "full_choice_logprobs": [
+        -6.880491256713867,
+        -7.505491256713867,
+        -5.630491256713867,
+        -0.005491409916430712,
+        -8.505491256713867
+      ],
+      "full_correct_vs_best_foil_margin": 5.6249998467974365,
+      "evidence_replaced_margins": [
+        1.8749999403953552,
+        6.249999918043613,
+        3.6250000968575478,
+        1.8749999403953552,
+        6.249999918043613
+      ],
+      "placebo_replaced_margins": [
+        5.624999832361937,
+        5.249999950174242,
+        5.249999886378646,
+        5.249999886378646,
+        5.249999950174242
+      ],
+      "evidence_margin_drop": 1.6499998840503394,
+      "mean_placebo_margin_drop": 0.29999994570389354,
+      "selective_margin_drop": 1.3499999383464458,
+      "matched_interventions": [
+        {
+          "evidence_target": 109,
+          "evidence_donor": 328,
+          "placebo_target": 438,
+          "placebo_donor": 547
+        },
+        {
+          "evidence_target": 219,
+          "evidence_donor": 328,
+          "placebo_target": 547,
+          "placebo_donor": 438
+        },
+        {
+          "evidence_target": 0,
+          "evidence_donor": 328,
+          "placebo_target": 657,
+          "placebo_donor": 766
+        },
+        {
+          "evidence_target": 109,
+          "evidence_donor": 328,
+          "placebo_target": 657,
+          "placebo_donor": 766
+        },
+        {
+          "evidence_target": 219,
+          "evidence_donor": 328,
+          "placebo_target": 547,
+          "placebo_donor": 438
+        }
+      ]
+    },
+    {
+      "sample_id": "2935869403:5",
+      "video_id": "2935869403",
+      "qid": "5",
+      "question_type": "TC",
+      "sampled_indices": [
+        0,
+        46,
+        91,
+        137,
+        183,
+        229,
+        274,
+        320,
+        366,
+        412,
+        457,
+        503,
+        549,
+        595,
+        640,
+        686
+      ],
+      "evidence_indices": [
+        46
+      ],
+      "baseline_choice_correct": false,
+      "gold_choice_index": 2,
+      "predicted_choice_index": 0,
+      "full_choice_logprobs": [
+        -0.5896700620651245,
+        -6.464670181274414,
+        -0.8396700620651245,
+        -4.464670181274414,
+        -8.214670181274414
+      ],
+      "full_correct_vs_best_foil_margin": -0.25,
+      "evidence_replaced_margins": [
+        -1.0000000596046448,
+        -1.0000000596046448,
+        -1.0000000596046448,
+        -1.0000000596046448,
+        -1.0000000596046448
+      ],
+      "placebo_replaced_margins": [
+        -0.75,
+        -0.25,
+        0.0,
+        -0.25,
+        -0.25
+      ],
+      "evidence_margin_drop": 0.7500000596046448,
+      "mean_placebo_margin_drop": 0.04999999999999999,
+      "selective_margin_drop": 0.7000000596046447,
+      "matched_interventions": [
+        {
+          "evidence_target": 46,
+          "evidence_donor": 91,
+          "placebo_target": 0,
+          "placebo_donor": 91
+        },
+        {
+          "evidence_target": 46,
+          "evidence_donor": 91,
+          "placebo_target": 137,
+          "placebo_donor": 91
+        },
+        {
+          "evidence_target": 46,
+          "evidence_donor": 91,
+          "placebo_target": 183,
+          "placebo_donor": 137
+        },
+        {
+          "evidence_target": 46,
+          "evidence_donor": 91,
+          "placebo_target": 137,
+          "placebo_donor": 91
+        },
+        {
+          "evidence_target": 46,
+          "evidence_donor": 91,
+          "placebo_target": 137,
+          "placebo_donor": 91
+        }
+      ]
+    },
+    {
+      "sample_id": "11576401024:2",
+      "video_id": "11576401024",
+      "qid": "2",
+      "question_type": "TN",
+      "sampled_indices": [
+        0,
+        70,
+        140,
+        210,
+        280,
+        350,
+        420,
+        490,
+        560,
+        630,
+        700,
+        770,
+        840,
+        910,
+        980,
+        1050
+      ],
+      "evidence_indices": [
+        700,
+        770,
+        840,
+        910,
+        980
+      ],
+      "baseline_choice_correct": true,
+      "gold_choice_index": 2,
+      "predicted_choice_index": 2,
+      "full_choice_logprobs": [
+        -7.555905342102051,
+        -1.8059053421020508,
+        -0.18090538680553436,
+        -7.930905342102051,
+        -9.93090534210205
+      ],
+      "full_correct_vs_best_foil_margin": 1.6249999552965164,
+      "evidence_replaced_margins": [
+        1.6250000149011612,
+        1.7500000298023224,
+        1.8750000596046448,
+        1.5000000298023224,
+        2.5000000447034836
+      ],
+      "placebo_replaced_margins": [
+        2.0,
+        2.500000014901161,
+        1.7499999850988388,
+        2.500000014901161,
+        2.500000014901161
+      ],
+      "evidence_margin_drop": -0.2250000804662704,
+      "mean_placebo_margin_drop": -0.6250000506639481,
+      "selective_margin_drop": 0.39999997019767775,
+      "matched_interventions": [
+        {
+          "evidence_target": 840,
+          "evidence_donor": 630,
+          "placebo_target": 1050,
+          "placebo_donor": 630
+        },
+        {
+          "evidence_target": 700,
+          "evidence_donor": 630,
+          "placebo_target": 630,
+          "placebo_donor": 560
+        },
+        {
+          "evidence_target": 770,
+          "evidence_donor": 630,
+          "placebo_target": 560,
+          "placebo_donor": 490
+        },
+        {
+          "evidence_target": 910,
+          "evidence_donor": 1050,
+          "placebo_target": 630,
+          "placebo_donor": 560
+        },
+        {
+          "evidence_target": 980,
+          "evidence_donor": 1050,
+          "placebo_target": 630,
+          "placebo_donor": 560
+        }
+      ]
+    },
+    {
+      "sample_id": "10305881544:1",
+      "video_id": "10305881544",
+      "qid": "1",
+      "question_type": "CW",
+      "sampled_indices": [
+        0,
+        45,
+        89,
+        134,
+        179,
+        224,
+        268,
+        313,
+        358,
+        403,
+        447,
+        492,
+        537,
+        582,
+        626,
+        671
+      ],
+      "evidence_indices": [
+        45
+      ],
+      "baseline_choice_correct": true,
+      "gold_choice_index": 2,
+      "predicted_choice_index": 2,
+      "full_choice_logprobs": [
+        -4.6388044357299805,
+        -6.5138044357299805,
+        -0.013804556801915169,
+        -6.5138044357299805,
+        -7.0138044357299805
+      ],
+      "full_correct_vs_best_foil_margin": 4.624999878928065,
+      "evidence_replaced_margins": [
+        4.999999920837581,
+        4.999999920837581,
+        4.999999920837581,
+        4.999999920837581,
+        4.999999920837581
+      ],
+      "placebo_replaced_margins": [
+        4.625000013038516,
+        4.500000229105353,
+        4.1250000558793545,
+        4.124999813735485,
+        4.124999813735485
+      ],
+      "evidence_margin_drop": -0.37500004190951586,
+      "mean_placebo_margin_drop": 0.32499989382922667,
+      "selective_margin_drop": -0.6999999357387425,
+      "matched_interventions": [
+        {
+          "evidence_target": 45,
+          "evidence_donor": 89,
+          "placebo_target": 0,
+          "placebo_donor": 89
+        },
+        {
+          "evidence_target": 45,
+          "evidence_donor": 89,
+          "placebo_target": 179,
+          "placebo_donor": 134
+        },
+        {
+          "evidence_target": 45,
+          "evidence_donor": 89,
+          "placebo_target": 89,
+          "placebo_donor": 134
+        },
+        {
+          "evidence_target": 45,
+          "evidence_donor": 89,
+          "placebo_target": 134,
+          "placebo_donor": 89
+        },
+        {
+          "evidence_target": 45,
+          "evidence_donor": 89,
+          "placebo_target": 134,
+          "placebo_donor": 89
+        }
+      ]
+    },
+    {
+      "sample_id": "2956081853:5",
+      "video_id": "2956081853",
+      "qid": "5",
+      "question_type": "TN",
+      "sampled_indices": [
+        0,
+        36,
+        72,
+        108,
+        144,
+        180,
+        216,
+        252,
+        287,
+        323,
+        359,
+        395,
+        431,
+        467,
+        503,
+        539
+      ],
+      "evidence_indices": [
+        287,
+        323
+      ],
+      "baseline_choice_correct": false,
+      "gold_choice_index": 4,
+      "predicted_choice_index": 3,
+      "full_choice_logprobs": [
+        -5.79792594909668,
+        -7.17292594909668,
+        -4.79792594909668,
+        -0.1729259192943573,
+        -1.9229259490966797
+      ],
+      "full_correct_vs_best_foil_margin": -1.7500000298023224,
+      "evidence_replaced_margins": [
+        -2.000000014901161,
+        -1.8750000149011612,
+        -2.000000014901161,
+        -1.8750000149011612,
+        -2.000000014901161
+      ],
+      "placebo_replaced_margins": [
+        -2.1249999031424522,
+        -2.1249999031424522,
+        -2.500000111758709,
+        -2.1249999031424522,
+        -2.1249999031424522
+      ],
+      "evidence_margin_drop": 0.19999998509883876,
+      "mean_placebo_margin_drop": 0.4499999150633811,
+      "selective_margin_drop": -0.24999992996454234,
+      "matched_interventions": [
+        {
+          "evidence_target": 323,
+          "evidence_donor": 359,
+          "placebo_target": 216,
+          "placebo_donor": 180
+        },
+        {
+          "evidence_target": 287,
+          "evidence_donor": 252,
+          "placebo_target": 216,
+          "placebo_donor": 180
+        },
+        {
+          "evidence_target": 323,
+          "evidence_donor": 359,
+          "placebo_target": 252,
+          "placebo_donor": 216
+        },
+        {
+          "evidence_target": 287,
+          "evidence_donor": 252,
+          "placebo_target": 216,
+          "placebo_donor": 180
+        },
+        {
+          "evidence_target": 323,
+          "evidence_donor": 359,
+          "placebo_target": 216,
+          "placebo_donor": 180
+        }
+      ]
+    },
+    {
+      "sample_id": "4544425606:8",
+      "video_id": "4544425606",
+      "qid": "8",
+      "question_type": "CW",
+      "sampled_indices": [
+        0,
+        54,
+        107,
+        161,
+        215,
+        268,
+        322,
+        376,
+        429,
+        483,
+        537,
+        590,
+        644,
+        698,
+        751,
+        805
+      ],
+      "evidence_indices": [
+        268,
+        322
+      ],
+      "baseline_choice_correct": true,
+      "gold_choice_index": 0,
+      "predicted_choice_index": 0,
+      "full_choice_logprobs": [
+        -0.18927143514156342,
+        -5.439271450042725,
+        -6.064271450042725,
+        -7.689271450042725,
+        -1.8142714500427246
+      ],
+      "full_correct_vs_best_foil_margin": 1.6250000149011612,
+      "evidence_replaced_margins": [
+        1.4999999701976776,
+        2.124999910593033,
+        1.4999999701976776,
+        2.124999910593033,
+        1.4999999701976776
+      ],
+      "placebo_replaced_margins": [
+        2.0000000447034836,
+        2.0000000447034836,
+        2.125000089406967,
+        2.0000000447034836,
+        2.0000000447034836
+      ],
+      "evidence_margin_drop": -0.1249999314546586,
+      "mean_placebo_margin_drop": -0.4000000387430189,
+      "selective_margin_drop": 0.27500010728836033,
+      "matched_interventions": [
+        {
+          "evidence_target": 322,
+          "evidence_donor": 376,
+          "placebo_target": 215,
+          "placebo_donor": 161
+        },
+        {
+          "evidence_target": 268,
+          "evidence_donor": 215,
+          "placebo_target": 215,
+          "placebo_donor": 161
+        },
+        {
+          "evidence_target": 322,
+          "evidence_donor": 376,
+          "placebo_target": 161,
+          "placebo_donor": 107
+        },
+        {
+          "evidence_target": 268,
+          "evidence_donor": 215,
+          "placebo_target": 215,
+          "placebo_donor": 161
+        },
+        {
+          "evidence_target": 322,
+          "evidence_donor": 376,
+          "placebo_target": 215,
+          "placebo_donor": 161
+        }
+      ]
+    },
+    {
+      "sample_id": "5856167780:7",
+      "video_id": "5856167780",
+      "qid": "7",
+      "question_type": "CH",
+      "sampled_indices": [
+        0,
+        63,
+        126,
+        189,
+        253,
+        316,
+        379,
+        442,
+        505,
+        568,
+        631,
+        694,
+        758,
+        821,
+        884,
+        947
+      ],
+      "evidence_indices": [
+        505
+      ],
+      "baseline_choice_correct": true,
+      "gold_choice_index": 0,
+      "predicted_choice_index": 0,
+      "full_choice_logprobs": [
+        -0.7901424169540405,
+        -0.9151424169540405,
+        -2.79014253616333,
+        -3.54014253616333,
+        -2.91514253616333
+      ],
+      "full_correct_vs_best_foil_margin": 0.125,
+      "evidence_replaced_margins": [
+        -0.125,
+        -0.125,
+        -0.125,
+        -0.125,
+        -0.125
+      ],
+      "placebo_replaced_margins": [
+        0.25,
+        0.25,
+        0.125,
+        0.125,
+        0.375
+      ],
+      "evidence_margin_drop": 0.25,
+      "mean_placebo_margin_drop": -0.1,
+      "selective_margin_drop": 0.35,
+      "matched_interventions": [
+        {
+          "evidence_target": 505,
+          "evidence_donor": 442,
+          "placebo_target": 379,
+          "placebo_donor": 316
+        },
+        {
+          "evidence_target": 505,
+          "evidence_donor": 442,
+          "placebo_target": 379,
+          "placebo_donor": 316
+        },
+        {
+          "evidence_target": 505,
+          "evidence_donor": 442,
+          "placebo_target": 568,
+          "placebo_donor": 631
+        },
+        {
+          "evidence_target": 505,
+          "evidence_donor": 442,
+          "placebo_target": 568,
+          "placebo_donor": 631
+        },
+        {
+          "evidence_target": 505,
+          "evidence_donor": 442,
+          "placebo_target": 631,
+          "placebo_donor": 568
+        }
+      ]
+    }
+  ]
+}

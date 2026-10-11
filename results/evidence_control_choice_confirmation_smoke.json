@@ -1,0 +1,324 @@
+{
+  "schema_version": 1,
+  "script": "evidence_control_choice_confirmation.py",
+  "samples_file": "/home/ato121/res/data/nextgqa_samples_choice_confirmation_smoke.json",
+  "model": "Qwen/Qwen2.5-VL-7B-Instruct",
+  "quant": "4bit",
+  "dtype": "bfloat16",
+  "seed": 20261005,
+  "num_frames": 16,
+  "placebo_repeats": 5,
+  "prompt_protocol": "five NExT-GQA options; gold A-E logprob minus best foil",
+  "primary_cohort": "unperturbed prompt predicts the dataset gold choice",
+  "primary_estimand": "mean selective margin drop among baseline-correct samples",
+  "n_requested": 3,
+  "n_effective": 3,
+  "failures": [],
+  "summary": {
+    "all": {
+      "n": 3,
+      "mean": 0.6250000074971468,
+      "sd": 0.522015380172503,
+      "ci95_pointwise": [
+        0.024999945005402147,
+        0.9750000476837157
+      ],
+      "positive_fraction": 1.0,
+      "signflip_p_two_sided": 0.25417458254174585
+    },
+    "baseline_correct_primary": {
+      "n": 2,
+      "mean": 0.49999999634455894,
+      "sd": 0.671751514731752,
+      "ci95_pointwise": [
+        0.024999945005402147,
+        0.9750000476837157
+      ],
+      "positive_fraction": 1.0,
+      "signflip_p_two_sided": 0.501949805019498
+    },
+    "baseline_incorrect_secondary": {
+      "n": 1,
+      "mean": 0.8750000298023224,
+      "sd": null,
+      "ci95_pointwise": null,
+      "positive_fraction": 1.0,
+      "signflip_p_two_sided": null
+    },
+    "correct_minus_incorrect_interaction": {
+      "mean_correct_minus_incorrect": null,
+      "ci95_pointwise": null
+    }
+  },
+  "multiplicity": "One predeclared primary cohort; other cohorts and interaction are secondary; no multiplicity correction.",
+  "limitations": [
+    "Fresh video IDs are required for independent confirmation.",
+    "Baseline-correct subgroup hypothesis was motivated by a prior exploratory post-hoc split; this run must be interpreted as confirmation only if sample IDs were not previously used.",
+    "Choice-letter scores depend on this prompt and are not official free-generation scores.",
+    "Single-frame replacements create hybrid/OOD inputs; this measures input-level sensitivity, not head causality or general explanation validity."
+  ],
+  "records": [
+    {
+      "sample_id": "4178472052:1",
+      "video_id": "4178472052",
+      "qid": "1",
+      "question_type": "CW",
+      "sampled_indices": [
+        0,
+        25,
+        49,
+        74,
+        98,
+        123,
+        147,
+        172,
+        196,
+        221,
+        245,
+        270,
+        294,
+        319,
+        343,
+        368
+      ],
+      "evidence_indices": [
+        0
+      ],
+      "baseline_choice_correct": false,
+      "gold_choice_index": 4,
+      "predicted_choice_index": 1,
+      "full_choice_logprobs": [
+        -3.0980124473571777,
+        -0.723012387752533,
+        -3.2230124473571777,
+        -7.098012447357178,
+        -0.848012387752533
+      ],
+      "full_correct_vs_best_foil_margin": -0.125,
+      "evidence_replaced_margins": [
+        -0.8750000298023224,
+        -0.8750000298023224,
+        -0.8750000298023224,
+        -0.8750000298023224,
+        -0.8750000298023224
+      ],
+      "placebo_replaced_margins": [
+        0.125,
+        0.125,
+        -0.25,
+        -0.125,
+        0.125
+      ],
+      "evidence_margin_drop": 0.7500000298023224,
+      "mean_placebo_margin_drop": -0.125,
+      "selective_margin_drop": 0.8750000298023224,
+      "matched_interventions": [
+        {
+          "evidence_target": 0,
+          "evidence_donor": 25,
+          "placebo_target": 74,
+          "placebo_donor": 98
+        },
+        {
+          "evidence_target": 0,
+          "evidence_donor": 25,
+          "placebo_target": 74,
+          "placebo_donor": 98
+        },
+        {
+          "evidence_target": 0,
+          "evidence_donor": 25,
+          "placebo_target": 98,
+          "placebo_donor": 74
+        },
+        {
+          "evidence_target": 0,
+          "evidence_donor": 25,
+          "placebo_target": 49,
+          "placebo_donor": 25
+        },
+        {
+          "evidence_target": 0,
+          "evidence_donor": 25,
+          "placebo_target": 25,
+          "placebo_donor": 49
+        }
+      ]
+    },
+    {
+      "sample_id": "5553110507:0",
+      "video_id": "5553110507",
+      "qid": "0",
+      "question_type": "CW",
+      "sampled_indices": [
+        0,
+        124,
+        248,
+        372,
+        496,
+        620,
+        744,
+        868,
+        991,
+        1115,
+        1239,
+        1363,
+        1487,
+        1611,
+        1735,
+        1859
+      ],
+      "evidence_indices": [
+        620
+      ],
+      "baseline_choice_correct": true,
+      "gold_choice_index": 3,
+      "predicted_choice_index": 3,
+      "full_choice_logprobs": [
+        -1.6087000370025635,
+        -3.1087000370025635,
+        -1.9837000370025635,
+        -0.4836999773979187,
+        -7.733699798583984
+      ],
+      "full_correct_vs_best_foil_margin": 1.1250000596046448,
+      "evidence_replaced_margins": [
+        0.7499999403953552,
+        0.7499999403953552,
+        0.7499999403953552,
+        0.7499999403953552,
+        0.7499999403953552
+      ],
+      "placebo_replaced_margins": [
+        1.8749999701976776,
+        1.625,
+        1.625,
+        1.8749999701976776,
+        1.625
+      ],
+      "evidence_margin_drop": 0.37500011920928955,
+      "mean_placebo_margin_drop": -0.5999999284744262,
+      "selective_margin_drop": 0.9750000476837157,
+      "matched_interventions": [
+        {
+          "evidence_target": 620,
+          "evidence_donor": 496,
+          "placebo_target": 744,
+          "placebo_donor": 868
+        },
+        {
+          "evidence_target": 620,
+          "evidence_donor": 496,
+          "placebo_target": 496,
+          "placebo_donor": 372
+        },
+        {
+          "evidence_target": 620,
+          "evidence_donor": 496,
+          "placebo_target": 496,
+          "placebo_donor": 372
+        },
+        {
+          "evidence_target": 620,
+          "evidence_donor": 496,
+          "placebo_target": 744,
+          "placebo_donor": 868
+        },
+        {
+          "evidence_target": 620,
+          "evidence_donor": 496,
+          "placebo_target": 496,
+          "placebo_donor": 372
+        }
+      ]
+    },
+    {
+      "sample_id": "12298809926:11",
+      "video_id": "12298809926",
+      "qid": "11",
+      "question_type": "TP",
+      "sampled_indices": [
+        0,
+        41,
+        83,
+        124,
+        166,
+        207,
+        249,
+        290,
+        332,
+        373,
+        415,
+        456,
+        498,
+        539,
+        581,
+        622
+      ],
+      "evidence_indices": [
+        166,
+        207
+      ],
+      "baseline_choice_correct": true,
+      "gold_choice_index": 0,
+      "predicted_choice_index": 0,
+      "full_choice_logprobs": [
+        -0.0008344743982888758,
+        -7.3758344650268555,
+        -9.500834465026855,
+        -10.375834465026855,
+        -9.875834465026855
+      ],
+      "full_correct_vs_best_foil_margin": 7.374999990628567,
+      "evidence_replaced_margins": [
+        7.500000159547199,
+        7.3750000014551915,
+        7.500000159547199,
+        7.3750000014551915,
+        7.500000159547199
+      ],
+      "placebo_replaced_margins": [
+        7.500000038999133,
+        7.500000038999133,
+        7.375000140222255,
+        7.499999949359335,
+        7.500000038999133
+      ],
+      "evidence_margin_drop": -0.0750001056818288,
+      "mean_placebo_margin_drop": -0.10000005068723095,
+      "selective_margin_drop": 0.024999945005402147,
+      "matched_interventions": [
+        {
+          "evidence_target": 207,
+          "evidence_donor": 249,
+          "placebo_target": 83,
+          "placebo_donor": 124
+        },
+        {
+          "evidence_target": 166,
+          "evidence_donor": 124,
+          "placebo_target": 83,
+          "placebo_donor": 124
+        },
+        {
+          "evidence_target": 207,
+          "evidence_donor": 249,
+          "placebo_target": 124,
+          "placebo_donor": 83
+        },
+        {
+          "evidence_target": 166,
+          "evidence_donor": 124,
+          "placebo_target": 249,
+          "placebo_donor": 290
+        },
+        {
+          "evidence_target": 207,
+          "evidence_donor": 249,
+          "placebo_target": 83,
+          "placebo_donor": 124
+        }
+      ]
+    }
+  ]
+}

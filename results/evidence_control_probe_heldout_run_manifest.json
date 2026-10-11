@@ -1,0 +1,27 @@
+{
+  "script": "run_evidence_control_probe_and_publish.py",
+  "created_utc": "2026-10-05T10:03:41.239451+00:00",
+  "samples_file": "data/nextgqa_samples_evidence_control_heldout.json",
+  "n_samples": 60,
+  "placebo_repeats": 5,
+  "seed": 20261006,
+  "quant": "4bit",
+  "command": [
+    "/home/ato121/res/.venv/bin/python",
+    "/home/ato121/res/scripts/evidence_control_probe.py",
+    "--samples-file",
+    "/home/ato121/res/data/nextgqa_samples_evidence_control_heldout.json",
+    "--n-samples",
+    "60",
+    "--placebo-repeats",
+    "5",
+    "--seed",
+    "20261006",
+    "--quant",
+    "4bit",
+    "--output",
+    "/home/ato121/res/results/evidence_control_probe_heldout.json"
+  ],
+  "git_user_name": "Ato-37",
+  "git_user_email": "taketo373373@gmail.com"
+}

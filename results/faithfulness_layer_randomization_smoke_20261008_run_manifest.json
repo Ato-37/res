@@ -1,0 +1,16 @@
+{
+  "experiment": "head_attribution_cascading_layer_randomization",
+  "created_utc": "2026-10-08T11:39:40.873303+00:00",
+  "samples_sha256": "c60f9b9ac278d1b017418c3d483d50c13537aa18514c09f9ad77854045834b8a",
+  "model": "Qwen/Qwen2.5-VL-7B-Instruct",
+  "seed": 20261012,
+  "n_requested": 1,
+  "n_effective": 1,
+  "n_failures": 0,
+  "quant": "4bit",
+  "randomized_layer_order": [
+    27
+  ],
+  "randomization_mode": "cumulative decoder-block reinitialization, last-to-first",
+  "num_frames": 16
+}

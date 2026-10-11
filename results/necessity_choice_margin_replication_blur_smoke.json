@@ -1,0 +1,285 @@
+{
+  "schema_version": 2,
+  "script": "necessity_choice_margin_test.py",
+  "samples_file": "/home/ato121/res/data/nextgqa_samples_necessity_choice_replication_smoke.json",
+  "model": "Qwen/Qwen2.5-VL-7B-Instruct",
+  "quant": "4bit",
+  "dtype": "bfloat16",
+  "attn_implementation": "eager",
+  "torch_version": "2.11.0+cu128",
+  "transformers_version": "5.17.0",
+  "device": "cuda",
+  "gpu_name": "NVIDIA GeForce RTX 5070 Ti",
+  "seed": 20261009,
+  "num_frames": 16,
+  "mask_intervention": {
+    "fill": "blur",
+    "blur_radius": 12.0
+  },
+  "prompt_protocol": "five NExT-GQA options; gold A-E logprob minus best foil",
+  "primary_estimand": "mean[(full margin - evidence-mask margin) - (full margin - matched-control-mask margin)] among baseline-correct samples",
+  "control_protocol": "same number of black-masked frames; non-grounding indices chosen to minimize temporal rank-distance from evidence indices",
+  "n_requested": 3,
+  "n_effective": 3,
+  "failures": [],
+  "summary": {
+    "all": {
+      "n": 3,
+      "mean": 0.37500009903063375,
+      "sd": 1.0825317722057834,
+      "ci95_pointwise": [
+        -0.2500000298023224,
+        1.6250001192092896
+      ],
+      "positive_fraction": 0.3333333333333333,
+      "signflip_p_two_sided": 1.0
+    },
+    "baseline_correct_primary": {
+      "n": 3,
+      "mean": 0.37500009903063375,
+      "sd": 1.0825317722057834,
+      "ci95_pointwise": [
+        -0.2500000298023224,
+        1.6250001192092896
+      ],
+      "positive_fraction": 0.3333333333333333,
+      "signflip_p_two_sided": 1.0
+    },
+    "baseline_incorrect_secondary": {
+      "n": 0,
+      "mean": null,
+      "sd": null,
+      "ci95_pointwise": null,
+      "positive_fraction": null,
+      "signflip_p_two_sided": null
+    },
+    "correct_minus_incorrect_interaction": {
+      "mean_correct_minus_incorrect": null,
+      "ci95_pointwise": null
+    }
+  },
+  "multiplicity": "One predeclared primary cohort (baseline-correct); all-sample, baseline-incorrect, and interaction results are secondary and not multiplicity-corrected.",
+  "signflip_test": "Two-sided sample-level random sign flips of the mean contrast; assumes symmetric paired null effects.",
+  "limitations": [
+    "Black-frame masking is an out-of-distribution perturbation; equal-dose control reduces but does not remove this concern.",
+    "The gold-vs-best-foil letter margin is prompt-dependent and is not official free-generation accuracy.",
+    "Conditioning on baseline correctness is part of the prespecified primary cohort; this does not establish general XAI faithfulness or head causality."
+  ],
+  "records": [
+    {
+      "sample_id": "13125896183:3",
+      "video_id": "13125896183",
+      "qid": "3",
+      "question_type": "CW",
+      "sampled_indices": [
+        0,
+        69,
+        139,
+        208,
+        277,
+        346,
+        416,
+        485,
+        554,
+        623,
+        693,
+        762,
+        831,
+        900,
+        970,
+        1039
+      ],
+      "evidence_mask_indices": [
+        762,
+        831,
+        900
+      ],
+      "control_mask_indices": [
+        623,
+        693,
+        970
+      ],
+      "masked_frame_count": 3,
+      "baseline_choice_correct": true,
+      "gold_choice_index": 1,
+      "predicted_choice_index": 1,
+      "choice_logprobs": {
+        "full": [
+          -2.532156467437744,
+          -1.0321564674377441,
+          -3.407156467437744,
+          -1.1571564674377441,
+          -1.5321564674377441
+        ],
+        "evidence_mask": [
+          -2.4427709579467773,
+          -2.6927709579467773,
+          -2.5677709579467773,
+          -0.6927708387374878,
+          -1.3177708387374878
+        ],
+        "control_mask": [
+          -2.2071495056152344,
+          -1.3321493864059448,
+          -3.3321495056152344,
+          -0.9571493864059448,
+          -1.5821493864059448
+        ]
+      },
+      "margins": {
+        "full": 0.125,
+        "evidence_mask": -2.0000001192092896,
+        "control_mask": -0.375
+      },
+      "evidence_margin_drop": 2.1250001192092896,
+      "control_margin_drop": 0.5,
+      "selective_necessity_margin_drop": 1.6250001192092896
+    },
+    {
+      "sample_id": "6176571322:6",
+      "video_id": "6176571322",
+      "qid": "6",
+      "question_type": "TN",
+      "sampled_indices": [
+        0,
+        26,
+        51,
+        77,
+        102,
+        128,
+        153,
+        179,
+        204,
+        230,
+        255,
+        281,
+        306,
+        332,
+        357,
+        383
+      ],
+      "evidence_mask_indices": [
+        102,
+        128,
+        153,
+        179,
+        204
+      ],
+      "control_mask_indices": [
+        26,
+        51,
+        77,
+        230,
+        255
+      ],
+      "masked_frame_count": 5,
+      "baseline_choice_correct": true,
+      "gold_choice_index": 1,
+      "predicted_choice_index": 1,
+      "choice_logprobs": {
+        "full": [
+          -2.9436793327331543,
+          -0.3186792731285095,
+          -3.5686793327331543,
+          -4.943679332733154,
+          -1.6936793327331543
+        ],
+        "evidence_mask": [
+          -3.380486011505127,
+          -0.2554861009120941,
+          -3.380486011505127,
+          -5.505486011505127,
+          -1.8804861307144165
+        ],
+        "control_mask": [
+          -2.9367897510528564,
+          -0.31178975105285645,
+          -3.6867897510528564,
+          -5.561789512634277,
+          -1.6867897510528564
+        ]
+      },
+      "margins": {
+        "full": 1.3750000596046448,
+        "evidence_mask": 1.6250000298023224,
+        "control_mask": 1.375
+      },
+      "evidence_margin_drop": -0.2499999701976776,
+      "control_margin_drop": 5.960464477539063e-08,
+      "selective_necessity_margin_drop": -0.2500000298023224
+    },
+    {
+      "sample_id": "5080289573:9",
+      "video_id": "5080289573",
+      "qid": "9",
+      "question_type": "CW",
+      "sampled_indices": [
+        0,
+        26,
+        53,
+        79,
+        105,
+        132,
+        158,
+        184,
+        211,
+        237,
+        263,
+        290,
+        316,
+        342,
+        369,
+        395
+      ],
+      "evidence_mask_indices": [
+        290,
+        316,
+        342,
+        369,
+        395
+      ],
+      "control_mask_indices": [
+        158,
+        184,
+        211,
+        237,
+        263
+      ],
+      "masked_frame_count": 5,
+      "baseline_choice_correct": true,
+      "gold_choice_index": 2,
+      "predicted_choice_index": 2,
+      "choice_logprobs": {
+        "full": [
+          -7.256199836730957,
+          -8.756199836730957,
+          -0.006199889350682497,
+          -5.256199836730957,
+          -11.381199836730957
+        ],
+        "evidence_mask": [
+          -6.759256362915039,
+          -8.009256362915039,
+          -0.009256542660295963,
+          -4.884256362915039,
+          -10.634256362915039
+        ],
+        "control_mask": [
+          -5.142263412475586,
+          -6.642263412475586,
+          -0.0172633845359087,
+          -4.642263412475586,
+          -9.642263412475586
+        ]
+      },
+      "margins": {
+        "full": 5.2499999473802745,
+        "evidence_mask": 4.874999820254743,
+        "control_mask": 4.625000027939677
+      },
+      "evidence_margin_drop": 0.37500012712553144,
+      "control_margin_drop": 0.6249999194405973,
+      "selective_necessity_margin_drop": -0.24999979231506586
+    }
+  ]
+}

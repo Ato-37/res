@@ -1,0 +1,179 @@
+{
+  "schema_version": 1,
+  "script": "evidence_control_choice_probe.py",
+  "samples_file": "/home/ato121/res/data/nextgqa_samples_evidence_control_heldout.json",
+  "probe_results": "/home/ato121/res/results/evidence_control_probe_heldout.json",
+  "choice_audit": "/home/ato121/res/results/evidence_probe_task_validity_audit.json",
+  "model": "Qwen/Qwen2.5-VL-7B-Instruct",
+  "quant": "4bit",
+  "dtype": "bfloat16",
+  "prompt_protocol": "same five NExT-GQA choices; correct A-E logprob minus best foil",
+  "estimand": "mean[(full margin-evidence replaced margin) - (full margin-placebo replaced margin)]",
+  "interpretation": "Positive means evidence-position frame replacement reduced the correct-vs-best-foil margin more than matched placebo replacement.",
+  "n_requested": 2,
+  "n_effective": 2,
+  "failures": [],
+  "summary": {
+    "n": 2,
+    "mean_selective_margin_drop": -0.124999991711229,
+    "sd": 0.24748726686278988,
+    "bootstrap_ci95_pointwise": [
+      -0.29999991636723244,
+      0.04999993294477445
+    ],
+    "positive_fraction": 0.5,
+    "paired_sign_flip_p_two_sided": 1.0,
+    "n_permutations": 10000
+  },
+  "by_baseline_correctness": {
+    "true": {
+      "n": 2,
+      "mean_selective_margin_drop": -0.124999991711229,
+      "sd": 0.24748726686278988,
+      "bootstrap_ci95_pointwise": [
+        -0.29999991636723244,
+        0.04999993294477445
+      ],
+      "positive_fraction": 0.5,
+      "paired_sign_flip_p_two_sided": 1.0,
+      "n_permutations": 10000
+    },
+    "false": {
+      "n": 0,
+      "summary": null
+    }
+  },
+  "records": [
+    {
+      "sample_id": "0",
+      "question_type": "CW",
+      "baseline_choice_correct": true,
+      "gold_choice_index": 2,
+      "full_choice_logprobs": [
+        -3.6520776748657227,
+        -7.902077674865723,
+        -0.027077650651335716,
+        -8.527077674865723,
+        -11.152077674865723
+      ],
+      "full_correct_vs_best_foil_margin": 3.625000024214387,
+      "evidence_replaced_margins": [
+        3.625000014901161,
+        3.375000026077032,
+        3.6249999944120646,
+        3.625000048428774,
+        3.625000014901161
+      ],
+      "placebo_replaced_margins": [
+        3.9999999031424522,
+        3.624999975785613,
+        3.2499999329447746,
+        3.624999975785613,
+        3.624999975785613
+      ],
+      "evidence_margin_drop": 0.05000000447034836,
+      "mean_placebo_margin_drop": 7.152557390810443e-08,
+      "selective_margin_drop": 0.04999993294477445,
+      "matched_interventions": [
+        {
+          "evidence_target": 201,
+          "evidence_donor": 281,
+          "placebo_target": 322,
+          "placebo_donor": 362
+        },
+        {
+          "evidence_target": 161,
+          "evidence_donor": 80,
+          "placebo_target": 281,
+          "placebo_donor": 322
+        },
+        {
+          "evidence_target": 121,
+          "evidence_donor": 80,
+          "placebo_target": 40,
+          "placebo_donor": 0
+        },
+        {
+          "evidence_target": 241,
+          "evidence_donor": 281,
+          "placebo_target": 281,
+          "placebo_donor": 322
+        },
+        {
+          "evidence_target": 201,
+          "evidence_donor": 281,
+          "placebo_target": 281,
+          "placebo_donor": 322
+        }
+      ]
+    },
+    {
+      "sample_id": "1",
+      "question_type": "CW",
+      "baseline_choice_correct": true,
+      "gold_choice_index": 2,
+      "full_choice_logprobs": [
+        -8.263082504272461,
+        -8.638082504272461,
+        -0.013082974590361118,
+        -10.013082504272461,
+        -4.388082981109619
+      ],
+      "full_correct_vs_best_foil_margin": 4.375000006519258,
+      "evidence_replaced_margins": [
+        4.625000040046871,
+        4.625000040046871,
+        4.625000040046871,
+        4.625000040046871,
+        4.625000040046871
+      ],
+      "placebo_replaced_margins": [
+        4.125000204890966,
+        4.625000149011612,
+        4.374999997206032,
+        4.125000204890966,
+        4.3750000623986125
+      ],
+      "evidence_margin_drop": -0.2500000335276127,
+      "mean_placebo_margin_drop": 0.04999988283961976,
+      "selective_margin_drop": -0.29999991636723244,
+      "matched_interventions": [
+        {
+          "evidence_target": 329,
+          "evidence_donor": 299,
+          "placebo_target": 389,
+          "placebo_donor": 359
+        },
+        {
+          "evidence_target": 329,
+          "evidence_donor": 299,
+          "placebo_target": 299,
+          "placebo_donor": 269
+        },
+        {
+          "evidence_target": 329,
+          "evidence_donor": 299,
+          "placebo_target": 359,
+          "placebo_donor": 389
+        },
+        {
+          "evidence_target": 329,
+          "evidence_donor": 299,
+          "placebo_target": 389,
+          "placebo_donor": 359
+        },
+        {
+          "evidence_target": 329,
+          "evidence_donor": 299,
+          "placebo_target": 269,
+          "placebo_donor": 239
+        }
+      ]
+    }
+  ],
+  "limitations": [
+    "Exploratory outcome added after inspecting the free-answer probe.",
+    "Single-frame input replacement is a hybrid/OOD perturbation, not a direct causal test of explanation validity.",
+    "Choice-letter margin depends on this prompt and does not equal official free-generation accuracy."
+  ]
+}

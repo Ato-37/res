@@ -1,0 +1,59 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1000" height="430" viewBox="0 0 1000 430">
+<title>Necessity choice-margin mask-fill results</title>
+<desc>Pointwise 95% bootstrap intervals for black and Gaussian blur fill conditions. The paired fill difference is tabulated in the companion CSV.</desc>
+<rect width="100%" height="100%" fill="white"/>
+<style>text{font-family:Arial,Helvetica,sans-serif;fill:#202124}.small{font-size:13px}.axis{font-size:12px}.cohort{font-size:15px;font-weight:600}.title{font-size:22px;font-weight:700}.subtitle{font-size:13px;fill:#4b5563}</style>
+<text x="40" y="38" class="title">Grounding-mask choice-margin sensitivity</text>
+<text x="40" y="61" class="subtitle">NExT-GQA · Qwen2.5-VL-7B-Instruct · 4-bit BF16 · 16 sampled frames</text>
+<line x1="300.00" y1="95" x2="300.00" y2="333" stroke="#e5e7eb"/>
+<text x="300.00" y="353" text-anchor="middle" class="axis">-0.83</text>
+<line x1="428.00" y1="95" x2="428.00" y2="333" stroke="#e5e7eb"/>
+<text x="428.00" y="353" text-anchor="middle" class="axis">-0.43</text>
+<line x1="556.00" y1="95" x2="556.00" y2="333" stroke="#e5e7eb"/>
+<text x="556.00" y="353" text-anchor="middle" class="axis">-0.04</text>
+<line x1="684.00" y1="95" x2="684.00" y2="333" stroke="#e5e7eb"/>
+<text x="684.00" y="353" text-anchor="middle" class="axis">0.35</text>
+<line x1="812.00" y1="95" x2="812.00" y2="333" stroke="#e5e7eb"/>
+<text x="812.00" y="353" text-anchor="middle" class="axis">0.74</text>
+<line x1="940.00" y1="95" x2="940.00" y2="333" stroke="#e5e7eb"/>
+<text x="940.00" y="353" text-anchor="middle" class="axis">1.13</text>
+<line x1="570.22" y1="95" x2="570.22" y2="333" stroke="#111827" stroke-width="1.5" stroke-dasharray="5,4"/>
+<text x="40" y="147" class="cohort">All samples</text>
+<text x="40" y="221" class="cohort">Baseline correct (primary)</text>
+<text x="40" y="295" class="cohort">Baseline incorrect (secondary)</text>
+<line x1="555.23" y1="132" x2="771.26" y2="132" stroke="#34495e" stroke-width="3"/>
+<line x1="555.23" y1="127" x2="555.23" y2="137" stroke="#34495e" stroke-width="2"/>
+<line x1="771.26" y1="127" x2="771.26" y2="137" stroke="#34495e" stroke-width="2"/>
+<circle cx="666.99" cy="132" r="5" fill="#34495e"/>
+<text x="950" y="136" class="small">n=60</text>
+<line x1="558.64" y1="152" x2="806.01" y2="152" stroke="#d35400" stroke-width="3"/>
+<line x1="558.64" y1="147" x2="558.64" y2="157" stroke="#d35400" stroke-width="2"/>
+<line x1="806.01" y1="147" x2="806.01" y2="157" stroke="#d35400" stroke-width="2"/>
+<circle cx="688.12" cy="152" r="5" fill="#d35400"/>
+<text x="950" y="156" class="small">n=60</text>
+<line x1="606.69" y1="206" x2="760.30" y2="206" stroke="#34495e" stroke-width="3"/>
+<line x1="606.69" y1="201" x2="606.69" y2="211" stroke="#34495e" stroke-width="2"/>
+<line x1="760.30" y1="201" x2="760.30" y2="211" stroke="#34495e" stroke-width="2"/>
+<circle cx="679.63" cy="206" r="5" fill="#34495e"/>
+<text x="950" y="210" class="small">n=37</text>
+<line x1="626.58" y1="226" x2="818.87" y2="226" stroke="#d35400" stroke-width="3"/>
+<line x1="626.58" y1="221" x2="626.58" y2="231" stroke="#d35400" stroke-width="2"/>
+<line x1="818.87" y1="221" x2="818.87" y2="231" stroke="#d35400" stroke-width="2"/>
+<circle cx="719.41" cy="226" r="5" fill="#d35400"/>
+<text x="950" y="230" class="small">n=37</text>
+<line x1="390.67" y1="280" x2="879.56" y2="280" stroke="#34495e" stroke-width="3"/>
+<line x1="390.67" y1="275" x2="390.67" y2="285" stroke="#34495e" stroke-width="2"/>
+<line x1="879.56" y1="275" x2="879.56" y2="285" stroke="#34495e" stroke-width="2"/>
+<circle cx="646.67" cy="280" r="5" fill="#34495e"/>
+<text x="950" y="284" class="small">n=23</text>
+<line x1="353.33" y1="300" x2="886.67" y2="300" stroke="#d35400" stroke-width="3"/>
+<line x1="353.33" y1="295" x2="353.33" y2="305" stroke="#d35400" stroke-width="2"/>
+<line x1="886.67" y1="295" x2="886.67" y2="305" stroke="#d35400" stroke-width="2"/>
+<circle cx="637.78" cy="300" r="5" fill="#d35400"/>
+<text x="950" y="304" class="small">n=23</text>
+<line x1="300" y1="333" x2="940" y2="333" stroke="#6b7280"/>
+<text x="620" y="379" text-anchor="middle" class="small">Selective necessity margin drop (log-prob margin units)</text>
+<circle cx="640" cy="390" r="5" fill="#34495e"/><text x="652" y="394" class="small">Black mask</text>
+<circle cx="765" cy="390" r="5" fill="#d35400"/><text x="777" y="394" class="small">Gaussian blur (radius 12)</text>
+<text x="40" y="418" class="axis">Intervals are pointwise percentile bootstrap 95% CIs; paired blur−black contrasts and p-values are in the CSV.</text>
+</svg>

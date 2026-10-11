@@ -1,0 +1,21 @@
+{
+  "script": "run_grounding_plan_audit_and_publish.py",
+  "created_utc": "2026-10-08T17:20:48.415607+00:00",
+  "source_commit": "de342ee40c1ce67b0a3c98445d64ab84dd371e52",
+  "input_sha256": {
+    "val_csv": "ac5a1eb1d6dee9cd84ab7f9c94ab345b2404646f24b79ac182cd2aa9e2d424c1",
+    "gsub_val_json": "4feb23e53102cb2d4779e857ff8f9fd9b552fc38435621406b2ed9b0bf76204b",
+    "test_csv": "0443ede53f521de4cbfb5e4fb02253926b90f81f62041b18bd17207a3511d114",
+    "gsub_test_json": "0c16c31699238a0f2b8ace45aeed7f193149ce2f011d6ed4f1ef7170ef5d41e9",
+    "video_map": "1955d89e7a175346faf8d4a582297ff349619231394f59fd7872f459ac8a8685",
+    "frame2time_val_json": "61dca3cc960848127e3bc7aa173a64a28f1df730e32b9f4c8c0399d04b04f029",
+    "frame2time_test_json": "e2a043e8c5141f15a212536343cd7d329ab212eac4917eb53aadf341abb30820"
+  },
+  "exclusion_manifest_count": 15,
+  "audit_output_sha256": "feda215e7802e649713986dd997c6f20667eaa7b874c1a61ce357f1ee45c8d92",
+  "privacy_check": {
+    "contains_raw_question_or_answer_text": false,
+    "contains_video_or_question_identifiers": false,
+    "contains_absolute_paths": false
+  }
+}
