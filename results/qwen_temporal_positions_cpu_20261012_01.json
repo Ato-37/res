@@ -1,0 +1,361 @@
+{
+  "schema_version": 1,
+  "purpose": "installed_qwen_position_id_cpu_diagnostic",
+  "created_utc": "2026-10-11T17:28:31.090326+00:00",
+  "source_commit": "e228c91c40734616edada3c576901758aea7f2ad",
+  "runner_sha256": "8e2ed45d9fb4bcca54e8e42730c008e6a3fc47da66cc29a9177b5a8da9e8024f",
+  "installed_model_source_sha256": "507cb2c383ead0e0e22b16ec9c8af2eb82703843cd5849112715751d990ff15e",
+  "installed_processor_source_sha256": "a65cba8047b8d2a381d3634b42ee441322d4e885f02b6e84e6787bc9ba3649af",
+  "versions": {
+    "torch": "2.11.0+cu128",
+    "transformers": "5.17.0"
+  },
+  "fixture_config": {
+    "spatial_merge_size": 2,
+    "tokens_per_second": 2,
+    "batch_size": 1,
+    "text_tokens_before_video": 1,
+    "text_tokens_after_video": 1,
+    "spatial_grid": [
+      2,
+      2
+    ]
+  },
+  "reference_source": "https://github.com/huggingface/transformers/blob/main/src/transformers/models/qwen2_5_vl/modeling_qwen2_5_vl.py",
+  "original_fractional_rule_source": "https://github.com/huggingface/transformers/blob/v4.49.0/src/transformers/models/qwen2_5_vl/modeling_qwen2_5_vl.py",
+  "requested_cases": 14,
+  "effective_cases": 14,
+  "failures": 0,
+  "temporal_coordinate_mismatch_cases": 10,
+  "cases": [
+    {
+      "grid_steps": 2,
+      "seconds_per_grid": 0.5,
+      "observed_relative_temporal_coordinates": [
+        0,
+        0
+      ],
+      "fractional_rule_relative_coordinates": [
+        0,
+        1
+      ],
+      "temporal_coordinates_equal": false,
+      "observed_distinct_temporal_coordinates": 1,
+      "post_video_text_coordinate": [
+        2,
+        2,
+        2
+      ],
+      "max_video_coordinate": 1,
+      "rope_delta": -1
+    },
+    {
+      "grid_steps": 2,
+      "seconds_per_grid": 0.75,
+      "observed_relative_temporal_coordinates": [
+        0,
+        0
+      ],
+      "fractional_rule_relative_coordinates": [
+        0,
+        1
+      ],
+      "temporal_coordinates_equal": false,
+      "observed_distinct_temporal_coordinates": 1,
+      "post_video_text_coordinate": [
+        2,
+        2,
+        2
+      ],
+      "max_video_coordinate": 1,
+      "rope_delta": -1
+    },
+    {
+      "grid_steps": 2,
+      "seconds_per_grid": 0.9999,
+      "observed_relative_temporal_coordinates": [
+        0,
+        0
+      ],
+      "fractional_rule_relative_coordinates": [
+        0,
+        1
+      ],
+      "temporal_coordinates_equal": false,
+      "observed_distinct_temporal_coordinates": 1,
+      "post_video_text_coordinate": [
+        2,
+        2,
+        2
+      ],
+      "max_video_coordinate": 1,
+      "rope_delta": -1
+    },
+    {
+      "grid_steps": 2,
+      "seconds_per_grid": 1.0,
+      "observed_relative_temporal_coordinates": [
+        0,
+        2
+      ],
+      "fractional_rule_relative_coordinates": [
+        0,
+        2
+      ],
+      "temporal_coordinates_equal": true,
+      "observed_distinct_temporal_coordinates": 2,
+      "post_video_text_coordinate": [
+        2,
+        2,
+        2
+      ],
+      "max_video_coordinate": 3,
+      "rope_delta": 0
+    },
+    {
+      "grid_steps": 2,
+      "seconds_per_grid": 1.5,
+      "observed_relative_temporal_coordinates": [
+        0,
+        2
+      ],
+      "fractional_rule_relative_coordinates": [
+        0,
+        3
+      ],
+      "temporal_coordinates_equal": false,
+      "observed_distinct_temporal_coordinates": 2,
+      "post_video_text_coordinate": [
+        2,
+        2,
+        2
+      ],
+      "max_video_coordinate": 3,
+      "rope_delta": 0
+    },
+    {
+      "grid_steps": 2,
+      "seconds_per_grid": 2.0,
+      "observed_relative_temporal_coordinates": [
+        0,
+        4
+      ],
+      "fractional_rule_relative_coordinates": [
+        0,
+        4
+      ],
+      "temporal_coordinates_equal": true,
+      "observed_distinct_temporal_coordinates": 2,
+      "post_video_text_coordinate": [
+        2,
+        2,
+        2
+      ],
+      "max_video_coordinate": 5,
+      "rope_delta": 2
+    },
+    {
+      "grid_steps": 2,
+      "seconds_per_grid": 199.9998016357422,
+      "observed_relative_temporal_coordinates": [
+        0,
+        398
+      ],
+      "fractional_rule_relative_coordinates": [
+        0,
+        399
+      ],
+      "temporal_coordinates_equal": false,
+      "observed_distinct_temporal_coordinates": 2,
+      "post_video_text_coordinate": [
+        2,
+        2,
+        2
+      ],
+      "max_video_coordinate": 399,
+      "rope_delta": 396
+    },
+    {
+      "grid_steps": 4,
+      "seconds_per_grid": 0.5,
+      "observed_relative_temporal_coordinates": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "fractional_rule_relative_coordinates": [
+        0,
+        1,
+        2,
+        3
+      ],
+      "temporal_coordinates_equal": false,
+      "observed_distinct_temporal_coordinates": 1,
+      "post_video_text_coordinate": [
+        2,
+        2,
+        2
+      ],
+      "max_video_coordinate": 1,
+      "rope_delta": -3
+    },
+    {
+      "grid_steps": 4,
+      "seconds_per_grid": 0.75,
+      "observed_relative_temporal_coordinates": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "fractional_rule_relative_coordinates": [
+        0,
+        1,
+        3,
+        4
+      ],
+      "temporal_coordinates_equal": false,
+      "observed_distinct_temporal_coordinates": 1,
+      "post_video_text_coordinate": [
+        2,
+        2,
+        2
+      ],
+      "max_video_coordinate": 1,
+      "rope_delta": -3
+    },
+    {
+      "grid_steps": 4,
+      "seconds_per_grid": 0.9999,
+      "observed_relative_temporal_coordinates": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "fractional_rule_relative_coordinates": [
+        0,
+        1,
+        3,
+        5
+      ],
+      "temporal_coordinates_equal": false,
+      "observed_distinct_temporal_coordinates": 1,
+      "post_video_text_coordinate": [
+        2,
+        2,
+        2
+      ],
+      "max_video_coordinate": 1,
+      "rope_delta": -3
+    },
+    {
+      "grid_steps": 4,
+      "seconds_per_grid": 1.0,
+      "observed_relative_temporal_coordinates": [
+        0,
+        2,
+        4,
+        6
+      ],
+      "fractional_rule_relative_coordinates": [
+        0,
+        2,
+        4,
+        6
+      ],
+      "temporal_coordinates_equal": true,
+      "observed_distinct_temporal_coordinates": 4,
+      "post_video_text_coordinate": [
+        2,
+        2,
+        2
+      ],
+      "max_video_coordinate": 7,
+      "rope_delta": 2
+    },
+    {
+      "grid_steps": 4,
+      "seconds_per_grid": 1.5,
+      "observed_relative_temporal_coordinates": [
+        0,
+        2,
+        4,
+        6
+      ],
+      "fractional_rule_relative_coordinates": [
+        0,
+        3,
+        6,
+        9
+      ],
+      "temporal_coordinates_equal": false,
+      "observed_distinct_temporal_coordinates": 4,
+      "post_video_text_coordinate": [
+        2,
+        2,
+        2
+      ],
+      "max_video_coordinate": 7,
+      "rope_delta": 2
+    },
+    {
+      "grid_steps": 4,
+      "seconds_per_grid": 2.0,
+      "observed_relative_temporal_coordinates": [
+        0,
+        4,
+        8,
+        12
+      ],
+      "fractional_rule_relative_coordinates": [
+        0,
+        4,
+        8,
+        12
+      ],
+      "temporal_coordinates_equal": true,
+      "observed_distinct_temporal_coordinates": 4,
+      "post_video_text_coordinate": [
+        2,
+        2,
+        2
+      ],
+      "max_video_coordinate": 13,
+      "rope_delta": 8
+    },
+    {
+      "grid_steps": 4,
+      "seconds_per_grid": 199.9998016357422,
+      "observed_relative_temporal_coordinates": [
+        0,
+        398,
+        796,
+        1194
+      ],
+      "fractional_rule_relative_coordinates": [
+        0,
+        399,
+        799,
+        1199
+      ],
+      "temporal_coordinates_equal": false,
+      "observed_distinct_temporal_coordinates": 4,
+      "post_video_text_coordinate": [
+        2,
+        2,
+        2
+      ],
+      "max_video_coordinate": 1195,
+      "rope_delta": 1190
+    }
+  ],
+  "limitations": [
+    "Synthetic token fixtures; no media/model weights/CUDA inference.",
+    "Single video block, minimal spatial grid, positive timestamps only.",
+    "Distinct positions and numerical consistency do not prove semantic temporal evidence.",
+    "Text continuation is version-specific source behavior, not labeled a validated defect.",
+    "No efficacy effect, uncertainty interval or statistical hypothesis test."
+  ]
+}

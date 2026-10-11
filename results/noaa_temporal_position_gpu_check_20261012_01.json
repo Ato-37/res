@@ -1,0 +1,144 @@
+{
+  "schema_version": 1,
+  "purpose": "real_video_temporal_position_runtime_regression_check",
+  "started_utc": "2026-10-11T17:34:11.993056+00:00",
+  "elapsed_seconds": 13.67037781997351,
+  "source_commit": "7b9b9495211f879315f3d98adf291fdad4bbbcfb",
+  "source_sha256": {
+    "run_qwen_temporal_position_gpu_check.py": "7246ed92ff34bf27e83f7159bd7d3f2037820d1aff67fefb1b4e81260e0adec2",
+    "run_dataset_video_gpu_smoke.py": "a9801b139e4a9a8c590193a3c9fb4b14242463f3728eabf6555652c409464539",
+    "qwen_temporal_geometry.py": "40466c3e7919aaef08284d2c396788f456864ff800386c5d27d37b55befa809a",
+    "grounding_check.py": "b0f7f2ace41582e3e6da2498b91c0bece574dde2f008cd017ba331e820d234c8",
+    "video_time_mapping.py": "01711ac0f20770530239cf98ffb719c7f9e6f416f8c416aaf48da9543b091089"
+  },
+  "installed_model_source_sha256": "507cb2c383ead0e0e22b16ec9c8af2eb82703843cd5849112715751d990ff15e",
+  "model": "Qwen/Qwen2.5-VL-7B-Instruct",
+  "model_revision": "cc594898137f460bfe9f0759e9844b3ce807cfb5",
+  "model_config_sha256": "77d9ec7321cc572e3579e2c84799c9cadaded63c49ce93b101733349fc330c43",
+  "media_sha256": "13ab1d0e12d9c6b9e776890d123f363c12c572d52d1f58464b57a2e98667f126",
+  "source_record": "https://www.ncei.noaa.gov/metadata/granule/geoportal/rest/metadata/item/EX2503_DIVE03_20250413T192459Z_ROVHD/html",
+  "rights_source": "https://oceanexplorer.noaa.gov/okeanos-beyond-the-blue-media-resources/",
+  "credit": "NOAA Ocean Exploration",
+  "cruise_citation": "NOAA Ocean Exploration (2025), EX2503, NCEI, https://doi.org/10.25921/vgk8-m692 (subset used)",
+  "seed": 20261012,
+  "quantization": "4bit",
+  "compute_dtype": "bfloat16",
+  "attention_implementation": "eager",
+  "prompt": "Describe the visible scene briefly. Use only visual information.",
+  "audio_used": false,
+  "annotations_used": false,
+  "human_qa_attestation": "pending; no QA evaluation",
+  "requested_samples": 1,
+  "effective_samples": 1,
+  "requested_forwards": 3,
+  "effective_forwards": 3,
+  "failures": 0,
+  "requested_frames": 4,
+  "effective_frames": 4,
+  "frame_max_dimension": 224,
+  "max_pixels": 200704,
+  "sample_timestamps_seconds": [
+    0.0,
+    99.99990000000001,
+    199.99980000000002,
+    299.9997
+  ],
+  "sampled_fps": 0.010000010000009999,
+  "grid_thw": [
+    2,
+    24,
+    46
+  ],
+  "video_tokens": 552,
+  "input_tokens": 584,
+  "seconds_per_grid": 199.9998016357422,
+  "native_temporal_anchors": [
+    15,
+    413
+  ],
+  "fractional_temporal_anchors": [
+    15,
+    414
+  ],
+  "changed_position_id_entries": 276,
+  "spatial_and_text_position_ids_preserved": true,
+  "actual_forward_position_ids_verified": true,
+  "noop_comparison": {
+    "maximum_absolute_logit_difference": 0.0,
+    "mean_absolute_logit_difference": 0.0,
+    "jensen_shannon_divergence_nats": 0.0,
+    "top1_equal": true,
+    "bitwise_equal": true
+  },
+  "fractional_vs_native_sensitivity": {
+    "maximum_absolute_logit_difference": 0.375,
+    "mean_absolute_logit_difference": 0.1008109524846077,
+    "jensen_shannon_divergence_nats": 2.3888941216947282e-06,
+    "top1_equal": true,
+    "bitwise_equal": false
+  },
+  "temporal_geometry": {
+    "sampled_fps": 0.010000010000009999,
+    "second_per_grid_seconds": 199.9998016357422,
+    "sampled_frame_endpoint_spans_seconds": [
+      [
+        0.0,
+        99.99990000000001
+      ],
+      [
+        199.99980000000002,
+        299.9997
+      ]
+    ],
+    "duration_coverage_cells_seconds": null,
+    "video_start_position": 15,
+    "tokens_per_second": 2,
+    "transformers_5_17_temporal_rope_ticks_pretruncate": [
+      15,
+      413
+    ],
+    "transformers_4_49_0_temporal_rope_ticks_fractional": [
+      15,
+      414
+    ]
+  },
+  "conditions": [
+    {
+      "condition": "native_auto",
+      "finite_logits": true,
+      "forward_seconds": 1.8690545140125323,
+      "peak_allocated_gib": 6.0678019523620605
+    },
+    {
+      "condition": "explicit_native_noop",
+      "finite_logits": true,
+      "forward_seconds": 0.3787905919889454,
+      "peak_allocated_gib": 6.067023277282715
+    },
+    {
+      "condition": "fractional_video_time_only",
+      "finite_logits": true,
+      "forward_seconds": 0.3925069910183083,
+      "peak_allocated_gib": 6.067023277282715
+    }
+  ],
+  "gpu": "NVIDIA GeForce RTX 5070 Ti",
+  "gpu_free_before_gib": 14.6572265625,
+  "gpu_total_gib": 15.89398193359375,
+  "versions": {
+    "torch": "2.11.0+cu128",
+    "transformers": "5.17.0",
+    "bitsandbytes": "0.50.2",
+    "qwen-vl-utils": "0.0.14",
+    "opencv-python-headless": "5.0.0.93"
+  },
+  "cuda_version": "12.8",
+  "limitations": [
+    "One sparse real video; no claim generation, QA accuracy, gold intervals or efficacy.",
+    "Sensitivity metrics are next-token distribution changes caused by position IDs, not faithfulness or improvement.",
+    "Candidate fixes only temporal video row; native text/spatial layout retained, not full4.49 backport.",
+    "Explicit position IDs tested only for batch1/singlevideo/allone-mask/full-prompt/no cache; generation unsupported.",
+    "No uncertainty interval/statistical test for one deterministic engineering fixture."
+  ],
+  "privacy": "No raw media, dataset QA, labels, full token/logit vectors, persons or absolute local paths."
+}
