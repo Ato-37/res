@@ -1,6 +1,7 @@
 """Decode a tiny synthetic MP4 through the grounding frame extractor; no dataset video."""
 import shutil
 import tempfile
+import math
 
 import cv2
 import numpy as np
@@ -31,7 +32,25 @@ def make_synthetic_video_frames(frame_count, frame_size=224, source_fps=8.0):
         finally:
             writer.release()
 
-        frame_paths, frame_dir, timestamps, sampled_fps, nominal_duration = extract_frames(
+        # Read the encoded file's actual metadata so the duration check is
+        # grounded in the produced MP4, not just the writer inputs.
+        metadata_cap = cv2.VideoCapture(video_path)
+        try:
+            if not metadata_cap.isOpened():
+                raise RuntimeError("OpenCV could not reopen the synthetic MP4")
+            encoded_frame_count = int(metadata_cap.get(cv2.CAP_PROP_FRAME_COUNT))
+            encoded_fps = float(metadata_cap.get(cv2.CAP_PROP_FPS))
+        finally:
+            metadata_cap.release()
+        if encoded_frame_count <= 0 or not math.isfinite(encoded_fps) or encoded_fps <= 0:
+            raise RuntimeError(
+                f"Invalid encoded-video metadata: frames={encoded_frame_count}, fps={encoded_fps}"
+            )
+        nominal_duration = encoded_frame_count / encoded_fps
+
+        # extract_frames currently returns paths, its temporary directory,
+        # sample timestamps, and effective sampled FPS.
+        frame_paths, frame_dir, timestamps, sampled_fps = extract_frames(
             video_path, frame_count, frame_size
         )
         try:

@@ -4,13 +4,56 @@ This loads only the cached processor (not model weights) and allocates no GPU mo
 """
 import argparse
 
+from PIL import Image
 from transformers import AutoProcessor
 from qwen_vl_utils import process_vision_info
 
 from video_time_mapping import chunk_timestamp_ranges
-from temporal_chunk_token_mapping import map_temporal_chunks_to_sequence_positions
-from temporal_evidence_controls import select_temporal_evidence_controls
-from smoke_video_frame_extractor import make_synthetic_video_frames
+
+
+def partition_video_tokens_by_temporal_grid(video_token_positions, grid_thw, spatial_merge_size):
+    """Partition one contiguous Qwen video-token block in temporal-major grid order.
+
+    Qwen's processor emits one merged image-token position per spatial merge cell
+    at each temporal grid step. This is only a processor-layout check; it does
+    not identify evidence, controls, or semantically meaningful intervals.
+    """
+    grid = tuple(int(value) for value in grid_thw)
+    if len(grid) != 3 or any(value <= 0 for value in grid):
+        raise ValueError(f"Expected positive [T,H,W] video grid, got {grid}")
+    temporal_size, height, width = grid
+    merge_size = int(spatial_merge_size)
+    if merge_size <= 0 or height % merge_size or width % merge_size:
+        raise ValueError(
+            f"Grid spatial dimensions {height}x{width} are not divisible by merge size {merge_size}"
+        )
+
+    tokens_per_slice = (height // merge_size) * (width // merge_size)
+    positions = tuple(int(position) for position in video_token_positions)
+    expected_count = temporal_size * tokens_per_slice
+    if len(positions) != expected_count:
+        raise ValueError(
+            f"Expected {expected_count} video-token positions from grid {grid}, got {len(positions)}"
+        )
+    if not positions or positions != tuple(range(positions[0], positions[0] + len(positions))):
+        raise ValueError("Video-token positions must be one contiguous sequence block")
+
+    return {
+        temporal_index: positions[
+            temporal_index * tokens_per_slice:(temporal_index + 1) * tokens_per_slice
+        ]
+        for temporal_index in range(temporal_size)
+    }
+
+
+def make_synthetic_video_frames(frame_count, frame_size=224, sampled_fps=2.0):
+    """Create in-memory synthetic frames with a uniform, explicit time axis."""
+    frames = []
+    for index in range(frame_count):
+        value = index * 17 % 256
+        frames.append(Image.new("RGB", (frame_size, frame_size), (value, value, value)))
+    timestamps = [index / sampled_fps for index in range(frame_count)]
+    return frames, timestamps, sampled_fps
 
 
 def main():
@@ -63,7 +106,7 @@ def main():
             f"Timestamp/grid mismatch: {len(chunk_ranges)} chunks vs {temporal_grid_size} grid steps"
         )
     if temporal_grid_size < 2:
-        raise RuntimeError("Synthetic control smoke requires at least two temporal grid slices")
+        raise RuntimeError("Temporal partition smoke requires at least two grid slices")
 
     second_per_grid_ts = batch.get("second_per_grid_ts")
     if second_per_grid_ts is None:
@@ -86,11 +129,10 @@ def main():
     video_token_positions = (
         batch["input_ids"][0] == video_token_id
     ).nonzero(as_tuple=True)[0].tolist()
-    temporal_mapping = map_temporal_chunks_to_sequence_positions(
+    temporal_mapping = partition_video_tokens_by_temporal_grid(
         video_token_positions,
         grid[0].tolist(),
         spatial_merge_size=merge_size,
-        chunk_indices=range(len(chunk_ranges)),
     )
     if tuple(temporal_mapping) != tuple(range(temporal_grid_size)):
         raise RuntimeError("Mapped temporal slices do not match timestamp chunk order")
@@ -103,50 +145,14 @@ def main():
     if any(len(chunk) != tokens_per_slice for chunk in temporal_mapping.values()):
         raise RuntimeError("Mapped temporal slices have unequal processor token counts")
 
-    # Fabricate one explicit interval from the middle processor chunk. This is
-    # a mapping fixture only; it is not an annotation or a real data outcome.
-    evidence_chunk_index = temporal_grid_size // 2
-    synthetic_interval = tuple(chunk_ranges[evidence_chunk_index])
-    selection = select_temporal_evidence_controls(
-        [synthetic_interval],
-        chunk_ranges,
-        chunk_token_count=tokens_per_slice,
-    )
-    if not selection.eligible:
-        raise RuntimeError(f"Synthetic evidence/control selection failed: {selection.reason}")
-    if selection.evidence_indices != (evidence_chunk_index,):
-        raise RuntimeError(
-            f"Synthetic interval selected unexpected evidence chunks: {selection.evidence_indices}"
-        )
-    if (len(selection.control_indices) != 1
-            or len(set(selection.control_indices)) != 1
-            or selection.control_indices[0] == evidence_chunk_index):
-        raise RuntimeError("Expected exactly one distinct non-evidence control chunk")
-    if selection.matched_pairs != ((evidence_chunk_index, selection.control_indices[0]),):
-        raise RuntimeError(f"One-to-one matched pair is inconsistent: {selection.matched_pairs}")
-
-    evidence_positions = temporal_mapping[evidence_chunk_index]
-    control_chunk_index = selection.control_indices[0]
-    control_positions = temporal_mapping[control_chunk_index]
-    if len(evidence_positions) != len(control_positions):
-        raise RuntimeError("Evidence and control token counts do not match")
-    if set(evidence_positions) & set(control_positions):
-        raise RuntimeError("Evidence and control sequence positions overlap")
-    video_position_set = set(video_token_positions)
-    if (not set(evidence_positions).issubset(video_position_set)
-            or not set(control_positions).issubset(video_position_set)):
-        raise RuntimeError("Evidence/control sequence positions are outside the video-token block")
-
     print(
         "Qwen video-time smoke passed: "
         f"frames={args.frame_count}, sampled_fps={sampled_fps:.6f}, "
         f"temporal_patch_size={temporal_patch_size}, grid_thw={grid[0].tolist()}, "
         f"grid_steps={temporal_grid_size}, "
         f"seconds_per_grid={actual_seconds_per_grid:.3f}, video_tokens={actual_video_tokens}, "
-        f"sequence_token_counts_per_grid_slice={[len(chunk) for chunk in temporal_mapping.values()]}, "
-        f"synthetic_interval={synthetic_interval}, evidence_chunk={evidence_chunk_index}, "
-        f"control_chunk={control_chunk_index}, matched_pairs={selection.matched_pairs}, "
-        f"evidence/control_tokens={len(evidence_positions)}/{len(control_positions)}"
+        f"timestamp_ranges={chunk_ranges}, "
+        f"sequence_token_counts_per_grid_slice={[len(chunk) for chunk in temporal_mapping.values()]}"
     )
 
 
