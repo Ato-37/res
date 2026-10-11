@@ -1,0 +1,200 @@
+{
+  "effective_cases": 12,
+  "failures": 0,
+  "interpretation_limit": "A tokenizer-boundary result on these fixed synthetic cases only; it does not show a prior QA/claim score was mis-tokenized, does not evaluate model behavior or semantics, and does not establish faithfulness or efficacy. The revision-named local snapshot and listed source-file hashes record provenance but do not authenticate every snapshot file.",
+  "model_revision": "cc594898137f460bfe9f0759e9844b3ce807cfb5",
+  "observations": {
+    "cases": [
+      {
+        "case_index": 1,
+        "completed_chat_prefix_stable": true,
+        "completed_chat_suffix_token_count": 3,
+        "completed_chat_token_ids_sha256": "772450fc82c573cf018912bdb4d70bc906989107d2281725bcc7ea39e6e49c20",
+        "literal_concat_equals_prefix_plus_standalone": true,
+        "literal_concat_token_count": 31,
+        "literal_concat_token_ids_sha256": "596a766b5f282d0ebf55763824c89fc4d79d91c7d874fac2339679be034b7a7b",
+        "prefix_plus_standalone_token_count": 31,
+        "prefix_plus_standalone_token_ids_sha256": "596a766b5f282d0ebf55763824c89fc4d79d91c7d874fac2339679be034b7a7b",
+        "standalone_target_token_count": 1
+      },
+      {
+        "case_index": 2,
+        "completed_chat_prefix_stable": true,
+        "completed_chat_suffix_token_count": 3,
+        "completed_chat_token_ids_sha256": "96ed4a9186114c6dc65dd885859c790b615b7d233e67c7606655ac3ac2e9be7d",
+        "literal_concat_equals_prefix_plus_standalone": true,
+        "literal_concat_token_count": 31,
+        "literal_concat_token_ids_sha256": "bad8e8425c1435452a8353629bfa19f7af061f2f0119447a03c135d3b3b6ad98",
+        "prefix_plus_standalone_token_count": 31,
+        "prefix_plus_standalone_token_ids_sha256": "bad8e8425c1435452a8353629bfa19f7af061f2f0119447a03c135d3b3b6ad98",
+        "standalone_target_token_count": 1
+      },
+      {
+        "case_index": 3,
+        "completed_chat_prefix_stable": true,
+        "completed_chat_suffix_token_count": 6,
+        "completed_chat_token_ids_sha256": "fa2ea43303971df15e98a0a0a135d03855ccd26649def67520edffe7c696449b",
+        "literal_concat_equals_prefix_plus_standalone": true,
+        "literal_concat_token_count": 34,
+        "literal_concat_token_ids_sha256": "ea6ca59d13a8564c14c362b9526dac925fc431da40f2afa8f5b2ac97c3f8b1af",
+        "prefix_plus_standalone_token_count": 34,
+        "prefix_plus_standalone_token_ids_sha256": "ea6ca59d13a8564c14c362b9526dac925fc431da40f2afa8f5b2ac97c3f8b1af",
+        "standalone_target_token_count": 4
+      },
+      {
+        "case_index": 4,
+        "completed_chat_prefix_stable": true,
+        "completed_chat_suffix_token_count": 6,
+        "completed_chat_token_ids_sha256": "6a0e886738952af7fe71141ad2b1b72962140a4c1bc48bd886927ad1db78333e",
+        "literal_concat_equals_prefix_plus_standalone": true,
+        "literal_concat_token_count": 34,
+        "literal_concat_token_ids_sha256": "c80255fabbf0398bfadcdfbda869e5a17e2effcbad3dbbd2bd7204a7344064a7",
+        "prefix_plus_standalone_token_count": 34,
+        "prefix_plus_standalone_token_ids_sha256": "c80255fabbf0398bfadcdfbda869e5a17e2effcbad3dbbd2bd7204a7344064a7",
+        "standalone_target_token_count": 4
+      },
+      {
+        "case_index": 5,
+        "completed_chat_prefix_stable": true,
+        "completed_chat_suffix_token_count": 3,
+        "completed_chat_token_ids_sha256": "81da9d8d62d41c750995c7ef45412b02870e4f8b1f09f1304932839736279e56",
+        "literal_concat_equals_prefix_plus_standalone": true,
+        "literal_concat_token_count": 31,
+        "literal_concat_token_ids_sha256": "b50ec02a37970745f9fbda3426ee60fda38cd0ed9af44c0d6423f02a837aeb8a",
+        "prefix_plus_standalone_token_count": 31,
+        "prefix_plus_standalone_token_ids_sha256": "b50ec02a37970745f9fbda3426ee60fda38cd0ed9af44c0d6423f02a837aeb8a",
+        "standalone_target_token_count": 1
+      },
+      {
+        "case_index": 6,
+        "completed_chat_prefix_stable": true,
+        "completed_chat_suffix_token_count": 4,
+        "completed_chat_token_ids_sha256": "be2411507c4dae3b3a11db31c452500ff3a264e7601353cae8617580be99dc30",
+        "literal_concat_equals_prefix_plus_standalone": true,
+        "literal_concat_token_count": 32,
+        "literal_concat_token_ids_sha256": "567ce5aadb91f849b6a3169084eade240a1b46be68804a2a97f9ee5354cc0bdf",
+        "prefix_plus_standalone_token_count": 32,
+        "prefix_plus_standalone_token_ids_sha256": "567ce5aadb91f849b6a3169084eade240a1b46be68804a2a97f9ee5354cc0bdf",
+        "standalone_target_token_count": 2
+      },
+      {
+        "case_index": 7,
+        "completed_chat_prefix_stable": true,
+        "completed_chat_suffix_token_count": 5,
+        "completed_chat_token_ids_sha256": "eecb6303e9d4736829c51acbeecdabeccd8e9dae4dcb8e003ac6fdaf050b2162",
+        "literal_concat_equals_prefix_plus_standalone": true,
+        "literal_concat_token_count": 33,
+        "literal_concat_token_ids_sha256": "1fcf386fa3881653a0d1352340f8e6663029b7360045e08001ab038645f69dd4",
+        "prefix_plus_standalone_token_count": 33,
+        "prefix_plus_standalone_token_ids_sha256": "1fcf386fa3881653a0d1352340f8e6663029b7360045e08001ab038645f69dd4",
+        "standalone_target_token_count": 3
+      },
+      {
+        "case_index": 8,
+        "completed_chat_prefix_stable": true,
+        "completed_chat_suffix_token_count": 7,
+        "completed_chat_token_ids_sha256": "3c7ed88cb44a2a4b6667a959724e001acdc9b462bdff1290d3af3d84d0fe9eab",
+        "literal_concat_equals_prefix_plus_standalone": true,
+        "literal_concat_token_count": 35,
+        "literal_concat_token_ids_sha256": "1921f13ad11be3d2398af381d43331acee6c0dd271e0604f4eda55711c9555e2",
+        "prefix_plus_standalone_token_count": 35,
+        "prefix_plus_standalone_token_ids_sha256": "1921f13ad11be3d2398af381d43331acee6c0dd271e0604f4eda55711c9555e2",
+        "standalone_target_token_count": 5
+      },
+      {
+        "case_index": 9,
+        "completed_chat_prefix_stable": true,
+        "completed_chat_suffix_token_count": 4,
+        "completed_chat_token_ids_sha256": "619bb729fd7fa21dd1b24c2ed362650c7d5b6ed82e5ba128c9fef77984f6a752",
+        "literal_concat_equals_prefix_plus_standalone": true,
+        "literal_concat_token_count": 32,
+        "literal_concat_token_ids_sha256": "f7d1bf01fbd7dc0507777312e133998e805ed14b7ec7db50024dbfbdbbb951b4",
+        "prefix_plus_standalone_token_count": 32,
+        "prefix_plus_standalone_token_ids_sha256": "f7d1bf01fbd7dc0507777312e133998e805ed14b7ec7db50024dbfbdbbb951b4",
+        "standalone_target_token_count": 2
+      },
+      {
+        "case_index": 10,
+        "completed_chat_prefix_stable": false,
+        "completed_chat_suffix_token_count": 0,
+        "completed_chat_token_ids_sha256": "d1b085f6255091f2f70f0c78f91b9df1df3919ba784cfcacbe57bc7fab5b50f8",
+        "literal_concat_equals_prefix_plus_standalone": false,
+        "literal_concat_token_count": 34,
+        "literal_concat_token_ids_sha256": "be4f2b597c4efcc19e5a98a66f7c7c6726723842ca38899b9eccf2a5570c4060",
+        "prefix_plus_standalone_token_count": 35,
+        "prefix_plus_standalone_token_ids_sha256": "9fc6ffee97ebb3fece5e088bc3e276bb347e8b57bd9684f86d2945d304c7644c",
+        "standalone_target_token_count": 5
+      },
+      {
+        "case_index": 11,
+        "completed_chat_prefix_stable": true,
+        "completed_chat_suffix_token_count": 6,
+        "completed_chat_token_ids_sha256": "f9f58573aec2a367eb9e4678a3689b464fdb756e93c3b2b3e10a2ab8b176a268",
+        "literal_concat_equals_prefix_plus_standalone": true,
+        "literal_concat_token_count": 34,
+        "literal_concat_token_ids_sha256": "7a2edc6f4b7cdad34e906212073fe29b5d041a18311c25f73a32f4633095331e",
+        "prefix_plus_standalone_token_count": 34,
+        "prefix_plus_standalone_token_ids_sha256": "7a2edc6f4b7cdad34e906212073fe29b5d041a18311c25f73a32f4633095331e",
+        "standalone_target_token_count": 4
+      },
+      {
+        "case_index": 12,
+        "completed_chat_prefix_stable": true,
+        "completed_chat_suffix_token_count": 3,
+        "completed_chat_token_ids_sha256": "b0317adb8bb2ae7e406976cac06a580c802f18666606160880d5598668a04feb",
+        "literal_concat_equals_prefix_plus_standalone": true,
+        "literal_concat_token_count": 31,
+        "literal_concat_token_ids_sha256": "792aa972f586d00fd3ca430d4aa9b94cb10969b3930f5c178579c0cc3d60c0c6",
+        "prefix_plus_standalone_token_count": 31,
+        "prefix_plus_standalone_token_ids_sha256": "792aa972f586d00fd3ca430d4aa9b94cb10969b3930f5c178579c0cc3d60c0c6",
+        "standalone_target_token_count": 1
+      }
+    ],
+    "completed_chat_prefix_stable_count": 11,
+    "fixed_case_count": 12,
+    "literal_concat_match_count": 11,
+    "rendered_prefix_retokenized_token_count": 30,
+    "rendered_prefix_retokenized_token_ids_sha256": "8e894d0e4e9cb299c16aec5cce890696c796c554fa87ab6dcb64da4a359e37c7",
+    "template_prefix_equals_retokenized_rendered_prefix": true,
+    "template_prefix_token_count": 30,
+    "template_prefix_token_ids_sha256": "8e894d0e4e9cb299c16aec5cce890696c796c554fa87ab6dcb64da4a359e37c7"
+  },
+  "purpose": "synthetic_qwen_claim_tokenizer_prefix_boundary_cpu_diagnostic",
+  "requested_cases": 12,
+  "run": {
+    "checkout_head": "ffbc29365e7230aaba93e82a3f0b606e46d6dd33",
+    "created_at_utc": "2026-10-11T21:04:49Z",
+    "fixture_spec_sha256": "b70e2966b33ce75adccafd38b0cbefeadc1901b6c9b5d6f731e4292243b77dca",
+    "runner_sha256": "d9cc7061dafccbe5adcff5574d31a27826941f43c111e0975e8e3a27f3956c7e"
+  },
+  "schema_version": 1,
+  "scope": "tokenizer_and_chat_template_only_no_model_weights_no_generation_no_video_or_QA",
+  "source_sha256": {
+    "chat_template": "a0bc6f6fc7a29a80017a433e8f03a1cc1236e838a944a2d034295a60c4f2fddb",
+    "fixed_fixture_spec": "b70e2966b33ce75adccafd38b0cbefeadc1901b6c9b5d6f731e4292243b77dca",
+    "installed_implementation_files": {
+      "chat_template_method_source": "53ffe4236eca38eea4142315c0b98bfebc18859812df620b136bac928723d6b5",
+      "chat_template_utils_module_source": "3125114cf05646e7bc526ec30a6838da15bc9aa4591e42527e1012eaca3d276d",
+      "processor_class_source": "a65cba8047b8d2a381d3634b42ee441322d4e885f02b6e84e6787bc9ba3649af",
+      "tokenizer_class_source": "fac4e6576bfe2369731be147a4e530f262bdf32f2ac50436f96f0d8bdd2fc628"
+    },
+    "local_tokenizer_files": {
+      "preprocessor_config.json": "f2058c716eef96ccaed1cc1e2d0c08306b62586d535b28d9d08e691b2fab7ca0",
+      "tokenizer.json": "c0382117ea329cdf097041132f6d735924b697924d6f6fc3945713e96ce87539",
+      "tokenizer_config.json": "4abd3520120e266da84c0864fee064d1fb10806f02225911a47253dd38dc5f56"
+    },
+    "runner": "d9cc7061dafccbe5adcff5574d31a27826941f43c111e0975e8e3a27f3956c7e",
+    "tokenizer_backend_serialization": "e360e6f6266884e6667874f3a7d158ca20c4639e2e1dc80427e1edc2c69a38c7"
+  },
+  "status": "ok",
+  "timing": {
+    "scope": "audit_fixed_cases_only_excludes_imports_processor_loading_and_artifact_write",
+    "tokenizer_comparison_core_seconds": 0.013920085009885952
+  },
+  "versions": {
+    "processor_class": "Qwen2_5_VLProcessor",
+    "tokenizer_class": "Qwen2Tokenizer",
+    "tokenizers": "0.23.2",
+    "transformers": "5.17.0"
+  }
+}

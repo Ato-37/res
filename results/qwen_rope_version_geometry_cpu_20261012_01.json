@@ -1,0 +1,424 @@
+{
+  "cases": [
+    {
+      "anchor_positions": {
+        "suffix_first": {
+          "candidate_temporal_only": [
+            4,
+            4,
+            4
+          ],
+          "installed_v5_17": [
+            4,
+            4,
+            4
+          ],
+          "legacy_v4_49": [
+            13,
+            13,
+            13
+          ],
+          "sequence_index": 34
+        },
+        "suffix_last": {
+          "candidate_temporal_only": [
+            5,
+            5,
+            5
+          ],
+          "installed_v5_17": [
+            5,
+            5,
+            5
+          ],
+          "legacy_v4_49": [
+            14,
+            14,
+            14
+          ],
+          "sequence_index": 35
+        },
+        "video_first": {
+          "candidate_temporal_only": [
+            2,
+            2,
+            2
+          ],
+          "installed_v5_17": [
+            2,
+            2,
+            2
+          ],
+          "legacy_v4_49": [
+            2,
+            2,
+            2
+          ],
+          "sequence_index": 2
+        },
+        "video_last": {
+          "candidate_temporal_only": [
+            12,
+            3,
+            3
+          ],
+          "installed_v5_17": [
+            2,
+            3,
+            3
+          ],
+          "legacy_v4_49": [
+            12,
+            3,
+            3
+          ],
+          "sequence_index": 33
+        }
+      },
+      "candidate_changed_count_by_axis_legacy_vs_candidate": {
+        "height": 2,
+        "temporal": 2,
+        "width": 2
+      },
+      "candidate_effective_float_interval": 1.5,
+      "candidate_mrope_delta": [
+        -23
+      ],
+      "candidate_temporal_only_matches_full_legacy_positions": false,
+      "candidate_temporal_policy": "fractional_seconds_per_grid_float32 * tokens_per_second; replace video temporal axis only",
+      "case": "tiny_subsecond",
+      "changed_count_by_axis_legacy_vs_installed": {
+        "height": 2,
+        "temporal": 30,
+        "width": 2
+      },
+      "grid_thw": [
+        8,
+        4,
+        4
+      ],
+      "installed_effective_integer_interval": 0,
+      "installed_mrope_delta": [
+        -30
+      ],
+      "installed_temporal_policy": "tokens_per_second * int(seconds_per_grid_float32)",
+      "legacy_mrope_delta": [
+        -21
+      ],
+      "legacy_temporal_formula": "long(arange(T) * seconds_per_grid_float32 * tokens_per_second) + vision_start_context_offset",
+      "prefix_text_changed_count_by_axis_legacy_vs_installed": {
+        "height": 0,
+        "temporal": 0,
+        "width": 0
+      },
+      "prefix_token_count_including_vision_start_marker": 2,
+      "seconds_per_grid_float32": 0.75,
+      "seconds_per_grid_input": 0.75,
+      "sequence_length": 36,
+      "suffix_text_changed_count_by_axis_legacy_vs_installed": {
+        "height": 2,
+        "temporal": 2,
+        "width": 2
+      },
+      "suffix_token_count_in_fixture": 2,
+      "video_changed_count_by_axis_legacy_vs_installed": {
+        "height": 0,
+        "temporal": 28,
+        "width": 0
+      },
+      "video_position_count": 32
+    },
+    {
+      "anchor_positions": {
+        "suffix_first": {
+          "candidate_temporal_only": [
+            4,
+            4,
+            4
+          ],
+          "installed_v5_17": [
+            4,
+            4,
+            4
+          ],
+          "legacy_v4_49": [
+            73,
+            73,
+            73
+          ],
+          "sequence_index": 34
+        },
+        "suffix_last": {
+          "candidate_temporal_only": [
+            5,
+            5,
+            5
+          ],
+          "installed_v5_17": [
+            5,
+            5,
+            5
+          ],
+          "legacy_v4_49": [
+            74,
+            74,
+            74
+          ],
+          "sequence_index": 35
+        },
+        "video_first": {
+          "candidate_temporal_only": [
+            2,
+            2,
+            2
+          ],
+          "installed_v5_17": [
+            2,
+            2,
+            2
+          ],
+          "legacy_v4_49": [
+            2,
+            2,
+            2
+          ],
+          "sequence_index": 2
+        },
+        "video_last": {
+          "candidate_temporal_only": [
+            72,
+            3,
+            3
+          ],
+          "installed_v5_17": [
+            72,
+            3,
+            3
+          ],
+          "legacy_v4_49": [
+            72,
+            3,
+            3
+          ],
+          "sequence_index": 33
+        }
+      },
+      "candidate_changed_count_by_axis_legacy_vs_candidate": {
+        "height": 2,
+        "temporal": 2,
+        "width": 2
+      },
+      "candidate_effective_float_interval": 10.0,
+      "candidate_mrope_delta": [
+        37
+      ],
+      "candidate_temporal_only_matches_full_legacy_positions": false,
+      "candidate_temporal_policy": "fractional_seconds_per_grid_float32 * tokens_per_second; replace video temporal axis only",
+      "case": "integer_interval_control",
+      "changed_count_by_axis_legacy_vs_installed": {
+        "height": 2,
+        "temporal": 2,
+        "width": 2
+      },
+      "grid_thw": [
+        8,
+        4,
+        4
+      ],
+      "installed_effective_integer_interval": 10,
+      "installed_mrope_delta": [
+        37
+      ],
+      "installed_temporal_policy": "tokens_per_second * int(seconds_per_grid_float32)",
+      "legacy_mrope_delta": [
+        39
+      ],
+      "legacy_temporal_formula": "long(arange(T) * seconds_per_grid_float32 * tokens_per_second) + vision_start_context_offset",
+      "prefix_text_changed_count_by_axis_legacy_vs_installed": {
+        "height": 0,
+        "temporal": 0,
+        "width": 0
+      },
+      "prefix_token_count_including_vision_start_marker": 2,
+      "seconds_per_grid_float32": 5.0,
+      "seconds_per_grid_input": 5.0,
+      "sequence_length": 36,
+      "suffix_text_changed_count_by_axis_legacy_vs_installed": {
+        "height": 2,
+        "temporal": 2,
+        "width": 2
+      },
+      "suffix_token_count_in_fixture": 2,
+      "video_changed_count_by_axis_legacy_vs_installed": {
+        "height": 0,
+        "temporal": 0,
+        "width": 0
+      },
+      "video_position_count": 32
+    },
+    {
+      "anchor_positions": {
+        "suffix_first": {
+          "candidate_temporal_only": [
+            38,
+            38,
+            38
+          ],
+          "installed_v5_17": [
+            38,
+            38,
+            38
+          ],
+          "legacy_v4_49": [
+            415,
+            415,
+            415
+          ],
+          "sequence_index": 567
+        },
+        "suffix_last": {
+          "candidate_temporal_only": [
+            54,
+            54,
+            54
+          ],
+          "installed_v5_17": [
+            54,
+            54,
+            54
+          ],
+          "legacy_v4_49": [
+            431,
+            431,
+            431
+          ],
+          "sequence_index": 583
+        },
+        "video_first": {
+          "candidate_temporal_only": [
+            15,
+            15,
+            15
+          ],
+          "installed_v5_17": [
+            15,
+            15,
+            15
+          ],
+          "legacy_v4_49": [
+            15,
+            15,
+            15
+          ],
+          "sequence_index": 15
+        },
+        "video_last": {
+          "candidate_temporal_only": [
+            414,
+            26,
+            37
+          ],
+          "installed_v5_17": [
+            413,
+            26,
+            37
+          ],
+          "legacy_v4_49": [
+            414,
+            26,
+            37
+          ],
+          "sequence_index": 566
+        }
+      },
+      "candidate_changed_count_by_axis_legacy_vs_candidate": {
+        "height": 17,
+        "temporal": 17,
+        "width": 17
+      },
+      "candidate_effective_float_interval": 399.9996032714844,
+      "candidate_mrope_delta": [
+        -169
+      ],
+      "candidate_temporal_only_matches_full_legacy_positions": false,
+      "candidate_temporal_policy": "fractional_seconds_per_grid_float32 * tokens_per_second; replace video temporal axis only",
+      "case": "noaa_derived_geometry",
+      "changed_count_by_axis_legacy_vs_installed": {
+        "height": 17,
+        "temporal": 293,
+        "width": 17
+      },
+      "grid_thw": [
+        2,
+        24,
+        46
+      ],
+      "installed_effective_integer_interval": 398,
+      "installed_mrope_delta": [
+        -170
+      ],
+      "installed_temporal_policy": "tokens_per_second * int(seconds_per_grid_float32)",
+      "legacy_mrope_delta": [
+        -152
+      ],
+      "legacy_temporal_formula": "long(arange(T) * seconds_per_grid_float32 * tokens_per_second) + vision_start_context_offset",
+      "prefix_text_changed_count_by_axis_legacy_vs_installed": {
+        "height": 0,
+        "temporal": 0,
+        "width": 0
+      },
+      "prefix_token_count_including_vision_start_marker": 15,
+      "seconds_per_grid_float32": 199.9998016357422,
+      "seconds_per_grid_input": 199.9998016357422,
+      "sequence_length": 584,
+      "suffix_text_changed_count_by_axis_legacy_vs_installed": {
+        "height": 17,
+        "temporal": 17,
+        "width": 17
+      },
+      "suffix_token_count_in_fixture": 17,
+      "video_changed_count_by_axis_legacy_vs_installed": {
+        "height": 0,
+        "temporal": 276,
+        "width": 0
+      },
+      "video_position_count": 552
+    }
+  ],
+  "configuration": {
+    "cases_are_fixed_synthetic_and_not_outcome_selected": true,
+    "prefix_token_count_includes_vision_start_marker": true,
+    "spatial_merge_size": 2,
+    "tokens_per_second": 2,
+    "vision_start_marker_precedes_video_placeholder_run": true
+  },
+  "device": "cpu",
+  "effective_cases": 3,
+  "failures": 0,
+  "interpretation_limit": "These are CPU geometry-helper comparisons on three fixed synthetic grids. They do not establish model behavior, visual content effects, QA or explanation validity, or a universal runtime difference. The candidate modifies only video temporal IDs and intentionally leaves installed text/spatial positions unchanged.",
+  "purpose": "fixed_synthetic_qwen_rope_version_geometry_cpu_comparison",
+  "requested_cases": 3,
+  "run": {
+    "checkout_head": "2b7dd85ecb2027b5ce5aa9397668f69450da7af1",
+    "created_at_utc": "2026-10-11T21:05:08Z",
+    "seed": null
+  },
+  "schema_version": 1,
+  "scope": "position_id_helpers_only_no_weights_no_media_no_processor_no_forward_no_generation",
+  "sources": {
+    "config_sha256": "d237cc20c82c4e20356801fcfb0e90f9998f7d75179a3d89767d4a8dbf8ce4e7",
+    "installed_modeling_source_sha256": "507cb2c383ead0e0e22b16ec9c8af2eb82703843cd5849112715751d990ff15e",
+    "installed_v5_17_model_source_url": "https://github.com/huggingface/transformers/blob/v5.17.0/src/transformers/models/qwen2_5_vl/modeling_qwen2_5_vl.py",
+    "installed_v5_17_vision_utils_source_url": "https://github.com/huggingface/transformers/blob/v5.17.0/src/transformers/vision_utils.py",
+    "installed_vision_utils_source_sha256": "bcecd5a92b3266b9926272a549d2b1a0f1fe7646c698c0fa19bd96f976085356",
+    "legacy_v4_49_source_bytes": 103533,
+    "legacy_v4_49_source_sha256": "076a9b98955abe003ad90f9240372996bbc72d9f24e303346f23b77735106cd7",
+    "legacy_v4_49_source_url": "https://github.com/huggingface/transformers/blob/v4.49.0/src/transformers/models/qwen2_5_vl/modeling_qwen2_5_vl.py",
+    "runner_sha256": "76f2d8d70ee0d84b90080dc7a122833a215d86a29e07a3b7eaa01970e98b78f0"
+  },
+  "status": "ok",
+  "versions": {
+    "torch": "2.11.0+cu128",
+    "transformers": "5.17.0"
+  }
+}
