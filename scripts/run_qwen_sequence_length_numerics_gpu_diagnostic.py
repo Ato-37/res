@@ -451,6 +451,32 @@ def load_checkpoint_audit(repo: Path):
     return report, digest
 
 
+def hash_checkpoint_shards_before_model_load(model_path: Path) -> dict:
+    """Hash the exact shard paths immediately before ``from_pretrained``.
+
+    The older byte-audit artifact authenticates the cache at audit time, but it
+    cannot prove which bytes a historical model load consumed.  This in-run
+    witness binds the current load to the fixed shard names, sizes and hashes.
+    """
+    records = []
+    for filename in CHECKPOINT_AUDIT_SHARDS:
+        path = model_path / filename
+        if not path.is_file():
+            raise RuntimeError(f"checkpoint shard missing before model load: {filename}")
+        size = path.stat().st_size
+        expected_size, expected_sha256 = CHECKPOINT_AUDIT_EXPECTED_SHARD_METADATA[filename]
+        observed_sha256 = sha256(path)
+        if size != expected_size or observed_sha256 != expected_sha256:
+            raise RuntimeError(f"checkpoint shard changed or mismatched before model load: {filename}")
+        records.append({"filename": filename, "bytes": size, "sha256": observed_sha256})
+    return {
+        "status": "verified_immediately_before_model_load",
+        "shard_count": len(records),
+        "total_bytes": sum(item["bytes"] for item in records),
+        "shards": records,
+    }
+
+
 def require_expected_target(target) -> None:
     require_expected_target_hash(target.target_sha256)
     if len(target.token_ids) != GENERATED_TOKENS or target.prompt_length != EXPECTED_PROMPT_TOKENS:
@@ -563,6 +589,8 @@ def run_gpu_diagnostic(output: Path):
         torch.cuda.synchronize()
         torch.cuda.reset_peak_memory_stats()
         RUN_PROGRESS["partial_evidence"]["gpu_peak_tracking_started_before_model_load"] = True
+        checkpoint_shards_before_model_load = hash_checkpoint_shards_before_model_load(model_path)
+        RUN_PROGRESS["partial_evidence"]["checkpoint_shards_before_model_load"] = checkpoint_shards_before_model_load
         model = Qwen2_5_VLForConditionalGeneration.from_pretrained(
             str(model_path), local_files_only=True, torch_dtype=torch.bfloat16,
             attn_implementation="eager", device_map="cuda",
@@ -1010,9 +1038,10 @@ def run_gpu_diagnostic(output: Path):
                 "historical_gpu_runs_byte_verified": False,
                 "continuous_authentication_of_later_load": False,
             },
+            "checkpoint_shards_before_model_load": checkpoint_shards_before_model_load,
             "checkpoint_provenance_limitations": [
                 "The byte audit authenticates the local checkpoint bytes during its audit time, not historical GPU runs.",
-                "The audit and model load are separate operations, so it does not continuously authenticate bytes against a concurrent cache change.",
+                "This run hashes the exact five shard paths immediately before model load; it does not provide continuous protection against a concurrent cache mutation during loading.",
             ],
             "gpu_peak_tracking_started_before_model_load": True,
             "gpu_peak_allocated_gib": peak_allocated_gib,
