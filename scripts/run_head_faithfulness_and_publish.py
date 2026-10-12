@@ -46,6 +46,7 @@ def main():
     parser.add_argument('--alpha', type=float, default=0.5)
     parser.add_argument('--control-repeats', type=int, default=5)
     parser.add_argument('--num-frames', type=int, default=16)
+    parser.add_argument('--frame-size', type=int, default=224)
     parser.add_argument('--model', default='Qwen/Qwen2.5-VL-7B-Instruct')
     parser.add_argument('--exploratory', action='store_true',
                         help='label non-primary head settings as exploratory')
@@ -93,6 +94,7 @@ def main():
                '--quant', args.quant, '--seed', str(args.seed), '--top-k', str(args.top_k),
                '--alpha', str(args.alpha), '--control-repeats', str(args.control_repeats),
                '--num-frames', str(args.num_frames), '--model', args.model]
+    command += ['--frame-size', str(args.frame_size)]
     if args.exploratory:
         command.append('--exploratory')
     run(command, str(repo))
@@ -115,6 +117,7 @@ def main():
             'alpha': args.alpha,
             'control_repeats': args.control_repeats,
             'num_frames': args.num_frames,
+            'frame_size': args.frame_size,
             'exploratory': args.exploratory,
         },
         'samples_sha256': hashlib.sha256(sample_path.read_bytes()).hexdigest(),
@@ -127,6 +130,7 @@ def main():
         'control_repeats': args.control_repeats,
         'exploratory': args.exploratory,
         'num_frames': args.num_frames,
+        'frame_size': args.frame_size,
         'cap_pixels_per_frame': True,
         'max_pixels': 256 * 28 * 28,
         'n_requested': requested,
