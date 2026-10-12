@@ -11,6 +11,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import os
 from pathlib import Path
 from typing import Any
 
@@ -82,8 +83,18 @@ def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("left", type=Path)
     parser.add_argument("right", type=Path)
+    parser.add_argument("--output", type=Path)
     args = parser.parse_args()
-    print(json.dumps(compare(args.left, args.right), indent=2, sort_keys=True))
+    result = compare(args.left, args.right)
+    rendered = json.dumps(result, indent=2, sort_keys=True) + "\n"
+    if args.output is None:
+        print(rendered, end="")
+    else:
+        flags = os.O_WRONLY | os.O_CREAT | os.O_EXCL
+        fd = os.open(args.output, flags, 0o600)
+        with os.fdopen(fd, "w", encoding="utf-8") as stream:
+            stream.write(rendered)
+        print(json.dumps({"output": str(args.output), **result}, sort_keys=True))
 
 
 if __name__ == "__main__":

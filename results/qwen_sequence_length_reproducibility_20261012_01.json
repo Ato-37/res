@@ -1,0 +1,13 @@
+{
+  "analysis": "qwen_sequence_length_artifact_reproducibility",
+  "fixed_fields_equal": true,
+  "left_load_witness": null,
+  "left_post_load_witness": null,
+  "left_sha256": "3cc56ffc1462307b747964e4bb1b8b636b62c0a92c43bf1dd4cc76e4477543ee",
+  "left_source_commit": "e384928539a79d78382801072547d6601204bdfe",
+  "right_load_witness": "verified_immediately_before_model_load",
+  "right_post_load_witness": "verified_immediately_after_model_load",
+  "right_sha256": "937419a84880a520eed283c70d0c8f430af44756776fd3d0a1ede9f93d99020d",
+  "right_source_commit": "aea6092c77098bef2650b906129281c180e120f2",
+  "tensor_recalculation": "not_possible_outputs_not_in_artifacts"
+}
