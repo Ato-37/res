@@ -1,0 +1,92 @@
+{
+  "ai_blind_review_items": 6,
+  "attestation_status": "missing",
+  "audit_records": 6,
+  "decision": "no_go",
+  "failure_reasons": [
+    "human_attestation_missing"
+  ],
+  "gold_records": 6,
+  "groups": [
+    {
+      "ai_blind_review_item_count": 3,
+      "audit_item_count": 3,
+      "audit_sha256": "4703843030c4d7a7818a25a2702c11e6113a58e4502ee9142abf69e72aff9ff3",
+      "gold_count": 3,
+      "gold_sha256": "ef517917c229af96c82d4268e727d586db5c371663893f0b3476d050aa5df0c7",
+      "group_id": "dive03",
+      "label_leak_count": 0,
+      "media_sha256": "13ab1d0e12d9c6b9e776890d123f363c12c572d52d1f58464b57a2e98667f126",
+      "qid_join_count": 3,
+      "rights_sha256": "ef8e7c4f6d3081531b018ddab6e0ef7fc2dd1bb04a06abae55e68d8f666f97aa",
+      "sample_count": 3,
+      "samples_sha256": "9f627d03dda142cef723535bbbd5b0cccda0bdc3b7eb764c6cdab6077abb39c5"
+    },
+    {
+      "ai_blind_review_item_count": 1,
+      "audit_item_count": 1,
+      "audit_sha256": "1c26e483b7b69b3ba8947f0d599a61b6f256ae8ff187f2d9bf75af2cd232eedc",
+      "gold_count": 1,
+      "gold_sha256": "60617a77c89135722d2162941430769852e9751f3ca5c03d3c7f3758ca2c4043",
+      "group_id": "dive04",
+      "label_leak_count": 0,
+      "media_sha256": "0d68c44118067f640fa41b30c482170359d9846f597d73c6e3d573fe0c37fb03",
+      "qid_join_count": 1,
+      "rights_sha256": "4202474c0d2a55294ad3eb243931ccf58bb3f60dc418a875e74a29e3463bb278",
+      "sample_count": 1,
+      "samples_sha256": "55759c9473efeabcbe5bd2fd8b4cf25ae7809dbbebbffe7852e77fccb3375a13"
+    },
+    {
+      "ai_blind_review_item_count": 2,
+      "audit_item_count": 2,
+      "audit_sha256": "f301f7d662dc6fcc246f6d3847cf1aaf40e875766a1f0539d50d4b79005572d9",
+      "gold_count": 2,
+      "gold_sha256": "61d6f4f77bdb35531e3e21cd403926cd9847eb50caec1f792032191d30764aff",
+      "group_id": "dive09",
+      "label_leak_count": 0,
+      "media_sha256": "59779cb92fd3bd0a66c2b4f5ef92e6915f32c80a9105d035c95a060559164676",
+      "qid_join_count": 2,
+      "rights_sha256": "49c13de8c2b4c275d678b7aa5a60ce7af536825ec202d5fc7f5cd9f2528a5405",
+      "sample_count": 2,
+      "samples_sha256": "a0ffc81448d39f3125ce97ac1fcbb947cf451a32d8f6d8bf421955f5559e4ee8"
+    }
+  ],
+  "joined_qids": 6,
+  "label_leak_count": 0,
+  "label_leak_count_complete": true,
+  "privacy": "No question text, choices, answers, qids, local paths, or attestor identity emitted.",
+  "purpose": "noaa_manual_qa_preinference_gate",
+  "run": {
+    "checkout_head": "dfcedfb0c1d64b9183a295616912c3dc821576d1",
+    "created_at_utc": "2026-10-12T05:33:59Z",
+    "runner_sha256": "9e229286306fe1f9481a3b357ffadaca4cf042b147ef606d740b14e4c7f237be"
+  },
+  "samples": 6,
+  "schema_version": 1,
+  "scope_limit": "does_not_establish_qa_efficacy_or_explanation_faithfulness",
+  "source_groups_requested": 3,
+  "source_groups_valid": 3,
+  "source_sha256": {
+    "dive03": {
+      "audit_sha256": "4703843030c4d7a7818a25a2702c11e6113a58e4502ee9142abf69e72aff9ff3",
+      "gold_sha256": "ef517917c229af96c82d4268e727d586db5c371663893f0b3476d050aa5df0c7",
+      "media_sha256": "13ab1d0e12d9c6b9e776890d123f363c12c572d52d1f58464b57a2e98667f126",
+      "rights_sha256": "ef8e7c4f6d3081531b018ddab6e0ef7fc2dd1bb04a06abae55e68d8f666f97aa",
+      "samples_sha256": "9f627d03dda142cef723535bbbd5b0cccda0bdc3b7eb764c6cdab6077abb39c5"
+    },
+    "dive04": {
+      "audit_sha256": "1c26e483b7b69b3ba8947f0d599a61b6f256ae8ff187f2d9bf75af2cd232eedc",
+      "gold_sha256": "60617a77c89135722d2162941430769852e9751f3ca5c03d3c7f3758ca2c4043",
+      "media_sha256": "0d68c44118067f640fa41b30c482170359d9846f597d73c6e3d573fe0c37fb03",
+      "rights_sha256": "4202474c0d2a55294ad3eb243931ccf58bb3f60dc418a875e74a29e3463bb278",
+      "samples_sha256": "55759c9473efeabcbe5bd2fd8b4cf25ae7809dbbebbffe7852e77fccb3375a13"
+    },
+    "dive09": {
+      "audit_sha256": "f301f7d662dc6fcc246f6d3847cf1aaf40e875766a1f0539d50d4b79005572d9",
+      "gold_sha256": "61d6f4f77bdb35531e3e21cd403926cd9847eb50caec1f792032191d30764aff",
+      "media_sha256": "59779cb92fd3bd0a66c2b4f5ef92e6915f32c80a9105d035c95a060559164676",
+      "rights_sha256": "49c13de8c2b4c275d678b7aa5a60ce7af536825ec202d5fc7f5cd9f2528a5405",
+      "samples_sha256": "a0ffc81448d39f3125ce97ac1fcbb947cf451a32d8f6d8bf421955f5559e4ee8"
+    }
+  }
+}
