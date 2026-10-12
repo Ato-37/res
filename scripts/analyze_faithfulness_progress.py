@@ -12,7 +12,8 @@ def _load(path: Path) -> tuple[dict, str]:
 
 
 def analyze(head_path: Path, black_path: Path, blur_path: Path, noaa_path: Path,
-            head_smoke_path: Path | None = None, mask_smoke_path: Path | None = None) -> dict:
+            head_smoke_path: Path | None = None, mask_smoke_path: Path | None = None,
+            mask_blur_smoke_path: Path | None = None) -> dict:
     head, head_sha = _load(head_path)
     black, black_sha = _load(black_path)
     blur, blur_sha = _load(blur_path)
@@ -79,6 +80,11 @@ def analyze(head_path: Path, black_path: Path, blur_path: Path, noaa_path: Path,
         if (smoke.get("n_requested"), smoke.get("n_effective"), smoke.get("n_failures")) != (3, 3, 0):
             raise ValueError("mask smoke accounting mismatch")
         smokes["grounding_mask"] = {"status": "補助診断のみ", "artifact_sha256": sha, "n_effective": 3, "all_mean_nat": smoke.get("all_mean_nat"), "interpretation": "engineering smoke; not direct explanation faithfulness"}
+    if mask_blur_smoke_path is not None:
+        smoke, sha = _load(mask_blur_smoke_path)
+        if smoke.get("n_effective_blur") != 3 or smoke.get("n_effective_black") != 3:
+            raise ValueError("paired mask smoke accounting mismatch")
+        smokes["grounding_mask_black_blur_pair"] = {"status": "補助診断のみ", "artifact_sha256": sha, "n_effective_each": 3, "paired_blur_minus_black_primary_mean_nat": smoke.get("paired_blur_minus_black_primary_mean_nat"), "interpretation": "mask-fill engineering/OOD sensitivity; not direct explanation faithfulness"}
     if smokes:
         result["engineering_smokes"] = smokes
     return result
@@ -92,11 +98,12 @@ def main() -> None:
     p.add_argument("--noaa", type=Path, required=True)
     p.add_argument("--head-smoke", type=Path)
     p.add_argument("--mask-smoke", type=Path)
+    p.add_argument("--mask-blur-smoke", type=Path)
     p.add_argument("--output", type=Path, required=True)
     a = p.parse_args()
     if a.output.exists():
         raise SystemExit(f"refusing to overwrite {a.output}")
-    out = analyze(a.head, a.black, a.blur, a.noaa, a.head_smoke, a.mask_smoke)
+    out = analyze(a.head, a.black, a.blur, a.noaa, a.head_smoke, a.mask_smoke, a.mask_blur_smoke)
     a.output.write_text(json.dumps(out, indent=2, sort_keys=True) + "\n")
     a.output.chmod(0o600)
     print(json.dumps({"status": "complete", "output": str(a.output), "direct_status": out["direct_faithfulness"]["status"]}))

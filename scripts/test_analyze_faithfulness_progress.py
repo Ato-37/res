@@ -12,6 +12,7 @@ BLUR = ROOT / "results/necessity_choice_margin_replication_blur_heldout.json"
 NOAA = ROOT / "results/noaa_qa_gate_20261012T053359Z.json"
 HEAD_SMOKE = ROOT / "results/head_faithfulness_repro_smoke_20261013_01.json"
 MASK_SMOKE = ROOT / "results/necessity_choice_margin_smoke_derived_20261013_01.json"
+MASK_BLUR_SMOKE = ROOT / "results/necessity_choice_margin_black_blur_smoke_derived_20261013_01.json"
 
 
 class Tests(unittest.TestCase):
@@ -38,9 +39,10 @@ class Tests(unittest.TestCase):
             with self.assertRaises(ValueError): analyze(p, BLACK, BLUR, NOAA)
 
     def test_records_smokes_as_supporting_only(self):
-        out = analyze(HEAD, BLACK, BLUR, NOAA, HEAD_SMOKE, MASK_SMOKE)
+        out = analyze(HEAD, BLACK, BLUR, NOAA, HEAD_SMOKE, MASK_SMOKE, MASK_BLUR_SMOKE)
         self.assertEqual(out["engineering_smokes"]["head_intervention"]["status"], "補助診断のみ")
         self.assertEqual(out["engineering_smokes"]["grounding_mask"]["n_effective"], 3)
+        self.assertEqual(out["engineering_smokes"]["grounding_mask_black_blur_pair"]["n_effective_each"], 3)
 
 
 if __name__ == "__main__":
