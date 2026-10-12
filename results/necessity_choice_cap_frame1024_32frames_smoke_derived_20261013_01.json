@@ -1,0 +1,59 @@
+{
+  "all_ci95_pointwise_nat": [
+    0.125,
+    0.7499998547136784
+  ],
+  "all_mean_nat": 0.33333338839778054,
+  "analysis": "necessity_choice_margin_smoke_derived",
+  "cap_pixels_per_frame": true,
+  "frame_size": 1024,
+  "limitations": [
+    "Raw questions/QIDs/video paths are intentionally not included.",
+    "This is a preprocessing/engineering smoke, not direct explanation faithfulness evidence."
+  ],
+  "mask_fill": "black",
+  "max_pixels": 200704,
+  "n_effective": 3,
+  "n_failures": 0,
+  "n_requested": 3,
+  "primary_ci95_pointwise_nat": [
+    0.1250003104796633,
+    0.7499998547136784
+  ],
+  "primary_mean_nat": 0.43750008259667084,
+  "primary_n": 2,
+  "raw_artifact_sha256": "11eaf4348ab8a974d273779acfc1646c9e222e252d94a880913e2ff360b0f94a",
+  "schema_version": 1,
+  "status": "engineering_smoke_only",
+  "unique_input_ids_shapes": [
+    [
+      1,
+      4033
+    ],
+    [
+      1,
+      4241
+    ],
+    [
+      1,
+      4307
+    ]
+  ],
+  "unique_video_grid_thw": [
+    [
+      16,
+      24,
+      44
+    ],
+    [
+      16,
+      26,
+      38
+    ],
+    [
+      16,
+      40,
+      26
+    ]
+  ]
+}
