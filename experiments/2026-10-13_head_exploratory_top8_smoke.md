@@ -40,3 +40,9 @@ confirmatory search, and no post-hoc tuning is permitted from this result.
 Keep the explicit `--exploratory` guard for any future head scan. A larger
 exploratory inventory requires a fixed cohort, control policy, and analysis
 plan before execution; it must remain separate from the primary estimate.
+
+## Provenance repair run (2026-10-13)
+
+The exploratory one-sample rerun was executed after adding source/result provenance to the publisher manifest. It used the same exploratory top-8 configuration (`Qwen/Qwen2.5-VL-7B-Instruct`, 4-bit, bfloat16, 16 frames, cap-pixels, alpha 0.5, one matched control, seed 20261013) and completed on the RTX 5070 Ti with 1/1 effective sample and 0 failures. The observed selective margin drop was +0.2500 nat for this single sample; no interval or inferential claim is possible. The result is explicitly `research_status=exploratory_smoke` and remains excluded from the preregistered confirmation.
+
+The published manifest binds the run to source commit `ff3be6875f4bb7b8f0acd9b573682447b17789f8` and result SHA-256 `9c64eff1b1461b932dfb864faaf07d32298c167274bf5f5a1b7ab0650c87a727`; normalized command arguments are recorded in the manifest. This repairs the earlier provenance gap for this rerun only; earlier exploratory artifacts remain descriptive and are not retroactively upgraded. Next action: independently audit this binding and implement a separate fail-closed claim-mask protocol validator while NOAA attestation and NExT-GQA rights remain unresolved.
