@@ -1,0 +1,21 @@
+{
+  "all_mean_nat": -0.45833342242985964,
+  "analysis": "necessity_choice_margin_cap_blur_smoke_derived",
+  "cap_pixels_per_frame": true,
+  "limitations": [
+    "Raw questions/QIDs/video paths remain local.",
+    "This is preprocessing/reproducibility smoke, not direct explanation faithfulness evidence."
+  ],
+  "n_effective": 3,
+  "n_failures": 0,
+  "n_requested": 3,
+  "primary_ci95_pointwise_nat": [
+    -0.5000002076849341,
+    -0.4999999403953552
+  ],
+  "primary_mean_nat": -0.5000000740401447,
+  "primary_n": 2,
+  "raw_artifact_sha256": "78957a9ff64488e2a560d0d121050ce3c78106d626f42ee101424430a3830a2e",
+  "schema_version": 1,
+  "status": "engineering_smoke_only"
+}
