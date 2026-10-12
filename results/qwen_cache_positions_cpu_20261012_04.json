@@ -1,0 +1,157 @@
+{
+  "cache_resume_generate": {
+    "candidate_mechanical_delta_decode_position": 13,
+    "cleared_delta_decode_position": 36,
+    "finite_scores_all_cases": true,
+    "interpretation": "different continuation coordinates expose state policy; max-based candidate is not claimed semantically correct",
+    "native_delta_decode_position": 6,
+    "one_token_positions_after_generation_slice": true,
+    "positions_after_generation_slice": {
+      "candidate_delta": [
+        1,
+        1,
+        1
+      ],
+      "cleared": [
+        3,
+        1,
+        1
+      ],
+      "native_delta": [
+        1,
+        1,
+        1
+      ],
+      "stale_delta": [
+        1,
+        1,
+        1
+      ]
+    },
+    "stale_delta_decode_position": 11
+  },
+  "created_at_utc": "2026-10-12T12:14:38.672552+00:00",
+  "direct_cached_forward": {
+    "computed_position_ids_length_from_full_mask": 37,
+    "current_input_length": 1,
+    "error_type": "RuntimeError",
+    "finite_logits": false,
+    "outcome": "raised",
+    "paired_explicit_one_token_positions": {
+      "error_type": null,
+      "finite_logits": true,
+      "interpretation": "explicit one-token positions satisfy the observed shape contract only; no semantic cache-position claim",
+      "outcome": "returned",
+      "position_coordinate": 6,
+      "position_ids_length": 1
+    },
+    "past_length": 36,
+    "shape_mismatch_observed": true
+  },
+  "elapsed_seconds": 0.12692206699284725,
+  "explicit_prefill_state": {
+    "candidate_delta_manually_set_for_cache_resume": -23,
+    "cleared_rope_delta_stayed_cleared": true,
+    "native_delta_from_actual_get_rope_index": -30,
+    "stale_rope_delta_survived_explicit_prefill": true
+  },
+  "fixture": {
+    "attention_mask_all_ones": true,
+    "batch_size": 1,
+    "second_per_grid_seconds": 0.75,
+    "sequence_length": 36,
+    "spatial_merge_size": 2,
+    "tokens_per_second": 2,
+    "trailing_text_tokens_after_video_end": 1,
+    "video_grid_thw": [
+      8,
+      4,
+      4
+    ],
+    "video_token_count": 32
+  },
+  "long_interval_native_policy": {
+    "cache_resume_position_from_native_max_plus_one": 73,
+    "continuous_generate_position_from_last_packed_coordinate_plus_one": 6,
+    "interpretation": "fixed synthetic geometry exposes distinct native cache-resume and uninterrupted-generation coordinate policies; neither is endorsed as universally correct",
+    "native_rope_delta": 37,
+    "positions_differ": true,
+    "second_per_grid_seconds": 5.0,
+    "video_grid_thw": [
+      8,
+      4,
+      4
+    ]
+  },
+  "model_config": {
+    "attention_implementation": "eager",
+    "config_sha256": "f263a1d0cb26ea6b73228d1255a40b706a4122fa2a9dc623e7c20045f88751fa",
+    "text_attention_heads": 2,
+    "text_hidden_size": 48,
+    "text_intermediate_size": 96,
+    "text_key_value_heads": 2,
+    "text_layers": 1,
+    "vision_layers": 1,
+    "vocab_size": 64
+  },
+  "position_geometry": {
+    "candidate_delta_differs": true,
+    "candidate_mechanical_rope_delta": -23,
+    "candidate_temporal_anchors": [
+      2,
+      3,
+      5,
+      6,
+      8,
+      9,
+      11,
+      12
+    ],
+    "delta_convention": "max(position IDs)+1\u2212valid prompt length; source mechanical rule only, not semantic validation",
+    "native_rope_delta": -30,
+    "native_temporal_anchors": [
+      2,
+      2,
+      2,
+      2,
+      2,
+      2,
+      2,
+      2
+    ],
+    "non_temporal_positions_preserved": true
+  },
+  "precision_note": "tiny randomly initialized FP32 model; not a numerical proxy for pinned 7B BF16/4-bit GPU behavior",
+  "purpose": "installed_qwen_cache_position_cpu_api_diagnostic",
+  "schema_version": 1,
+  "scope": "tiny random CPU model; synthetic token geometry; no visual encoder, QA, labels, or efficacy",
+  "seed": 20261012,
+  "source_commit": "bb2fa01b93e98fcec1ad284ba9871027d60b49b8",
+  "source_sha256": {
+    "geometry_helper": "a0d455fd43f1ccdd5335676abedc2c85df8096ae962bbedff3b4b952ee3fd118",
+    "installed_generation_utils": "bb558d8676be95457126c82a32600dad206c13e4fb96b4f5d114f1f2483d7f62",
+    "installed_qwen_model": "507cb2c383ead0e0e22b16ec9c8af2eb82703843cd5849112715751d990ff15e",
+    "runner": "e521821880336ef9cc61da51c6bf6239280ab4daf12bd1c57cd08de99e05894f"
+  },
+  "uninterrupted_generate": {
+    "candidate_decode_equals_native_decode": true,
+    "candidate_prefill_changes_only_video_temporal_row": true,
+    "decode_positions_are_last_prompt_coordinate_plus_one": 6,
+    "explicit_candidate_generation_left_rope_delta_none": true,
+    "explicit_candidate_prefill_matches_helper": true,
+    "explicit_native_generation_left_rope_delta_none": true,
+    "explicit_native_prefill_matches_get_rope_index": true,
+    "native_auto_populated_rope_delta": true,
+    "native_auto_prefill_matches_get_rope_index": true,
+    "native_auto_vs_explicit_native_scores_bitwise_equal": true,
+    "native_auto_vs_explicit_native_sequences_equal": true
+  },
+  "versions": {
+    "device": "cpu",
+    "dtype": "float32",
+    "model": "random tiny Qwen2.5-VL configuration",
+    "python": "3.12.14",
+    "torch": "2.11.0+cu128",
+    "transformers": "5.17.0"
+  }
+}

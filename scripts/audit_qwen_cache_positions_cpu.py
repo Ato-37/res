@@ -21,6 +21,7 @@ import random
 import subprocess
 import sys
 import time
+import os
 
 import torch
 
@@ -588,6 +589,7 @@ def main(argv=None):
     with output.open("x", encoding="utf-8") as stream:
         json.dump(result, stream, indent=2, sort_keys=True)
         stream.write("\n")
+    os.chmod(output, 0o600)
     print(json.dumps({
         "status": "ok",
         "output": str(output.relative_to(repo)),
