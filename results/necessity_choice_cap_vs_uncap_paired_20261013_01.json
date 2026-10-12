@@ -1,0 +1,23 @@
+{
+  "all_mean_delta_nat": 0.9583333847112954,
+  "analysis": "necessity_choice_paired_condition_comparison",
+  "bootstrap_draws": 10000,
+  "left_raw_artifact_sha256": "16f1c880dd5480a208a1266d0f20253fc7a3a942fbbf6a44c59bd6cb5094541d",
+  "limitations": [
+    "Raw questions/QIDs/video paths and sample IDs are intentionally excluded.",
+    "This is a paired engineering smoke comparison, not direct explanation faithfulness evidence.",
+    "No between-condition hypothesis was preregistered; the estimate is descriptive."
+  ],
+  "n_paired": 3,
+  "n_primary_paired": 2,
+  "paired_delta_definition": "left selective margin drop minus right selective margin drop",
+  "primary_bootstrap_ci95_nat": [
+    0.12500020815059543,
+    2.3750000055879354
+  ],
+  "primary_mean_delta_nat": 1.2500001068692654,
+  "right_raw_artifact_sha256": "48b0b6042f9759a6b7c74e973f3410668b44a60ee585c032a5e6f04603a35b1e",
+  "schema_version": 1,
+  "seed": 20261013,
+  "status": "engineering_smoke_only"
+}

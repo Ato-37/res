@@ -26,6 +26,7 @@ and it does not reopen the closed head/layer/alpha search.
 | cap, 3-sample smoke | 3/3 | 0 | 2 | 1.5000001 | [0.2500001, 2.7500000] |
 | cap, one-sample shape witness | 1/1 | 0 | 1 | 0.2500001 | not estimated |
 | no cap, one-sample shape witness | 1/1 | 0 | 1 | 0.1250 | not estimated |
+| no cap, 3-sample smoke | 3/3 | 0 | 2 | 0.2500000 | [0.1250, 0.3750] |
 | cap + blur, 3-sample smoke | 3/3 | 0 | 2 | 1.2500001 | [0.0000001, 2.5000001] |
 
 The cap-enabled high-resolution input grid was `[8, 40, 26]` with
@@ -39,6 +40,8 @@ derived summaries are
 `results/necessity_choice_margin_cap_frame1024_smoke_derived_20261013_01.json`
 `results/necessity_choice_margin_cap_frame1024_smoke_derived_20261013_02.json`,
 `results/necessity_choice_margin_cap_frame1024_blur_smoke_derived_20261013_01.json`,
+`results/necessity_choice_cap_black_vs_blur_paired_20261013_01.json`,
+`results/necessity_choice_cap_vs_uncap_paired_20261013_01.json`,
 and `results/necessity_choice_frame1024_cap_comparison_20261013_01.json`.
 
 ## Interpretation and limitations
@@ -61,6 +64,12 @@ paired differences. For black minus blur, the paired primary estimate was
 `+0.24999999 nat` (n=2; bootstrap 95% interval `[+0.24999995,
 +0.25000003]`). This degenerate small-sample interval is a reproducibility
 check, not inferential evidence.
+
+The paired cap-minus-uncapped primary difference across the same three records
+was `+1.2500001 nat` (n=2; bootstrap 95% interval `[+0.1250002,
++2.3750000]`). Because the processor grids differ, this is evidence that the
+preprocessing setting materially changes the measured margin, not evidence for
+or against explanation faithfulness.
 
 ## Next action
 
