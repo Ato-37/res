@@ -26,6 +26,7 @@ and it does not reopen the closed head/layer/alpha search.
 | cap, 3-sample smoke | 3/3 | 0 | 2 | 1.5000001 | [0.2500001, 2.7500000] |
 | cap, one-sample shape witness | 1/1 | 0 | 1 | 0.2500001 | not estimated |
 | no cap, one-sample shape witness | 1/1 | 0 | 1 | 0.1250 | not estimated |
+| cap + blur, 3-sample smoke | 3/3 | 0 | 2 | 1.2500001 | [0.0000001, 2.5000001] |
 
 The cap-enabled high-resolution input grid was `[8, 40, 26]` with
 `input_ids_shape=[1,2161]`; the uncapped comparison was `[8,38,24]` with
@@ -36,6 +37,8 @@ the changed processor grid and has no uncertainty estimate.
 Raw artifact hashes are preserved only in the local run records. Privacy-safe
 derived summaries are
 `results/necessity_choice_margin_cap_frame1024_smoke_derived_20261013_01.json`
+`results/necessity_choice_margin_cap_frame1024_smoke_derived_20261013_02.json`,
+`results/necessity_choice_margin_cap_frame1024_blur_smoke_derived_20261013_01.json`,
 and `results/necessity_choice_frame1024_cap_comparison_20261013_01.json`.
 
 ## Interpretation and limitations
@@ -47,6 +50,10 @@ diagnostic; it cannot support a faithfulness or efficacy claim. Masked-input
 OOD effects, choice-margin calibration, answer-label validity, and semantic
 claim alignment remain unresolved. The NOAA human-attestation gate remains
 `no_go`.
+
+The black-versus-blur primary means (1.50 vs 1.25 nat) are descriptive only:
+the cohorts are tiny, the intervals overlap, and no between-mask hypothesis was
+registered. They should not be interpreted as a treatment effect.
 
 ## Next action
 
