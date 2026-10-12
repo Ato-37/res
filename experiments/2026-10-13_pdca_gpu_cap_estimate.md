@@ -55,6 +55,13 @@ The black-versus-blur primary means (1.50 vs 1.25 nat) are descriptive only:
 the cohorts are tiny, the intervals overlap, and no between-mask hypothesis was
 registered. They should not be interpreted as a treatment effect.
 
+To prevent cohort-matching mistakes, `scripts/compare_necessity_smoke_conditions.py`
+now validates identical sample-ID sets internally and publishes only aggregate
+paired differences. For black minus blur, the paired primary estimate was
+`+0.24999999 nat` (n=2; bootstrap 95% interval `[+0.24999995,
++0.25000003]`). This degenerate small-sample interval is a reproducibility
+check, not inferential evidence.
+
 ## Next action
 
 Keep this cap configuration fixed for the next prespecified claim-selective
