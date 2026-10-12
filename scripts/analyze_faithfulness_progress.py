@@ -13,7 +13,8 @@ def _load(path: Path) -> tuple[dict, str]:
 
 def analyze(head_path: Path, black_path: Path, blur_path: Path, noaa_path: Path,
             head_smoke_path: Path | None = None, mask_smoke_path: Path | None = None,
-            mask_blur_smoke_path: Path | None = None) -> dict:
+            mask_blur_smoke_path: Path | None = None,
+            cap_black_smoke_path: Path | None = None, cap_blur_smoke_path: Path | None = None) -> dict:
     head, head_sha = _load(head_path)
     black, black_sha = _load(black_path)
     blur, blur_sha = _load(blur_path)
@@ -85,6 +86,12 @@ def analyze(head_path: Path, black_path: Path, blur_path: Path, noaa_path: Path,
         if smoke.get("n_effective_blur") != 3 or smoke.get("n_effective_black") != 3:
             raise ValueError("paired mask smoke accounting mismatch")
         smokes["grounding_mask_black_blur_pair"] = {"status": "補助診断のみ", "artifact_sha256": sha, "n_effective_each": 3, "paired_blur_minus_black_primary_mean_nat": smoke.get("paired_blur_minus_black_primary_mean_nat"), "interpretation": "mask-fill engineering/OOD sensitivity; not direct explanation faithfulness"}
+    for name, path in (("cap_black", cap_black_smoke_path), ("cap_blur", cap_blur_smoke_path)):
+        if path is not None:
+            smoke, sha = _load(path)
+            if smoke.get("n_effective") != 3 or smoke.get("n_failures") != 0 or smoke.get("cap_pixels_per_frame") is not True:
+                raise ValueError(f"{name} smoke accounting/config mismatch")
+            smokes[name] = {"status": "補助診断のみ", "artifact_sha256": sha, "n_effective": 3, "cap_pixels_per_frame": True, "primary_mean_nat": smoke.get("primary_mean_nat"), "interpretation": "preprocessing reproducibility smoke; not direct explanation faithfulness"}
     if smokes:
         result["engineering_smokes"] = smokes
     return result
@@ -99,11 +106,13 @@ def main() -> None:
     p.add_argument("--head-smoke", type=Path)
     p.add_argument("--mask-smoke", type=Path)
     p.add_argument("--mask-blur-smoke", type=Path)
+    p.add_argument("--cap-black-smoke", type=Path)
+    p.add_argument("--cap-blur-smoke", type=Path)
     p.add_argument("--output", type=Path, required=True)
     a = p.parse_args()
     if a.output.exists():
         raise SystemExit(f"refusing to overwrite {a.output}")
-    out = analyze(a.head, a.black, a.blur, a.noaa, a.head_smoke, a.mask_smoke, a.mask_blur_smoke)
+    out = analyze(a.head, a.black, a.blur, a.noaa, a.head_smoke, a.mask_smoke, a.mask_blur_smoke, a.cap_black_smoke, a.cap_blur_smoke)
     a.output.write_text(json.dumps(out, indent=2, sort_keys=True) + "\n")
     a.output.chmod(0o600)
     print(json.dumps({"status": "complete", "output": str(a.output), "direct_status": out["direct_faithfulness"]["status"]}))
