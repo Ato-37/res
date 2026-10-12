@@ -505,7 +505,7 @@ def _position_tensor(model, batch, full_ids, suffix_count):
     return positions, types, attention, delta
 
 
-def run_gpu_diagnostic(output: Path):
+def run_gpu_diagnostic(output: Path, attention_implementation: str = "eager"):
     RUN_PROGRESS.update(
         stage="preflight",
         completed_model_calls=0,
@@ -595,7 +595,7 @@ def run_gpu_diagnostic(output: Path):
         RUN_PROGRESS["partial_evidence"]["checkpoint_shards_before_model_load"] = checkpoint_shards_before_model_load
         model = Qwen2_5_VLForConditionalGeneration.from_pretrained(
             str(model_path), local_files_only=True, torch_dtype=torch.bfloat16,
-            attn_implementation="eager", device_map="cuda",
+            attn_implementation=attention_implementation, device_map="cuda",
             quantization_config=BitsAndBytesConfig(
                 load_in_4bit=True, bnb_4bit_compute_dtype=torch.bfloat16
             ),
@@ -998,7 +998,7 @@ def run_gpu_diagnostic(output: Path):
             "seed": SEED,
             "quantization": "4-bit",
             "compute_dtype": "bfloat16",
-            "attention_implementation": "eager",
+            "attention_implementation": attention_implementation,
             "prompt_policy": "same fixed generic video description prompt as baseline; text not exported",
             "prompt_tokens": prompt_length,
             "prompt_ids_sha256": prompt_ids_sha256,
@@ -1092,6 +1092,7 @@ def run_gpu_diagnostic(output: Path):
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--output", required=True, help="exclusive new summary JSON under results/")
+    parser.add_argument("--attention-implementation", choices=("eager", "sdpa"), default="eager")
     args = parser.parse_args(argv)
     repo = Path(__file__).resolve().parents[1]
     try:
@@ -1101,7 +1102,7 @@ def main(argv=None):
     cli_started_utc = datetime.now(timezone.utc).isoformat()
     cli_timer = time.monotonic()
     try:
-        result = run_gpu_diagnostic(output)
+        result = run_gpu_diagnostic(output, args.attention_implementation)
         if result["status"] != "diagnostic_complete":
             raise SystemExit(1)
     except Exception as exc:

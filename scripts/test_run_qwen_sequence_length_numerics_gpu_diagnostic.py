@@ -273,7 +273,7 @@ class SequenceLengthNumericsTests(unittest.TestCase):
         repo = Path(__file__).resolve().parents[1]
         output = repo / "results" / f".test_sequence_length_failure_{uuid.uuid4().hex}.json"
 
-        def fail_after_partial(path):
+        def fail_after_partial(path, attention_implementation="eager"):
             diagnostic.RUN_PROGRESS.update(
                 stage="teacher_forcing_prefix_585",
                 completed_model_calls=3,
