@@ -19,6 +19,7 @@ class Tests(unittest.TestCase):
     def test_snapshot_statuses_and_counts(self):
         out = analyze(HEAD, BLACK, BLUR, NOAA)
         self.assertEqual(out["direct_faithfulness"]["status"], "直接評価済み")
+        self.assertIn("not generated-rationale", out["direct_faithfulness"]["claim_scope"])
         self.assertEqual(out["direct_faithfulness"]["n_effective"], 79)
         self.assertFalse(out["direct_faithfulness"]["threshold_supported"])
         self.assertEqual(out["supporting_diagnostics"]["status"], "補助診断のみ")
