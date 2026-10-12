@@ -451,7 +451,7 @@ def load_checkpoint_audit(repo: Path):
     return report, digest
 
 
-def hash_checkpoint_shards_before_model_load(model_path: Path) -> dict:
+def hash_checkpoint_shards(model_path: Path, *, status: str) -> dict:
     """Hash the exact shard paths immediately before ``from_pretrained``.
 
     The older byte-audit artifact authenticates the cache at audit time, but it
@@ -470,7 +470,7 @@ def hash_checkpoint_shards_before_model_load(model_path: Path) -> dict:
             raise RuntimeError(f"checkpoint shard changed or mismatched before model load: {filename}")
         records.append({"filename": filename, "bytes": size, "sha256": observed_sha256})
     return {
-        "status": "verified_immediately_before_model_load",
+        "status": status,
         "shard_count": len(records),
         "total_bytes": sum(item["bytes"] for item in records),
         "shards": records,
@@ -589,7 +589,9 @@ def run_gpu_diagnostic(output: Path):
         torch.cuda.synchronize()
         torch.cuda.reset_peak_memory_stats()
         RUN_PROGRESS["partial_evidence"]["gpu_peak_tracking_started_before_model_load"] = True
-        checkpoint_shards_before_model_load = hash_checkpoint_shards_before_model_load(model_path)
+        checkpoint_shards_before_model_load = hash_checkpoint_shards(
+            model_path, status="verified_immediately_before_model_load"
+        )
         RUN_PROGRESS["partial_evidence"]["checkpoint_shards_before_model_load"] = checkpoint_shards_before_model_load
         model = Qwen2_5_VLForConditionalGeneration.from_pretrained(
             str(model_path), local_files_only=True, torch_dtype=torch.bfloat16,
@@ -598,6 +600,12 @@ def run_gpu_diagnostic(output: Path):
                 load_in_4bit=True, bnb_4bit_compute_dtype=torch.bfloat16
             ),
         ).eval()
+        checkpoint_shards_after_model_load = hash_checkpoint_shards(
+            model_path, status="verified_immediately_after_model_load"
+        )
+        if checkpoint_shards_before_model_load["shards"] != checkpoint_shards_after_model_load["shards"]:
+            raise RuntimeError("checkpoint shard bytes changed during model load")
+        RUN_PROGRESS["partial_evidence"]["checkpoint_shards_after_model_load"] = checkpoint_shards_after_model_load
         processor = AutoProcessor.from_pretrained(
             str(model_path), local_files_only=True,
             min_pixels=256 * 28 * 28, max_pixels=256 * 28 * 28,
@@ -1039,9 +1047,10 @@ def run_gpu_diagnostic(output: Path):
                 "continuous_authentication_of_later_load": False,
             },
             "checkpoint_shards_before_model_load": checkpoint_shards_before_model_load,
+            "checkpoint_shards_after_model_load": checkpoint_shards_after_model_load,
             "checkpoint_provenance_limitations": [
                 "The byte audit authenticates the local checkpoint bytes during its audit time, not historical GPU runs.",
-                "This run hashes the exact five shard paths immediately before model load; it does not provide continuous protection against a concurrent cache mutation during loading.",
+                "This run hashes the exact five shard paths immediately before and after model load; it detects a changed cache state across loading but cannot prevent or observe a mutation between individual shard reads.",
             ],
             "gpu_peak_tracking_started_before_model_load": True,
             "gpu_peak_allocated_gib": peak_allocated_gib,
