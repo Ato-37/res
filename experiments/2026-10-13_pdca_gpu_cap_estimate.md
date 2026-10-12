@@ -51,6 +51,12 @@ The implementation now records `frame_size`, `max_pixels`, cap state,
 runner now also records the source Git commit and input-manifest SHA without
 publishing manifest contents; a fresh 1/1 provenance smoke recorded commit
 `f7027f874fcec70de7ac28fc61b135c6ccd0552a` and completed with zero failures.
+Three-sample black, blur, and uncapped reruns under this provenance-aware
+runner all completed 3/3 with zero failures. The strict paired comparator
+accepted the shared model/seed/frame/processor settings and reproduced the
+black-minus-blur and cap-minus-uncapped estimates above. Their privacy-safe
+outputs are `results/necessity_choice_cap_black_vs_blur_paired_20261013_02.json`
+and `results/necessity_choice_cap_vs_uncap_paired_20261013_02.json`.
 three-sample primary estimate is unstable (n=2) and the interval is a smoke
 diagnostic; it cannot support a faithfulness or efficacy claim. Masked-input
 OOD effects, choice-margin calibration, answer-label validity, and semantic
