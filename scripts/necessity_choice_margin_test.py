@@ -100,6 +100,8 @@ def main():
         args.model, torch_dtype=torch.bfloat16, attn_implementation='eager',
         quantization_config=quant, device_map=device)
     model.eval()
+    if device == 'cuda':
+        torch.cuda.reset_peak_memory_stats()
 
     def score(paths, question, choices):
         options = '\n'.join(f'{label}. {choice}' for label, choice in zip(LABELS, choices))
@@ -191,6 +193,8 @@ def main():
               'seed': args.seed, 'num_frames': args.num_frames,
               'frame_size': args.frame_size, 'max_pixels': args.max_pixels,
               'cap_pixels_per_frame': args.cap_pixels_per_frame,
+              'peak_cuda_memory_bytes': (torch.cuda.max_memory_allocated()
+                                         if device == 'cuda' else None),
               'mask_intervention': {'fill': args.mask_fill,
                                     'blur_radius': args.blur_radius if args.mask_fill == 'blur' else None},
               'prompt_protocol': 'five NExT-GQA options; gold A-E logprob minus best foil',
