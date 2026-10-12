@@ -260,15 +260,17 @@ def main():
     parser.add_argument('--quant', choices=['4bit', '8bit', 'none'], default='4bit')
     parser.add_argument('--seed', type=int, default=20261008)
     parser.add_argument('--bootstrap-draws', type=int, default=10000)
+    parser.add_argument('--exploratory', action='store_true',
+                        help='allow non-primary settings and label output exploratory')
     parser.add_argument('--output', required=True)
     args = parser.parse_args()
-    if args.top_k != 4:
+    if args.top_k != 4 and not args.exploratory:
         parser.error('The preregistered primary uses --top-k 4; change only for labeled exploratory runs')
-    if args.alpha != 0.5:
+    if args.alpha != 0.5 and not args.exploratory:
         parser.error('The preregistered primary uses --alpha 0.5; change only for labeled exploratory runs')
-    if args.control_repeats != 5:
+    if args.control_repeats != 5 and not args.exploratory:
         parser.error('The preregistered primary uses exactly five matched control groups')
-    if args.num_frames != 16:
+    if args.num_frames != 16 and not args.exploratory:
         parser.error('The preregistered primary uses 16 frames')
     if args.n_samples is not None and args.n_samples < 1:
         parser.error('--n-samples must be positive')
@@ -436,7 +438,9 @@ def main():
     result = {
         'schema_version': 1,
         'experiment': 'gradient_activation_head_faithfulness',
-        'research_status': 'smoke' if len(samples) <= 3 else 'not_automatically_classified',
+        'research_status': ('exploratory_smoke' if args.exploratory else
+                            ('smoke' if len(samples) <= 3 else 'not_automatically_classified')),
+        'exploratory': args.exploratory,
         'model': args.model,
         'model_revision': getattr(model.config, '_commit_hash', None),
         'quant': args.quant,

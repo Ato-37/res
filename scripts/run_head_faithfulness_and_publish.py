@@ -47,6 +47,8 @@ def main():
     parser.add_argument('--control-repeats', type=int, default=5)
     parser.add_argument('--num-frames', type=int, default=16)
     parser.add_argument('--model', default='Qwen/Qwen2.5-VL-7B-Instruct')
+    parser.add_argument('--exploratory', action='store_true',
+                        help='label non-primary head settings as exploratory')
     args = parser.parse_args()
     repo = Path(__file__).resolve().parents[1]
     sample_arg = Path(args.samples_file).expanduser()
@@ -88,6 +90,8 @@ def main():
                '--quant', args.quant, '--seed', str(args.seed), '--top-k', str(args.top_k),
                '--alpha', str(args.alpha), '--control-repeats', str(args.control_repeats),
                '--num-frames', str(args.num_frames), '--model', args.model]
+    if args.exploratory:
+        command.append('--exploratory')
     run(command, str(repo))
     result = json.loads(output_path.read_text())
     reject_sensitive_keys(result)
@@ -103,6 +107,7 @@ def main():
         'top_k': args.top_k,
         'alpha': args.alpha,
         'control_repeats': args.control_repeats,
+        'exploratory': args.exploratory,
         'num_frames': args.num_frames,
         'cap_pixels_per_frame': True,
         'max_pixels': 256 * 28 * 28,
