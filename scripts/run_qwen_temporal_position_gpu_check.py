@@ -317,6 +317,7 @@ def main():
         output.parent.mkdir(parents=True,exist_ok=True)
         with output.open('x',encoding='utf-8') as stream:
             json.dump(result,stream,indent=2,allow_nan=False); stream.write('\n')
+        os.chmod(output, 0o600)
         print(f'GPU position check passed: fixture={args.fixture}, 1 video, 3/3 forwards; no-op identical; native anchors {anchors_native}, candidate {anchors_candidate}; output {args.output}')
     finally:
         if tmp is not None:
@@ -351,5 +352,6 @@ if __name__=='__main__':
                             'stage':RUN_PROGRESS['stage'],'runner_sha256':sha256(__file__),
                             'created_utc':datetime.now(timezone.utc).isoformat()},stream,indent=2)
                         stream.write('\n')
+                    os.chmod(output, 0o600)
         print(f'GPU position check failed: {type(error).__name__}; inspect failure artifact.',file=sys.stderr)
         sys.exit(1)
