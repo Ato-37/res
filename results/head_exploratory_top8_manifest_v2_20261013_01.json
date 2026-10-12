@@ -1,0 +1,183 @@
+{
+  "schema_version": 1,
+  "experiment": "gradient_activation_head_faithfulness",
+  "research_status": "exploratory_smoke",
+  "exploratory": true,
+  "model": "Qwen/Qwen2.5-VL-7B-Instruct",
+  "model_revision": "cc594898137f460bfe9f0759e9844b3ce807cfb5",
+  "quant": "4bit",
+  "dtype": "bfloat16",
+  "attention_implementation": "sdpa",
+  "gradient_checkpointing": "non_reentrant",
+  "model_parameters_trainable": false,
+  "cap_pixels_per_frame": true,
+  "device": "cuda",
+  "gpu": "NVIDIA GeForce RTX 5070 Ti",
+  "python": "3.12.14",
+  "torch": "2.11.0+cu128",
+  "transformers": "5.17.0",
+  "opencv": "5.0.0",
+  "seed": 20261013,
+  "layers": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11,
+    12,
+    13,
+    14,
+    15,
+    16,
+    17,
+    18,
+    19,
+    20,
+    21,
+    22,
+    23,
+    24,
+    25,
+    26,
+    27
+  ],
+  "num_heads_per_layer": 28,
+  "head_dim": 128,
+  "num_frames": 16,
+  "top_k": 8,
+  "alpha": 0.5,
+  "control_repeats": 1,
+  "control_matching": "exact layer histogram; nearest activation L2 norm in log-ratio; disjoint groups",
+  "score_definition": "log p(baseline predicted option) minus strongest foil option; prediction frozen after baseline",
+  "primary_estimand": "mean(target margin drop minus mean matched-control margin drop), one independent video per sample",
+  "practical_threshold_nat": 0.25,
+  "primary_summary": {
+    "mean": 0.25,
+    "sd": null,
+    "ci": null,
+    "ci95_t": null,
+    "primary_threshold_supported": false
+  },
+  "secondary_descriptives": {
+    "n_baseline_correct": 1,
+    "baseline_choice_accuracy": 1.0,
+    "note": "Descriptive only; primary estimand includes every successful sample regardless of baseline correctness."
+  },
+  "n_requested": 1,
+  "n_effective": 1,
+  "n_failures": 0,
+  "runtime_seconds": 5.3099230009829625,
+  "termination_reason": "completed",
+  "failures": [],
+  "records": [
+    {
+      "sample_key": "sample_000",
+      "baseline_margin": 1.375,
+      "baseline_prediction_index": 4,
+      "baseline_foil_index": 1,
+      "baseline_choice_correct": true,
+      "selected_heads": [
+        {
+          "layer": 24,
+          "head": 27,
+          "score": 0.5364723582752049
+        },
+        {
+          "layer": 26,
+          "head": 24,
+          "score": 0.23833171045407653
+        },
+        {
+          "layer": 20,
+          "head": 26,
+          "score": 0.21953496133210137
+        },
+        {
+          "layer": 22,
+          "head": 13,
+          "score": 0.19728917279280722
+        },
+        {
+          "layer": 12,
+          "head": 3,
+          "score": 0.19189017405733466
+        },
+        {
+          "layer": 22,
+          "head": 27,
+          "score": 0.14493584539741278
+        },
+        {
+          "layer": 26,
+          "head": 22,
+          "score": 0.13915550417732447
+        },
+        {
+          "layer": 20,
+          "head": 2,
+          "score": 0.12409536827181
+        }
+      ],
+      "selected_attribution_sum": 1.791705094758072,
+      "target_margin_after_intervention": 1.25,
+      "target_margin_drop": 0.125,
+      "control_groups": [
+        [
+          {
+            "layer": 12,
+            "head": 14
+          },
+          {
+            "layer": 20,
+            "head": 8
+          },
+          {
+            "layer": 20,
+            "head": 4
+          },
+          {
+            "layer": 22,
+            "head": 8
+          },
+          {
+            "layer": 22,
+            "head": 25
+          },
+          {
+            "layer": 24,
+            "head": 26
+          },
+          {
+            "layer": 26,
+            "head": 25
+          },
+          {
+            "layer": 26,
+            "head": 26
+          }
+        ]
+      ],
+      "control_margin_drops": [
+        -0.125
+      ],
+      "mean_control_margin_drop": -0.125,
+      "selective_margin_drop": 0.25,
+      "mean_abs_log_activation_norm_ratio": 0.2322881514870442,
+      "elapsed_seconds": 5.291034495981876
+    }
+  ],
+  "limitations": [
+    "Gradient-times-activation is a local attribution score, not itself a causal effect.",
+    "Internal attenuation may move activations off the model data manifold; matched controls reduce but do not eliminate this concern.",
+    "Choice-letter margin is specific to the fixed five-choice prompt and is not free-generation accuracy.",
+    "Temporal grounding attention analysis is not included in this primary-only implementation.",
+    "Smoke samples are engineering checks and are excluded from confirmatory inference."
+  ]
+}
