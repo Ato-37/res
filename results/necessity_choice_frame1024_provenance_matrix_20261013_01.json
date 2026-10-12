@@ -1,0 +1,129 @@
+{
+  "analysis": "necessity_choice_frame1024_provenance_matrix",
+  "conditions": {
+    "cap_black": {
+      "attn_implementation": "eager",
+      "cap_pixels_per_frame": true,
+      "dtype": "bfloat16",
+      "frame_size": 1024,
+      "mask_fill": "black",
+      "max_pixels": 200704,
+      "model": "Qwen/Qwen2.5-VL-7B-Instruct",
+      "n_effective": 3,
+      "n_failures": 0,
+      "n_requested": 3,
+      "primary_ci95_pointwise_nat": [
+        0.25000013457611203,
+        2.7500000204890966
+      ],
+      "primary_mean_nat": 1.5000000775326043,
+      "primary_n": 2,
+      "quant": "4bit",
+      "raw_artifact_sha256": "d586259a3ddf37f9eef4c16abda5d2f8c3d9db60eff57cc9f05bbbf962edde37",
+      "samples_file_sha256": "a7e84a7bdd1be51cf5ba86cce666926607cf0aa024b7da0a591b6d9ac66f7192",
+      "source_commit": "7086b03c2d9b06154979068c5e2639b0101f3dda",
+      "unique_video_grid_thw": [
+        [
+          8,
+          24,
+          44
+        ],
+        [
+          8,
+          26,
+          38
+        ],
+        [
+          8,
+          40,
+          26
+        ]
+      ]
+    },
+    "cap_blur": {
+      "attn_implementation": "eager",
+      "cap_pixels_per_frame": true,
+      "dtype": "bfloat16",
+      "frame_size": 1024,
+      "mask_fill": "blur",
+      "max_pixels": 200704,
+      "model": "Qwen/Qwen2.5-VL-7B-Instruct",
+      "n_effective": 3,
+      "n_failures": 0,
+      "n_requested": 3,
+      "primary_ci95_pointwise_nat": [
+        1.0337680578231812e-07,
+        2.5000000670552254
+      ],
+      "primary_mean_nat": 1.2500000852160156,
+      "primary_n": 2,
+      "quant": "4bit",
+      "raw_artifact_sha256": "1eeb781217fcbbeaf5d2ded340a4d0a6f59407e97af6d5e8e63574498147bec1",
+      "samples_file_sha256": "a7e84a7bdd1be51cf5ba86cce666926607cf0aa024b7da0a591b6d9ac66f7192",
+      "source_commit": "7086b03c2d9b06154979068c5e2639b0101f3dda",
+      "unique_video_grid_thw": [
+        [
+          8,
+          24,
+          44
+        ],
+        [
+          8,
+          26,
+          38
+        ],
+        [
+          8,
+          40,
+          26
+        ]
+      ]
+    },
+    "uncap_black": {
+      "attn_implementation": "eager",
+      "cap_pixels_per_frame": false,
+      "dtype": "bfloat16",
+      "frame_size": 1024,
+      "mask_fill": "black",
+      "max_pixels": 200704,
+      "model": "Qwen/Qwen2.5-VL-7B-Instruct",
+      "n_effective": 3,
+      "n_failures": 0,
+      "n_requested": 3,
+      "primary_ci95_pointwise_nat": [
+        0.1249999264255166,
+        0.3750000149011612
+      ],
+      "primary_mean_nat": 0.2499999706633389,
+      "primary_n": 2,
+      "quant": "4bit",
+      "raw_artifact_sha256": "6198af10735b19a326a9602f48e7c93698803cea0f23ba3e7ab2fbcfecb25f6a",
+      "samples_file_sha256": "a7e84a7bdd1be51cf5ba86cce666926607cf0aa024b7da0a591b6d9ac66f7192",
+      "source_commit": "7086b03c2d9b06154979068c5e2639b0101f3dda",
+      "unique_video_grid_thw": [
+        [
+          8,
+          22,
+          42
+        ],
+        [
+          8,
+          26,
+          36
+        ],
+        [
+          8,
+          38,
+          24
+        ]
+      ]
+    }
+  },
+  "limitations": [
+    "Raw questions/QIDs/video paths and sample IDs are excluded.",
+    "These are preprocessing/engineering diagnostics, not direct explanation-faithfulness evidence.",
+    "The 3-sample primary cohort has n=2; intervals are not inferential evidence."
+  ],
+  "schema_version": 1,
+  "status": "engineering_smoke_only"
+}

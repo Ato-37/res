@@ -58,6 +58,8 @@ accepted the shared model/seed/frame/processor settings and reproduced the
 black-minus-blur and cap-minus-uncapped estimates above. Their privacy-safe
 outputs are `results/necessity_choice_cap_black_vs_blur_paired_20261013_02.json`
 and `results/necessity_choice_cap_vs_uncap_paired_20261013_02.json`.
+A consolidated provenance matrix is published as
+`results/necessity_choice_frame1024_provenance_matrix_20261013_01.json`.
 three-sample primary estimate is unstable (n=2) and the interval is a smoke
 diagnostic; it cannot support a faithfulness or efficacy claim. Masked-input
 OOD effects, choice-margin calibration, answer-label validity, and semantic
