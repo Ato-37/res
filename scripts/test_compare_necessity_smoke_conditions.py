@@ -36,6 +36,14 @@ class Tests(unittest.TestCase):
             b.write_text(json.dumps(x))
             with self.assertRaises(ValueError): compare(a, b)
 
+    def test_rejects_shared_setting_mismatch(self):
+        with tempfile.TemporaryDirectory() as d:
+            a, b = Path(d) / "a.json", Path(d) / "b.json"
+            a.write_text(json.dumps(raw([1.0, 2.0, 3.0])))
+            x = raw([1.0, 2.0, 3.0]); x["quant"] = "none"
+            b.write_text(json.dumps(x))
+            with self.assertRaises(ValueError): compare(a, b)
+
 
 if __name__ == "__main__":
     unittest.main()
