@@ -91,6 +91,14 @@ interval `[+0.0000003,+2.3750001]`). This agrees qualitatively with the black
 comparison: changing the processor grid is a major confound for this margin
 diagnostic.
 
+## GPU load diagnostic
+
+The 32-frame, 1024px cap-enabled one-sample smoke completed 1/1 with zero
+failures under source commit `2ff76ba96a7e6069a91641388b9efedf2b629e1c`.
+Peak CUDA allocation was `11,866,027,008` bytes (about 11.05 GiB), with
+`input_ids_shape=[1,4241]` and `video_grid_thw=[[16,40,26]]`. This measures
+allocated VRAM, not memory-bandwidth utilization or faithfulness.
+
 ## Next action
 
 Keep this cap configuration fixed for the next prespecified claim-selective
