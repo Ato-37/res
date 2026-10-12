@@ -1,0 +1,57 @@
+{
+  "all_bf16_accumulation_zero": true,
+  "all_bf16_eager_nonzero": true,
+  "all_fp32_zero": true,
+  "analysis": "synthetic_attention_backend_precision_control_crosscheck",
+  "comparisons": [
+    {
+      "bf16_fp32_accum_raw_max_abs": 0.0,
+      "bf16_manual_eager_raw_max_abs": 0.0009765625,
+      "bf16_sdpa_raw_max_abs": 0.0,
+      "fp32_accum_equals_sdpa": true,
+      "fp32_manual_eager_raw_max_abs": 0.0,
+      "fp32_manual_equals_sdpa": true,
+      "fp32_sdpa_raw_max_abs": 0.0,
+      "left_length": 584,
+      "right_length": 585
+    },
+    {
+      "bf16_fp32_accum_raw_max_abs": 0.0,
+      "bf16_manual_eager_raw_max_abs": 0.00048828125,
+      "bf16_sdpa_raw_max_abs": 0.0,
+      "fp32_accum_equals_sdpa": true,
+      "fp32_manual_eager_raw_max_abs": 0.0,
+      "fp32_manual_equals_sdpa": true,
+      "fp32_sdpa_raw_max_abs": 0.0,
+      "left_length": 584,
+      "right_length": 586
+    },
+    {
+      "bf16_fp32_accum_raw_max_abs": 0.0,
+      "bf16_manual_eager_raw_max_abs": 0.0009765625,
+      "bf16_sdpa_raw_max_abs": 0.0,
+      "fp32_accum_equals_sdpa": true,
+      "fp32_manual_eager_raw_max_abs": 0.0,
+      "fp32_manual_equals_sdpa": true,
+      "fp32_sdpa_raw_max_abs": 0.0,
+      "left_length": 585,
+      "right_length": 586
+    }
+  ],
+  "input_reports": {
+    "bf16": {
+      "path": "results/attention_backend_shape_diagnostic_20261012_01.json",
+      "sha256": "3f20a153e364132fe32df1888ee3ef5758cc76cf34a76be89cce642eef453e7e"
+    },
+    "bf16_fp32acc": {
+      "path": "results/attention_backend_shape_diagnostic_20261012_02.json",
+      "sha256": "dd6cc2b6e64b1b5f2a5f01ab4286cfed699549757a152a187d6068d12ca6b6fd"
+    },
+    "fp32": {
+      "path": "results/attention_backend_shape_diagnostic_fp32_20261012_01.json",
+      "sha256": "78ce77ad4b9ee9072e55715bf8199921426f1f650303d84a12966b9f7f8a59ca"
+    }
+  },
+  "interpretation_limit": "fixed synthetic Q/K/V only; supports an intermediate-precision/backend mechanism hypothesis in this runtime, without identifying an attention sub-operation and with no Qwen, mask, semantic, or faithfulness claim",
+  "record_count": 3
+}
