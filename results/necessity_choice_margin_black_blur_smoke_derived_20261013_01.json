@@ -1,0 +1,24 @@
+{
+  "analysis": "necessity_choice_margin_black_blur_paired_smoke_derived",
+  "black_primary_ci95_nat": [
+    -0.12499999534338713,
+    0.12499991059303284
+  ],
+  "black_primary_mean_nat": -4.237517714500427e-08,
+  "black_raw_sha256": "68d220a82b71c1bbc8f8f854ea92afbd7ed499bea118372d66440573b3a0734b",
+  "blur_primary_ci95_nat": [
+    -0.5000002076849341,
+    -0.4999999403953552
+  ],
+  "blur_primary_mean_nat": -0.5000000740401447,
+  "blur_raw_sha256": "a4473c0968460bc68d4e364cd0225a7f9cb4f065ff74ad424f58a58bf1e8906e",
+  "limitations": [
+    "Three-video engineering smoke only; raw questions/QIDs/video paths remain local.",
+    "Black/blur mask sensitivity is a supporting diagnostic, not direct explanation faithfulness evidence."
+  ],
+  "n_effective_black": 3,
+  "n_effective_blur": 3,
+  "paired_blur_minus_black_primary_mean_nat": -0.5000000316649675,
+  "schema_version": 1,
+  "status": "engineering_smoke_only"
+}
