@@ -69,6 +69,9 @@ def main():
     if requested < 1:
         parser.error('no samples selected')
     git_identity(str(repo))
+    source_commit = subprocess.run(
+        ['git', 'rev-parse', 'HEAD'], cwd=repo, text=True,
+        capture_output=True, check=True).stdout.strip()
     branch = subprocess.run(['git', 'branch', '--show-current'], cwd=repo, text=True,
                             capture_output=True, check=True).stdout.strip()
     if not branch:
@@ -94,11 +97,26 @@ def main():
         command.append('--exploratory')
     run(command, str(repo))
     result = json.loads(output_path.read_text())
+    result_sha256 = hashlib.sha256(output_path.read_bytes()).hexdigest()
     reject_sensitive_keys(result)
     validate_result_completeness(result, requested)
     manifest_path.write_text(json.dumps({
         'experiment': 'gradient_activation_head_faithfulness',
         'created_utc': datetime.now(timezone.utc).isoformat(),
+        'source_commit': source_commit,
+        'result_sha256': result_sha256,
+        'command_args': {
+            'script': 'scripts/head_faithfulness_test.py',
+            'n_samples': requested,
+            'layers': args.layers,
+            'quant': args.quant,
+            'seed': args.seed,
+            'top_k': args.top_k,
+            'alpha': args.alpha,
+            'control_repeats': args.control_repeats,
+            'num_frames': args.num_frames,
+            'exploratory': args.exploratory,
+        },
         'samples_sha256': hashlib.sha256(sample_path.read_bytes()).hexdigest(),
         'model': args.model,
         'quant': args.quant,
