@@ -13,6 +13,8 @@ SDPAでは、full584/585/586の共通行について、hidden・raw logit・cent
 
 Q/K/Vを固定した合成causal-attentionでも、manual eagerのBF16計算は長さ584/585/586でraw差0.0009765625、0.00048828125、0.0009765625を示した。SDPAは3比較すべて0だった。BF16入力をFP32へ昇格してmanual eagerの積和・softmaxを計算し、出力をBF16へ戻すcontrolも3比較すべて0だった。FP32全体のmanual eagerも3比較すべて0だった。
 
-この組合せは、今回の固定環境で「BF16の低精度accumulationとmanual eager attentionのshape依存丸め」がQwenのlong-prefix driftと整合する候補であることを示す。Qwenの全層での因果を証明したわけではなく、causal maskの正しさ、CUDA kernel全般、QA精度、説明faithfulnessを確立しない。対象は1 clip・2 target positionsであり、別clip・別モデル・別GPUへの一般化は未検証である。
+この組合せは、今回の固定環境で「BF16入力に対するmanual eagerの中間計算精度とshape依存丸め」がQwenのlong-prefix driftと整合する候補であることを示す。FP32 controlはQK積・softmax・AV積を含むため、原因となるattention演算段を特定するものではない。Qwenの全層での因果を証明したわけではなく、causal maskの正しさ、CUDA kernel全般、QA精度、説明faithfulnessを確立しない。対象は1 clip・2 target positionsであり、別clip・別モデル・別GPUへの一般化は未検証である。
+
+合成artifactにはQ/K/V tensor hash、runner source hash、ライブラリ版、選択されたSDPA kernelの記録がないため、同一テンソルや実行経路の暗号学的な証明ではなく、固定seed・shape・設定との整合性として扱う。
 
 次の確認は、同じ固定比較を独立clipまたは明示的に固定した複数target位置へ拡張し、eager/SDPA差が再現するかを事前に決めた件数で測ること。ただしNOAA human-attestation gateは別系統で未完了のため、これらの数値診断をQA/faithfulness efficacyへ接続しない。
