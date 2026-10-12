@@ -46,6 +46,8 @@ def main():
     parser.add_argument('--blur-radius', type=float, default=12.0)
     parser.add_argument('--frame-size', type=int, default=224)
     parser.add_argument('--max-pixels', type=int, default=256 * 28 * 28)
+    parser.add_argument('--cap-pixels-per-frame', action='store_true',
+                        help='apply the qwen-vl-utils per-frame pixel cap explicitly')
     parser.add_argument('--model', default='Qwen/Qwen2.5-VL-7B-Instruct')
     parser.add_argument('--quant', choices=['4bit', '8bit', 'none'], default='4bit')
     parser.add_argument('--seed', type=int, default=0)
@@ -66,7 +68,8 @@ def main():
             parser.error(f'Sample {j} must have five choices and answer_choice_index in 0..4')
 
     processor = AutoProcessor.from_pretrained(
-        args.model, min_pixels=256 * 28 * 28, max_pixels=args.max_pixels)
+        args.model, min_pixels=256 * 28 * 28, max_pixels=args.max_pixels,
+        cap_pixels_per_frame=args.cap_pixels_per_frame)
     label_ids = []
     for label in LABELS:
         ids = processor.tokenizer(label, add_special_tokens=False).input_ids
@@ -164,6 +167,7 @@ def main():
               'torch_version': torch.__version__, 'transformers_version': transformers.__version__,
               'device': device, 'gpu_name': torch.cuda.get_device_name(0) if device == 'cuda' else None,
               'seed': args.seed, 'num_frames': args.num_frames,
+              'cap_pixels_per_frame': args.cap_pixels_per_frame,
               'mask_intervention': {'fill': args.mask_fill,
                                     'blur_radius': args.blur_radius if args.mask_fill == 'blur' else None},
               'prompt_protocol': 'five NExT-GQA options; gold A-E logprob minus best foil',
