@@ -8,9 +8,11 @@ matched control mask. Black masking is OOD; this is an exploratory necessity
 test, not proof of explanation validity.
 """
 import argparse
+import hashlib
 import json
 import os
 import shutil
+import subprocess
 import tempfile
 from pathlib import Path
 
@@ -25,6 +27,18 @@ from necessity_choice_margin_utils import (apply_mask_fill, interaction_ci,
                                            summarize)
 
 LABELS = list('ABCDE')
+
+
+def provenance(path: Path) -> dict:
+    """Record reproducibility hashes without publishing the input contents."""
+    digest = hashlib.sha256(path.read_bytes()).hexdigest()
+    try:
+        commit = subprocess.run(
+            ['git', 'rev-parse', 'HEAD'], check=True, capture_output=True,
+            text=True).stdout.strip()
+    except (OSError, subprocess.CalledProcessError):
+        commit = None
+    return {'samples_file_sha256': digest, 'source_commit': commit}
 
 
 def masked_paths(frame_map, indices, masked, directory, mask_fill, blur_radius):
@@ -170,6 +184,7 @@ def main():
     incorrect = [r['selective_necessity_margin_drop'] for r in rows if not r['baseline_choice_correct']]
     result = {'schema_version': 2, 'script': 'necessity_choice_margin_test.py',
               'samples_file': args.samples_file, 'model': args.model, 'quant': args.quant,
+              **provenance(Path(args.samples_file)),
               'dtype': 'bfloat16', 'attn_implementation': 'eager',
               'torch_version': torch.__version__, 'transformers_version': transformers.__version__,
               'device': device, 'gpu_name': torch.cuda.get_device_name(0) if device == 'cuda' else None,

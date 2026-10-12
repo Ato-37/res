@@ -23,7 +23,8 @@ def compare(left_path: Path, right_path: Path, *, draws: int = 10000, seed: int 
     if left_path.resolve() == right_path.resolve():
         raise ValueError("conditions must be distinct")
     left, right = _load(left_path), _load(right_path)
-    for key in ("model", "seed", "num_frames", "frame_size", "max_pixels"):
+    for key in ("model", "seed", "num_frames", "frame_size", "max_pixels",
+                "quant", "dtype", "attn_implementation", "samples_file_sha256"):
         if left.get(key) != right.get(key):
             raise ValueError(f"conditions disagree on shared setting: {key}")
     if set(left["_rows"]) != set(right["_rows"]):

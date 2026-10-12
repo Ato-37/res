@@ -48,6 +48,9 @@ and `results/necessity_choice_frame1024_cap_comparison_20261013_01.json`.
 
 The implementation now records `frame_size`, `max_pixels`, cap state,
 `input_ids_shape`, and `video_grid_thw`, making future runs auditable. The
+runner now also records the source Git commit and input-manifest SHA without
+publishing manifest contents; a fresh 1/1 provenance smoke recorded commit
+`f7027f874fcec70de7ac28fc61b135c6ccd0552a` and completed with zero failures.
 three-sample primary estimate is unstable (n=2) and the interval is a smoke
 diagnostic; it cannot support a faithfulness or efficacy claim. Masked-input
 OOD effects, choice-margin calibration, answer-label validity, and semantic

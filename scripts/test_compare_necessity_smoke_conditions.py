@@ -10,6 +10,8 @@ def raw(values):
     return {
         "n_requested": 3, "n_effective": 3, "failures": [],
         "model": "m", "seed": 1, "num_frames": 16, "frame_size": 1024, "max_pixels": 200704,
+        "quant": "4bit", "dtype": "bfloat16", "attn_implementation": "eager",
+        "samples_file_sha256": "samples",
         "records": [{"sample_id": str(i), "selective_necessity_margin_drop": v,
                       "baseline_choice_correct": i < 2} for i, v in enumerate(values)],
     }
