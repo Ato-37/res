@@ -18,6 +18,9 @@ def _manual(q, k, v):
 def _sdpa(q, k, v):
     return torch.nn.functional.scaled_dot_product_attention(q, k, v, is_causal=True)
 
+def _manual_fp32_accum(q, k, v):
+    return _manual(q.float(), k.float(), v.float()).to(q.dtype)
+
 def run(output: Path, dtype_name: str = "bfloat16") -> dict:
     if output.exists() or not output.is_relative_to(Path.cwd() / "results"):
         raise ValueError("new output under results/ required")
@@ -31,7 +34,7 @@ def run(output: Path, dtype_name: str = "bfloat16") -> dict:
     k = torch.randn_like(q); v = torch.randn_like(q)
     records = []
     torch.cuda.synchronize(); start = time.monotonic()
-    for backend, fn in (("manual_eager", _manual), ("sdpa", _sdpa)):
+    for backend, fn in (("manual_eager", _manual), ("manual_fp32_accum", _manual_fp32_accum), ("sdpa", _sdpa)):
         outputs = {}
         for length in LENGTHS:
             outputs[length] = fn(q[:, :, :length], k[:, :, :length], v[:, :, :length]).detach()
