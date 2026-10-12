@@ -1,0 +1,217 @@
+{
+  "analysis": "necessity_choice_frame1024_cap_comparison",
+  "conditions": {
+    "cap": {
+      "cap_pixels_per_frame": true,
+      "frame_size": 1024,
+      "input_metadata": {
+        "control_mask": {
+          "input_ids_shape": [
+            1,
+            2161
+          ],
+          "video_grid_thw": [
+            [
+              8,
+              40,
+              26
+            ]
+          ]
+        },
+        "evidence_mask": {
+          "input_ids_shape": [
+            1,
+            2161
+          ],
+          "video_grid_thw": [
+            [
+              8,
+              40,
+              26
+            ]
+          ]
+        },
+        "full": {
+          "input_ids_shape": [
+            1,
+            2161
+          ],
+          "video_grid_thw": [
+            [
+              8,
+              40,
+              26
+            ]
+          ]
+        }
+      },
+      "max_pixels": 200704,
+      "n_effective": 1,
+      "n_failures": 0,
+      "n_requested": 1,
+      "raw_artifact_sha256": "ba8c3b57f02fcbb4e6bf11febbbfe4ee23b21933756702555d42c79339942449",
+      "summary_all": {
+        "ci95_pointwise": null,
+        "mean": 0.25000013457611203,
+        "n": 1,
+        "positive_fraction": 1.0,
+        "sd": null,
+        "signflip_p_two_sided": null
+      },
+      "summary_primary": {
+        "ci95_pointwise": null,
+        "mean": 0.25000013457611203,
+        "n": 1,
+        "positive_fraction": 1.0,
+        "sd": null,
+        "signflip_p_two_sided": null
+      }
+    },
+    "cap_3": {
+      "cap_pixels_per_frame": true,
+      "frame_size": 1024,
+      "input_metadata": {
+        "control_mask": {
+          "input_ids_shape": [
+            1,
+            2161
+          ],
+          "video_grid_thw": [
+            [
+              8,
+              40,
+              26
+            ]
+          ]
+        },
+        "evidence_mask": {
+          "input_ids_shape": [
+            1,
+            2161
+          ],
+          "video_grid_thw": [
+            [
+              8,
+              40,
+              26
+            ]
+          ]
+        },
+        "full": {
+          "input_ids_shape": [
+            1,
+            2161
+          ],
+          "video_grid_thw": [
+            [
+              8,
+              40,
+              26
+            ]
+          ]
+        }
+      },
+      "max_pixels": 200704,
+      "n_effective": 3,
+      "n_failures": 0,
+      "n_requested": 3,
+      "raw_artifact_sha256": "16f1c880dd5480a208a1266d0f20253fc7a3a942fbbf6a44c59bd6cb5094541d",
+      "summary_all": {
+        "ci95_pointwise": [
+          0.125,
+          2.7500000204890966
+        ],
+        "mean": 1.0416667183550696,
+        "n": 3,
+        "positive_fraction": 1.0,
+        "sd": 1.4807796128378197,
+        "signflip_p_two_sided": 0.23576423576423577
+      },
+      "summary_primary": {
+        "ci95_pointwise": [
+          0.25000013457611203,
+          2.7500000204890966
+        ],
+        "mean": 1.5000000775326043,
+        "n": 2,
+        "positive_fraction": 1.0,
+        "sd": 1.7677668722946667,
+        "signflip_p_two_sided": 0.5094905094905094
+      }
+    },
+    "uncap": {
+      "cap_pixels_per_frame": false,
+      "frame_size": 1024,
+      "input_metadata": {
+        "control_mask": {
+          "input_ids_shape": [
+            1,
+            1905
+          ],
+          "video_grid_thw": [
+            [
+              8,
+              38,
+              24
+            ]
+          ]
+        },
+        "evidence_mask": {
+          "input_ids_shape": [
+            1,
+            1905
+          ],
+          "video_grid_thw": [
+            [
+              8,
+              38,
+              24
+            ]
+          ]
+        },
+        "full": {
+          "input_ids_shape": [
+            1,
+            1905
+          ],
+          "video_grid_thw": [
+            [
+              8,
+              38,
+              24
+            ]
+          ]
+        }
+      },
+      "max_pixels": 200704,
+      "n_effective": 1,
+      "n_failures": 0,
+      "n_requested": 1,
+      "raw_artifact_sha256": "855bfbacebb0122826b9e1795418f10ed74d7e2a025093e7feddec988330ab2c",
+      "summary_all": {
+        "ci95_pointwise": null,
+        "mean": 0.1249999264255166,
+        "n": 1,
+        "positive_fraction": 1.0,
+        "sd": null,
+        "signflip_p_two_sided": null
+      },
+      "summary_primary": {
+        "ci95_pointwise": null,
+        "mean": 0.1249999264255166,
+        "n": 1,
+        "positive_fraction": 1.0,
+        "sd": null,
+        "signflip_p_two_sided": null
+      }
+    }
+  },
+  "limitations": [
+    "All runs use the local three-sample smoke cohort or its one-sample subset.",
+    "Raw questions/QIDs/video paths are omitted.",
+    "This compares preprocessing and model-input behavior; it is not direct explanation-faithfulness evidence.",
+    "The cap/uncap comparison is one sample per condition and cannot estimate uncertainty."
+  ],
+  "schema_version": 1,
+  "status": "engineering_smoke_only"
+}

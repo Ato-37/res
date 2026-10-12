@@ -1,0 +1,56 @@
+# 2026-10-13: high-resolution pixel-cap GPU estimate
+
+## Purpose and scope
+
+This cycle tests whether the newly exposed processor pixel cap changes the
+actual Qwen2.5-VL input grid at `frame_size=1024`, and records a small
+necessity-choice margin estimate under the cap. This is an engineering and
+preprocessing diagnostic. It is not direct explanation-faithfulness evidence,
+and it does not reopen the closed head/layer/alpha search.
+
+## Setup
+
+- Existing `.venv`, Qwen2.5-VL-7B-Instruct, 4-bit quantization, BF16 compute,
+  eager attention, seed `20261013`.
+- Local three-sample NExT-GQA smoke cohort; 16 uniformly sampled frames per
+  video; `max_pixels=200704`.
+- Cap comparison: one sample at `frame_size=1024` with and without
+  `--cap-pixels-per-frame`.
+- Estimate: three samples with the cap enabled; the runner's prespecified
+  baseline-correct primary cohort and bootstrap interval are retained.
+
+## Verified results
+
+| condition | requested/effective | failures | primary n | primary mean (nat) | 95% interval |
+|---|---:|---:|---:|---:|---:|
+| cap, 3-sample smoke | 3/3 | 0 | 2 | 1.5000001 | [0.2500001, 2.7500000] |
+| cap, one-sample shape witness | 1/1 | 0 | 1 | 0.2500001 | not estimated |
+| no cap, one-sample shape witness | 1/1 | 0 | 1 | 0.1250 | not estimated |
+
+The cap-enabled high-resolution input grid was `[8, 40, 26]` with
+`input_ids_shape=[1,2161]`; the uncapped comparison was `[8,38,24]` with
+`input_ids_shape=[1,1905]`. Thus the cap is operational at this setting.
+The one-sample score difference is a diagnostic only: it is confounded with
+the changed processor grid and has no uncertainty estimate.
+
+Raw artifact hashes are preserved only in the local run records. Privacy-safe
+derived summaries are
+`results/necessity_choice_margin_cap_frame1024_smoke_derived_20261013_01.json`
+and `results/necessity_choice_frame1024_cap_comparison_20261013_01.json`.
+
+## Interpretation and limitations
+
+The implementation now records `frame_size`, `max_pixels`, cap state,
+`input_ids_shape`, and `video_grid_thw`, making future runs auditable. The
+three-sample primary estimate is unstable (n=2) and the interval is a smoke
+diagnostic; it cannot support a faithfulness or efficacy claim. Masked-input
+OOD effects, choice-margin calibration, answer-label validity, and semantic
+claim alignment remain unresolved. The NOAA human-attestation gate remains
+`no_go`.
+
+## Next action
+
+Keep this cap configuration fixed for the next prespecified claim-selective
+intervention/control design. Do not tune the cap or search heads on these
+outcomes. Before any larger cohort, run the existing CPU tests and a fresh
+privacy/provenance audit of the derived artifact.
