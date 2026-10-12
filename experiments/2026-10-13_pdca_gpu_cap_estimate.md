@@ -28,6 +28,7 @@ and it does not reopen the closed head/layer/alpha search.
 | no cap, one-sample shape witness | 1/1 | 0 | 1 | 0.1250 | not estimated |
 | no cap, 3-sample smoke | 3/3 | 0 | 2 | 0.2500000 | [0.1250, 0.3750] |
 | cap + blur, 3-sample smoke | 3/3 | 0 | 2 | 1.2500001 | [0.0000001, 2.5000001] |
+| no cap + blur, 3-sample smoke | 3/3 | 0 | 2 | 0.0624999 | [−0.0000002, 0.1249999] |
 
 The cap-enabled high-resolution input grid was `[8, 40, 26]` with
 `input_ids_shape=[1,2161]`; the uncapped comparison was `[8,38,24]` with
@@ -58,6 +59,7 @@ accepted the shared model/seed/frame/processor settings and reproduced the
 black-minus-blur and cap-minus-uncapped estimates above. Their privacy-safe
 outputs are `results/necessity_choice_cap_black_vs_blur_paired_20261013_02.json`
 and `results/necessity_choice_cap_vs_uncap_paired_20261013_02.json`.
+`results/necessity_choice_cap_vs_uncap_blur_paired_20261013_01.json`.
 A consolidated provenance matrix is published as
 `results/necessity_choice_frame1024_provenance_matrix_20261013_01.json`.
 three-sample primary estimate is unstable (n=2) and the interval is a smoke
@@ -83,6 +85,11 @@ was `+1.2500001 nat` (n=2; bootstrap 95% interval `[+0.1250002,
 +2.3750000]`). Because the processor grids differ, this is evidence that the
 preprocessing setting materially changes the measured margin, not evidence for
 or against explanation faithfulness.
+
+Under blur, cap-minus-uncapped was `+1.1875002 nat` (n=2; bootstrap 95%
+interval `[+0.0000003,+2.3750001]`). This agrees qualitatively with the black
+comparison: changing the processor grid is a major confound for this margin
+diagnostic.
 
 ## Next action
 
