@@ -59,8 +59,9 @@ the cohorts are tiny, the intervals overlap, and no between-mask hypothesis was
 registered. They should not be interpreted as a treatment effect.
 
 To prevent cohort-matching mistakes, `scripts/compare_necessity_smoke_conditions.py`
-now validates identical sample-ID sets internally and publishes only aggregate
-paired differences. For black minus blur, the paired primary estimate was
+now validates identical sample-ID sets and shared model/seed/frame/processor
+settings internally, and publishes only aggregate paired differences. For black
+minus blur, the paired primary estimate was
 `+0.24999999 nat` (n=2; bootstrap 95% interval `[+0.24999995,
 +0.25000003]`). This degenerate small-sample interval is a reproducibility
 check, not inferential evidence.
