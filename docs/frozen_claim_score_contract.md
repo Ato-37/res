@@ -60,6 +60,8 @@ scorerは機械的な全target sumとmeanをnatsで返す。呼び出し側が�
 
 full584の同じ内部表現を出力層へ単一行で渡すと、生成token 0のlogitsを完全に再現した。この固定行では出力層の入力行数がraw差を説明する。一方、585/586では出力層より前にも差があり、行数による出力層の差だけでは全体を説明できない。5行のfull投影と単一行再投影の差はraw最大0.03125–0.0625、固定tokenのlog probability差は8.55e−12–8.31e−11 natだった。特定のkernelや量子化を原因と同定した、因果maskが正しい、動画説明が忠実である、とは結論しない。現在の重み本体は[別のCPU照合](../results/qwen_checkpoint_bytes_cpu_20261012_01.json)で公式の固定revisionの5ファイルと一致したが、過去の実行や照合後の変更を継続的に認証するものではない。
 
+BNBの行数依存を切り分けるため、動画やモデルを使わない合成3584×3584線形診断も行った。[結果](../results/bnb_row_count_gpu_diagnostic_20261012_01.json)では、BF16線形、BF16値をFP32へ変換した線形、FP4 BNB、BNB重みをBF16へ戻した線形の4条件すべてで、共通行のM=584/585/586の差は0、同一M=584の反復差も0だった。M=1だけは各条件で差が出て、BNBとその直接dequant化線形もM=1では差があった。これはこの合成入力・実装経路での行数と計算経路の診断であり、Qwenのattention・RoPE・causal maskやCycle13の隠れ状態差の原因を同定するものではない。BNBのPython分岐は記録したが、コンパイル済みCUDA内部kernelの同定はしていない。
+
 ## CaFとの測定対象の違い
 
 [Yeo et al.のCaF論文](https://aclanthology.org/2025.emnlp-main.529.pdf)は、回答と説明について破損した入力span以降の対象token・layerごとの介入効果を作り、その二つの帰属mapを`CaF = 1 − cosine distance`で比較する。出力tokenの効果を平均したmapの一致であり、本資料で検討している「固定したclaimのlog likelihoodが、対応する動画区間への介入に選択的に依存するか」とは測定対象が異なる。論文のNLP/Gemma2での結果を動画の意味対応・説明の真実性の検証とは扱わない。
