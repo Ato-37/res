@@ -50,3 +50,11 @@ The published manifest binds the run to source commit `ff3be6875f4bb7b8f0acd9b57
 ### Independent audit disposition
 
 The independent audit reproduced the result SHA and source-commit binding and confirmed the GPU/device, model revision, settings, and 1/1/0 accounting from the published JSON. A live `git ls-remote` check confirmed that GitHub main points to commit `11ea577950de4ef4bb1fbf3b897f29c89582ec5a`. The run is not SSS: the normalized manifest omits complete argv and some driver/dependency details, and one smoke sample cannot support a faithfulness inference. The audit accepts provenance for this artifact only; the preregistered 79-sample conclusion is unchanged.
+
+### Manifest v2 rerun
+
+After the audit gap was identified, the publisher was updated to record
+`frame_size` and the complete normalized inference argument set. A fresh
+exploratory GPU smoke completed with 1/1 effective sample and 0 failures,
+identical observed selective margin drop +0.2500 nat, and no inferential
+interval. Result SHA-256 is `e75cda21fdf5f5fa0dd2beabdb9d715adfdc2fbf868ff849991e009bd17ec46e`; the manifest binds it to source commit `f2d414ab466004a5a4bd76bdac253f02bf76cef5`, records frame_size 224 and max_pixels 200704, and is published as `db7a430`. This remains exploratory smoke only and does not alter the 79-sample primary conclusion.
