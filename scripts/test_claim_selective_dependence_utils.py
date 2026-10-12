@@ -21,5 +21,16 @@ class Tests(unittest.TestCase):
         row = {"video_id": "v1", "target_sha256": "a" * 64, "full_score": float("nan"), "selected_score": 0.5, "control_score": 0.8}
         with self.assertRaises(ValueError): summarize([row])
 
+    def test_rejects_mixed_target_digest(self):
+        base = {"video_id": "v1", "target_sha256": "a" * 64, "full_score": 1.0, "selected_score": 0.5, "control_score": 0.8}
+        other = dict(base, video_id="v2", target_sha256="b" * 64)
+        with self.assertRaises(ValueError): summarize([base, other])
+
+    def test_rejects_bad_id_and_bool_score(self):
+        row = {"video_id": 1, "target_sha256": "a" * 64, "full_score": 1.0, "selected_score": 0.5, "control_score": 0.8}
+        with self.assertRaises(ValueError): summarize([row])
+        row["video_id"] = "v1"; row["full_score"] = True
+        with self.assertRaises(ValueError): summarize([row])
+
 
 if __name__ == "__main__": unittest.main()
