@@ -18,6 +18,19 @@ def derive(raw_path: Path) -> dict:
         raise ValueError("invalid cap flag")
     all_summary = raw["summary"]["all"]
     primary = raw["summary"]["baseline_correct_primary"]
+    records = raw.get("records", [])
+    grids = sorted({
+        tuple(meta["video_grid_thw"][0])
+        for record in records
+        for meta in record.get("input_metadata", {}).values()
+        if meta.get("video_grid_thw")
+    })
+    input_shapes = sorted({
+        tuple(meta["input_ids_shape"])
+        for record in records
+        for meta in record.get("input_metadata", {}).values()
+        if meta.get("input_ids_shape")
+    })
     return {
         "schema_version": 1,
         "analysis": "necessity_choice_margin_smoke_derived",
@@ -27,6 +40,10 @@ def derive(raw_path: Path) -> dict:
         "n_effective": 3,
         "n_failures": 0,
         "cap_pixels_per_frame": raw.get("cap_pixels_per_frame"),
+        "frame_size": raw.get("frame_size"),
+        "max_pixels": raw.get("max_pixels"),
+        "unique_video_grid_thw": [list(x) for x in grids],
+        "unique_input_ids_shapes": [list(x) for x in input_shapes],
         "mask_fill": raw.get("mask_intervention", {}).get("fill"),
         "all_mean_nat": all_summary["mean"],
         "all_ci95_pointwise_nat": all_summary["ci95_pointwise"],
