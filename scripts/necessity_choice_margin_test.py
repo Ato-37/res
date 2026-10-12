@@ -167,6 +167,7 @@ def main():
               'torch_version': torch.__version__, 'transformers_version': transformers.__version__,
               'device': device, 'gpu_name': torch.cuda.get_device_name(0) if device == 'cuda' else None,
               'seed': args.seed, 'num_frames': args.num_frames,
+              'frame_size': args.frame_size, 'max_pixels': args.max_pixels,
               'cap_pixels_per_frame': args.cap_pixels_per_frame,
               'mask_intervention': {'fill': args.mask_fill,
                                     'blur_radius': args.blur_radius if args.mask_fill == 'blur' else None},
