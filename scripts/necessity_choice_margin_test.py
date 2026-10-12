@@ -92,11 +92,16 @@ def main():
         prompt = (f'{question}\nOptions:\n{options}\n'
                   'Choose the best answer. Respond with one letter only.\nAnswer:')
         inputs = build_inputs(processor, device, paths, prompt)
+        input_meta = {
+            'input_ids_shape': list(inputs['input_ids'].shape),
+            'video_grid_thw': (inputs.get('video_grid_thw').detach().cpu().tolist()
+                               if inputs.get('video_grid_thw') is not None else None),
+        }
         with torch.inference_mode():
             position = inputs['input_ids'].shape[1] - 1
             logits = model(**inputs).logits[0, position].float()
             logprobs = torch.log_softmax(logits, dim=-1)
-            return logprobs[torch.tensor(label_ids, device=logprobs.device)].cpu().tolist()
+            return logprobs[torch.tensor(label_ids, device=logprobs.device)].cpu().tolist(), input_meta
 
     rows, failures = [], []
     for sample_idx, sample in enumerate(samples):
@@ -126,8 +131,10 @@ def main():
                                              args.mask_fill, args.blur_radius),
             }
             choices, gold = sample['choices'], int(sample['answer_choice_index'])
-            scores = {condition: score(frame_paths, sample['question'], choices)
+            scored = {condition: score(frame_paths, sample['question'], choices)
                       for condition, frame_paths in paths.items()}
+            scores = {condition: value[0] for condition, value in scored.items()}
+            input_metadata = {condition: value[1] for condition, value in scored.items()}
             margin = lambda condition: scores[condition][gold] - max(
                 value for option, value in enumerate(scores[condition]) if option != gold)
             full_margin, evidence_margin, control_margin = (
@@ -144,7 +151,7 @@ def main():
                          'gold_choice_index': gold, 'predicted_choice_index': prediction,
                          'choice_logprobs': scores, 'margins': {
                              key: scores[key][gold] - max(v for i, v in enumerate(scores[key]) if i != gold)
-                             for key in scores},
+                             for key in scores}, 'input_metadata': input_metadata,
                          'evidence_margin_drop': evidence_drop,
                          'control_margin_drop': control_drop,
                          'selective_necessity_margin_drop': selective})
