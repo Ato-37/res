@@ -44,6 +44,22 @@ def compare(left_path: Path, right_path: Path) -> dict[str, Any]:
             raise ValueError(f"{name} artifact has unexpected projection counts")
         if report.get("numeric_crosscheck_passed") is not True:
             raise ValueError(f"{name} numeric cross-check did not pass")
+        if report.get("failures") != 0:
+            raise ValueError(f"{name} artifact records failures")
+        before = report.get("checkpoint_shards_before_model_load")
+        after = report.get("checkpoint_shards_after_model_load")
+        if before is not None:
+            if before.get("status") != "verified_immediately_before_model_load":
+                raise ValueError(f"{name} pre-load witness status is invalid")
+            if len(before.get("shards", [])) != 5:
+                raise ValueError(f"{name} pre-load witness shard count is invalid")
+        if after is not None:
+            if after.get("status") != "verified_immediately_after_model_load":
+                raise ValueError(f"{name} post-load witness status is invalid")
+            if len(after.get("shards", [])) != 5:
+                raise ValueError(f"{name} post-load witness shard count is invalid")
+            if before is None or before.get("shards") != after.get("shards"):
+                raise ValueError(f"{name} pre/post-load shard witness differs")
     normalized_equal = _normalized(left) == _normalized(right)
     if not normalized_equal:
         raise ValueError("fixed diagnostic fields differ")
@@ -57,6 +73,8 @@ def compare(left_path: Path, right_path: Path) -> dict[str, Any]:
         "right_source_commit": right.get("source_commit"),
         "left_load_witness": left.get("checkpoint_shards_before_model_load", {}).get("status"),
         "right_load_witness": right.get("checkpoint_shards_before_model_load", {}).get("status"),
+        "left_post_load_witness": left.get("checkpoint_shards_after_model_load", {}).get("status"),
+        "right_post_load_witness": right.get("checkpoint_shards_after_model_load", {}).get("status"),
     }
 
 
