@@ -1,0 +1,59 @@
+{
+  "analysis": "faithfulness_progress_snapshot",
+  "direct_faithfulness": {
+    "artifact": "results/head_faithfulness_confirm_20261009.json",
+    "artifact_sha256": "993acd16e62c1e8cf8aafe075674cc1e649761f2e1ca5bb05be83814a2e6ac36",
+    "ci95_t_nat": [
+      -0.15777469446411121,
+      0.006508873791870762
+    ],
+    "dataset_scope": "NExT-GQA independent confirmation cohort",
+    "estimate_nat": -0.07563291033612023,
+    "intervention": "top-4 gradient\u00d7activation heads attenuated at alpha=0.5",
+    "metric": "mean(target margin drop minus mean matched-control margin drop), one independent video per sample",
+    "model": "Qwen/Qwen2.5-VL-7B-Instruct",
+    "n_effective": 79,
+    "n_failures": 0,
+    "n_requested": 79,
+    "practical_threshold_nat": 0.25,
+    "status": "\u76f4\u63a5\u8a55\u4fa1\u6e08\u307f",
+    "threshold_supported": false
+  },
+  "limitations": [
+    "This snapshot summarizes existing artifacts and is not a new faithfulness experiment.",
+    "It does not generalize beyond the tested model, cohort, intervention, and metrics."
+  ],
+  "next_prespecified_action": "Do not reopen the closed head/layer/alpha search; if research continues, preregister a new intervention, matched control, and independent cohort before any GPU run.",
+  "schema_version": 1,
+  "supporting_diagnostics": {
+    "grounding_mask_black": {
+      "all_mean_nat": 0.2958333408451532,
+      "artifact_sha256": "6471d05bb8187cdceeb67f09b14ab1ee4b315b94fc5a0378fbadc5e744243ba3",
+      "ci95_pointwise_nat": [
+        -0.04583330047122824,
+        0.6145833849460662
+      ],
+      "n_effective": 60
+    },
+    "grounding_mask_blur": {
+      "all_mean_nat": 0.3604166617219259,
+      "artifact_sha256": "4c478f06766e0faf0b2f1c8235000eee8d5211ddcdc4b262cae3e5653ef2d3ba",
+      "ci95_pointwise_nat": [
+        -0.03541667472939783,
+        0.7208333364387121
+      ],
+      "n_effective": 60
+    },
+    "interpretation": "mask sensitivity with imperfect content/control matching; not a direct explanation-faithfulness effect",
+    "status": "\u88dc\u52a9\u8a3a\u65ad\u306e\u307f"
+  },
+  "unresolved_gates": {
+    "new_faithfulness_confirmation": "\u672a\u5b9f\u65bd",
+    "noaa_human_attestation": {
+      "artifact_sha256": "6542dc7d1e13d9f7ae7754d78d3ac9abe74f86ebd1b81956e4df667430386bfa",
+      "items": 6,
+      "reason": "human_attestation_missing",
+      "status": "no_go"
+    }
+  }
+}
