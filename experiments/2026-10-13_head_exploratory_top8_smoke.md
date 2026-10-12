@@ -21,6 +21,12 @@ margin `+0.25 nat`, and no confidence interval (`n=1`). The runner records
 `research_status=exploratory_smoke` and `exploratory=true`; the primary
 threshold flag is false.
 
+A fixed three-sample exploratory repeat was also completed under the same
+settings: `3/3`, failures `0`, mean selective margin `+0.0417 nat`, 95% t CI
+`[-0.4327,+0.5160]`, and primary-threshold flag false. Its published artifact
+is `results/head_exploratory_top8_smoke_20261013_02.json` (SHA256
+`6bc1ae9f2b5804a12b1265b2a0aeb61163c7a6dde2b0446800c242625070b764`).
+
 ## Interpretation and limitations
 
 This single observation only verifies that the top-8 intervention path runs on
