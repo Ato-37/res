@@ -11,7 +11,8 @@ def _load(path: Path) -> tuple[dict, str]:
     return json.loads(path.read_text()), hashlib.sha256(path.read_bytes()).hexdigest()
 
 
-def analyze(head_path: Path, black_path: Path, blur_path: Path, noaa_path: Path) -> dict:
+def analyze(head_path: Path, black_path: Path, blur_path: Path, noaa_path: Path,
+            head_smoke_path: Path | None = None, mask_smoke_path: Path | None = None) -> dict:
     head, head_sha = _load(head_path)
     black, black_sha = _load(black_path)
     blur, blur_sha = _load(blur_path)
@@ -35,7 +36,7 @@ def analyze(head_path: Path, black_path: Path, blur_path: Path, noaa_path: Path)
     if "human_attestation_missing" not in noaa.get("failure_reasons", []):
         raise ValueError("NOAA missing-attestation reason absent")
 
-    return {
+    result = {
         "schema_version": 1,
         "analysis": "faithfulness_progress_snapshot",
         "direct_faithfulness": {
@@ -67,6 +68,20 @@ def analyze(head_path: Path, black_path: Path, blur_path: Path, noaa_path: Path)
         "next_prespecified_action": "Do not reopen the closed head/layer/alpha search; if research continues, preregister a new intervention, matched control, and independent cohort before any GPU run.",
         "limitations": ["This snapshot summarizes existing artifacts and is not a new faithfulness experiment.", "It does not generalize beyond the tested model, cohort, intervention, and metrics."],
     }
+    smokes = {}
+    if head_smoke_path is not None:
+        smoke, sha = _load(head_smoke_path)
+        if (smoke.get("n_requested"), smoke.get("n_effective"), smoke.get("n_failures")) != (3, 3, 0):
+            raise ValueError("head smoke accounting mismatch")
+        smokes["head_intervention"] = {"status": "補助診断のみ", "artifact_sha256": sha, "n_effective": 3, "mean_selective_nat": smoke.get("primary_summary", {}).get("mean"), "interpretation": "engineering reproducibility smoke; not confirmatory"}
+    if mask_smoke_path is not None:
+        smoke, sha = _load(mask_smoke_path)
+        if (smoke.get("n_requested"), smoke.get("n_effective"), smoke.get("n_failures")) != (3, 3, 0):
+            raise ValueError("mask smoke accounting mismatch")
+        smokes["grounding_mask"] = {"status": "補助診断のみ", "artifact_sha256": sha, "n_effective": 3, "all_mean_nat": smoke.get("all_mean_nat"), "interpretation": "engineering smoke; not direct explanation faithfulness"}
+    if smokes:
+        result["engineering_smokes"] = smokes
+    return result
 
 
 def main() -> None:
@@ -75,11 +90,13 @@ def main() -> None:
     p.add_argument("--black", type=Path, required=True)
     p.add_argument("--blur", type=Path, required=True)
     p.add_argument("--noaa", type=Path, required=True)
+    p.add_argument("--head-smoke", type=Path)
+    p.add_argument("--mask-smoke", type=Path)
     p.add_argument("--output", type=Path, required=True)
     a = p.parse_args()
     if a.output.exists():
         raise SystemExit(f"refusing to overwrite {a.output}")
-    out = analyze(a.head, a.black, a.blur, a.noaa)
+    out = analyze(a.head, a.black, a.blur, a.noaa, a.head_smoke, a.mask_smoke)
     a.output.write_text(json.dumps(out, indent=2, sort_keys=True) + "\n")
     a.output.chmod(0o600)
     print(json.dumps({"status": "complete", "output": str(a.output), "direct_status": out["direct_faithfulness"]["status"]}))
