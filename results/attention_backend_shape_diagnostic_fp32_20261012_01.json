@@ -1,0 +1,72 @@
+{
+  "schema_version": 1,
+  "purpose": "synthetic_causal_attention_backend_shape_diagnostic",
+  "seed": 20261012,
+  "lengths": [
+    584,
+    585,
+    586
+  ],
+  "heads": 8,
+  "head_dim": 64,
+  "dtype": "float32",
+  "records": [
+    {
+      "backend": "manual_eager",
+      "left_length": 584,
+      "right_length": 585,
+      "raw_max_abs": 0.0,
+      "raw_mean_abs": 0.0,
+      "finite": true
+    },
+    {
+      "backend": "manual_eager",
+      "left_length": 584,
+      "right_length": 586,
+      "raw_max_abs": 0.0,
+      "raw_mean_abs": 0.0,
+      "finite": true
+    },
+    {
+      "backend": "manual_eager",
+      "left_length": 585,
+      "right_length": 586,
+      "raw_max_abs": 0.0,
+      "raw_mean_abs": 0.0,
+      "finite": true
+    },
+    {
+      "backend": "sdpa",
+      "left_length": 584,
+      "right_length": 585,
+      "raw_max_abs": 0.0,
+      "raw_mean_abs": 0.0,
+      "finite": true
+    },
+    {
+      "backend": "sdpa",
+      "left_length": 584,
+      "right_length": 586,
+      "raw_max_abs": 0.0,
+      "raw_mean_abs": 0.0,
+      "finite": true
+    },
+    {
+      "backend": "sdpa",
+      "left_length": 585,
+      "right_length": 586,
+      "raw_max_abs": 0.0,
+      "raw_mean_abs": 0.0,
+      "finite": true
+    }
+  ],
+  "status": "complete",
+  "failure_count": 0,
+  "elapsed_seconds": 0.912540766003076,
+  "gpu": "NVIDIA GeForce RTX 5070 Ti",
+  "peak_allocated_bytes": 39204864,
+  "limitations": [
+    "Synthetic Q/K/V only; no Qwen weights, video, QA or faithfulness claim.",
+    "Measures this runtime's causal-attention shape sensitivity, not universal model behavior."
+  ]
+}
