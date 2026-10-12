@@ -144,6 +144,12 @@ prompt依存marginの限界は残る。
 
 直近の未解決タスクと優先順位は、最新の`experiments/*.md`ファイルの「次のアクション」セクションを参照すること。
 
+## 2026-10-12時点の数値再現性・実行 provenance
+
+Qwen2.5-VLの系列長診断は、固定した1クリップ・4フレーム・5 forward条件で、通常のCycle13実行、ロード直前shard hash認証実行、ロード前後hash一致実行の3回を比較した。19 logit比較、9 hidden比較、10 output projectionの固定スカラー値は3回で一致した。最後の実行では5 shard（合計16,584,414,560 bytes）をモデルロード直前・直後にhashし、全ファイルのサイズとSHA256が一致した。この診断は数値経路の再現性を示すが、因果マスクの正しさ、QA精度、説明faithfulnessを示すものではない。
+
+head/layer/alpha探索は事前閾値未達のため再開しない。NOAA QA枝は3/3グループ・6/6結合・ラベル漏れ0だが、人間レビュー署名がないため`no_go`を維持する。BNB行数診断も孤立線形演算の実装差を示すだけで、Qwen hidden driftの原因帰属には使わない。
+
 卒論用のblack/blur対応比較図・CSVは
 [`results/necessity_choice_margin_thesis_summary_final_forest.svg`](../results/necessity_choice_margin_thesis_summary_final_forest.svg)
 および同prefixの`_estimates.csv`、`_metadata.json`。`scripts/plot_necessity_choice_results.py`
