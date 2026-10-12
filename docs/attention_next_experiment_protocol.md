@@ -9,10 +9,10 @@ Qwen の eager/SDPA 差が、単一clip・2 target positionsに固有か、独�
 ## 固定条件
 
 - checkpoint revision、5 shardのロード前後SHA256、model dtype (`bfloat16`)、attention implementation (`eager`, `sdpa`)、PyTorch/CUDA/Transformers/bitsandbytes版をmanifestへ記録する。
-- 独立clipを1本追加し、各clipで target position を事前に2点（生成列の token 0 と token 1）選ぶ。結果を見て位置を追加・除外しない。
+- 独立clip候補母集団を実行前に固定したmanifest（sorted clip hash list）として保存し、その先頭の未使用clipを1本追加する。選定したclip ID・media hashを実行manifestへ書き、結果を見てclipを交換しない。各clipで target position を事前に2点（生成列の token 0 と token 1）選ぶ。結果を見て位置を追加・除外しない。
 - 各clip・各位置について、generation、full prefix 584/585/586 の同じ19 logit比較・9 hidden-row比較を実行する。失敗は除外せず、理由と実効数を記録する。
 - eagerを先に実行するかSDPAを先に実行するかを固定し、同一入力hash・target hash・video hashを両条件で一致確認する。
-- 統計的有意性や実用閾値をこの診断結果から新設しない。報告はclip/位置ごとの raw max、selected-token log-probability差、symmetric KL、および符号・失敗数に限定する。
+- 統計的有意性や実用閾値をこの診断結果から新設しない。報告はclip/位置ごとの raw max（絶対値）、`D = generation selected-token log-probability - full-prefix selected-token log-probability`、symmetric KL、およびDの符号・失敗数に限定する。「同じ方向」はこのDの符号が既存clipと一致することを指すが、符号一致を確認的な成功基準にはしない。
 
 ## 事前の停止条件
 
