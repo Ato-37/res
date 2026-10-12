@@ -9,11 +9,17 @@ from compare_qwen_sequence_length_diagnostics import compare
 ROOT = Path(__file__).resolve().parents[1]
 LEFT = ROOT / "results/qwen_sequence_length_numerics_gpu_diagnostic_20261012_01.json"
 RIGHT = ROOT / "results/qwen_sequence_length_numerics_gpu_diagnostic_20261012_02.json"
+RIGHT_AFTER_LOAD = ROOT / "results/qwen_sequence_length_numerics_gpu_diagnostic_20261012_03.json"
 
 
 class CompareTests(unittest.TestCase):
     def test_published_pair_matches(self):
         result = compare(LEFT, RIGHT)
+        self.assertTrue(result["fixed_fields_equal"])
+        self.assertEqual(result["right_load_witness"], "verified_immediately_before_model_load")
+
+    def test_post_load_witness_artifact_matches_fixed_values(self):
+        result = compare(LEFT, RIGHT_AFTER_LOAD)
         self.assertTrue(result["fixed_fields_equal"])
         self.assertEqual(result["right_load_witness"], "verified_immediately_before_model_load")
 

@@ -17,7 +17,7 @@ from typing import Any
 
 IGNORED_KEYS = {
     "source_commit", "source_sha256", "started_utc", "elapsed_seconds",
-    "checkpoint_shards_before_model_load", "checkpoint_byte_audit",
+    "checkpoint_shards_before_model_load", "checkpoint_shards_after_model_load", "checkpoint_byte_audit",
     "checkpoint_provenance_limitations", "gpu_memory", "created_utc",
 }
 
