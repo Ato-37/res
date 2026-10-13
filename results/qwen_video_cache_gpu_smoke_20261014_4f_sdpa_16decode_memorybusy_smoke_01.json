@@ -1,0 +1,409 @@
+{
+  "attention_implementation": "sdpa",
+  "cache": "fresh DynamicCache per condition; rope_deltas cleared before each generation",
+  "candidate_temporal_anchors": [
+    15,
+    414
+  ],
+  "changed_video_temporal_position_entries": 276,
+  "checkpoint_config_sha256": "77d9ec7321cc572e3579e2c84799c9cadaded63c49ce93b101733349fc330c43",
+  "checkpoint_generation_config_sha256": "0a3aea82869fe29f20dc95ccf3e2bcff380eca1f5ad6447a4a4b37110b08e43e",
+  "checkpoint_processor_config_sha256": "f2058c716eef96ccaed1cc1e2d0c08306b62586d535b28d9d08e691b2fab7ca0",
+  "checkpoint_revision": "cc594898137f460bfe9f0759e9844b3ce807cfb5",
+  "completed_model_calls": 51,
+  "compute_dtype": "bfloat16",
+  "conditions": [
+    {
+      "condition": "native_auto",
+      "finite_generation_scores_and_raw_logits": true,
+      "forward_seconds": 2.1769669170007546,
+      "gpu_telemetry_during_generation": {
+        "gpu_util_percent": {
+          "max": 16,
+          "mean": 9.333333333333334,
+          "median": 11
+        },
+        "memory_busy_time_percent": {
+          "max": 9,
+          "mean": 4.666666666666667,
+          "median": 4
+        },
+        "memory_free_mib": {
+          "max": 8531,
+          "mean": 8290.333333333334,
+          "median": 8182
+        },
+        "memory_used_mib": {
+          "max": 7838,
+          "mean": 7705.666666666667,
+          "median": 7814
+        },
+        "power_watts": {
+          "max": 104.37,
+          "mean": 69.22666666666667,
+          "median": 61.08
+        },
+        "sample_count": 3,
+        "sample_errors": 0,
+        "sampling_window_seconds": 2.1643398190008156
+      },
+      "peak_allocated_gib": 6.0549116134643555,
+      "trace": {
+        "cache_lengths_after": [
+          584,
+          585,
+          586,
+          587,
+          588,
+          589,
+          590,
+          591,
+          592,
+          593,
+          594,
+          595,
+          596,
+          597,
+          598,
+          599,
+          600
+        ],
+        "decode_end_coordinate": 70,
+        "decode_start_coordinate": 55,
+        "decode_steps": 16,
+        "input_lengths": [
+          584,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1
+        ],
+        "model_calls": 17,
+        "past_cache_lengths": [
+          0,
+          584,
+          585,
+          586,
+          587,
+          588,
+          589,
+          590,
+          591,
+          592,
+          593,
+          594,
+          595,
+          596,
+          597,
+          598,
+          599
+        ],
+        "positions_verified": true
+      }
+    },
+    {
+      "condition": "explicit_native_noop",
+      "finite_generation_scores_and_raw_logits": true,
+      "forward_seconds": 1.1365282540009503,
+      "gpu_telemetry_during_generation": {
+        "gpu_util_percent": {
+          "max": 20,
+          "mean": 14.0,
+          "median": 14.0
+        },
+        "memory_busy_time_percent": {
+          "max": 11,
+          "mean": 7.0,
+          "median": 7.0
+        },
+        "memory_free_mib": {
+          "max": 8412,
+          "mean": 8290.5,
+          "median": 8290.5
+        },
+        "memory_used_mib": {
+          "max": 7827,
+          "mean": 7705.5,
+          "median": 7705.5
+        },
+        "power_watts": {
+          "max": 122.76,
+          "mean": 105.555,
+          "median": 105.555
+        },
+        "sample_count": 2,
+        "sample_errors": 0,
+        "sampling_window_seconds": 1.117400233000808
+      },
+      "peak_allocated_gib": 6.055700302124023,
+      "trace": {
+        "cache_lengths_after": [
+          584,
+          585,
+          586,
+          587,
+          588,
+          589,
+          590,
+          591,
+          592,
+          593,
+          594,
+          595,
+          596,
+          597,
+          598,
+          599,
+          600
+        ],
+        "decode_end_coordinate": 70,
+        "decode_start_coordinate": 55,
+        "decode_steps": 16,
+        "input_lengths": [
+          584,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1
+        ],
+        "model_calls": 17,
+        "past_cache_lengths": [
+          0,
+          584,
+          585,
+          586,
+          587,
+          588,
+          589,
+          590,
+          591,
+          592,
+          593,
+          594,
+          595,
+          596,
+          597,
+          598,
+          599
+        ],
+        "positions_verified": true
+      }
+    },
+    {
+      "condition": "temporal_candidate",
+      "finite_generation_scores_and_raw_logits": true,
+      "forward_seconds": 1.0102303300009225,
+      "gpu_telemetry_during_generation": {
+        "gpu_util_percent": {
+          "max": 14,
+          "mean": 14.0,
+          "median": 14
+        },
+        "memory_busy_time_percent": {
+          "max": 7,
+          "mean": 7.0,
+          "median": 7
+        },
+        "memory_free_mib": {
+          "max": 8407,
+          "mean": 8407.0,
+          "median": 8407
+        },
+        "memory_used_mib": {
+          "max": 7589,
+          "mean": 7589.0,
+          "median": 7589
+        },
+        "power_watts": {
+          "max": 115.5,
+          "mean": 115.5,
+          "median": 115.5
+        },
+        "sample_count": 1,
+        "sample_errors": 0,
+        "sampling_window_seconds": 0.9916772990000027
+      },
+      "peak_allocated_gib": 6.055700302124023,
+      "trace": {
+        "cache_lengths_after": [
+          584,
+          585,
+          586,
+          587,
+          588,
+          589,
+          590,
+          591,
+          592,
+          593,
+          594,
+          595,
+          596,
+          597,
+          598,
+          599,
+          600
+        ],
+        "decode_end_coordinate": 70,
+        "decode_start_coordinate": 55,
+        "decode_steps": 16,
+        "input_lengths": [
+          584,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1
+        ],
+        "model_calls": 17,
+        "past_cache_lengths": [
+          0,
+          584,
+          585,
+          586,
+          587,
+          588,
+          589,
+          590,
+          591,
+          592,
+          593,
+          594,
+          595,
+          596,
+          597,
+          598,
+          599
+        ],
+        "positions_verified": true
+      }
+    }
+  ],
+  "cuda_forward_timing_enabled": false,
+  "cuda_version": "12.8",
+  "effective_conditions": 3,
+  "effective_frames": 4,
+  "effective_samples": 1,
+  "elapsed_seconds": 12.029244134000692,
+  "failures": 0,
+  "frame_max_dimension": 224,
+  "generation": {
+    "cached_decode_steps": 16,
+    "do_sample": false,
+    "max_new_tokens": 17,
+    "output_logits": true,
+    "output_scores": true
+  },
+  "gpu": "NVIDIA GeForce RTX 5070 Ti",
+  "gpu_free_before_gib": 14.6572265625,
+  "gpu_total_gib": 15.89398193359375,
+  "grid_thw": [
+    2,
+    24,
+    46
+  ],
+  "input_tokens": 584,
+  "kv_cache_payload_estimate": {
+    "bytes_per_element": 2,
+    "estimated_prefill_kv_payload_bytes": 33488896,
+    "estimated_prefill_kv_payload_mib": 31.9375,
+    "head_dim": 128,
+    "key_value_heads": 4,
+    "layers": 28,
+    "scope": "dense BF16 K/V payload estimate; excludes allocator/workspace and implementation overhead",
+    "sequence_length": 584
+  },
+  "last_text_coordinate": 54,
+  "limitations": [
+    "One fixed 4-frame NOAA input; engineering compatibility only.",
+    "Generation and cache wiring do not validate candidate temporal semantics, video understanding, QA, grounding, or faithfulness.",
+    "No answer text, token IDs, raw scores, raw logits, annotations, or human QA labels are exported.",
+    "The candidate is a temporal-row-only prefill edit; uninterrupted generation advances from the last prompt coordinate, not max(candidate position)."
+  ],
+  "max_pixels_per_frame": 200704,
+  "media_sha256": "13ab1d0e12d9c6b9e776890d123f363c12c572d52d1f58464b57a2e98667f126",
+  "native_auto_vs_explicit_native_exact_sequences_scores_logits": true,
+  "native_temporal_anchors": [
+    15,
+    413
+  ],
+  "non_temporal_positions_preserved": true,
+  "peak_allocated_gib": 6.055700302124023,
+  "privacy": "Derived aggregate only; no raw media, generated text, token IDs, logits, QA labels, or local absolute paths.",
+  "purpose": "fixed_noaa_qwen_video_cache_generation_compatibility_smoke",
+  "quantization": "4-bit",
+  "requested_conditions": 3,
+  "requested_frames": 4,
+  "requested_model_calls": 51,
+  "requested_samples": 1,
+  "sample_timestamps_seconds": [
+    0.0,
+    99.99990000000001,
+    199.99980000000002,
+    299.9997
+  ],
+  "sampled_fps": 0.010000010000009999,
+  "schema_version": 1,
+  "second_per_grid_seconds": 199.9998016357422,
+  "seed": 20261012,
+  "source_commit": "89801032260010a8ac7e7ad1c8e77aca9e62ebf2",
+  "source_sha256": {
+    "fractional_precision_guard": "8d895816a97d42e1d07c7cec93ab3d69d049d41ec1ecb729e28189c5e4437370",
+    "frame_extractor": "c8deb59615bbea9de796771d70de484dfc2218a0b1b900db0be33f3d068a0280",
+    "frame_smoke_helper": "a9801b139e4a9a8c590193a3c9fb4b14242463f3728eabf6555652c409464539",
+    "geometry_helper": "a0d455fd43f1ccdd5335676abedc2c85df8096ae962bbedff3b4b952ee3fd118",
+    "installed_generation_utils": "bb558d8676be95457126c82a32600dad206c13e4fb96b4f5d114f1f2483d7f62",
+    "installed_processor": "a65cba8047b8d2a381d3634b42ee441322d4e885f02b6e84e6787bc9ba3649af",
+    "installed_qwen_model": "507cb2c383ead0e0e22b16ec9c8af2eb82703843cd5849112715751d990ff15e",
+    "installed_video_processor": "810143b5e06c17ba9ec43962c991e4946bac8ad227d8299a92db3d990edaf1e1",
+    "installed_vision_utils": "f3710ced8ffe735da57d08cf5236cf9d326ff646ed1bdad2e62593a7801adc33",
+    "runner": "dacc534b12af284f70719a94898ce34a36593d0e600626c7384825899b9be9fe",
+    "video_time_mapping": "01711ac0f20770530239cf98ffb719c7f9e6f416f8c416aaf48da9543b091089"
+  },
+  "started_utc": "2026-10-13T18:33:41.704618+00:00",
+  "status": "ok",
+  "uninterrupted_decode_coordinate": 55,
+  "versions": {
+    "bitsandbytes": "0.50.2",
+    "opencv-python-headless": "5.0.0.93",
+    "qwen-vl-utils": "0.0.14",
+    "torch": "2.11.0+cu128",
+    "transformers": "5.17.0"
+  },
+  "video_tokens": 552
+}
