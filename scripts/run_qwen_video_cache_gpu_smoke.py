@@ -148,6 +148,119 @@ class GenerationCacheTrace:
         self._handles.clear()
 
 
+def _timing_stats(values):
+    import math
+    import statistics
+
+    if not values or any(not math.isfinite(value) or value < 0 for value in values):
+        raise ValueError("timing values must be nonempty, finite, and nonnegative")
+    ordered = sorted(values)
+
+    def percentile(fraction):
+        index = max(0, math.ceil(len(ordered) * fraction) - 1)
+        return ordered[index]
+
+    return {
+        "count": len(values),
+        "mean_ms": statistics.fmean(values),
+        "median_ms": statistics.median(values),
+        "p90_ms_nearest_rank": percentile(0.90),
+        "p95_ms_nearest_rank": percentile(0.95),
+        "max_ms": max(values),
+        "sum_ms": sum(values),
+    }
+
+
+class CudaForwardTimingTrace:
+    """Opt-in same-stream CUDA event and host timing around model.forward."""
+
+    def __init__(self, model, event_factory=None, stream_getter=None, clock=None):
+        self.calls = []
+        self._pending = None
+        self._previous_host_end = None
+        self._event_factory = event_factory
+        self._stream_getter = stream_getter
+        self._clock = clock or time.monotonic
+        self._handles = [
+            model.register_forward_pre_hook(self._pre),
+            model.register_forward_hook(self._post),
+        ]
+
+    def _cuda_api(self):
+        if self._event_factory is None or self._stream_getter is None:
+            import torch
+            if self._event_factory is None:
+                self._event_factory = lambda: torch.cuda.Event(enable_timing=True)
+            if self._stream_getter is None:
+                self._stream_getter = torch.cuda.current_stream
+        return self._event_factory, self._stream_getter
+
+    def _pre(self, _module, _args):
+        if self._pending is not None:
+            raise RuntimeError("nested model.forward timing hook is unsupported")
+        event_factory, stream_getter = self._cuda_api()
+        now = self._clock()
+        start = event_factory()
+        end = event_factory()
+        stream = stream_getter()
+        start.record(stream)
+        self._pending = {
+            "start": start,
+            "end": end,
+            "host_call_ms": None,
+            "inter_call_gap_ms": (
+                None if self._previous_host_end is None
+                else max(0.0, (now - self._previous_host_end) * 1000.0)
+            ),
+            "stream": stream,
+            "host_start": now,
+        }
+
+    def _post(self, _module, _args, _output):
+        if self._pending is None:
+            raise RuntimeError("model.forward timing hook observed unmatched return")
+        call = self._pending
+        call["end"].record(call["stream"])
+        host_end = self._clock()
+        call["host_call_ms"] = max(0.0, (host_end - call["host_start"]) * 1000.0)
+        call["stage"] = "prefill" if not self.calls else "decode"
+        call["decode_index"] = None if not self.calls else len(self.calls) - 1
+        self._previous_host_end = host_end
+        del call["stream"]
+        del call["host_start"]
+        self.calls.append(call)
+        self._pending = None
+
+    def close(self):
+        for handle in self._handles:
+            handle.remove()
+        self._handles.clear()
+
+    def summary(self, expected_decode_steps):
+        import math
+
+        if self._pending is not None or len(self.calls) != expected_decode_steps + 1:
+            raise RuntimeError("model.forward timing call count did not match generation horizon")
+        event_ms = [call["start"].elapsed_time(call["end"]) for call in self.calls]
+        if any(not math.isfinite(value) or value < 0 for value in event_ms):
+            raise RuntimeError("CUDA event returned an invalid forward duration")
+        host_ms = [call["host_call_ms"] for call in self.calls]
+        gaps_ms = [call["inter_call_gap_ms"] for call in self.calls[1:]]
+        return {
+            "method": "CUDA events on current stream around outer model.forward; one sync after generate",
+            "scope": "stream elapsed around multimodal model.forward; not kernel-active time; excludes generation work outside model.forward",
+            "event_count": len(event_ms) * 2,
+            "prefill_cuda_stream_elapsed_ms": event_ms[0],
+            "decode_cuda_stream_elapsed": _timing_stats(event_ms[1:]),
+            "all_forward_cuda_stream_elapsed_ms": sum(event_ms),
+            "prefill_host_call_ms": host_ms[0],
+            "decode_host_call": _timing_stats(host_ms[1:]),
+            "forward_host_call": _timing_stats(host_ms),
+            "inter_call_host_gap": _timing_stats(gaps_ms) if gaps_ms else None,
+            "cuda_sync_per_forward": False,
+        }
+
+
 def validate_generation_trace(trace: GenerationCacheTrace, expected_prefill, expected_seq_len: int,
                               expected_decode_coordinate: int, cached_decode_steps: int = 1):
     """Fail closed unless every cached decode advances positions and KV length."""
@@ -300,7 +413,8 @@ class GpuTelemetrySampler:
 
 def run_gpu_smoke(output: Path, frame_count: int,
                   cached_decode_steps: int = DEFAULT_CACHED_DECODE_STEPS,
-                  attention_implementation: str = "eager"):
+                  attention_implementation: str = "eager",
+                  measure_cuda_forward_time: bool = False):
     import torch
     from transformers import AutoProcessor, BitsAndBytesConfig, Qwen2_5_VLForConditionalGeneration
     from transformers.cache_utils import DynamicCache
@@ -465,6 +579,7 @@ def run_gpu_smoke(output: Path, frame_count: int,
             if cache_length(fresh_cache) != 0:
                 raise RuntimeError("new generation cache was not empty")
             trace = GenerationCacheTrace(model.model.language_model)
+            timing_trace = CudaForwardTimingTrace(model) if measure_cuda_forward_time else None
             RUN_PROGRESS["stage"] = "generate_" + name
             begin = time.monotonic()
             telemetry = GpuTelemetrySampler(interval_seconds=1.0)
@@ -485,7 +600,11 @@ def run_gpu_smoke(output: Path, frame_count: int,
                 try:
                     telemetry_summary = telemetry.stop()
                 finally:
-                    trace.close()
+                    try:
+                        trace.close()
+                    finally:
+                        if timing_trace is not None:
+                            timing_trace.close()
                 RUN_PROGRESS["completed_model_calls"] += len(trace.calls)
             trace_report = validate_generation_trace(
                 trace, expected_prefill, expected_seq_len=seq_len,
@@ -493,6 +612,10 @@ def run_gpu_smoke(output: Path, frame_count: int,
                 cached_decode_steps=cached_decode_steps,
             )
             finite = _generation_outputs_finite(result, expected_new_tokens)
+            cuda_timing_summary = (
+                timing_trace.summary(cached_decode_steps)
+                if timing_trace is not None else None
+            )
             if int(result.sequences.shape[-1]) != seq_len + expected_new_tokens:
                 raise RuntimeError("generation returned an unexpected sequence length")
             peak = torch.cuda.max_memory_allocated() / 1024**3
@@ -505,6 +628,8 @@ def run_gpu_smoke(output: Path, frame_count: int,
                 "peak_allocated_gib": peak,
                 "gpu_telemetry_during_generation": telemetry_summary,
             })
+            if cuda_timing_summary is not None:
+                conditions[-1]["cuda_forward_timing"] = cuda_timing_summary
             RUN_PROGRESS["effective_conditions"] = len(conditions)
             outputs[name] = {
                 "sequences": result.sequences.detach().cpu().clone(),
@@ -561,6 +686,7 @@ def run_gpu_smoke(output: Path, frame_count: int,
             "quantization": "4-bit",
             "compute_dtype": "bfloat16",
             "attention_implementation": attention_implementation,
+            "cuda_forward_timing_enabled": measure_cuda_forward_time,
             "cache": "fresh DynamicCache per condition; rope_deltas cleared before each generation",
             "kv_cache_payload_estimate": kv_cache_payload_estimate(
                 model.config.get_text_config(decoder=True), seq_len, dtype_bytes=2
@@ -633,6 +759,8 @@ def main(argv=None):
                         help="cached one-token decode steps after prefill (1=baseline, 16=smoke, 128=long horizon)")
     parser.add_argument("--attention-implementation", choices=ATTENTION_IMPLEMENTATIONS, default="eager",
                         help="Transformers attention backend (fixed and recorded per run)")
+    parser.add_argument("--measure-cuda-forward-time", action="store_true",
+                        help="opt-in same-stream CUDA event and host-call timing around model.forward")
     args = parser.parse_args(argv)
     repo = Path(__file__).resolve().parents[1]
     try:
@@ -641,7 +769,8 @@ def main(argv=None):
         parser.error(str(exc))
     process_started = time.monotonic()
     try:
-        run_gpu_smoke(output, args.frames, args.cached_decode_steps, args.attention_implementation)
+        run_gpu_smoke(output, args.frames, args.cached_decode_steps,
+                      args.attention_implementation, args.measure_cuda_forward_time)
     except Exception as exc:
         if not output.exists():
             model_path = Path.home() / ".cache/huggingface/hub/models--Qwen--Qwen2.5-VL-7B-Instruct/snapshots" / REVISION
@@ -677,6 +806,7 @@ def main(argv=None):
                 "checkpoint_processor_config_sha256": sha256(model_path / "preprocessor_config.json") if (model_path / "preprocessor_config.json").is_file() else None,
                 "media_sha256_expected": MEDIA_SHA256,
                 "requested_conditions": 3,
+                "cuda_forward_timing_enabled": args.measure_cuda_forward_time,
                 "effective_conditions": RUN_PROGRESS["effective_conditions"],
                 "cached_decode_steps": args.cached_decode_steps,
                 "requested_new_tokens": args.cached_decode_steps + 1,

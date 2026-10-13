@@ -17,6 +17,8 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 import run_qwen_video_cache_gpu_smoke as runner  # noqa: E402
 from run_qwen_video_cache_gpu_smoke import (  # noqa: E402
     GenerationCacheTrace,
+    CudaForwardTimingTrace,
+    _timing_stats,
     _generation_outputs_finite,
     _write_result,
     kv_cache_payload_estimate,
@@ -52,9 +54,72 @@ class _TinyLanguageModel(nn.Module):
         return SimpleNamespace(past_key_values=_FakeCache(current + input_length))
 
 
+class _FakeTimingEvent:
+    def __init__(self, milliseconds):
+        self.milliseconds = milliseconds
+        self.recorded_streams = []
+
+    def record(self, stream):
+        self.recorded_streams.append(stream)
+
+    def elapsed_time(self, _end):
+        return self.milliseconds
+
+
+class _FakeEventFactory:
+    def __init__(self, durations):
+        self.durations = iter(durations)
+        self.created = 0
+
+    def __call__(self):
+        index = self.created
+        self.created += 1
+        duration = next(self.durations) if index % 2 == 0 else 0.0
+        return _FakeTimingEvent(duration)
+
+
 class VideoCacheGpuSmokeCpuTests(unittest.TestCase):
     def test_attention_backends_are_closed_to_measured_choices(self):
         self.assertEqual(runner.ATTENTION_IMPLEMENTATIONS, ("eager", "sdpa"))
+
+    def test_cuda_forward_timing_records_same_stream_calls_and_summarizes_stages(self):
+        lm = _TinyLanguageModel()
+        stream = object()
+        events = _FakeEventFactory([10.0, 2.0, 4.0, 8.0])
+        clock_values = iter([1.00, 1.01, 1.02, 1.03, 1.04, 1.05, 1.06, 1.07])
+        trace = CudaForwardTimingTrace(
+            lm, event_factory=events, stream_getter=lambda: stream,
+            clock=lambda: next(clock_values),
+        )
+        for _ in range(4):
+            lm(input_ids=torch.ones((1, 1)),
+               position_ids=torch.zeros((3, 1, 1)),
+               past_key_values=_FakeCache(0))
+        trace.close()
+        report = trace.summary(expected_decode_steps=3)
+        self.assertEqual(report["event_count"], 8)
+        self.assertEqual(report["prefill_cuda_stream_elapsed_ms"], 10.0)
+        self.assertEqual(report["decode_cuda_stream_elapsed"]["count"], 3)
+        self.assertEqual(report["decode_cuda_stream_elapsed"]["sum_ms"], 14.0)
+        self.assertEqual(report["decode_cuda_stream_elapsed"]["p90_ms_nearest_rank"], 8.0)
+        self.assertAlmostEqual(report["prefill_host_call_ms"], 10.0)
+        self.assertEqual(report["decode_host_call"]["count"], 3)
+        self.assertEqual(report["inter_call_host_gap"]["count"], 3)
+        self.assertFalse(report["cuda_sync_per_forward"])
+        self.assertTrue(all(e.recorded_streams == [stream]
+                            for e in [trace.calls[0]["start"], trace.calls[0]["end"]]))
+
+    def test_cuda_forward_timing_rejects_missing_calls_and_invalid_elapsed_time(self):
+        lm = _TinyLanguageModel()
+        trace = CudaForwardTimingTrace(
+            lm, event_factory=_FakeEventFactory([]), stream_getter=lambda: object(),
+            clock=lambda: 1.0,
+        )
+        trace.close()
+        with self.assertRaisesRegex(RuntimeError, "call count"):
+            trace.summary(expected_decode_steps=1)
+        with self.assertRaisesRegex(ValueError, "finite"):
+            _timing_stats([1.0, float("nan")])
 
     def test_gpu_telemetry_summary_contains_only_sample_statistics(self):
         samples = [

@@ -378,6 +378,115 @@ per-decode-step timing to distinguish host gaps from accelerator work); keep
 the claim-mask protocol validator fail-closed pending resolution of the
 estimand/cohort mismatch and the independent human-review and data-rights gates.
 
+## Per-forward CUDA event timing: implementation and smoke
+
+The runtime repeatability check still could not separate time inside
+`model.generate()` from model-forward work. A CPU support/audit review agreed
+that same-stream CUDA events plus host wall-clock call/gap measurements can
+provide a bounded timing breakdown if there is no per-call synchronization and
+the result clearly avoids calling event time kernel-active time. The runner
+now has an opt-in `--measure-cuda-forward-time` mode. It brackets each outer
+multimodal `model.forward()` with start/end events on the current CUDA stream,
+measures Python call and between-call wall time, and only reads elapsed events
+after the existing single synchronization at the end of generation. The summary
+stores one prefill time, decode mean/median/p90/p95/max, host-call summaries,
+inter-call-gap summaries, and the exact measurement scope. Raw per-call timing
+records, media, text, logits, and IDs are not written. The option is off by
+default so prior benchmark paths remain unchanged.
+
+The first GPU smoke used one fixed four-frame NOAA clip, SDPA, 16 cached decode
+steps, and 3 conditions (51/51 calls, 0 failures). It took 12.03 seconds total,
+with 6.056 GiB peak PyTorch allocation. Its artifact SHA-256 is
+`79513f30d8d3cd46cdd2b0e12cb5d6d2fc5b3b7f64295f768db0afe9a080707f`. All three
+conditions report 17 outer-model timing events pairs and 16 cached-decode
+measurements, finite timing values, and the existing cache/position checks
+passed. The first native condition had 1.070 s prefill stream elapsed, mean
+45.36 ms across 16 decode events, median host call 39.26 ms, and median
+inter-call gap 1.74 ms. The other two conditions had prefill event times near
+300–318 ms, decode event means 43.81–46.54 ms, and median inter-call gaps
+1.62–1.67 ms. These large prefill differences are not interpretable as a
+position effect from this one smoke; warm-up/order/cache behavior are
+alternatives. The first-condition p95 for all host calls was 1,069 ms because
+it includes prefill; the later-condition all-call p95s were 220 and 201 ms.
+Inter-call-gap p95s were 123, 99, and 100 ms. These long tails show pauses in
+the observed sequence but do not identify their cause. After independent review,
+the summary schema was refined to report prefill host time separately from
+decode-only host-call percentiles; this first smoke artifact predates that
+reporting refinement.
+
+Focused CPU suite passed 19 tests, including event pairing, stage counts,
+summary arithmetic, invalid timings, and existing cache/telemetry checks;
+byte-compilation and `git diff --check` passed. The event interval may include
+same-stream waits and omits work outside `model.forward`; it is not kernel-busy
+time or a complete host/GPU decomposition. Next, run one 32-frame/128-decode
+SDPA profile with timing enabled after a new VRAM preflight (387 expected calls,
+about 31 seconds based on repeated SDPA runs, minimum 13 GiB free). This tests
+the timing path at the established long context.
+
+### Verified long-context timing result
+
+The 32-frame SDPA run completed 1/1 clip, 3/3 conditions, 387/387 model calls,
+and zero failures in 34.26 seconds; PyTorch peak allocation was 6.728 GiB.
+Artifact SHA-256 is
+`6b48b6c70aea25e721e4c85929da02308431e78d5c65942be35acf2c0e5afcb1`. Each of
+the 387 outer `model.forward()` calls had two CUDA events, a host-call duration,
+and (except the first) an inter-call gap; all values were finite and all
+existing cache/position/finiteness checks passed. No synchronization occurred
+per forward. CUDA event sums by condition were 6.929, 7.782, and 9.003 seconds;
+condition wall durations were 7.304, 7.909, and 9.202 seconds. Median decode
+event durations were 25.14, 52.49, and 51.46 ms, with nearest-rank p95 values
+66.52, 72.68, and 98.41 ms. Median inter-call gaps were 1.62–1.71 ms and
+p95 gaps 1.92–2.00 ms. Sampled mean GPU utilization was 36.0%, 30.75%, and
+22.11% (9–10 one-second samples per condition); maxima were 85%, 100%, and
+51%. These are three ordered conditions from a single clip and one run, not
+independent repetitions or a sustained profile.
+
+The event sums being close to condition wall time does not mean the GPU was
+busy for those full intervals: events can include same-stream waits and are not
+kernel-active counters. Short median inter-call gaps suggest little Python
+between-call delay in the typical step, but do not explain utilization; rare
+long tails, in-forward CPU work, stream scheduling, kernel occupancy, and
+telemetry sampling remain plausible factors. The candidate condition's
+utilization maximum was lower, but this was not a randomized or replicated
+comparison and cannot establish that the position edit caused it. The result
+adds no faithfulness samples.
+
+### Instrumentation control and schema correction
+
+An independent code/result auditor found that the first smoke's all-host-call
+p95 mixed the prefill call with decode calls, making its p95 pause claim
+misleading. The source was corrected to report `prefill_host_call_ms` and
+decode-only host-call percentiles separately, while keeping the combined
+summary. CPU tests cover the added fields and percentile arithmetic, and the
+revised four-frame/16-decode smoke passed 51/51 calls with 0 failures in
+11.77 seconds (6.056 GiB peak). Its SHA-256 is
+`d72100a5a12b5674ee0445f5532361d8b7e5247392fdf2acce737dc0b7294687`.
+Across conditions, prefill host calls were 974, 184, and 192 ms; decode-only
+host-call medians were 36.07, 29.84, and 42.08 ms, while inter-call-gap p95s
+were 102, 82, and 96 ms. The unusually long first prefill host call illustrates
+why the split matters; it does not by itself identify whether CPU or stream
+waiting caused the time.
+
+One timing-disabled 32-frame/128-decode SDPA run using the same worktree code
+completed 387/387 calls, 3/3 conditions, 0 failures in 35.36 seconds at the
+same 6.728 GiB peak. Its artifact SHA-256 is
+`3044a145098663fd6ab4e266eb48890814c35c4dcb06c00329aa6e6bc58c7eed`. Compared
+with the timing-enabled run (34.26 s), this single on/off pair does not show a
+measurable slowdown from the optional events; the timed run was 1.10 s faster.
+That direction is consistent with run-to-run/condition-order variation already
+seen in the repeated backend benchmarks, so instrumentation overhead remains
+unresolved. Per-condition times also shifted substantially while total runtime
+stayed within about 3.2%. Peak allocation was identical. Both artifacts are
+single-clip engineering runs, not an overhead estimate or faithfulness result.
+
+The first 32-frame timing artifact lacks the new decode-only host-call fields.
+Next rerun that long-context profile once with the refined committed schema
+(387 expected calls, approximately 35 seconds, at least 13 GiB free VRAM),
+then independently audit it. Keep both timing-enabled and disabled paths
+available, and continue to describe events as same-stream elapsed rather than
+GPU busy time. Direct faithfulness evidence remains 79/79 from the prior closed
+head confirmation; this window adds zero direct samples.
+
 ## Planned SDPA long-context runtime comparison
 
 Before running it, the discriminating question is whether Transformers' SDPA
