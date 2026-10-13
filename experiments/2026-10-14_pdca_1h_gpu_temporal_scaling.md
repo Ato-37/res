@@ -113,3 +113,15 @@ checking frame ordering, status, and requested/effective/failure accounting. The
 published summary covers the new 36-, 40-, and 64-frame conditions; the earlier
 32-frame result remains in its original dated artifact because its schema
 predates the normalized temporal fields.
+
+## Sustained GPU utilization check
+
+A bounded 8192x8192 BF16 matmul loop was run in the CUDA-enabled elevated
+`.venv` to distinguish an idle GPU from a CPU/preprocessing-limited video job.
+During the sustained loop, `nvidia-smi` observed 100% GPU utilization, roughly
+1.8 GiB GPU memory, and approximately 280 W board power; after completion it
+returned to low utilization. The benchmark produced no model/data output and is
+an engineering hardware-path check only. Its purpose was to verify that the
+GPU can be fully occupied when the workload is compute-dense; the video smoke's
+low utilization is therefore a workload-shape issue rather than unavailable
+CUDA.
