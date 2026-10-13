@@ -75,8 +75,8 @@ motivation, scope, and model choices. Consult the latest relevant entry under
   This is host hardware capacity, not a guarantee of runtime-available memory.
   Check GPU access, free VRAM, and OS/container/WSL memory limits for each run;
   the current WSL runtime has reported approximately 15 GiB total RAM.
-- User model preference (2026-10-09): spawn new sub-agents with gpt-6-luna and
-  reasoning_effort high, using explicit task context when the platform requires
+- User model preference (2026-10-14): spawn new sub-agents with gpt-6-luna and
+  reasoning_effort medium, using explicit task context when the platform requires
   fork_turns none for model overrides. Changing the primary session model requires
   a client-side model selection; do not claim to have changed it via delegation.
 
