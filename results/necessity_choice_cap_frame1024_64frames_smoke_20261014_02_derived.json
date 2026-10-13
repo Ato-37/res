@@ -16,7 +16,7 @@
   "n_failures": 1,
   "n_requested": 1,
   "num_frames": 64,
-  "peak_cuda_memory_bytes": 26863323648,
+  "peak_cuda_memory_bytes": null,
   "raw_artifact_sha256": "92379ada9e919f2e49bf0dd43096cb05a42aa198753017dfb82a0393547ba179",
   "schema_version": 1,
   "seed": 20261014,

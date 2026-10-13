@@ -78,3 +78,8 @@ local failure JSON with `n_requested=1`, `n_effective=0`, and null summaries.
 Because that pre-sanitization file contains a private video path and raw error,
 only a derived failure artifact with `failure_codes=["cuda_oom"]` is published;
 the raw file remains local.
+
+The allocator counter in an OOM path reported a value above physical VRAM, so
+`peak_cuda_memory_bytes` is intentionally set to null in the published 64-frame
+derived artifact. The reliable observation is the CUDA OOM and failed allocation
+request, not a total peak estimate.
