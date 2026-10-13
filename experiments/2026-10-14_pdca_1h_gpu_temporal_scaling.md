@@ -149,3 +149,8 @@ The published telemetry artifact SHA-256 is
 `01f5e2cfa2e67b843affec622420d55daf2a044823e2e16f79f8ebc590eaf2b7`; a local
 privacy scan found no absolute paths, video paths, questions, or sample IDs in
 it or the temporal summary.
+
+Across the 10 telemetry samples, mean utilization was 90.3%; excluding the
+first warm-up sample it was 100%, with mean sampled power 238.5 W. These are
+summaries of the inspectable telemetry artifact, not claims about the Qwen video
+runner's utilization.
