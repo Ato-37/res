@@ -29,6 +29,18 @@ from necessity_choice_margin_utils import (apply_mask_fill, interaction_ci,
 LABELS = list('ABCDE')
 
 
+def failure_code(exc: Exception) -> str:
+    """Map local exceptions to privacy-safe, stable failure categories."""
+    text = str(exc).lower()
+    if isinstance(exc, torch.cuda.OutOfMemoryError) or 'out of memory' in text:
+        return 'cuda_oom'
+    if isinstance(exc, (FileNotFoundError, OSError)):
+        return 'media_io_error'
+    if isinstance(exc, ValueError):
+        return 'input_validation_error'
+    return 'runtime_error'
+
+
 def provenance(path: Path) -> dict:
     """Record reproducibility hashes without publishing the input contents."""
     digest = hashlib.sha256(path.read_bytes()).hexdigest()
@@ -176,7 +188,7 @@ def main():
                   f'evidence={evidence_margin:+.4f} control={control_margin:+.4f} '
                   f'selective={selective:+.4f}', flush=True)
         except Exception as exc:
-            failures.append({'sample_id': sid, 'video': sample.get('video'), 'error': repr(exc)})
+            failures.append({'sample_index': sample_idx, 'failure_code': failure_code(exc)})
             print(f'WARNING: skipping sample={sid}: {exc}', flush=True)
         finally:
             shutil.rmtree(temp, ignore_errors=True)

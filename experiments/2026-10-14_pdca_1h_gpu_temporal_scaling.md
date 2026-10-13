@@ -58,3 +58,17 @@ an OOM difficult to audit. The runner now writes a privacy-safe result with
 serialization. Existing successful-run behavior is unchanged; CPU syntax and
 necessity utility tests pass. This repair is intended for future bounded memory
 probes and does not reinterpret the 64-frame failure as a measured effect.
+
+## GPU compute-path separation
+
+A bounded BF16 CUDA benchmark (4096x4096 matrix multiplication, 20 iterations)
+ran on the RTX 5070 Ti with torch 2.11.0+cu128 in 0.483 s (41.38 matmuls/s;
+peak allocation 142,737,408 bytes). This confirms the CUDA compute path is
+available and fast in the elevated `.venv`. The low utilization observed during
+64-frame video processing is therefore consistent with video decoding,
+preprocessing, and memory pressure being the bottleneck; the benchmark is an
+engineering diagnostic only and is not faithfulness evidence.
+
+The failure serializer was hardened after audit: future failure records contain
+only `sample_index` and generic codes such as `cuda_oom`, never media paths or
+raw exception text. Three focused CPU tests pass.
