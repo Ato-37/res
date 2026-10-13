@@ -1,0 +1,865 @@
+{
+  "attention_implementation_requested": "sdpa",
+  "batch2_throughput_ratio_vs_batch1": 1.771220459136629,
+  "batch_runs": [
+    {
+      "batch_size": 1,
+      "clips_per_second": 1.4259878319663382,
+      "generation_seconds": 0.7012682559998211,
+      "gpu_telemetry": {
+        "gpu_util_percent": {
+          "max": 93,
+          "mean": 93.0,
+          "median": 93
+        },
+        "memory_busy_time_percent": {
+          "max": 26,
+          "mean": 26.0,
+          "median": 26
+        },
+        "memory_free_mib": {
+          "max": 8406,
+          "mean": 8406.0,
+          "median": 8406
+        },
+        "memory_used_mib": {
+          "max": 7590,
+          "mean": 7590.0,
+          "median": 7590
+        },
+        "power_watts": {
+          "max": 134.78,
+          "mean": 134.78,
+          "median": 134.78
+        },
+        "sample_count": 1,
+        "sample_errors": 0,
+        "sampling_window_seconds": 0.7012445809996279
+      },
+      "measured": true,
+      "model_calls": 17,
+      "peak_allocated_gib": 6.05568790435791,
+      "peak_reserved_gib": 6.265625,
+      "processor_geometry": {
+        "all_attention_positions_valid": true,
+        "batch_size": 1,
+        "grid_thw_per_item": [
+          [
+            2,
+            24,
+            46
+          ]
+        ],
+        "input_tokens_per_item": 584,
+        "patch_rows_per_item": [
+          2208
+        ],
+        "pixel_values_video_shape": [
+          2208,
+          1176
+        ],
+        "seconds_per_grid_count": 1,
+        "video_tokens_per_item": [
+          552
+        ]
+      },
+      "processor_seconds": 0.09039690099962172,
+      "seconds_per_clip": 0.7012682559998211,
+      "trace": {
+        "batch_size_per_call": 1,
+        "cache_batch_size_after": [
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1
+        ],
+        "cache_lengths_after": [
+          584,
+          585,
+          586,
+          587,
+          588,
+          589,
+          590,
+          591,
+          592,
+          593,
+          594,
+          595,
+          596,
+          597,
+          598,
+          599,
+          600
+        ],
+        "model_calls": 17,
+        "positions_verified_per_item": true,
+        "prefill_input_length": 584
+      }
+    },
+    {
+      "batch_size": 2,
+      "clips_per_second": 2.5257388224586634,
+      "generation_seconds": 0.7918475110000145,
+      "gpu_telemetry": {
+        "gpu_util_percent": {
+          "max": 35,
+          "mean": 35.0,
+          "median": 35
+        },
+        "memory_busy_time_percent": {
+          "max": 19,
+          "mean": 19.0,
+          "median": 19
+        },
+        "memory_free_mib": {
+          "max": 8217,
+          "mean": 8217.0,
+          "median": 8217
+        },
+        "memory_used_mib": {
+          "max": 7779,
+          "mean": 7779.0,
+          "median": 7779
+        },
+        "power_watts": {
+          "max": 161.48,
+          "mean": 161.48,
+          "median": 161.48
+        },
+        "sample_count": 1,
+        "sample_errors": 0,
+        "sampling_window_seconds": 0.7918258390000119
+      },
+      "measured": true,
+      "model_calls": 17,
+      "peak_allocated_gib": 6.178407669067383,
+      "peak_reserved_gib": 6.5234375,
+      "processor_geometry": {
+        "all_attention_positions_valid": true,
+        "batch_size": 2,
+        "grid_thw_per_item": [
+          [
+            2,
+            24,
+            46
+          ],
+          [
+            2,
+            24,
+            46
+          ]
+        ],
+        "input_tokens_per_item": 584,
+        "patch_rows_per_item": [
+          2208,
+          2208
+        ],
+        "pixel_values_video_shape": [
+          4416,
+          1176
+        ],
+        "seconds_per_grid_count": 2,
+        "video_tokens_per_item": [
+          552,
+          552
+        ]
+      },
+      "processor_seconds": 0.0405034830000659,
+      "seconds_per_clip": 0.39592375550000725,
+      "trace": {
+        "batch_size_per_call": 2,
+        "cache_batch_size_after": [
+          2,
+          2,
+          2,
+          2,
+          2,
+          2,
+          2,
+          2,
+          2,
+          2,
+          2,
+          2,
+          2,
+          2,
+          2,
+          2,
+          2
+        ],
+        "cache_lengths_after": [
+          584,
+          585,
+          586,
+          587,
+          588,
+          589,
+          590,
+          591,
+          592,
+          593,
+          594,
+          595,
+          596,
+          597,
+          598,
+          599,
+          600
+        ],
+        "model_calls": 17,
+        "positions_verified_per_item": true,
+        "prefill_input_length": 584
+      }
+    }
+  ],
+  "checkpoint_config_sha256": "77d9ec7321cc572e3579e2c84799c9cadaded63c49ce93b101733349fc330c43",
+  "checkpoint_generation_config_sha256": "0a3aea82869fe29f20dc95ccf3e2bcff380eca1f5ad6447a4a4b37110b08e43e",
+  "checkpoint_processor_config_sha256": "f2058c716eef96ccaed1cc1e2d0c08306b62586d535b28d9d08e691b2fab7ca0",
+  "checkpoint_revision": "cc594898137f460bfe9f0759e9844b3ce807cfb5",
+  "completed_model_calls": 38,
+  "compute_dtype": "bfloat16",
+  "cuda_version": "12.8",
+  "effective_batch_sizes": [
+    1,
+    2
+  ],
+  "effective_conditions": 2,
+  "elapsed_seconds": 17.95361685199896,
+  "expected_model_calls": {
+    "measured": 34,
+    "total": 38,
+    "warmup": 4
+  },
+  "failure_codes": [],
+  "failures": 0,
+  "frame_count": 4,
+  "frame_timestamps_seconds": [
+    0.0,
+    99.99990000000001,
+    199.99980000000002,
+    299.9997
+  ],
+  "generation": {
+    "batch_execution_order": [
+      "warmup1",
+      "warmup2",
+      "measure1",
+      "measure2"
+    ],
+    "cached_decode_steps": 16,
+    "do_sample": false,
+    "max_new_tokens": 17,
+    "output_logits": true,
+    "output_scores": true,
+    "outputs_exported": false,
+    "warmup_new_tokens_per_batch": 2
+  },
+  "gpu_free_before_load_gib": 14.6572265625,
+  "gpu_name": "NVIDIA GeForce RTX 5070 Ti",
+  "gpu_total_gib": 15.89398193359375,
+  "limitations": [
+    "One fixed four-frame NOAA clip is duplicated; this does not represent heterogeneous videos.",
+    "Throughput is an engineering observation for this clip, model, backend, and runtime only.",
+    "Requested SDPA is recorded; selected per-layer kernels are not introspected.",
+    "Numerical comparisons do not validate QA, temporal semantics, grounding, or faithfulness."
+  ],
+  "measured_model_calls": 34,
+  "media_sha256": "13ab1d0e12d9c6b9e776890d123f363c12c572d52d1f58464b57a2e98667f126",
+  "numerical_comparison": {
+    "per_generated_step_logits": [
+      {
+        "b1_vs_b2_item0": {
+          "bitwise_equal": false,
+          "maximum_absolute_difference": 0.296875,
+          "mean_absolute_difference": 0.05528061464428902,
+          "top1_equal": true
+        },
+        "b1_vs_b2_item1": {
+          "bitwise_equal": false,
+          "maximum_absolute_difference": 0.296875,
+          "mean_absolute_difference": 0.05528061464428902,
+          "top1_equal": true
+        },
+        "b2_duplicate_items": {
+          "bitwise_equal": true,
+          "maximum_absolute_difference": 0.0,
+          "mean_absolute_difference": 0.0,
+          "top1_equal": true
+        },
+        "context_prefixes_equal": [
+          true,
+          true
+        ],
+        "generated_step": 1
+      },
+      {
+        "b1_vs_b2_item0": {
+          "bitwise_equal": false,
+          "maximum_absolute_difference": 0.25,
+          "mean_absolute_difference": 0.03259718045592308,
+          "top1_equal": true
+        },
+        "b1_vs_b2_item1": {
+          "bitwise_equal": false,
+          "maximum_absolute_difference": 0.25,
+          "mean_absolute_difference": 0.03259718045592308,
+          "top1_equal": true
+        },
+        "b2_duplicate_items": {
+          "bitwise_equal": true,
+          "maximum_absolute_difference": 0.0,
+          "mean_absolute_difference": 0.0,
+          "top1_equal": true
+        },
+        "context_prefixes_equal": [
+          true,
+          true
+        ],
+        "generated_step": 2
+      },
+      {
+        "b1_vs_b2_item0": {
+          "bitwise_equal": false,
+          "maximum_absolute_difference": 0.296875,
+          "mean_absolute_difference": 0.07943340390920639,
+          "top1_equal": true
+        },
+        "b1_vs_b2_item1": {
+          "bitwise_equal": false,
+          "maximum_absolute_difference": 0.296875,
+          "mean_absolute_difference": 0.07943340390920639,
+          "top1_equal": true
+        },
+        "b2_duplicate_items": {
+          "bitwise_equal": true,
+          "maximum_absolute_difference": 0.0,
+          "mean_absolute_difference": 0.0,
+          "top1_equal": true
+        },
+        "context_prefixes_equal": [
+          true,
+          true
+        ],
+        "generated_step": 3
+      },
+      {
+        "b1_vs_b2_item0": {
+          "bitwise_equal": false,
+          "maximum_absolute_difference": 0.3125,
+          "mean_absolute_difference": 0.07261738926172256,
+          "top1_equal": true
+        },
+        "b1_vs_b2_item1": {
+          "bitwise_equal": false,
+          "maximum_absolute_difference": 0.3125,
+          "mean_absolute_difference": 0.07261738926172256,
+          "top1_equal": true
+        },
+        "b2_duplicate_items": {
+          "bitwise_equal": true,
+          "maximum_absolute_difference": 0.0,
+          "mean_absolute_difference": 0.0,
+          "top1_equal": true
+        },
+        "context_prefixes_equal": [
+          true,
+          true
+        ],
+        "generated_step": 4
+      },
+      {
+        "b1_vs_b2_item0": {
+          "bitwise_equal": false,
+          "maximum_absolute_difference": 0.25,
+          "mean_absolute_difference": 0.042794134467840195,
+          "top1_equal": true
+        },
+        "b1_vs_b2_item1": {
+          "bitwise_equal": false,
+          "maximum_absolute_difference": 0.25,
+          "mean_absolute_difference": 0.042794134467840195,
+          "top1_equal": true
+        },
+        "b2_duplicate_items": {
+          "bitwise_equal": true,
+          "maximum_absolute_difference": 0.0,
+          "mean_absolute_difference": 0.0,
+          "top1_equal": true
+        },
+        "context_prefixes_equal": [
+          true,
+          true
+        ],
+        "generated_step": 5
+      },
+      {
+        "b1_vs_b2_item0": {
+          "bitwise_equal": false,
+          "maximum_absolute_difference": 0.25,
+          "mean_absolute_difference": 0.03416988253593445,
+          "top1_equal": true
+        },
+        "b1_vs_b2_item1": {
+          "bitwise_equal": false,
+          "maximum_absolute_difference": 0.25,
+          "mean_absolute_difference": 0.03416988253593445,
+          "top1_equal": true
+        },
+        "b2_duplicate_items": {
+          "bitwise_equal": true,
+          "maximum_absolute_difference": 0.0,
+          "mean_absolute_difference": 0.0,
+          "top1_equal": true
+        },
+        "context_prefixes_equal": [
+          true,
+          true
+        ],
+        "generated_step": 6
+      },
+      {
+        "b1_vs_b2_item0": {
+          "bitwise_equal": false,
+          "maximum_absolute_difference": 0.265625,
+          "mean_absolute_difference": 0.06150774657726288,
+          "top1_equal": true
+        },
+        "b1_vs_b2_item1": {
+          "bitwise_equal": false,
+          "maximum_absolute_difference": 0.265625,
+          "mean_absolute_difference": 0.06150774657726288,
+          "top1_equal": true
+        },
+        "b2_duplicate_items": {
+          "bitwise_equal": true,
+          "maximum_absolute_difference": 0.0,
+          "mean_absolute_difference": 0.0,
+          "top1_equal": true
+        },
+        "context_prefixes_equal": [
+          true,
+          true
+        ],
+        "generated_step": 7
+      },
+      {
+        "b1_vs_b2_item0": {
+          "bitwise_equal": false,
+          "maximum_absolute_difference": 0.25,
+          "mean_absolute_difference": 0.03306096792221069,
+          "top1_equal": true
+        },
+        "b1_vs_b2_item1": {
+          "bitwise_equal": false,
+          "maximum_absolute_difference": 0.25,
+          "mean_absolute_difference": 0.03306096792221069,
+          "top1_equal": true
+        },
+        "b2_duplicate_items": {
+          "bitwise_equal": true,
+          "maximum_absolute_difference": 0.0,
+          "mean_absolute_difference": 0.0,
+          "top1_equal": true
+        },
+        "context_prefixes_equal": [
+          true,
+          true
+        ],
+        "generated_step": 8
+      },
+      {
+        "b1_vs_b2_item0": {
+          "bitwise_equal": false,
+          "maximum_absolute_difference": 0.23223876953125,
+          "mean_absolute_difference": 0.029396194964647293,
+          "top1_equal": true
+        },
+        "b1_vs_b2_item1": {
+          "bitwise_equal": false,
+          "maximum_absolute_difference": 0.23223876953125,
+          "mean_absolute_difference": 0.029396194964647293,
+          "top1_equal": true
+        },
+        "b2_duplicate_items": {
+          "bitwise_equal": true,
+          "maximum_absolute_difference": 0.0,
+          "mean_absolute_difference": 0.0,
+          "top1_equal": true
+        },
+        "context_prefixes_equal": [
+          true,
+          true
+        ],
+        "generated_step": 9
+      },
+      {
+        "b1_vs_b2_item0": {
+          "bitwise_equal": false,
+          "maximum_absolute_difference": 0.1875,
+          "mean_absolute_difference": 0.03212057054042816,
+          "top1_equal": true
+        },
+        "b1_vs_b2_item1": {
+          "bitwise_equal": false,
+          "maximum_absolute_difference": 0.1875,
+          "mean_absolute_difference": 0.03212057054042816,
+          "top1_equal": true
+        },
+        "b2_duplicate_items": {
+          "bitwise_equal": true,
+          "maximum_absolute_difference": 0.0,
+          "mean_absolute_difference": 0.0,
+          "top1_equal": true
+        },
+        "context_prefixes_equal": [
+          true,
+          true
+        ],
+        "generated_step": 10
+      },
+      {
+        "b1_vs_b2_item0": {
+          "bitwise_equal": false,
+          "maximum_absolute_difference": 0.1875,
+          "mean_absolute_difference": 0.03294503688812256,
+          "top1_equal": true
+        },
+        "b1_vs_b2_item1": {
+          "bitwise_equal": false,
+          "maximum_absolute_difference": 0.1875,
+          "mean_absolute_difference": 0.03294503688812256,
+          "top1_equal": true
+        },
+        "b2_duplicate_items": {
+          "bitwise_equal": true,
+          "maximum_absolute_difference": 0.0,
+          "mean_absolute_difference": 0.0,
+          "top1_equal": true
+        },
+        "context_prefixes_equal": [
+          true,
+          true
+        ],
+        "generated_step": 11
+      },
+      {
+        "b1_vs_b2_item0": {
+          "bitwise_equal": false,
+          "maximum_absolute_difference": 0.375,
+          "mean_absolute_difference": 0.13162009418010712,
+          "top1_equal": true
+        },
+        "b1_vs_b2_item1": {
+          "bitwise_equal": false,
+          "maximum_absolute_difference": 0.375,
+          "mean_absolute_difference": 0.13162009418010712,
+          "top1_equal": true
+        },
+        "b2_duplicate_items": {
+          "bitwise_equal": true,
+          "maximum_absolute_difference": 0.0,
+          "mean_absolute_difference": 0.0,
+          "top1_equal": true
+        },
+        "context_prefixes_equal": [
+          true,
+          true
+        ],
+        "generated_step": 12
+      },
+      {
+        "b1_vs_b2_item0": {
+          "bitwise_equal": false,
+          "maximum_absolute_difference": 0.4375,
+          "mean_absolute_difference": 0.04560595005750656,
+          "top1_equal": true
+        },
+        "b1_vs_b2_item1": {
+          "bitwise_equal": false,
+          "maximum_absolute_difference": 0.4375,
+          "mean_absolute_difference": 0.04560595005750656,
+          "top1_equal": true
+        },
+        "b2_duplicate_items": {
+          "bitwise_equal": true,
+          "maximum_absolute_difference": 0.0,
+          "mean_absolute_difference": 0.0,
+          "top1_equal": true
+        },
+        "context_prefixes_equal": [
+          true,
+          true
+        ],
+        "generated_step": 13
+      },
+      {
+        "b1_vs_b2_item0": {
+          "bitwise_equal": false,
+          "maximum_absolute_difference": 0.4375,
+          "mean_absolute_difference": 0.15048842132091522,
+          "top1_equal": true
+        },
+        "b1_vs_b2_item1": {
+          "bitwise_equal": false,
+          "maximum_absolute_difference": 0.4375,
+          "mean_absolute_difference": 0.15048842132091522,
+          "top1_equal": true
+        },
+        "b2_duplicate_items": {
+          "bitwise_equal": true,
+          "maximum_absolute_difference": 0.0,
+          "mean_absolute_difference": 0.0,
+          "top1_equal": true
+        },
+        "context_prefixes_equal": [
+          true,
+          true
+        ],
+        "generated_step": 14
+      },
+      {
+        "b1_vs_b2_item0": {
+          "bitwise_equal": false,
+          "maximum_absolute_difference": 0.28125,
+          "mean_absolute_difference": 0.034790970385074615,
+          "top1_equal": true
+        },
+        "b1_vs_b2_item1": {
+          "bitwise_equal": false,
+          "maximum_absolute_difference": 0.28125,
+          "mean_absolute_difference": 0.034790970385074615,
+          "top1_equal": true
+        },
+        "b2_duplicate_items": {
+          "bitwise_equal": true,
+          "maximum_absolute_difference": 0.0,
+          "mean_absolute_difference": 0.0,
+          "top1_equal": true
+        },
+        "context_prefixes_equal": [
+          true,
+          true
+        ],
+        "generated_step": 15
+      },
+      {
+        "b1_vs_b2_item0": {
+          "bitwise_equal": false,
+          "maximum_absolute_difference": 0.25,
+          "mean_absolute_difference": 0.03768948093056679,
+          "top1_equal": true
+        },
+        "b1_vs_b2_item1": {
+          "bitwise_equal": false,
+          "maximum_absolute_difference": 0.25,
+          "mean_absolute_difference": 0.03768948093056679,
+          "top1_equal": true
+        },
+        "b2_duplicate_items": {
+          "bitwise_equal": true,
+          "maximum_absolute_difference": 0.0,
+          "mean_absolute_difference": 0.0,
+          "top1_equal": true
+        },
+        "context_prefixes_equal": [
+          true,
+          true
+        ],
+        "generated_step": 16
+      },
+      {
+        "b1_vs_b2_item0": {
+          "bitwise_equal": false,
+          "maximum_absolute_difference": 0.28125,
+          "mean_absolute_difference": 0.03701385483145714,
+          "top1_equal": true
+        },
+        "b1_vs_b2_item1": {
+          "bitwise_equal": false,
+          "maximum_absolute_difference": 0.28125,
+          "mean_absolute_difference": 0.03701385483145714,
+          "top1_equal": true
+        },
+        "b2_duplicate_items": {
+          "bitwise_equal": true,
+          "maximum_absolute_difference": 0.0,
+          "mean_absolute_difference": 0.0,
+          "top1_equal": true
+        },
+        "context_prefixes_equal": [
+          true,
+          true
+        ],
+        "generated_step": 17
+      }
+    ],
+    "sequence_equality": {
+      "b1_sequence_equals_b2_item0": true,
+      "b1_sequence_equals_b2_item1": true,
+      "b2_duplicate_sequences_equal": true
+    }
+  },
+  "output_equivalence_gate": {
+    "compared_context_prefixes_equal": true,
+    "greedy_sequences_equal": true,
+    "logit_bitwise_equality_required": false,
+    "numeric_logit_deltas_reported_descriptively": true,
+    "passed": true,
+    "per_step_top1_equal": true
+  },
+  "privacy": "Aggregate only; no media, text, tokens, raw logits, QA labels, or local paths exported.",
+  "processor_batch_comparison": {
+    "batch1": {
+      "all_attention_positions_valid": true,
+      "batch_size": 1,
+      "grid_thw_per_item": [
+        [
+          2,
+          24,
+          46
+        ]
+      ],
+      "input_tokens_per_item": 584,
+      "patch_rows_per_item": [
+        2208
+      ],
+      "pixel_values_video_shape": [
+        2208,
+        1176
+      ],
+      "seconds_per_grid_count": 1,
+      "video_tokens_per_item": [
+        552
+      ]
+    },
+    "batch2": {
+      "all_attention_positions_valid": true,
+      "batch_size": 2,
+      "grid_thw_per_item": [
+        [
+          2,
+          24,
+          46
+        ],
+        [
+          2,
+          24,
+          46
+        ]
+      ],
+      "input_tokens_per_item": 584,
+      "patch_rows_per_item": [
+        2208,
+        2208
+      ],
+      "pixel_values_video_shape": [
+        4416,
+        1176
+      ],
+      "seconds_per_grid_count": 2,
+      "video_tokens_per_item": [
+        552,
+        552
+      ]
+    },
+    "duplicate_items_match": true
+  },
+  "purpose": "fixed_noaa_qwen_batch1_vs_batch2_processor_throughput_smoke",
+  "quantization": "4-bit",
+  "requested_batch_sizes": [
+    1,
+    2
+  ],
+  "requested_conditions": 2,
+  "sampled_fps": 0.010000010000009999,
+  "schema_version": 1,
+  "seed": 20261014,
+  "source_commit": "68feac51d262689adc0839b1e16079bb72bb28c9",
+  "source_sha256": {
+    "cache_runner_helpers": "dacc534b12af284f70719a94898ce34a36593d0e600626c7384825899b9be9fe",
+    "frame_extractor": "c8deb59615bbea9de796771d70de484dfc2218a0b1b900db0be33f3d068a0280",
+    "frame_smoke_helper": "a9801b139e4a9a8c590193a3c9fb4b14242463f3728eabf6555652c409464539",
+    "installed_generation_utils": "bb558d8676be95457126c82a32600dad206c13e4fb96b4f5d114f1f2483d7f62",
+    "installed_processor": "a65cba8047b8d2a381d3634b42ee441322d4e885f02b6e84e6787bc9ba3649af",
+    "installed_qwen_model": "507cb2c383ead0e0e22b16ec9c8af2eb82703843cd5849112715751d990ff15e",
+    "installed_video_processor": "810143b5e06c17ba9ec43962c991e4946bac8ad227d8299a92db3d990edaf1e1",
+    "installed_vision_utils": "f3710ced8ffe735da57d08cf5236cf9d326ff646ed1bdad2e62593a7801adc33",
+    "runner": "54ed41d03d07903b696affbeff4c34a2401ec0a92df89759ac37608945b75ab6"
+  },
+  "started_utc": "2026-10-13T18:59:33.119801+00:00",
+  "status": "ok",
+  "versions": {
+    "bitsandbytes": "0.50.2",
+    "opencv-python-headless": "5.0.0.93",
+    "qwen-vl-utils": "0.0.14",
+    "torch": "2.11.0+cu128",
+    "transformers": "5.17.0"
+  },
+  "warmup_model_calls": 4,
+  "warmup_runs": [
+    {
+      "batch_size": 1,
+      "clips_per_second": 0.4606692797421739,
+      "generation_seconds": 2.170754691000184,
+      "gpu_telemetry": null,
+      "measured": false,
+      "model_calls": 2,
+      "peak_allocated_gib": 6.054854869842529,
+      "peak_reserved_gib": 6.25390625,
+      "seconds_per_clip": 2.170754691000184,
+      "trace": {
+        "batch_size_per_call": 1,
+        "cache_batch_size_after": [
+          1,
+          1
+        ],
+        "cache_lengths_after": [
+          584,
+          585
+        ],
+        "model_calls": 2,
+        "positions_verified_per_item": true,
+        "prefill_input_length": 584
+      }
+    },
+    {
+      "batch_size": 2,
+      "clips_per_second": 4.3614942323957715,
+      "generation_seconds": 0.4585584420001396,
+      "gpu_telemetry": null,
+      "measured": false,
+      "model_calls": 2,
+      "peak_allocated_gib": 6.1784210205078125,
+      "peak_reserved_gib": 6.5234375,
+      "seconds_per_clip": 0.2292792210000698,
+      "trace": {
+        "batch_size_per_call": 2,
+        "cache_batch_size_after": [
+          2,
+          2
+        ],
+        "cache_lengths_after": [
+          584,
+          585
+        ],
+        "model_calls": 2,
+        "positions_verified_per_item": true,
+        "prefill_input_length": 584
+      }
+    }
+  ]
+}

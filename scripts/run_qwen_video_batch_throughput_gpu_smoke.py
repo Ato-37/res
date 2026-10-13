@@ -1,13 +1,15 @@
-"""Bounded Qwen2.5-VL processor/generation smoke for batch sizes one and two.
+"""Bounded Qwen2.5-VL processor/generation comparison for batch sizes one and two.
 
 The two-item batch contains two independently processor-encoded copies of one
 fixed, cleared NOAA clip. This is a batch-path and throughput engineering
 diagnostic, not a representative heterogeneous-video benchmark or a QA/
-faithfulness evaluation. It is intentionally fixed to four frames and SDPA.
+faithfulness evaluation. The default uses four frames and 16 cached decode
+steps; the higher-load profile supports 32 frames and up to 128 decode steps.
 
 Usage::
 
     PYTHONPATH=scripts .venv/bin/python scripts/run_qwen_video_batch_throughput_gpu_smoke.py \
+      --frames 32 --cached-decode-steps 128 \
       --output results/qwen_video_batch_throughput_gpu_smoke_YYYYMMDD_NN.json
 """
 
@@ -28,20 +30,14 @@ import sys
 import time
 
 from run_dataset_video_gpu_smoke import sha256
-from run_qwen_video_cache_gpu_smoke import GpuTelemetrySampler
+from run_qwen_video_cache_gpu_smoke import GpuTelemetrySampler, PROFILES
 
 
 REVISION = "cc594898137f460bfe9f0759e9844b3ce807cfb5"
 MEDIA_SHA256 = "13ab1d0e12d9c6b9e776890d123f363c12c572d52d1f58464b57a2e98667f126"
 SEED = 20261014
 FRAME_COUNT = 4
-FRAME_PROFILE = {
-    "grid_thw": (2, 24, 46),
-    "input_tokens": 584,
-    "frame_size": 224,
-    "max_pixels": 256 * 28 * 28,
-    "min_free_vram_bytes": 12 * 1024**3,
-}
+FRAME_PROFILE = PROFILES[FRAME_COUNT]
 MERGE_SIZE = 2
 MAX_NEW_TOKENS = 17
 DECODE_STEPS = 16
@@ -76,7 +72,8 @@ def _grid_rows(batch, batch_size: int):
 
 
 def validate_processor_batch(batch, batch_size: int, video_token_id: int,
-                             expected_grid=FRAME_PROFILE["grid_thw"]):
+                             expected_grid=FRAME_PROFILE["grid"],
+                             expected_input_tokens=FRAME_PROFILE["input_tokens"]):
     """Fail closed on per-item token/grid/patch correspondence for Qwen video batches."""
     import torch
 
@@ -85,7 +82,7 @@ def validate_processor_batch(batch, batch_size: int, video_token_id: int,
     token_types = batch.get("mm_token_type_ids")
     pixels = batch.get("pixel_values_videos")
     seconds = batch.get("second_per_grid_ts")
-    if input_ids is None or tuple(input_ids.shape) != (batch_size, FRAME_PROFILE["input_tokens"]):
+    if input_ids is None or tuple(input_ids.shape) != (batch_size, expected_input_tokens):
         raise ValueError("processor input_ids shape differs from the fixed per-item profile")
     if attention is None or tuple(attention.shape) != tuple(input_ids.shape):
         raise ValueError("processor attention_mask shape differs from input_ids")
@@ -95,7 +92,7 @@ def validate_processor_batch(batch, batch_size: int, video_token_id: int,
         raise ValueError("fixed duplicate inputs unexpectedly contain padding")
     grids = _grid_rows(batch, batch_size)
     if any(grid != tuple(expected_grid) for grid in grids):
-        raise ValueError("processor video grid differs from the fixed four-frame profile")
+        raise ValueError("processor video grid differs from the selected frame profile")
     if seconds is None or tuple(seconds.shape) != (batch_size,):
         raise ValueError("processor second_per_grid_ts must have one value per video")
     if not bool(torch.isfinite(seconds).all()) or bool((seconds <= 0).any()):
@@ -136,12 +133,14 @@ def validate_processor_batch(batch, batch_size: int, video_token_id: int,
     }
 
 
-def validate_duplicate_processor_batches(batch1, batch2, video_token_id: int):
+def validate_duplicate_processor_batches(batch1, batch2, video_token_id: int,
+                                         expected_grid=FRAME_PROFILE["grid"],
+                                         expected_input_tokens=FRAME_PROFILE["input_tokens"]):
     """Check actual B=2 processor output matches two separately encoded B=1 items."""
     import torch
 
-    report1 = validate_processor_batch(batch1, 1, video_token_id)
-    report2 = validate_processor_batch(batch2, 2, video_token_id)
+    report1 = validate_processor_batch(batch1, 1, video_token_id, expected_grid, expected_input_tokens)
+    report2 = validate_processor_batch(batch2, 2, video_token_id, expected_grid, expected_input_tokens)
     for key in ("input_ids", "attention_mask", "mm_token_type_ids"):
         if not torch.equal(batch1[key][0].cpu(), batch2[key][0].cpu()) or not torch.equal(
                 batch1[key][0].cpu(), batch2[key][1].cpu()):
@@ -288,8 +287,8 @@ def compare_generation_outputs(reference, candidate, batch_size: int):
 
     if len(reference.logits) != len(candidate.logits):
         raise ValueError("B=1 and B=2 generation horizons differ")
-    if len(reference.logits) != MAX_NEW_TOKENS:
-        raise ValueError("generation comparison did not contain the fixed 17-token horizon")
+    if len(reference.logits) < 2:
+        raise ValueError("generation comparison requires at least two generated tokens")
 
     def compare_tensor(left, right):
         left = left.detach().float().cpu()
@@ -439,7 +438,7 @@ def _run_generation(model, batch, batch_size: int, native_positions, decode_coor
         for key, value in batch.items()
     }
     sequence_length = int(device_batch["input_ids"].shape[1])
-    decode_steps = max_new_tokens - 1
+    actual_decode_steps = max_new_tokens - 1
     cache = DynamicCache(config=model.config)
     trace = BatchGenerationTrace(model.model.language_model, batch_size)
     telemetry = GpuTelemetrySampler(interval_seconds=1.0) if collect_telemetry else None
@@ -469,7 +468,7 @@ def _run_generation(model, batch, batch_size: int, native_positions, decode_coor
             RUN["warmup_model_calls"] += len(trace.calls)
     duration = time.monotonic() - started
     trace_record = validate_batch_trace(
-        trace, native_positions, decode_coords, sequence_length, decode_steps
+        trace, native_positions, decode_coords, sequence_length, actual_decode_steps
     )
     _finite_generation(output, batch_size, max_new_tokens)
     if int(output.sequences.shape[-1]) != sequence_length + max_new_tokens:
@@ -492,12 +491,14 @@ def _run_generation(model, batch, batch_size: int, native_positions, decode_coor
     return record, output
 
 
-def run():
+def run(frame_count: int = FRAME_COUNT, decode_steps: int = DECODE_STEPS):
     repo = Path(__file__).resolve().parents[1]
     media_path = repo / "datasets/noaa_qa_pilot_20261011/media/source.mp4"
     model_path = (Path.home() / ".cache/huggingface/hub/models--Qwen--Qwen2.5-VL-7B-Instruct/snapshots"
                   / REVISION)
     results = []
+    profile = PROFILES[frame_count]
+    max_new_tokens = decode_steps + 1
     prepared1_cpu = None
     started_utc = datetime.now(timezone.utc).isoformat()
     run_started = time.monotonic()
@@ -529,13 +530,13 @@ def run():
         if not torch.cuda.is_available() or not torch.cuda.is_bf16_supported():
             raise RuntimeError("CUDA with BF16 support is required")
         free_bytes, total_bytes = torch.cuda.mem_get_info()
-        if free_bytes < FRAME_PROFILE["min_free_vram_bytes"]:
-            raise RuntimeError("insufficient free VRAM for fixed four-frame batch smoke")
+        if free_bytes < profile["min_free_vram_bytes"]:
+            raise RuntimeError("insufficient free VRAM for requested batch workload")
         random.seed(SEED)
         torch.manual_seed(SEED)
         torch.cuda.manual_seed_all(SEED)
         frame_paths, temp_dir, timestamps, fps = extract_frames(
-            str(media_path), FRAME_COUNT, FRAME_PROFILE["frame_size"]
+            str(media_path), frame_count, profile["frame_size"]
         )
         model = None
         try:
@@ -549,13 +550,13 @@ def run():
             ).eval()
             processor = AutoProcessor.from_pretrained(
                 str(model_path), local_files_only=True,
-                min_pixels=256 * 28 * 28, max_pixels=FRAME_PROFILE["max_pixels"],
+                min_pixels=256 * 28 * 28, max_pixels=profile["max_pixels"],
             )
             RUN["source_sha256"] = _source_hashes(repo, processor)
             RUN["checkpoint_config_sha256"] = sha256(model_path / "config.json")
             RUN["checkpoint_generation_config_sha256"] = sha256(model_path / "generation_config.json")
             RUN["checkpoint_processor_config_sha256"] = sha256(model_path / "preprocessor_config.json")
-            if len(timestamps) != FRAME_COUNT:
+            if len(timestamps) != frame_count:
                 raise RuntimeError("fixed clip extractor returned an unexpected frame count")
             # Encode B=1 via the actual processor API.
             RUN["stage"] = "prepare_batch_1"
@@ -565,7 +566,8 @@ def run():
             prepared1_cpu = _prepare_processor_batch(processor, conversations1, frame_paths, fps)
             prep1_seconds = time.monotonic() - prep1_start
             report1 = validate_processor_batch(
-                prepared1_cpu, 1, int(model.config.video_token_id)
+                prepared1_cpu, 1, int(model.config.video_token_id),
+                profile["grid"], profile["input_tokens"],
             )
             grid1 = _grid_rows(prepared1_cpu, 1)
             native1, _ = model.model.get_rope_index(
@@ -598,7 +600,8 @@ def run():
             prepared2_cpu = _prepare_processor_batch(processor, conversations2, frame_paths, fps)
             prep2_seconds = time.monotonic() - prep2_start
             duplicate_report = validate_duplicate_processor_batches(
-                prepared1_cpu, prepared2_cpu, int(model.config.video_token_id)
+                prepared1_cpu, prepared2_cpu, int(model.config.video_token_id),
+                profile["grid"], profile["input_tokens"],
             )
             RUN["processor_comparison"] = duplicate_report
             if _grid_rows(prepared2_cpu, 2) != (grid1[0], grid1[0]):
@@ -632,7 +635,10 @@ def run():
             if model.model.rope_deltas is not None:
                 raise RuntimeError("rope_deltas was not cleared before measured batch-one generation")
             RUN["stage"] = "generate_batch_1"
-            run1, output1 = _run_generation(model, prepared1_cpu, 1, native1, coords1)
+            run1, output1 = _run_generation(
+                model, prepared1_cpu, 1, native1, coords1,
+                max_new_tokens=max_new_tokens,
+            )
             run1["processor_seconds"] = prep1_seconds
             run1["processor_geometry"] = report1
             RUN["batch_runs"].append(run1)
@@ -647,12 +653,15 @@ def run():
             if model.model.rope_deltas is not None:
                 raise RuntimeError("rope_deltas was not cleared before measured batch-two generation")
             RUN["stage"] = "generate_batch_2"
-            run2, output2 = _run_generation(model, prepared2_cpu, 2, native2, coords2)
+            run2, output2 = _run_generation(
+                model, prepared2_cpu, 2, native2, coords2,
+                max_new_tokens=max_new_tokens,
+            )
             run2["processor_seconds"] = prep2_seconds
             run2["processor_geometry"] = duplicate_report["batch2"]
             RUN["batch_runs"].append(run2)
             RUN["effective_batch_sizes"].append(2)
-            if (RUN["measured_model_calls"] != 2 * (1 + DECODE_STEPS)
+            if (RUN["measured_model_calls"] != 2 * (1 + decode_steps)
                     or RUN["warmup_model_calls"] != 2 * (1 + 1)
                     or RUN["completed_model_calls"] != RUN["measured_model_calls"] + RUN["warmup_model_calls"]):
                 raise RuntimeError("measured/warmup model call accounting is inconsistent")
@@ -676,14 +685,14 @@ def run():
                 "checkpoint_processor_config_sha256": RUN["checkpoint_processor_config_sha256"],
                 "media_sha256": MEDIA_SHA256,
                 "seed": SEED,
-                "frame_count": FRAME_COUNT,
+                "frame_count": frame_count,
                 "frame_timestamps_seconds": [float(value) for value in timestamps],
                 "sampled_fps": float(fps),
                 "attention_implementation_requested": "sdpa",
                 "quantization": "4-bit",
                 "compute_dtype": "bfloat16",
-                "generation": {"do_sample": False, "max_new_tokens": MAX_NEW_TOKENS,
-                               "cached_decode_steps": DECODE_STEPS,
+                "generation": {"do_sample": False, "max_new_tokens": max_new_tokens,
+                               "cached_decode_steps": decode_steps,
                                "output_scores": True, "output_logits": True,
                                "outputs_exported": False,
                                "batch_execution_order": ["warmup1", "warmup2", "measure1", "measure2"],
@@ -696,9 +705,9 @@ def run():
                 "measured_model_calls": RUN["measured_model_calls"],
                 "warmup_model_calls": RUN["warmup_model_calls"],
                 "expected_model_calls": {
-                    "measured": 2 * (1 + DECODE_STEPS),
+                    "measured": 2 * (1 + decode_steps),
                     "warmup": 2 * (1 + 1),
-                    "total": 2 * (1 + DECODE_STEPS) + 2 * (1 + 1),
+                    "total": 2 * (1 + decode_steps) + 2 * (1 + 1),
                 },
                 "warmup_runs": RUN["warmup_runs"],
                 "processor_batch_comparison": duplicate_report,
@@ -715,7 +724,7 @@ def run():
                 "versions": version_record,
                 "cuda_version": torch.version.cuda,
                 "limitations": [
-                    "One fixed four-frame NOAA clip is duplicated; this does not represent heterogeneous videos.",
+                    f"One fixed {frame_count}-frame NOAA clip is duplicated; this does not represent heterogeneous videos.",
                     "Throughput is an engineering observation for this clip, model, backend, and runtime only.",
                     "Requested SDPA is recorded; selected per-layer kernels are not introspected.",
                     "Numerical comparisons do not validate QA, temporal semantics, grounding, or faithfulness.",
@@ -761,17 +770,17 @@ def run():
             "effective_batch_sizes": list(RUN["effective_batch_sizes"]),
             "effective_conditions": len(RUN["effective_batch_sizes"]),
             "attention_implementation_requested": "sdpa",
-            "frame_count": FRAME_COUNT,
+            "frame_count": frame_count,
             "seed": SEED,
-            "generation": {"do_sample": False, "max_new_tokens": MAX_NEW_TOKENS,
-                           "cached_decode_steps": DECODE_STEPS, "outputs_exported": False},
+            "generation": {"do_sample": False, "max_new_tokens": max_new_tokens,
+                           "cached_decode_steps": decode_steps, "outputs_exported": False},
             "completed_model_calls": int(RUN["completed_model_calls"]),
             "measured_model_calls": int(RUN["measured_model_calls"]),
             "warmup_model_calls": int(RUN["warmup_model_calls"]),
             "expected_model_calls": {
-                "measured": 2 * (1 + DECODE_STEPS),
+                "measured": 2 * (1 + decode_steps),
                 "warmup": 2 * (1 + 1),
-                "total": 2 * (1 + DECODE_STEPS) + 2 * (1 + 1),
+                "total": 2 * (1 + decode_steps) + 2 * (1 + 1),
             },
             "failures": 1,
             "failure_codes": [code],
@@ -787,10 +796,14 @@ def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--output", required=True,
                         help="exclusive new direct-child result path under results/")
+    parser.add_argument("--frames", type=int, choices=(4, 32), default=4,
+                        help="fixed NOAA frame profile; 32 frames requires at least 13 GiB free VRAM")
+    parser.add_argument("--cached-decode-steps", type=int, choices=(16, 128), default=16,
+                        help="cached decode horizon per batch after one prefill")
     args = parser.parse_args(argv)
     repo = Path(__file__).resolve().parents[1]
     output = resolve_output_path(repo, args.output)
-    record = run()
+    record = run(frame_count=args.frames, decode_steps=args.cached_decode_steps)
     _write_result(output, record)
     print(json.dumps({
         "status": record["status"], "output": str(output.relative_to(repo)),

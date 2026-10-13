@@ -20,19 +20,22 @@ PATCHES = GRID[0] * GRID[1] * GRID[2]
 VIDEO_TOKENS = GRID[0] * (GRID[1] // 2) * (GRID[2] // 2)
 
 
-def processor_batch(batch_size):
-    seq = runner.FRAME_PROFILE["input_tokens"]
+def processor_batch(batch_size, profile=runner.FRAME_PROFILE):
+    seq = profile["input_tokens"]
+    grid = profile["grid"]
+    patches = grid[0] * grid[1] * grid[2]
+    video_tokens = grid[0] * (grid[1] // 2) * (grid[2] // 2)
     ids = torch.ones((batch_size, seq), dtype=torch.long)
-    ids[:, 10:10 + VIDEO_TOKENS] = VIDEO_ID
+    ids[:, 10:10 + video_tokens] = VIDEO_ID
     types = torch.zeros_like(ids)
-    types[:, 10:10 + VIDEO_TOKENS] = 2
-    pixels = torch.arange(PATCHES * 4, dtype=torch.float32).reshape(PATCHES, 4)
+    types[:, 10:10 + video_tokens] = 2
+    pixels = torch.arange(patches * 4, dtype=torch.float32).reshape(patches, 4)
     return {
         "input_ids": ids,
         "attention_mask": torch.ones_like(ids),
         "mm_token_type_ids": types,
         "pixel_values_videos": pixels.repeat(batch_size, 1),
-        "video_grid_thw": torch.tensor([GRID] * batch_size, dtype=torch.long),
+        "video_grid_thw": torch.tensor([grid] * batch_size, dtype=torch.long),
         "second_per_grid_ts": torch.full((batch_size,), 0.5),
     }
 
@@ -77,6 +80,16 @@ class BatchThroughputSmokeCpuTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "token/type/grid"):
             runner.validate_processor_batch(batch, 2, VIDEO_ID)
 
+    def test_32_frame_profile_contract_is_supported_without_gpu(self):
+        profile = runner.PROFILES[32]
+        batch = processor_batch(2, profile)
+        report = runner.validate_processor_batch(
+            batch, 2, VIDEO_ID, profile["grid"], profile["input_tokens"]
+        )
+        self.assertEqual(report["grid_thw_per_item"], [list(profile["grid"])] * 2)
+        self.assertEqual(report["input_tokens_per_item"], 4256)
+        self.assertEqual(report["video_tokens_per_item"], [4224, 4224])
+
     def test_batched_cache_trace_checks_each_item_and_coordinate(self):
         model = _TraceModel()
         trace = runner.BatchGenerationTrace(model, 2)
@@ -92,6 +105,25 @@ class BatchThroughputSmokeCpuTests(unittest.TestCase):
         report = runner.validate_batch_trace(trace, prefill, [20, 20], sequence_length=2)
         self.assertEqual(report["cache_lengths_after"], list(range(2, 2 + 1 + runner.DECODE_STEPS)))
         self.assertEqual(report["cache_batch_size_after"], [2] * (1 + runner.DECODE_STEPS))
+
+    def test_128_step_trace_and_cache_growth(self):
+        decode_steps, sequence_length = 128, 4256
+        model = _TraceModel()
+        trace = runner.BatchGenerationTrace(model, 2)
+        prefill = torch.zeros((3, 2, sequence_length), dtype=torch.long)
+        model(input_ids=torch.ones((2, sequence_length), dtype=torch.long),
+              position_ids=prefill, past_key_values=_Cache(2, 0))
+        for step in range(decode_steps):
+            model(input_ids=torch.ones((2, 1), dtype=torch.long),
+                  position_ids=torch.full((3, 2, 1), 100 + step),
+                  past_key_values=_Cache(2, sequence_length + step))
+        trace.close()
+        report = runner.validate_batch_trace(
+            trace, prefill, [100, 100], sequence_length, decode_steps
+        )
+        self.assertEqual(report["model_calls"], 129)
+        self.assertEqual(report["cache_lengths_after"][-1], 4384)
+        self.assertEqual(report["cache_batch_size_after"][-1], 2)
 
     def test_batched_trace_rejects_wrong_cache_batch_size(self):
         model = _TraceModel()
