@@ -1,0 +1,89 @@
+{
+  "schema_version": 1,
+  "diagnostic": "cuda_bf16_utilization_probe",
+  "size": 8192,
+  "target_seconds": 5.0,
+  "elapsed_seconds": 16.9602202399999,
+  "iterations": 1431,
+  "dtype": "bfloat16",
+  "torch": "2.11.0+cu128",
+  "cuda": "12.8",
+  "device": "NVIDIA GeForce RTX 5070 Ti",
+  "peak_cuda_memory_bytes": 545390592,
+  "telemetry_samples": [
+    {
+      "elapsed_seconds": 0.20483410199994978,
+      "gpu_util_percent": 3,
+      "memory_used_mib": 1673,
+      "memory_free_mib": 14323,
+      "power_watts": 34.24
+    },
+    {
+      "elapsed_seconds": 0.7096108340001592,
+      "gpu_util_percent": 100,
+      "memory_used_mib": 1795,
+      "memory_free_mib": 14201,
+      "power_watts": 137.43
+    },
+    {
+      "elapsed_seconds": 1.2138492530000349,
+      "gpu_util_percent": 100,
+      "memory_used_mib": 1803,
+      "memory_free_mib": 14193,
+      "power_watts": 265.27
+    },
+    {
+      "elapsed_seconds": 1.7241902319999554,
+      "gpu_util_percent": 100,
+      "memory_used_mib": 1808,
+      "memory_free_mib": 14188,
+      "power_watts": 276.37
+    },
+    {
+      "elapsed_seconds": 2.2272332860000006,
+      "gpu_util_percent": 100,
+      "memory_used_mib": 1808,
+      "memory_free_mib": 14188,
+      "power_watts": 277.47
+    },
+    {
+      "elapsed_seconds": 2.7287392220000584,
+      "gpu_util_percent": 100,
+      "memory_used_mib": 1800,
+      "memory_free_mib": 14196,
+      "power_watts": 277.52
+    },
+    {
+      "elapsed_seconds": 3.239525054000069,
+      "gpu_util_percent": 100,
+      "memory_used_mib": 1800,
+      "memory_free_mib": 14196,
+      "power_watts": 278.29
+    },
+    {
+      "elapsed_seconds": 3.748915300000135,
+      "gpu_util_percent": 100,
+      "memory_used_mib": 1790,
+      "memory_free_mib": 14206,
+      "power_watts": 279.36
+    },
+    {
+      "elapsed_seconds": 4.259655929000019,
+      "gpu_util_percent": 100,
+      "memory_used_mib": 1786,
+      "memory_free_mib": 14210,
+      "power_watts": 279.8
+    },
+    {
+      "elapsed_seconds": 4.760251079999989,
+      "gpu_util_percent": 100,
+      "memory_used_mib": 1803,
+      "memory_free_mib": 14193,
+      "power_watts": 279.5
+    }
+  ],
+  "status": "engineering_gpu_path_only",
+  "limitations": [
+    "Synthetic dense matmul only; no model, video, QA, or faithfulness claim."
+  ]
+}

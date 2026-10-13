@@ -134,3 +134,13 @@ cover sorting, count mismatch, and invalid failure peaks.
 The runner's console warning was also sanitized to print only sample index and
 failure code. This prevents private video IDs, paths, and exception text from
 leaking through terminal capture while retaining operational diagnosis.
+
+## Reproducible utilization telemetry
+
+The new `run_gpu_utilization_probe.py` sampled `nvidia-smi` during an 8192²
+BF16 workload. The 5-second target queued 1,431 matmuls and required 16.96 s
+including synchronization; ten samples captured 100% GPU utilization after
+warm-up, about 1.79–1.81 GiB used memory, and up to about 280 W. This explains
+why a compute-dense workload fully occupies the GPU, while the video path can
+remain preprocessing/memory-bound. The telemetry JSON is synthetic GPU-path
+evidence only and does not advance faithfulness.
