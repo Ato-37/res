@@ -49,3 +49,12 @@ runs unless the memory protocol is changed and smoke-tested.
 ## Independent audit and publication verification
 
 The independent audit reproduced the 40-frame derived SHA (`fe1fe489fb9f3cdc414be2230edde77784f80655d005f9d0390fca6dafb84fe1`) and confirmed 1/1/0 accounting, CUDA device, RTX 5070 Ti, 13.77-GiB peak, and the absence of an interval. A live `git ls-remote` check later verified GitHub `main` at `4162b5e96f0579934940dd1c3b88ee16472b5d79`. The raw JSON remains local but is present for local hash verification; only the derived summary is published. The 64-frame attempt produced no summary, so its 7.36-GiB allocation request is a failure diagnostic rather than a measured total peak. The difference between start-of-run free memory and allocator peak remains an unresolved allocator/driver accounting detail; this does not affect the safe-default decision. SSS is not claimed.
+
+## Failure-artifact repair
+
+The all-failed 64-frame path previously exited before writing JSON, which made
+an OOM difficult to audit. The runner now writes a privacy-safe result with
+`n_effective=0`, failure records, and null summaries instead of raising before
+serialization. Existing successful-run behavior is unchanged; CPU syntax and
+necessity utility tests pass. This repair is intended for future bounded memory
+probes and does not reinterpret the 64-frame failure as a measured effect.

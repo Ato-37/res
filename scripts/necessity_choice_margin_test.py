@@ -184,6 +184,7 @@ def main():
     all_effects = [r['selective_necessity_margin_drop'] for r in rows]
     correct = [r['selective_necessity_margin_drop'] for r in rows if r['baseline_choice_correct']]
     incorrect = [r['selective_necessity_margin_drop'] for r in rows if not r['baseline_choice_correct']]
+    empty_summary = not rows
     result = {'schema_version': 2, 'script': 'necessity_choice_margin_test.py',
               'samples_file': args.samples_file, 'model': args.model, 'quant': args.quant,
               **provenance(Path(args.samples_file)),
@@ -203,11 +204,15 @@ def main():
               'control_protocol': 'same number of black-masked frames; non-grounding indices chosen '
                                  'to minimize temporal rank-distance from evidence indices',
               'n_requested': len(samples), 'n_effective': len(rows), 'failures': failures,
-              'summary': {'all': summarize(all_effects, args.bootstrap_draws, args.seed),
-                          'baseline_correct_primary': summarize(correct, args.bootstrap_draws, args.seed + 1),
-                          'baseline_incorrect_secondary': summarize(incorrect, args.bootstrap_draws, args.seed + 2),
-                          'correct_minus_incorrect_interaction': interaction_ci(
-                              correct, incorrect, args.bootstrap_draws, args.seed + 3)},
+              'summary': ({'all': None, 'baseline_correct_primary': None,
+                           'baseline_incorrect_secondary': None,
+                           'correct_minus_incorrect_interaction': None}
+                          if empty_summary else
+                          {'all': summarize(all_effects, args.bootstrap_draws, args.seed),
+                           'baseline_correct_primary': summarize(correct, args.bootstrap_draws, args.seed + 1),
+                           'baseline_incorrect_secondary': summarize(incorrect, args.bootstrap_draws, args.seed + 2),
+                           'correct_minus_incorrect_interaction': interaction_ci(
+                               correct, incorrect, args.bootstrap_draws, args.seed + 3)}),
               'multiplicity': 'One predeclared primary cohort (baseline-correct); all-sample, '
                               'baseline-incorrect, and interaction results are secondary and '
                               'not multiplicity-corrected.',
@@ -220,15 +225,14 @@ def main():
                               'Conditioning on baseline correctness is part of the prespecified primary '
                               'cohort; this does not establish general XAI faithfulness or head causality.'],
               'records': rows}
-    if not rows:
-        parser.error('No successful samples; no output summary can be produced')
     out = Path(args.output)
     out.parent.mkdir(parents=True, exist_ok=True)
     out.write_text(json.dumps(result, indent=2, allow_nan=False) + '\n')
     primary = result['summary']['baseline_correct_primary']
     print(f"n_requested={len(samples)} n_effective={len(rows)} failures={len(failures)} "
-          f"n_primary={primary['n']} primary_mean={primary['mean']} "
-          f"ci95={primary['ci95_pointwise']} p={primary['signflip_p_two_sided']}")
+          + ("no successful samples" if primary is None else
+             f"n_primary={primary['n']} primary_mean={primary['mean']} "
+             f"ci95={primary['ci95_pointwise']} p={primary['signflip_p_two_sided']}"))
     print(f'wrote {out}')
 
 
