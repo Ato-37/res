@@ -107,3 +107,9 @@ length pairs 584/585/586, manual BF16 eager showed raw max differences
 for this synthetic tensor. This is a numerical-runtime observation only; it
 contains no video, QA, or faithfulness evidence. The privacy-safe synthetic JSON
 SHA is `81bbea1e6c9ba913175f5b7d0d374acb5b0acdf6d43b7ad5199b0c8ae241fea3`.
+
+A CPU-only analyzer and two tests now summarize privacy-safe temporal artifacts,
+checking frame ordering, status, and requested/effective/failure accounting. The
+published summary covers the new 36-, 40-, and 64-frame conditions; the earlier
+32-frame result remains in its original dated artifact because its schema
+predates the normalized temporal fields.

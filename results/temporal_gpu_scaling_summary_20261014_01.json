@@ -1,0 +1,35 @@
+{
+  "analysis": "temporal_gpu_scaling_summary",
+  "conditions": [
+    {
+      "n_effective": 1,
+      "n_failures": 0,
+      "n_requested": 1,
+      "num_frames": 36,
+      "peak_cuda_memory_bytes": 13252189184,
+      "status": "engineering_smoke_only"
+    },
+    {
+      "n_effective": 1,
+      "n_failures": 0,
+      "n_requested": 1,
+      "num_frames": 40,
+      "peak_cuda_memory_bytes": 14789873664,
+      "status": "engineering_smoke_only"
+    },
+    {
+      "n_effective": 0,
+      "n_failures": 1,
+      "n_requested": 1,
+      "num_frames": 64,
+      "peak_cuda_memory_bytes": null,
+      "status": "engineering_smoke_failure"
+    }
+  ],
+  "limitations": [
+    "Memory values are allocator observations, not a faithfulness metric.",
+    "OOM conditions have no effect estimate."
+  ],
+  "schema_version": 1,
+  "status": "engineering_only"
+}
