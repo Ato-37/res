@@ -90,3 +90,10 @@ An additional BF16 CUDA benchmark at 8192x8192 for 10 iterations completed in
 larger dense workloads efficiently; the lower video-job utilization is not a
 CUDA availability failure. These synthetic throughput numbers are engineering
 only and have no faithfulness interpretation.
+
+Using the successful 32/36/40-frame allocator observations only as a rough local
+linear interpolation gives approximately 344,480,256 additional allocated bytes
+per frame; it predicts about 14.37 GiB at 42 frames and 15.01 GiB at 44 frames.
+These are workload-sizing estimates, not measured results, and are not used to
+claim that those frame counts would succeed. The safe operational choice remains
+32 frames; 40 frames is near the limit and 64 frames is rejected.
