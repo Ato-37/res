@@ -215,3 +215,44 @@ At the 2026-10-14 03:02 JST checkpoint, about 17 minutes 10 seconds had elapsed
 and the 11:45:12 JST deadline remained active. Continue with the separately
 scoped backend diagnostic or another useful audit; do not repeat the 128-step
 condition without a code/runtime change.
+
+## Qwen workload utilization measurement
+
+The prior 128-step run proved substantial model work and VRAM allocation but
+captured no utilization trace, so it could not directly answer why the GPU
+looked idle at times. The runner now samples aggregate `nvidia-smi` utilization,
+used/free memory, and power once per second during generation. It never queries
+PIDs or process names and stores only per-condition mean, median, maximum,
+sample count, error count, and duration. CPU tests validate field parsing and
+summary arithmetic (14 cache-runner tests pass). A separate agent audit found
+no privacy or cache-correctness blocker; it cautioned that one-second polling
+is coarse and may slightly perturb host scheduling.
+
+The 32-frame, 128-decode run was repeated only to capture this missing
+measurement, producing
+`results/qwen_video_cache_gpu_smoke_20261014_32f_128decode_telemetry_01.json`
+(SHA-256 `af564e92cddffd52661ceacd8e23fcc80af34d2cd3060dd209291780b9b5f8f2`).
+The runner hash in the artifact matches the source used. It completed 1/1
+samples, 3/3 conditions, and 387/387 model calls with no failures in 36.50
+seconds. Peak PyTorch allocation remained 11.089 GiB. During generation, the
+three conditions produced 10, 8, and 9 telemetry points. Their sampled mean
+utilization was 44.2%, 50.4%, and 45.3%, with sampled maxima of 100% for each;
+sampled mean board power was 133.5 W, 160.8 W, and 153.2 W. NVIDIA-reported
+memory-used maxima were 14,570, 14,559, and 14,555 MiB respectively. These
+figures describe sparse samples over roughly 8–9 seconds per condition, not
+continuous utilization or a sustained percentile profile.
+
+Observation: the model did use CUDA and reached 100% in sampled moments, but
+average sampled utilization stayed around 44–50%, while reported device memory
+use approached the card's capacity. A plausible explanation is the sequential
+single-prompt autoregressive workload plus host orchestration and a memory-heavy
+video context; the current measurement does not isolate the cause. Raising
+batch size may improve throughput but has little VRAM headroom and would need a
+separate explicit bounded memory test. No artificial matrix load is warranted
+for a faithfulness claim. The new telemetry is an engineering diagnostic only
+and adds zero faithfulness samples or estimates.
+
+At the 2026-10-14 03:06 JST checkpoint, about 21 minutes 10 seconds had elapsed
+in the nine-hour window. Continue with a distinct, useful backend or protocol
+check while respecting the closed data gates; do not repeat telemetry without
+a code or runtime change.

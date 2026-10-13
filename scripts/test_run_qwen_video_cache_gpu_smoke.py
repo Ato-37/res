@@ -20,9 +20,11 @@ from run_qwen_video_cache_gpu_smoke import (  # noqa: E402
     _generation_outputs_finite,
     _write_result,
     kv_cache_payload_estimate,
+    GpuTelemetrySampler,
     pack_generation_positions,
     normalize_rope_positions,
     resolve_output_path,
+    summarize_gpu_telemetry,
     validate_generation_trace,
 )
 from run_qwen_temporal_position_gpu_check import assert_fractional_float32_compatibility  # noqa: E402
@@ -51,6 +53,36 @@ class _TinyLanguageModel(nn.Module):
 
 
 class VideoCacheGpuSmokeCpuTests(unittest.TestCase):
+    def test_gpu_telemetry_summary_contains_only_sample_statistics(self):
+        samples = [
+            {"gpu_util_percent": 40, "memory_used_mib": 9000,
+             "memory_free_mib": 7000, "power_watts": 100.0},
+            {"gpu_util_percent": 80, "memory_used_mib": 11000,
+             "memory_free_mib": 5000, "power_watts": 200.0},
+        ]
+        summary = summarize_gpu_telemetry(samples, errors=1, elapsed_seconds=1.5)
+        self.assertEqual(summary["sample_count"], 2)
+        self.assertEqual(summary["sample_errors"], 1)
+        self.assertEqual(summary["gpu_util_percent"],
+                         {"mean": 60.0, "median": 60.0, "max": 80})
+        self.assertEqual(summary["power_watts"]["mean"], 150.0)
+        self.assertNotIn("process_name", summary)
+        self.assertIsNone(summarize_gpu_telemetry([], 2, 0.2)["gpu_util_percent"]["mean"])
+
+    def test_gpu_telemetry_sampler_parses_only_four_public_counters(self):
+        sampler = GpuTelemetrySampler()
+        sampler._started = 1.0
+        with mock.patch.object(runner.subprocess, "check_output",
+                               return_value="55, 10000, 6000, 175.5\n"):
+            sampler._sample()
+        self.assertEqual(len(sampler.samples), 1)
+        sample = sampler.samples[0]
+        self.assertEqual(sample["gpu_util_percent"], 55)
+        self.assertEqual(sample["memory_used_mib"], 10000)
+        self.assertEqual(sample["memory_free_mib"], 6000)
+        self.assertEqual(sample["power_watts"], 175.5)
+        self.assertNotIn("pid", sample)
+
     @unittest.skipUnless(MODEL_PATH.is_dir(), "pinned cached config is unavailable")
     def test_generation_padding_uses_generation_config_not_multimodal_config(self):
         from transformers import AutoConfig, GenerationConfig

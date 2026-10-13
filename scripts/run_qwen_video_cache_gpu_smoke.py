@@ -27,6 +27,7 @@ from pathlib import Path
 import random
 import subprocess
 import sys
+import threading
 import time
 
 from qwen_temporal_geometry import replace_video_temporal_rope_row
@@ -226,6 +227,73 @@ def kv_cache_payload_estimate(config, sequence_length: int, dtype_bytes: int = 2
     }
 
 
+def summarize_gpu_telemetry(samples, errors: int, elapsed_seconds: float) -> dict:
+    """Summarize only utilization/resource samples; never capture process data."""
+    import statistics
+
+    result = {"sample_count": len(samples), "sample_errors": errors,
+              "sampling_window_seconds": elapsed_seconds}
+    for field in ("gpu_util_percent", "memory_used_mib", "memory_free_mib", "power_watts"):
+        values = [sample[field] for sample in samples if field in sample]
+        result[field] = {
+            "mean": statistics.fmean(values) if values else None,
+            "median": statistics.median(values) if values else None,
+            "max": max(values) if values else None,
+        }
+    return result
+
+
+class GpuTelemetrySampler:
+    """Low-rate nvidia-smi sampling during model generation only."""
+
+    def __init__(self, interval_seconds: float = 1.0):
+        if interval_seconds <= 0:
+            raise ValueError("telemetry interval must be positive")
+        self.interval_seconds = interval_seconds
+        self.samples = []
+        self.errors = 0
+        self._stop = threading.Event()
+        self._thread = None
+        self._started = None
+
+    def _sample(self):
+        command = ["nvidia-smi", "--query-gpu=utilization.gpu,memory.used,memory.free,power.draw",
+                   "--format=csv,noheader,nounits"]
+        try:
+            row = subprocess.check_output(command, text=True, timeout=5).strip().splitlines()[0].split(",")
+            if len(row) != 4:
+                raise ValueError("unexpected telemetry fields")
+            self.samples.append({
+                "elapsed_seconds": time.monotonic() - self._started,
+                "gpu_util_percent": int(row[0].strip()),
+                "memory_used_mib": int(row[1].strip()),
+                "memory_free_mib": int(row[2].strip()),
+                "power_watts": float(row[3].strip()),
+            })
+        except (OSError, subprocess.SubprocessError, ValueError, IndexError):
+            self.errors += 1
+
+    def _run(self):
+        while not self._stop.is_set():
+            self._sample()
+            self._stop.wait(self.interval_seconds)
+
+    def start(self):
+        self._started = time.monotonic()
+        self._thread = threading.Thread(target=self._run, name="gpu-telemetry", daemon=True)
+        self._thread.start()
+
+    def stop(self):
+        if self._thread is None:
+            return summarize_gpu_telemetry([], 0, 0.0)
+        self._stop.set()
+        self._thread.join(timeout=6)
+        if self._thread.is_alive():
+            self.errors += 1
+        elapsed = time.monotonic() - self._started
+        return summarize_gpu_telemetry(self.samples, self.errors, elapsed)
+
+
 def run_gpu_smoke(output: Path, frame_count: int, cached_decode_steps: int = DEFAULT_CACHED_DECODE_STEPS):
     import torch
     from transformers import AutoProcessor, BitsAndBytesConfig, Qwen2_5_VLForConditionalGeneration
@@ -391,6 +459,8 @@ def run_gpu_smoke(output: Path, frame_count: int, cached_decode_steps: int = DEF
             trace = GenerationCacheTrace(model.model.language_model)
             RUN_PROGRESS["stage"] = "generate_" + name
             begin = time.monotonic()
+            telemetry = GpuTelemetrySampler(interval_seconds=1.0)
+            telemetry.start()
             try:
                 with torch.inference_mode():
                     result = model.generate(
@@ -404,6 +474,7 @@ def run_gpu_smoke(output: Path, frame_count: int, cached_decode_steps: int = DEF
                     )
                 torch.cuda.synchronize()
             finally:
+                telemetry_summary = telemetry.stop()
                 trace.close()
                 RUN_PROGRESS["completed_model_calls"] += len(trace.calls)
             trace_report = validate_generation_trace(
@@ -422,6 +493,7 @@ def run_gpu_smoke(output: Path, frame_count: int, cached_decode_steps: int = DEF
                 "trace": trace_report,
                 "forward_seconds": time.monotonic() - begin,
                 "peak_allocated_gib": peak,
+                "gpu_telemetry_during_generation": telemetry_summary,
             })
             RUN_PROGRESS["effective_conditions"] = len(conditions)
             outputs[name] = {
