@@ -347,7 +347,7 @@ def summarize_gpu_telemetry(samples, errors: int, elapsed_seconds: float) -> dic
 
     result = {"sample_count": len(samples), "sample_errors": errors,
               "sampling_window_seconds": elapsed_seconds}
-    for field in ("gpu_util_percent", "memory_controller_util_percent",
+    for field in ("gpu_util_percent", "memory_busy_time_percent",
                   "memory_used_mib", "memory_free_mib", "power_watts"):
         values = [sample[field] for sample in samples if field in sample]
         result[field] = {
@@ -372,7 +372,7 @@ class GpuTelemetrySampler:
         self._started = None
 
     def _sample(self):
-        command = ["nvidia-smi", "--query-gpu=utilization.gpu,utilization.memory,memory.used,memory.free,power.draw",
+        command = ["nvidia-smi", "--id=0", "--query-gpu=utilization.gpu,utilization.memory,memory.used,memory.free,power.draw",
                    "--format=csv,noheader,nounits"]
         try:
             row = subprocess.check_output(command, text=True, timeout=5).strip().splitlines()[0].split(",")
@@ -390,7 +390,7 @@ class GpuTelemetrySampler:
             self.samples.append({
                 "elapsed_seconds": time.monotonic() - self._started,
                 "gpu_util_percent": gpu_util,
-                "memory_controller_util_percent": memory_util,
+                "memory_busy_time_percent": memory_util,
                 "memory_used_mib": memory_used,
                 "memory_free_mib": memory_free,
                 "power_watts": power,

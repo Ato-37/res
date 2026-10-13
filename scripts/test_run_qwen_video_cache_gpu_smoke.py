@@ -123,10 +123,10 @@ class VideoCacheGpuSmokeCpuTests(unittest.TestCase):
 
     def test_gpu_telemetry_summary_contains_only_sample_statistics(self):
         samples = [
-            {"gpu_util_percent": 40, "memory_controller_util_percent": 10,
+            {"gpu_util_percent": 40, "memory_busy_time_percent": 10,
              "memory_used_mib": 9000,
              "memory_free_mib": 7000, "power_watts": 100.0},
-            {"gpu_util_percent": 80, "memory_controller_util_percent": 70,
+            {"gpu_util_percent": 80, "memory_busy_time_percent": 70,
              "memory_used_mib": 11000,
              "memory_free_mib": 5000, "power_watts": 200.0},
         ]
@@ -135,7 +135,7 @@ class VideoCacheGpuSmokeCpuTests(unittest.TestCase):
         self.assertEqual(summary["sample_errors"], 1)
         self.assertEqual(summary["gpu_util_percent"],
                          {"mean": 60.0, "median": 60.0, "max": 80})
-        self.assertEqual(summary["memory_controller_util_percent"],
+        self.assertEqual(summary["memory_busy_time_percent"],
                          {"mean": 40.0, "median": 40.0, "max": 70})
         self.assertEqual(summary["power_watts"]["mean"], 150.0)
         self.assertNotIn("process_name", summary)
@@ -150,7 +150,7 @@ class VideoCacheGpuSmokeCpuTests(unittest.TestCase):
         self.assertEqual(len(sampler.samples), 1)
         sample = sampler.samples[0]
         self.assertEqual(sample["gpu_util_percent"], 55)
-        self.assertEqual(sample["memory_controller_util_percent"], 15)
+        self.assertEqual(sample["memory_busy_time_percent"], 15)
         self.assertEqual(sample["memory_used_mib"], 10000)
         self.assertEqual(sample["memory_free_mib"], 6000)
         self.assertEqual(sample["power_watts"], 175.5)
