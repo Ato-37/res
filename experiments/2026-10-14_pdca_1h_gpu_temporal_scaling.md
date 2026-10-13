@@ -130,3 +130,7 @@ The temporal summary analyzer was hardened after audit: each condition now
 carries its input artifact filename and SHA-256, counts must be nonnegative
 integers, and failure conditions must have null allocator peak. Three CPU tests
 cover sorting, count mismatch, and invalid failure peaks.
+
+The runner's console warning was also sanitized to print only sample index and
+failure code. This prevents private video IDs, paths, and exception text from
+leaking through terminal capture while retaining operational diagnosis.

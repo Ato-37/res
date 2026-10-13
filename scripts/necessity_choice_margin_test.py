@@ -188,8 +188,9 @@ def main():
                   f'evidence={evidence_margin:+.4f} control={control_margin:+.4f} '
                   f'selective={selective:+.4f}', flush=True)
         except Exception as exc:
-            failures.append({'sample_index': sample_idx, 'failure_code': failure_code(exc)})
-            print(f'WARNING: skipping sample={sid}: {exc}', flush=True)
+            code = failure_code(exc)
+            failures.append({'sample_index': sample_idx, 'failure_code': code})
+            print(f'WARNING: skipping sample_index={sample_idx} failure_code={code}', flush=True)
         finally:
             shutil.rmtree(temp, ignore_errors=True)
 
