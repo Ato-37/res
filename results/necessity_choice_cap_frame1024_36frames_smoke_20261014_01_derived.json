@@ -1,0 +1,31 @@
+{
+  "analysis": "necessity_choice_margin_temporal_scaling_smoke",
+  "cap_pixels_per_frame": true,
+  "device": "cuda",
+  "frame_size": 1024,
+  "gpu_name": "NVIDIA GeForce RTX 5070 Ti",
+  "input_shapes": [
+    [
+      1,
+      4761
+    ]
+  ],
+  "limitations": [
+    "Fixed local smoke cohort; engineering/preprocessing diagnostic only; not direct faithfulness evidence."
+  ],
+  "max_pixels": 200704,
+  "n_effective": 1,
+  "n_failures": 0,
+  "n_requested": 1,
+  "num_frames": 36,
+  "peak_cuda_memory_bytes": 13252189184,
+  "primary_ci95_pointwise_nat": null,
+  "primary_mean_nat": -0.5000003825407475,
+  "raw_artifact_sha256": "bd896460b4a6b65466f00cc88b14b5a7c18672e6c762c55c8f9cadc1efd17623",
+  "schema_version": 1,
+  "seed": 20261014,
+  "source_commit": "6b91df8f4705fa1cc5fb8435a7924b0b7494e180",
+  "status": "engineering_smoke_only",
+  "torch_version": "2.11.0+cu128",
+  "transformers_version": "5.17.0"
+}
