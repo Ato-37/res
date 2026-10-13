@@ -97,3 +97,13 @@ per frame; it predicts about 14.37 GiB at 42 frames and 15.01 GiB at 44 frames.
 These are workload-sizing estimates, not measured results, and are not used to
 claim that those frame counts would succeed. The safe operational choice remains
 32 frames; 40 frames is near the limit and 64 frames is rejected.
+
+## Synthetic attention backend diagnostic
+
+The preregistered synthetic Q/K/V shape diagnostic completed on the RTX 5070 Ti
+in 1.258 s with 9 finite records and 40,897,536-byte peak allocation. For
+length pairs 584/585/586, manual BF16 eager showed raw max differences
+0.000488–0.000977, while the FP32-accumulation and SDPA paths were exactly zero
+for this synthetic tensor. This is a numerical-runtime observation only; it
+contains no video, QA, or faithfulness evidence. The privacy-safe synthetic JSON
+SHA is `81bbea1e6c9ba913175f5b7d0d374acb5b0acdf6d43b7ad5199b0c8ae241fea3`.
