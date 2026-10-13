@@ -1,13 +1,16 @@
 """Fixed NOAA video smoke for the pinned Qwen KV-cache generation path.
 
 This checks cached generation wiring only. It is not QA, efficacy, or semantic
-validation. The run loads the pinned checkpoint offline, samples four frames
-from the fixed NOAA clip, and compares native automatic, explicit-native, and
-temporal-row-only candidate prefill positions over two greedy generated tokens.
+validation. The run loads the pinned checkpoint offline, samples a fixed 4- or
+32-frame profile from the NOAA clip, and compares native automatic,
+explicit-native, and temporal-row-only candidate prefill positions. The
+    default generates two greedy tokens; optional fixed 16- or 128-step cached decode
+horizon exercises repeated cache growth without exporting generated content.
 
 Usage::
 
     PYTHONPATH=scripts .venv/bin/python scripts/run_qwen_video_cache_gpu_smoke.py \
+      --frames 32 --cached-decode-steps 16 \
       --output results/qwen_video_cache_gpu_smoke_YYYYMMDD_NN.json
 """
 
@@ -34,11 +37,14 @@ from run_qwen_temporal_position_gpu_check import assert_fractional_float32_compa
 SEED = 20261012
 REVISION = "cc594898137f460bfe9f0759e9844b3ce807cfb5"
 MEDIA_SHA256 = "13ab1d0e12d9c6b9e776890d123f363c12c572d52d1f58464b57a2e98667f126"
-EXPECTED_GRID = (2, 24, 46)
-EXPECTED_INPUT_TOKENS = 584
-FRAME_COUNT = 4
+PROFILES = {
+    4: {"grid": (2, 24, 46), "input_tokens": 584, "frame_size": 224,
+        "max_pixels": 256 * 28 * 28, "min_free_vram_bytes": 12 * 1024**3},
+    32: {"grid": (16, 24, 44), "input_tokens": 4256, "frame_size": 1024,
+         "max_pixels": 200704, "min_free_vram_bytes": 13 * 1024**3},
+}
 MAX_NEW_TOKENS = 2
-MIN_FREE_VRAM_BYTES = 12 * 1024**3
+DEFAULT_CACHED_DECODE_STEPS = 1
 PROMPT = "Describe the visible scene briefly. Use only visual information."
 RUN_PROGRESS = {
     "stage": "preflight", "completed_model_calls": 0,
@@ -141,43 +147,46 @@ class GenerationCacheTrace:
 
 
 def validate_generation_trace(trace: GenerationCacheTrace, expected_prefill, expected_seq_len: int,
-                              expected_decode_coordinate: int):
-    """Fail closed unless generation made one prefill and one cached decode."""
-    if trace._pending or len(trace.calls) != MAX_NEW_TOKENS:
-        raise RuntimeError("expected exactly two completed text-model calls")
-    prefill, decode = trace.calls
+                              expected_decode_coordinate: int, cached_decode_steps: int = 1):
+    """Fail closed unless every cached decode advances positions and KV length."""
+    expected_call_count = 1 + cached_decode_steps
+    if trace._pending or len(trace.calls) != expected_call_count:
+        raise RuntimeError("unexpected number of completed prefill/decode calls")
+    prefill, *decodes = trace.calls
     if (prefill["input_length"], prefill["past_length"], prefill["cache_length_after"]) != (
         expected_seq_len, 0, expected_seq_len
     ):
         raise RuntimeError("prefill input/cache lengths did not match the full prompt")
-    if (decode["input_length"], decode["past_length"], decode["cache_length_after"]) != (
-        1, expected_seq_len, expected_seq_len + 1
-    ):
-        raise RuntimeError("cached decode did not process one token with expected KV lengths")
     if not __import__("torch").equal(prefill["position_ids"], expected_prefill.detach().cpu()):
         raise RuntimeError("captured prefill positions differ from requested positions")
-    expected_decode = __import__("torch").full(
-        (3, 1, 1), expected_decode_coordinate, dtype=decode["position_ids"].dtype
-    )
-    if not __import__("torch").equal(decode["position_ids"], expected_decode):
-        raise RuntimeError("cached generation did not advance all rotary rows to expected coordinate")
+    for step, decode in enumerate(decodes):
+        expected = (1, expected_seq_len + step, expected_seq_len + step + 1)
+        if (decode["input_length"], decode["past_length"], decode["cache_length_after"]) != expected:
+            raise RuntimeError("cached decode did not process one token with expected KV lengths")
+        expected_decode = __import__("torch").full(
+            (3, 1, 1), expected_decode_coordinate + step, dtype=decode["position_ids"].dtype
+        )
+        if not __import__("torch").equal(decode["position_ids"], expected_decode):
+            raise RuntimeError("cached generation did not advance all rotary rows at every decode step")
     return {
         "model_calls": len(trace.calls),
-        "input_lengths": [prefill["input_length"], decode["input_length"]],
-        "past_cache_lengths": [prefill["past_length"], decode["past_length"]],
-        "cache_lengths_after": [prefill["cache_length_after"], decode["cache_length_after"]],
-        "decode_position_coordinate": expected_decode_coordinate,
+        "input_lengths": [prefill["input_length"], *[call["input_length"] for call in decodes]],
+        "past_cache_lengths": [prefill["past_length"], *[call["past_length"] for call in decodes]],
+        "cache_lengths_after": [prefill["cache_length_after"], *[call["cache_length_after"] for call in decodes]],
+        "decode_steps": cached_decode_steps,
+        "decode_start_coordinate": expected_decode_coordinate,
+        "decode_end_coordinate": expected_decode_coordinate + cached_decode_steps - 1,
         "positions_verified": True,
     }
 
 
-def _generation_outputs_finite(output):
+def _generation_outputs_finite(output, expected_new_tokens: int = MAX_NEW_TOKENS):
     import torch
 
     scores = getattr(output, "scores", None)
     logits = getattr(output, "logits", None)
-    if scores is None or logits is None or len(scores) != MAX_NEW_TOKENS or len(logits) != MAX_NEW_TOKENS:
-        raise RuntimeError("generation did not return two score and raw-logit tensors")
+    if scores is None or logits is None or len(scores) != expected_new_tokens or len(logits) != expected_new_tokens:
+        raise RuntimeError("generation did not return the requested score and raw-logit tensors")
     if any(not bool(torch.isfinite(tensor).all()) for tensor in (*scores, *logits)):
         raise RuntimeError("nonfinite generated scores or raw logits")
     return True
@@ -217,7 +226,7 @@ def kv_cache_payload_estimate(config, sequence_length: int, dtype_bytes: int = 2
     }
 
 
-def run_gpu_smoke(output: Path):
+def run_gpu_smoke(output: Path, frame_count: int, cached_decode_steps: int = DEFAULT_CACHED_DECODE_STEPS):
     import torch
     from transformers import AutoProcessor, BitsAndBytesConfig, Qwen2_5_VLForConditionalGeneration
     from transformers.cache_utils import DynamicCache
@@ -236,8 +245,11 @@ def run_gpu_smoke(output: Path):
     if not torch.cuda.is_available() or not torch.cuda.is_bf16_supported():
         raise RuntimeError("CUDA with BF16 support is required")
     free_bytes, total_bytes = torch.cuda.mem_get_info()
-    if free_bytes < MIN_FREE_VRAM_BYTES:
-        raise RuntimeError("at least 12 GiB free VRAM is required")
+    profile = PROFILES[frame_count]
+    expected_new_tokens = cached_decode_steps + 1
+    expected_model_calls = 3 * expected_new_tokens
+    if free_bytes < profile["min_free_vram_bytes"]:
+        raise RuntimeError("insufficient free VRAM for the selected fixed frame profile")
 
     random.seed(SEED)
     torch.manual_seed(SEED)
@@ -247,8 +259,11 @@ def run_gpu_smoke(output: Path):
     RUN_PROGRESS.update(
         stage="extract_frames", completed_model_calls=0,
         effective_conditions=0, effective_frames=0,
+        requested_model_calls=expected_model_calls,
     )
-    frame_paths, temp_dir, timestamps, fps = extract_frames(str(video), FRAME_COUNT, 224)
+    frame_paths, temp_dir, timestamps, fps = extract_frames(
+        str(video), frame_count, profile["frame_size"]
+    )
     RUN_PROGRESS["effective_frames"] = len(timestamps)
     try:
         RUN_PROGRESS["stage"] = "load_model_and_processor"
@@ -261,7 +276,7 @@ def run_gpu_smoke(output: Path):
         ).eval()
         processor = AutoProcessor.from_pretrained(
             str(model_path), local_files_only=True,
-            min_pixels=256 * 28 * 28, max_pixels=256 * 28 * 28,
+            min_pixels=256 * 28 * 28, max_pixels=profile["max_pixels"],
         )
         messages = [{"role": "user", "content": [
             {"type": "video", "video": frame_paths, "sample_fps": fps},
@@ -281,8 +296,9 @@ def run_gpu_smoke(output: Path):
         ).to("cuda")
         grid = tuple(int(value) for value in batch["video_grid_thw"][0].tolist())
         input_length = int(batch["input_ids"].shape[1])
-        if len(timestamps) != FRAME_COUNT or grid != EXPECTED_GRID or input_length != EXPECTED_INPUT_TOKENS:
-            raise RuntimeError("fixed NOAA four-frame processor geometry changed")
+        if (len(timestamps) != frame_count or grid != profile["grid"]
+                or input_length != profile["input_tokens"]):
+            raise RuntimeError("fixed NOAA processor geometry changed")
         video_mask = batch["mm_token_type_ids"][0] == 2
         image_mask = batch["mm_token_type_ids"][0] == 1
         token_mask = batch["input_ids"][0] == model.config.video_token_id
@@ -330,10 +346,25 @@ def run_gpu_smoke(output: Path):
         step_tokens = (grid[1] // merge_size) * (grid[2] // merge_size)
         native_anchors = [int(native_single[0, span[0] + i * step_tokens]) for i in range(grid[0])]
         candidate_anchors = [int(candidate[0, 0, span[0] + i * step_tokens]) for i in range(grid[0])]
-        if (merge_size != 2 or native_anchors != [15, 413] or candidate_anchors != [15, 414]
-                or int(native_delta[0, 0].item()) != -170 or last_text_coordinate != 54
-                or decode_coordinate != 55):
+        if (merge_size != 2 or len(native_anchors) != grid[0]
+                or len(candidate_anchors) != grid[0]
+                or native_anchors[0] != 15 or candidate_anchors[0] != 15
+                or decode_coordinate != last_text_coordinate + 1):
             raise RuntimeError("fixed NOAA position geometry/continuation coordinates changed")
+        expected_native_anchors = [
+            native_anchors[0] + step * int(float(batch["second_per_grid_ts"][0]))
+            * int(model_config.tokens_per_second)
+            for step in range(grid[0])
+        ]
+        if native_anchors != expected_native_anchors:
+            raise RuntimeError("native temporal anchors differ from pinned Transformers integer-interval rule")
+        expected_candidate_anchors = torch.arange(
+            grid[0], dtype=torch.float32
+        ).mul_(torch.tensor(
+            float(batch["second_per_grid_ts"][0]), dtype=torch.float32
+        ) * int(model_config.tokens_per_second)).long().add_(candidate_anchors[0]).tolist()
+        if candidate_anchors != expected_candidate_anchors:
+            raise RuntimeError("candidate temporal anchors differ from declared float32 fractional rule")
         assert_fractional_float32_compatibility(
             candidate_anchors, float(batch["second_per_grid_ts"][0]),
             int(model_config.tokens_per_second),
@@ -366,7 +397,7 @@ def run_gpu_smoke(output: Path):
                         **batch,
                         **({} if supplied_positions is None else {"position_ids": supplied_positions}),
                         past_key_values=fresh_cache,
-                        use_cache=True, do_sample=False, max_new_tokens=MAX_NEW_TOKENS,
+                        use_cache=True, do_sample=False, max_new_tokens=expected_new_tokens,
                         eos_token_id=None, pad_token_id=model.generation_config.pad_token_id,
                         forced_eos_token_id=None,
                         return_dict_in_generate=True, output_scores=True, output_logits=True,
@@ -378,9 +409,10 @@ def run_gpu_smoke(output: Path):
             trace_report = validate_generation_trace(
                 trace, expected_prefill, expected_seq_len=seq_len,
                 expected_decode_coordinate=decode_coordinate,
+                cached_decode_steps=cached_decode_steps,
             )
-            finite = _generation_outputs_finite(result)
-            if int(result.sequences.shape[-1]) != seq_len + MAX_NEW_TOKENS:
+            finite = _generation_outputs_finite(result, expected_new_tokens)
+            if int(result.sequences.shape[-1]) != seq_len + expected_new_tokens:
                 raise RuntimeError("generation returned an unexpected sequence length")
             peak = torch.cuda.max_memory_allocated() / 1024**3
             peak_allocated = max(peak_allocated, peak)
@@ -409,8 +441,9 @@ def run_gpu_smoke(output: Path):
         )
         if not exact_noop:
             raise RuntimeError("native automatic and explicit-native generation were not identical")
-        if len(conditions) != 3 or RUN_PROGRESS["completed_model_calls"] != 6:
-            raise RuntimeError("fixed run did not complete all three two-call conditions")
+        if (len(conditions) != 3
+                or RUN_PROGRESS["completed_model_calls"] != expected_model_calls):
+            raise RuntimeError("fixed run did not complete every requested model call")
         RUN_PROGRESS["stage"] = "write_success_result"
         from transformers.models.qwen2_5_vl import modeling_qwen2_5_vl
         from transformers.generation import utils as generation_utils
@@ -450,17 +483,20 @@ def run_gpu_smoke(output: Path):
             "kv_cache_payload_estimate": kv_cache_payload_estimate(
                 model.config.get_text_config(decoder=True), seq_len, dtype_bytes=2
             ),
-            "generation": {"do_sample": False, "max_new_tokens": MAX_NEW_TOKENS,
+            "generation": {"do_sample": False, "max_new_tokens": expected_new_tokens,
+                           "cached_decode_steps": cached_decode_steps,
                            "output_scores": True, "output_logits": True},
             "requested_samples": 1,
             "effective_samples": 1,
             "requested_conditions": 3,
             "effective_conditions": len(conditions),
-            "requested_model_calls": 6,
+            "requested_model_calls": expected_model_calls,
             "completed_model_calls": RUN_PROGRESS["completed_model_calls"],
             "failures": 0,
-            "requested_frames": FRAME_COUNT,
+            "requested_frames": frame_count,
             "effective_frames": len(timestamps),
+            "frame_max_dimension": profile["frame_size"],
+            "max_pixels_per_frame": profile["max_pixels"],
             "sample_timestamps_seconds": [float(value) for value in timestamps],
             "sampled_fps": float(fps),
             "grid_thw": list(grid),
@@ -485,7 +521,7 @@ def run_gpu_smoke(output: Path):
             },
             "cuda_version": torch.version.cuda,
             "limitations": [
-                "One fixed four-frame NOAA input; engineering compatibility only.",
+                f"One fixed {frame_count}-frame NOAA input; engineering compatibility only.",
                 "Generation and cache wiring do not validate candidate temporal semantics, video understanding, QA, grounding, or faithfulness.",
                 "No answer text, token IDs, raw scores, raw logits, annotations, or human QA labels are exported.",
                 "The candidate is a temporal-row-only prefill edit; uninterrupted generation advances from the last prompt coordinate, not max(candidate position).",
@@ -509,6 +545,10 @@ def run_gpu_smoke(output: Path):
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--output", required=True, help="exclusive new summary JSON under results/")
+    parser.add_argument("--frames", type=int, choices=tuple(PROFILES), default=4,
+                        help="fixed input profile (4=baseline, 32=longer temporal context)")
+    parser.add_argument("--cached-decode-steps", type=int, choices=(1, 16, 128), default=1,
+                        help="cached one-token decode steps after prefill (1=baseline, 16=smoke, 128=long horizon)")
     args = parser.parse_args(argv)
     repo = Path(__file__).resolve().parents[1]
     try:
@@ -517,7 +557,7 @@ def main(argv=None):
         parser.error(str(exc))
     process_started = time.monotonic()
     try:
-        run_gpu_smoke(output)
+        run_gpu_smoke(output, args.frames, args.cached_decode_steps)
     except Exception as exc:
         if not output.exists():
             model_path = Path.home() / ".cache/huggingface/hub/models--Qwen--Qwen2.5-VL-7B-Instruct/snapshots" / REVISION
@@ -554,9 +594,11 @@ def main(argv=None):
                 "media_sha256_expected": MEDIA_SHA256,
                 "requested_conditions": 3,
                 "effective_conditions": RUN_PROGRESS["effective_conditions"],
-                "requested_model_calls": 6,
+                "cached_decode_steps": args.cached_decode_steps,
+                "requested_new_tokens": args.cached_decode_steps + 1,
+                "requested_model_calls": 3 * (args.cached_decode_steps + 1),
                 "completed_model_calls": RUN_PROGRESS["completed_model_calls"],
-                "requested_frames": FRAME_COUNT,
+                "requested_frames": args.frames,
                 "effective_frames": RUN_PROGRESS["effective_frames"],
                 "failures": 1,
                 "failure_type": type(exc).__name__,

@@ -70,6 +70,23 @@ class VideoCacheGpuSmokeCpuTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             normalize_rope_positions(torch.zeros((2, 1, 5), dtype=torch.long))
 
+    def test_32_frame_fractional_anchor_sequence_is_checked_across_all_temporal_steps(self):
+        seconds = 19.3526668548584
+        tokens_per_second = 2
+        interval = torch.tensor(seconds, dtype=torch.float32) * tokens_per_second
+        anchors = (
+            torch.arange(16, dtype=torch.float32) * interval
+        ).long().add_(15).tolist()
+        self.assertEqual(
+            anchors,
+            [15, 53, 92, 131, 169, 208, 247, 285,
+             324, 363, 402, 440, 479, 518, 556, 595],
+        )
+        assert_fractional_float32_compatibility(anchors, seconds, tokens_per_second)
+        anchors[-1] += 1
+        with self.assertRaisesRegex(RuntimeError, "float32"):
+            assert_fractional_float32_compatibility(anchors, seconds, tokens_per_second)
+
     def test_fake_text_model_hooks_verify_prefill_and_cached_decode_lengths(self):
         lm = _TinyLanguageModel()
         trace = GenerationCacheTrace(lm)
@@ -101,8 +118,69 @@ class VideoCacheGpuSmokeCpuTests(unittest.TestCase):
         lm(input_ids=torch.ones((1, 1)), position_ids=torch.full((3, 1, 1), 54),
            past_key_values=prefill.past_key_values)
         trace.close()
-        with self.assertRaisesRegex(RuntimeError, "expected coordinate"):
+        with self.assertRaisesRegex(RuntimeError, "every decode step"):
             validate_generation_trace(trace, prefill_pids, 5, 55)
+
+    def test_sixteen_cached_decode_steps_advance_every_position_and_cache_length(self):
+        lm = _TinyLanguageModel()
+        trace = GenerationCacheTrace(lm)
+        prefill_pids = torch.arange(15).reshape(3, 1, 5)
+        output = lm(input_ids=torch.ones((1, 5)), position_ids=prefill_pids,
+                    past_key_values=_FakeCache(0))
+        for step in range(16):
+            lm(input_ids=torch.ones((1, 1)),
+               position_ids=torch.full((3, 1, 1), 55 + step),
+               past_key_values=output.past_key_values)
+            output = SimpleNamespace(past_key_values=_FakeCache(6 + step))
+        trace.close()
+        report = validate_generation_trace(
+            trace, prefill_pids, 5, 55, cached_decode_steps=16
+        )
+        self.assertEqual(report["model_calls"], 17)
+        self.assertEqual(report["decode_start_coordinate"], 55)
+        self.assertEqual(report["decode_end_coordinate"], 70)
+        self.assertEqual(report["past_cache_lengths"], [0, *range(5, 21)])
+        self.assertEqual(report["cache_lengths_after"], [5, *range(6, 22)])
+        trace.calls[8]["position_ids"] = torch.full((3, 1, 1), 999)
+        with self.assertRaisesRegex(RuntimeError, "every decode step"):
+            validate_generation_trace(
+                trace, prefill_pids, 5, 55, cached_decode_steps=16
+            )
+        trace.calls[8]["position_ids"] = torch.full((3, 1, 1), 62)
+        trace.calls[8]["cache_length_after"] += 1
+        with self.assertRaisesRegex(RuntimeError, "expected KV lengths"):
+            validate_generation_trace(
+                trace, prefill_pids, 5, 55, cached_decode_steps=16
+            )
+
+    def test_128_cached_decode_steps_check_interior_and_final_cache_positions(self):
+        lm = _TinyLanguageModel()
+        trace = GenerationCacheTrace(lm)
+        prefill_pids = torch.arange(15).reshape(3, 1, 5)
+        output = lm(input_ids=torch.ones((1, 5)), position_ids=prefill_pids,
+                    past_key_values=_FakeCache(0))
+        for step in range(128):
+            lm(input_ids=torch.ones((1, 1)),
+               position_ids=torch.full((3, 1, 1), 55 + step),
+               past_key_values=output.past_key_values)
+            output = SimpleNamespace(past_key_values=_FakeCache(6 + step))
+        trace.close()
+        report = validate_generation_trace(
+            trace, prefill_pids, 5, 55, cached_decode_steps=128
+        )
+        self.assertEqual(report["model_calls"], 129)
+        self.assertEqual(report["decode_end_coordinate"], 182)
+        self.assertEqual(report["past_cache_lengths"], [0, *range(5, 133)])
+        self.assertEqual(report["cache_lengths_after"], [5, *range(6, 134)])
+        for index in (64, 128):
+            trace.calls[index]["position_ids"] = torch.full((3, 1, 1), 999)
+            with self.assertRaisesRegex(RuntimeError, "every decode step"):
+                validate_generation_trace(
+                    trace, prefill_pids, 5, 55, cached_decode_steps=128
+                )
+            trace.calls[index]["position_ids"] = torch.full(
+                (3, 1, 1), 54 + index, dtype=torch.long
+            )
 
     def test_generation_output_check_requires_finite_scores_and_raw_logits(self):
         output = SimpleNamespace(
@@ -113,7 +191,7 @@ class VideoCacheGpuSmokeCpuTests(unittest.TestCase):
         output.logits = (torch.zeros((1, 7)), torch.full((1, 7), float("nan")))
         with self.assertRaisesRegex(RuntimeError, "nonfinite"):
             _generation_outputs_finite(output)
-        with self.assertRaisesRegex(RuntimeError, "two score and raw-logit"):
+        with self.assertRaisesRegex(RuntimeError, "requested score and raw-logit"):
             _generation_outputs_finite(SimpleNamespace(scores=(), logits=None))
 
     def test_output_guard_refuses_outside_results_and_existing_path(self):
@@ -151,7 +229,7 @@ class VideoCacheGpuSmokeCpuTests(unittest.TestCase):
         output = repo / "results" / f".tmp_cache_failure_{uuid.uuid4().hex}.json"
         original = dict(runner.RUN_PROGRESS)
 
-        def fail_after_partial_progress(_output):
+        def fail_after_partial_progress(_output, _frame_count, _cached_decode_steps):
             runner.RUN_PROGRESS.update(
                 stage="generate_explicit_native_noop", completed_model_calls=2,
                 effective_conditions=1, effective_frames=4,
@@ -176,7 +254,7 @@ class VideoCacheGpuSmokeCpuTests(unittest.TestCase):
             runner.RUN_PROGRESS.update(original)
 
     @unittest.skipUnless(MODEL_PATH.is_dir(), "pinned cached processor is unavailable")
-    def test_cached_processor_preflight_matches_fixed_four_frame_geometry_without_weights(self):
+    def test_cached_processor_preflight_matches_both_fixed_frame_profiles_without_weights(self):
         """Exercise the cached processor, not the 7B checkpoint or CUDA path."""
         os.environ["HF_HUB_OFFLINE"] = "1"
         os.environ["TRANSFORMERS_OFFLINE"] = "1"
@@ -184,43 +262,49 @@ class VideoCacheGpuSmokeCpuTests(unittest.TestCase):
         from qwen_vl_utils import process_vision_info
         from transformers import AutoProcessor
 
-        fps = 0.010000010000009999
-        colors = ((18, 47, 83), (71, 103, 137), (129, 163, 197), (211, 223, 239))
-        # The existing extractor thumbnails the 640x360 source to 224x126.
-        frames = [Image.new("RGB", (224, 126), color) for color in colors]
-        processor = AutoProcessor.from_pretrained(
-            str(MODEL_PATH), local_files_only=True,
-            min_pixels=256 * 28 * 28, max_pixels=256 * 28 * 28,
-        )
-        messages = [{"role": "user", "content": [
-            {"type": "video", "video": frames, "sample_fps": fps},
-            {"type": "text", "text": "Describe the visible scene briefly. Use only visual information."},
-        ]}]
-        prompt_text = processor.apply_chat_template(
-            messages, tokenize=False, add_generation_prompt=True
-        )
-        images, videos = process_vision_info(messages, return_video_metadata=True)
-        self.assertEqual(len(videos), 1)
-        video_tensor, metadata = videos[0]
-        batch = processor(
-            text=[prompt_text], images=images, videos=[video_tensor],
-            video_metadata=[metadata], do_sample_frames=False,
-            cap_pixels_per_frame=True, padding=True, return_tensors="pt",
-        )
-        grid = tuple(int(v) for v in batch["video_grid_thw"][0].tolist())
-        self.assertEqual(grid, (2, 24, 46))
-        self.assertEqual(int(batch["input_ids"].shape[1]), 584)
-        self.assertAlmostEqual(float(batch["second_per_grid_ts"][0]), 199.9998, places=3)
-        assert_fractional_float32_compatibility(
-            [15, 414], float(batch["second_per_grid_ts"][0]), 2
-        )
-        self.assertEqual(int((batch["mm_token_type_ids"] == 1).sum()), 0)
-        self.assertEqual(int((batch["mm_token_type_ids"] == 2).sum()), 552)
-        self.assertTrue(torch.equal(
-            batch["mm_token_type_ids"][0] == 2,
-            batch["input_ids"][0] == processor.video_token_id,
-        ))
-        self.assertTrue(bool(batch["attention_mask"].bool().all()))
+        processor = None
+        for frame_count, fps, size, max_pixels, expected_grid, expected_tokens in (
+            (4, 0.010000010000009999, (224, 126), 256 * 28 * 28, (2, 24, 46), 584),
+            (32, 0.10334493093113782, (640, 360), 200704, (16, 24, 44), 4256),
+        ):
+            with self.subTest(frame_count=frame_count):
+                processor = AutoProcessor.from_pretrained(
+                    str(MODEL_PATH), local_files_only=True,
+                    min_pixels=256 * 28 * 28, max_pixels=max_pixels,
+                )
+                frames = [Image.new("RGB", size, color=(18 + i, 47 + i, 83 + i))
+                          for i in range(frame_count)]
+                messages = [{"role": "user", "content": [
+                    {"type": "video", "video": frames, "sample_fps": fps},
+                    {"type": "text", "text": "Describe the visible scene briefly. Use only visual information."},
+                ]}]
+                prompt_text = processor.apply_chat_template(
+                    messages, tokenize=False, add_generation_prompt=True
+                )
+                images, videos = process_vision_info(messages, return_video_metadata=True)
+                self.assertEqual(len(videos), 1)
+                video_tensor, metadata = videos[0]
+                batch = processor(
+                    text=[prompt_text], images=images, videos=[video_tensor],
+                    video_metadata=[metadata], do_sample_frames=False,
+                    cap_pixels_per_frame=True, padding=True, return_tensors="pt",
+                )
+                grid = tuple(int(v) for v in batch["video_grid_thw"][0].tolist())
+                self.assertEqual(grid, expected_grid)
+                self.assertEqual(int(batch["input_ids"].shape[1]), expected_tokens)
+                if frame_count == 4:
+                    self.assertAlmostEqual(float(batch["second_per_grid_ts"][0]), 199.9998, places=3)
+                    assert_fractional_float32_compatibility(
+                        [15, 414], float(batch["second_per_grid_ts"][0]), 2
+                    )
+                self.assertEqual(int((batch["mm_token_type_ids"] == 1).sum()), 0)
+                expected_video_tokens = expected_grid[0] * (expected_grid[1] // 2) * (expected_grid[2] // 2)
+                self.assertEqual(int((batch["mm_token_type_ids"] == 2).sum()), expected_video_tokens)
+                self.assertTrue(torch.equal(
+                    batch["mm_token_type_ids"][0] == 2,
+                    batch["input_ids"][0] == processor.video_token_id,
+                ))
+                self.assertTrue(bool(batch["attention_mask"].bool().all()))
 
 
 if __name__ == "__main__":

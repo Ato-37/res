@@ -9,6 +9,7 @@ import argparse, hashlib, json, math, re, sys
 from typing import Any
 
 SHA = re.compile(r"^[a-f0-9]{64}$")
+GIT_COMMIT = re.compile(r"^[a-f0-9]{40}$")
 
 def _obj(pairs):
     out = {}
@@ -30,18 +31,21 @@ def validate(value: Any, input_sha256: str | None = None) -> dict:
            "sampling", "estimand", "intervention", "runtime"}
     if not isinstance(value, dict): return _summary({"protocol_not_object"}, input_sha256)
     if set(value) != req: f.add("protocol_schema_keys_invalid")
-    if value.get("schema_version") != 1: f.add("schema_version_invalid")
-    if value.get("protocol_stage") not in {"exploratory", "confirmatory"}: f.add("protocol_stage_invalid")
+    if type(value.get("schema_version")) is not int or value.get("schema_version") != 1: f.add("schema_version_invalid")
+    stage = value.get("protocol_stage")
+    if not isinstance(stage, str) or stage not in {"exploratory", "confirmatory"}: f.add("protocol_stage_invalid")
     model = value.get("model"); mk = {"revision", "tokenizer_revision", "quant", "dtype", "attention_implementation"}
     if not _keys(model, mk): f.add("model_schema_invalid")
-    elif not all(_text(model.get(k)) for k in mk): f.add("model_field_missing")
+    elif any(not isinstance(model.get(k), str) or GIT_COMMIT.fullmatch(model[k]) is None
+             for k in ("revision", "tokenizer_revision")) or not all(_text(model.get(k)) for k in ("quant", "dtype", "attention_implementation")): f.add("model_field_missing")
     cohort = value.get("cohort"); ck = {"split_manifest_sha256", "overlap_audit_sha256", "video_count", "analysis_unit_count", "split_overlap_count"}
     if not _keys(cohort, ck): f.add("cohort_schema_invalid")
     elif (not all(_sha(cohort.get(k)) for k in ("split_manifest_sha256", "overlap_audit_sha256"))
           or any(type(cohort.get(k)) is not int or cohort[k] < 0 for k in ("video_count", "analysis_unit_count", "split_overlap_count"))):
         f.add("cohort_fields_invalid")
     elif cohort["video_count"] == 0 or cohort["analysis_unit_count"] != cohort["video_count"]: f.add("analysis_unit_not_video_level")
-    if isinstance(cohort, dict) and value.get("protocol_stage") == "confirmatory" and cohort.get("split_overlap_count") != 0: f.add("confirmatory_split_overlap")
+    if isinstance(cohort, dict) and all(type(cohort.get(k)) is int for k in ("video_count", "split_overlap_count")) and cohort["split_overlap_count"] > cohort["video_count"]: f.add("split_overlap_exceeds_video_count")
+    if isinstance(cohort, dict) and stage == "confirmatory" and cohort.get("split_overlap_count") != 0: f.add("confirmatory_split_overlap")
     cr = value.get("claim_review"); rk = {"claim_manifest_sha256", "mapping_sha256", "review_record_sha256", "review_status"}
     if not _keys(cr, rk): f.add("claim_review_schema_invalid")
     elif not all(_sha(cr.get(k)) for k in ("claim_manifest_sha256", "mapping_sha256", "review_record_sha256")): f.add("claim_review_hash_invalid")
@@ -57,21 +61,28 @@ def validate(value: Any, input_sha256: str | None = None) -> dict:
     iv = value.get("intervention"); ik = {"kind", "selector_sha256", "control_sha256", "selected_condition", "control_condition"}
     if not _keys(iv, ik): f.add("intervention_schema_invalid")
     elif (iv.get("kind") != "claim_mask" or not _sha(iv.get("selector_sha256")) or not _sha(iv.get("control_sha256"))
-          or not _text(iv.get("selected_condition")) or not _text(iv.get("control_condition"))): f.add("intervention_fields_invalid")
+          or not _text(iv.get("selected_condition")) or not _text(iv.get("control_condition"))
+          or iv.get("selected_condition") == iv.get("control_condition")): f.add("intervention_fields_invalid")
     rt = value.get("runtime"); tk = {"seed", "source_commit", "execution_authorization"}
     if not _keys(rt, tk): f.add("runtime_schema_invalid")
-    elif type(rt.get("seed")) is not int or not _text(rt.get("source_commit")) or rt.get("execution_authorization") is not False: f.add("runtime_fields_invalid")
+    elif type(rt.get("seed")) is not int or not isinstance(rt.get("source_commit"), str) or GIT_COMMIT.fullmatch(rt["source_commit"]) is None or rt.get("execution_authorization") is not False: f.add("runtime_fields_invalid")
     return _summary(f, input_sha256)
 
 def _summary(f, digest):
-    return {"schema_version": 1, "structurally_valid": not f, "failure_codes": sorted(f),
+    failures = set(f)
+    if digest is not None and not _sha(digest):
+        failures.add("input_sha256_invalid")
+        digest = None
+    return {"schema_version": 1, "structurally_valid": not failures, "failure_codes": sorted(failures),
             "semantic_validation": "not_machine_verifiable", "execution_authorization": "not_granted",
             **({"input_sha256": digest} if digest else {})}
 
 def main(argv=None):
     ap = argparse.ArgumentParser(); ap.add_argument("path"); a = ap.parse_args(argv)
     try:
-        raw = open(a.path, "rb").read(); value = json.loads(raw, object_pairs_hook=_obj, parse_constant=lambda x: (_ for _ in ()).throw(ValueError("nonfinite")))
+        with open(a.path, "rb") as stream:
+            raw = stream.read()
+        value = json.loads(raw, object_pairs_hook=_obj, parse_constant=lambda x: (_ for _ in ()).throw(ValueError("nonfinite")))
         out = validate(value, hashlib.sha256(raw).hexdigest())
     except Exception:
         out = _summary({"input_unreadable_or_malformed"}, None)
