@@ -109,6 +109,14 @@ motivation, scope, and model choices. Consult the latest relevant entry under
   closing one branch means selecting another independent research, protocol,
   measurement, or reproducibility task, not ending the session.
   Never imply that elapsed time was spent working if it was not measured.
+  The requested duration is a hard minimum work window, not an estimate of
+  effort. Do not end or return the turn early because enough results have been
+  obtained, because the current branch reached a scientific stop, or because
+  the work feels complete. Re-read the clock and continue with another useful
+  authorized task until the recorded deadline, unless the user explicitly
+  cancels or pauses the duration, or an actual external blocker prevents any
+  useful work. If the turn must end for a platform reason, report the window
+  as incomplete and do not claim that the requested duration was fulfilled.
 - The primary agent must independently audit every material result and deliverable
   to the user's requested **SSS** bar; sub-agent agreement is supporting input,
   never a substitute. Operationally, SSS requires all of the following: verified
