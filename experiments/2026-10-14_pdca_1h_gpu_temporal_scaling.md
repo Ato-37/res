@@ -83,3 +83,10 @@ The allocator counter in an OOM path reported a value above physical VRAM, so
 `peak_cuda_memory_bytes` is intentionally set to null in the published 64-frame
 derived artifact. The reliable observation is the CUDA OOM and failed allocation
 request, not a total peak estimate.
+
+An additional BF16 CUDA benchmark at 8192x8192 for 10 iterations completed in
+0.302 s (33.07 matmuls/s; peak allocation 545,390,592 bytes). Compared with the
+4096x4096/20-iteration result (41.38 matmuls/s), this confirms the GPU executes
+larger dense workloads efficiently; the lower video-job utilization is not a
+CUDA availability failure. These synthetic throughput numbers are engineering
+only and have no faithfulness interpretation.
