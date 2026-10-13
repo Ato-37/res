@@ -125,3 +125,8 @@ an engineering hardware-path check only. Its purpose was to verify that the
 GPU can be fully occupied when the workload is compute-dense; the video smoke's
 low utilization is therefore a workload-shape issue rather than unavailable
 CUDA.
+
+The temporal summary analyzer was hardened after audit: each condition now
+carries its input artifact filename and SHA-256, counts must be nonnegative
+integers, and failure conditions must have null allocator peak. Three CPU tests
+cover sorting, count mismatch, and invalid failure peaks.

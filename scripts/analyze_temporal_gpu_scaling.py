@@ -1,6 +1,6 @@
 """Summarize privacy-safe temporal GPU scaling artifacts (CPU only)."""
 from __future__ import annotations
-import argparse, json
+import argparse, hashlib, json
 from pathlib import Path
 
 def analyze(paths: list[Path]) -> dict:
@@ -12,7 +12,11 @@ def analyze(paths: list[Path]) -> dict:
         if type(d['num_frames']) is not int or d['num_frames'] < 1: raise ValueError('invalid frame count')
         if d['status'] not in {'engineering_smoke_only','engineering_smoke_failure'}: raise ValueError('invalid status')
         if d['n_effective'] + d['n_failures'] != d['n_requested']: raise ValueError('count mismatch')
-        rows.append({k:d[k] for k in ('num_frames','status','n_requested','n_effective','n_failures','peak_cuda_memory_bytes')})
+        if any(type(d[k]) is not int or d[k] < 0 for k in ('n_requested','n_effective','n_failures')):
+            raise ValueError('invalid counts')
+        if d['status'] == 'engineering_smoke_failure' and d['peak_cuda_memory_bytes'] is not None:
+            raise ValueError('failure peak must be null')
+        rows.append({'artifact_name': path.name, 'artifact_sha256': hashlib.sha256(path.read_bytes()).hexdigest(), **{k:d[k] for k in ('num_frames','status','n_requested','n_effective','n_failures','peak_cuda_memory_bytes')}})
     rows.sort(key=lambda r:r['num_frames'])
     return {'schema_version':1,'analysis':'temporal_gpu_scaling_summary','status':'engineering_only','conditions':rows,
             'limitations':['Memory values are allocator observations, not a faithfulness metric.','OOM conditions have no effect estimate.']}

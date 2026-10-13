@@ -1,0 +1,41 @@
+{
+  "analysis": "temporal_gpu_scaling_summary",
+  "conditions": [
+    {
+      "artifact_name": "necessity_choice_cap_frame1024_36frames_smoke_20261014_01_derived.json",
+      "artifact_sha256": "9ec820eb5364bd0e026faa459c6b1b9283e57317cdd2366348305a8972c9af11",
+      "n_effective": 1,
+      "n_failures": 0,
+      "n_requested": 1,
+      "num_frames": 36,
+      "peak_cuda_memory_bytes": 13252189184,
+      "status": "engineering_smoke_only"
+    },
+    {
+      "artifact_name": "necessity_choice_cap_frame1024_40frames_smoke_20261014_01_derived.json",
+      "artifact_sha256": "fe1fe489fb9f3cdc414be2230edde77784f80655d005f9d0390fca6dafb84fe1",
+      "n_effective": 1,
+      "n_failures": 0,
+      "n_requested": 1,
+      "num_frames": 40,
+      "peak_cuda_memory_bytes": 14789873664,
+      "status": "engineering_smoke_only"
+    },
+    {
+      "artifact_name": "necessity_choice_cap_frame1024_64frames_smoke_20261014_02_derived.json",
+      "artifact_sha256": "677499e81db2e3d3b9f0750b35b02d27b64f7bd8106ee28ccc1edcd6ff6912ae",
+      "n_effective": 0,
+      "n_failures": 1,
+      "n_requested": 1,
+      "num_frames": 64,
+      "peak_cuda_memory_bytes": null,
+      "status": "engineering_smoke_failure"
+    }
+  ],
+  "limitations": [
+    "Memory values are allocator observations, not a faithfulness metric.",
+    "OOM conditions have no effect estimate."
+  ],
+  "schema_version": 1,
+  "status": "engineering_only"
+}
