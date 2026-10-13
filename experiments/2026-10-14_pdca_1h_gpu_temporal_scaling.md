@@ -161,3 +161,13 @@ five sampled utilization points (53–81% after warm-up). Its JSON SHA-256 is
 `7f6780793eb9122dcf0dbbd735dee383073d37b0b1d3e63b600f21ba1b4206ac`.
 This smaller probe confirms source-bound telemetry serialization; the larger
 8192² probe remains the sustained-utilization evidence.
+
+## Privacy-fix validation run
+
+The sanitized runner was re-executed at 64 frames and reproduced CUDA OOM after
+about nine minutes of GPU work. It wrote `n_requested=1`, `n_effective=0`,
+`n_failures=1`, `failure_code=cuda_oom`, null summaries, and no media path or raw
+exception text. The raw JSON SHA is
+`9eadc613ce366649c353b09502e996d171a148143230441ec84076095a73adfd`; only the
+sanitized derived artifact is publishable. This closes the output-boundary
+privacy validation gap while confirming that 64 frames remains rejected.
