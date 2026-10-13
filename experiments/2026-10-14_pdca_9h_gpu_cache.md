@@ -294,6 +294,90 @@ and the 11:45:12 JST deadline remained. Faithfulness progress remains 79/79
 prior direct samples with estimate −0.0756 nat and 95% t CI
 [−0.1578,+0.0065], below +0.25 nat; this window adds zero direct samples.
 
+## Independent recomputation of the closed faithfulness confirmation
+
+The primary agent independently reran the concise CPU integrity analyzer on the
+published result and run manifest. SHA-256 values were recorded for both inputs
+and for the analyzer, and the analyzer reconciled 79 requested/effective
+records, zero failures, unique sample keys, the 4-head/5-control intervention,
+all per-record target-minus-control contrasts, and the published inferential
+summary. It reproduced target mean drop −0.0601 nat, control mean drop +0.0155
+nat, selective effect −0.0756 nat (SD 0.3667), 95% t CI
+[−0.1578,+0.0065], p=0.0706 versus zero descriptively, and p=1.52e−11 versus
+the +0.25 nat practical boundary. The registered success rule remains false.
+
+This analyzer invocation intentionally omitted the private sample manifest, so
+it reports unique video identities as unverified; unique sample keys alone do
+not establish distinct videos. The run manifest binds a sample-manifest hash,
+but this recomputation did not reopen the private mapping. This does not change
+the frozen estimate, but is a remaining provenance audit gap and prevents an
+SSS claim. No new faithfulness samples were collected. The single primary
+contrast has no multiplicity adjustment; secondary subgroup analyses remain
+excluded from this confirmation. Next, inspect whether the private manifest can
+be safely hashed and checked in-process without exposing identifiers, or retain
+the explicit uniqueness limitation if access/provenance is not independently
+verifiable.
+
+An independent auditor reproduced the estimates from the per-record contrasts
+and confirmed that the input result, manifest, and analyzer hashes match this
+checkpoint. It also notes that the +0.25 nat boundary was prespecified as a
+design choice (approximately a 1.28 change in relative odds), but was not
+empirically calibrated as a universal practical-effect boundary. The protocol
+decision remains valid against the declared boundary; its substantive
+calibration remains a limitation. The auditor likewise could not verify
+video-identity uniqueness without the private sample mapping.
+
+## Planned repeatability check for attention-backend resource results
+
+The first eager-versus-SDPA comparison had one run per backend, so observed
+runtime/resource differences could be run-order or clock variation. The new
+question is whether the lower SDPA allocation and any runtime difference persist
+on the same fixed input in a second run per backend. This remains an engineering
+benchmark with one unique clip, not independent sample evidence. The sequence
+will be SDPA then eager, opposite the first comparison's eager-then-SDPA order.
+Each run uses the existing six-call smoke-validated path followed by 387 calls
+(one prefill and 128 cached decodes in each of three conditions), 32 frames,
+4-bit weights/BF16 compute, and the same pinned NOAA clip and Qwen revision.
+Expected generation time is about 33–40 seconds per run, plus model setup;
+the preflight requires at least 13 GiB free VRAM. New output names are unique,
+and the runner refuses overwrite. Stop if the current free-VRAM gate fails.
+
+### Verified repeatability observations
+
+Both second-run artifacts used the same runner SHA as each other and the same
+media/checkpoint/configuration. The independent GPU audit checked both new
+artifacts and the earlier pair. All four completed 1/1 unique source clip,
+3/3 conditions, and 387/387 model calls with zero failures; each condition had
+129 calls. Hashes for the new SDPA and eager artifacts are respectively
+`aeb3b1c1bb1580cb8268999bde1ac83e7cff45609ea3addb8f3f554b11fc072d` and
+`9063b35e5786badffffc7cfc82762cabae127f93ab3f28916fe0b6a185f119db`.
+The old SDPA artifact took 33.10 s and peaked at 6.728 GiB allocation; the
+new one took 30.99 s with the same allocation. The old eager artifact took
+36.50 s and peaked at 11.089 GiB; the new one took 41.30 s with the same
+allocation. Thus, in both runs SDPA used 4.361 GiB (39.3%) less peak
+PyTorch allocation. Runtime advantage varied from 3.40 s (9.3%) in run 1 to
+10.31 s (25.0%) in run 2; the two-run means were 32.04 s SDPA and 38.90 s
+eager, but this is descriptive only (n=2 per backend, single source clip).
+The 1-second telemetry samples again showed brief 100% readings and sampled
+condition means between 33.7–36.9% for SDPA and 36.4–44.8% for eager in run 2.
+
+The run-1 eager artifact used a pre-SDPA runner hash, whereas run-2 eager and
+SDPA share the same runner hash. The unchanged eager code path and same recorded
+inputs make the comparison informative, but the runner-version difference is
+another reason not to treat this as a controlled performance claim. No
+cross-backend logits or kernel-per-layer introspection were added. The
+artifacts contain derived counters/geometry only, have no raw text, IDs, media,
+or local absolute paths, and were prepared for scoped publication. Focused
+CPU validation passed all 30 tests across the cache runner and fail-closed
+claim-mask validator; `git diff --check` passed. None of this is faithfulness
+evidence; direct evidence remains the prior 79/79 result, with zero new samples.
+
+Next, do not interpret two runs as a speedup claim. Continue only if a useful
+runtime question justifies an additional design (for example, synchronized
+per-decode-step timing to distinguish host gaps from accelerator work); keep
+the claim-mask protocol validator fail-closed pending resolution of the
+estimand/cohort mismatch and the independent human-review and data-rights gates.
+
 ## Planned SDPA long-context runtime comparison
 
 Before running it, the discriminating question is whether Transformers' SDPA
