@@ -21,7 +21,9 @@ def run(seconds: float, size: int, interval: float) -> dict:
             except (OSError, subprocess.SubprocessError, ValueError): pass
             next_sample=now+interval
     torch.cuda.synchronize(); elapsed=time.perf_counter()-start
-    return {'schema_version':1,'diagnostic':'cuda_bf16_utilization_probe','size':size,'target_seconds':seconds,'elapsed_seconds':elapsed,'iterations':iters,'dtype':'bfloat16','torch':torch.__version__,'cuda':torch.version.cuda,'device':torch.cuda.get_device_name(0),'peak_cuda_memory_bytes':torch.cuda.max_memory_allocated(),'telemetry_samples':samples,'status':'engineering_gpu_path_only','limitations':['Synthetic dense matmul only; no model, video, QA, or faithfulness claim.']}
+    try: source_commit=subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip()
+    except (OSError, subprocess.SubprocessError): source_commit=None
+    return {'schema_version':1,'diagnostic':'cuda_bf16_utilization_probe','source_commit':source_commit,'size':size,'target_seconds':seconds,'elapsed_seconds':elapsed,'iterations':iters,'dtype':'bfloat16','torch':torch.__version__,'cuda':torch.version.cuda,'device':torch.cuda.get_device_name(0),'peak_cuda_memory_bytes':torch.cuda.max_memory_allocated(),'telemetry_samples':samples,'status':'engineering_gpu_path_only','limitations':['Synthetic dense matmul only; no model, video, QA, or faithfulness claim.']}
 
 def main(argv=None):
     p=argparse.ArgumentParser(); p.add_argument('--seconds',type=float,default=5); p.add_argument('--size',type=int,default=8192); p.add_argument('--interval',type=float,default=.5); p.add_argument('--output',type=Path,required=True); a=p.parse_args(argv)
