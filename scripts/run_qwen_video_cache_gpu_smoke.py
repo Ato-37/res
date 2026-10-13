@@ -279,6 +279,8 @@ class GpuTelemetrySampler:
             self._stop.wait(self.interval_seconds)
 
     def start(self):
+        if self._thread is not None:
+            raise RuntimeError("telemetry sampler can only be started once")
         self._started = time.monotonic()
         self._thread = threading.Thread(target=self._run, name="gpu-telemetry", daemon=True)
         self._thread.start()
@@ -288,10 +290,11 @@ class GpuTelemetrySampler:
             return summarize_gpu_telemetry([], 0, 0.0)
         self._stop.set()
         self._thread.join(timeout=6)
-        if self._thread.is_alive():
-            self.errors += 1
+        still_running = self._thread.is_alive()
+        sample_snapshot = tuple(dict(sample) for sample in self.samples)
+        error_snapshot = self.errors + int(still_running)
         elapsed = time.monotonic() - self._started
-        return summarize_gpu_telemetry(self.samples, self.errors, elapsed)
+        return summarize_gpu_telemetry(sample_snapshot, error_snapshot, elapsed)
 
 
 def run_gpu_smoke(output: Path, frame_count: int, cached_decode_steps: int = DEFAULT_CACHED_DECODE_STEPS):
@@ -474,8 +477,10 @@ def run_gpu_smoke(output: Path, frame_count: int, cached_decode_steps: int = DEF
                     )
                 torch.cuda.synchronize()
             finally:
-                telemetry_summary = telemetry.stop()
-                trace.close()
+                try:
+                    telemetry_summary = telemetry.stop()
+                finally:
+                    trace.close()
                 RUN_PROGRESS["completed_model_calls"] += len(trace.calls)
             trace_report = validate_generation_trace(
                 trace, expected_prefill, expected_seq_len=seq_len,

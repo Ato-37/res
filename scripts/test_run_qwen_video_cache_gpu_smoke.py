@@ -83,6 +83,32 @@ class VideoCacheGpuSmokeCpuTests(unittest.TestCase):
         self.assertEqual(sample["power_watts"], 175.5)
         self.assertNotIn("pid", sample)
 
+    def test_gpu_telemetry_sampler_counts_unavailable_and_malformed_samples(self):
+        sampler = GpuTelemetrySampler()
+        sampler._started = 1.0
+        with mock.patch.object(runner.subprocess, "check_output", return_value="N/A, N/A, N/A, N/A\n"):
+            sampler._sample()
+        with mock.patch.object(
+            runner.subprocess, "check_output",
+            side_effect=runner.subprocess.CalledProcessError(1, ["nvidia-smi"]),
+        ):
+            sampler._sample()
+        self.assertEqual(sampler.samples, [])
+        self.assertEqual(sampler.errors, 2)
+
+    def test_gpu_telemetry_stop_joins_mock_sampler_thread(self):
+        sampler = GpuTelemetrySampler(interval_seconds=0.01)
+        with mock.patch.object(runner.subprocess, "check_output",
+                               return_value="55, 10000, 6000, 175.5\n"):
+            sampler.start()
+            sampler._stop.wait(0.025)
+            summary = sampler.stop()
+        self.assertGreaterEqual(summary["sample_count"], 1)
+        self.assertEqual(summary["sample_errors"], 0)
+        self.assertFalse(sampler._thread.is_alive())
+        with self.assertRaisesRegex(RuntimeError, "only be started once"):
+            sampler.start()
+
     @unittest.skipUnless(MODEL_PATH.is_dir(), "pinned cached config is unavailable")
     def test_generation_padding_uses_generation_config_not_multimodal_config(self):
         from transformers import AutoConfig, GenerationConfig

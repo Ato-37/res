@@ -224,9 +224,12 @@ looked idle at times. The runner now samples aggregate `nvidia-smi` utilization,
 used/free memory, and power once per second during generation. It never queries
 PIDs or process names and stores only per-condition mean, median, maximum,
 sample count, error count, and duration. CPU tests validate field parsing and
-summary arithmetic (14 cache-runner tests pass). A separate agent audit found
-no privacy or cache-correctness blocker; it cautioned that one-second polling
-is coarse and may slightly perturb host scheduling.
+summary arithmetic. After the first telemetry run, the sampler was hardened to
+snapshot safely if shutdown times out, always remove the model trace hook,
+reject a second start, and count malformed/failed counter queries. The expanded
+cache-runner suite passes 16 tests. A separate agent audit found no privacy or
+cache-correctness blocker; it cautioned that one-second polling is coarse and
+may slightly perturb host scheduling.
 
 The 32-frame, 128-decode run was repeated only to capture this missing
 measurement, producing
