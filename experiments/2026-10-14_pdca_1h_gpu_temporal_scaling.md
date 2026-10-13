@@ -171,3 +171,6 @@ exception text. The raw JSON SHA is
 `9eadc613ce366649c353b09502e996d171a148143230441ec84076095a73adfd`; only the
 sanitized derived artifact is publishable. This closes the output-boundary
 privacy validation gap while confirming that 64 frames remains rejected.
+
+The final temporal summary was regenerated with the sanitized 64-frame failure
+artifact, so its provenance now points to the privacy-fixed runner output.
