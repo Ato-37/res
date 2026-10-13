@@ -72,3 +72,9 @@ engineering diagnostic only and is not faithfulness evidence.
 The failure serializer was hardened after audit: future failure records contain
 only `sample_index` and generic codes such as `cuda_oom`, never media paths or
 raw exception text. Three focused CPU tests pass.
+
+The repaired runner's 64-frame rerun reproduced the same CUDA OOM and wrote a
+local failure JSON with `n_requested=1`, `n_effective=0`, and null summaries.
+Because that pre-sanitization file contains a private video path and raw error,
+only a derived failure artifact with `failure_codes=["cuda_oom"]` is published;
+the raw file remains local.

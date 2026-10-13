@@ -1,0 +1,28 @@
+{
+  "analysis": "necessity_choice_margin_temporal_scaling_smoke",
+  "cap_pixels_per_frame": true,
+  "device": "cuda",
+  "failure_codes": [
+    "cuda_oom"
+  ],
+  "frame_size": 1024,
+  "gpu_name": "NVIDIA GeForce RTX 5070 Ti",
+  "limitations": [
+    "OOM failure only; no effect estimate or faithfulness inference.",
+    "Raw failure JSON remains local because pre-sanitization output contains private path/exception text."
+  ],
+  "max_pixels": 200704,
+  "n_effective": 0,
+  "n_failures": 1,
+  "n_requested": 1,
+  "num_frames": 64,
+  "peak_cuda_memory_bytes": 26863323648,
+  "raw_artifact_sha256": "92379ada9e919f2e49bf0dd43096cb05a42aa198753017dfb82a0393547ba179",
+  "schema_version": 1,
+  "seed": 20261014,
+  "source_commit": "4fe1efab16079a996e17d7b255b4372e3b1ce219",
+  "status": "engineering_smoke_failure",
+  "summary": null,
+  "torch_version": "2.11.0+cu128",
+  "transformers_version": "5.17.0"
+}
