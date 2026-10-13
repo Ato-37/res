@@ -45,3 +45,7 @@ This temporal scaling run is `補助診断のみ`; claim-selective real-data wor
 unresolved. Next action is to use 32 frames as the high-resolution safe default; 36 frames is a measurable but tighter 12.34-GiB condition, and 40 frames is near the 16-GiB limit,
 retain 40 frames only for explicitly bounded diagnostics, and avoid 64-frame
 runs unless the memory protocol is changed and smoke-tested.
+
+## Independent audit and publication verification
+
+The independent audit reproduced the 40-frame derived SHA (`fe1fe489fb9f3cdc414be2230edde77784f80655d005f9d0390fca6dafb84fe1`) and confirmed 1/1/0 accounting, CUDA device, RTX 5070 Ti, 13.77-GiB peak, and the absence of an interval. A live `git ls-remote` check later verified GitHub `main` at `4162b5e96f0579934940dd1c3b88ee16472b5d79`. The raw JSON remains local but is present for local hash verification; only the derived summary is published. The 64-frame attempt produced no summary, so its 7.36-GiB allocation request is a failure diagnostic rather than a measured total peak. The difference between start-of-run free memory and allocator peak remains an unresolved allocator/driver accounting detail; this does not affect the safe-default decision. SSS is not claimed.
