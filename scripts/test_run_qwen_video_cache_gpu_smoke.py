@@ -123,9 +123,11 @@ class VideoCacheGpuSmokeCpuTests(unittest.TestCase):
 
     def test_gpu_telemetry_summary_contains_only_sample_statistics(self):
         samples = [
-            {"gpu_util_percent": 40, "memory_used_mib": 9000,
+            {"gpu_util_percent": 40, "memory_controller_util_percent": 10,
+             "memory_used_mib": 9000,
              "memory_free_mib": 7000, "power_watts": 100.0},
-            {"gpu_util_percent": 80, "memory_used_mib": 11000,
+            {"gpu_util_percent": 80, "memory_controller_util_percent": 70,
+             "memory_used_mib": 11000,
              "memory_free_mib": 5000, "power_watts": 200.0},
         ]
         summary = summarize_gpu_telemetry(samples, errors=1, elapsed_seconds=1.5)
@@ -133,28 +135,41 @@ class VideoCacheGpuSmokeCpuTests(unittest.TestCase):
         self.assertEqual(summary["sample_errors"], 1)
         self.assertEqual(summary["gpu_util_percent"],
                          {"mean": 60.0, "median": 60.0, "max": 80})
+        self.assertEqual(summary["memory_controller_util_percent"],
+                         {"mean": 40.0, "median": 40.0, "max": 70})
         self.assertEqual(summary["power_watts"]["mean"], 150.0)
         self.assertNotIn("process_name", summary)
         self.assertIsNone(summarize_gpu_telemetry([], 2, 0.2)["gpu_util_percent"]["mean"])
 
-    def test_gpu_telemetry_sampler_parses_only_four_public_counters(self):
+    def test_gpu_telemetry_sampler_parses_five_public_counters(self):
         sampler = GpuTelemetrySampler()
         sampler._started = 1.0
         with mock.patch.object(runner.subprocess, "check_output",
-                               return_value="55, 10000, 6000, 175.5\n"):
+                               return_value="55, 15, 10000, 6000, 175.5\n"):
             sampler._sample()
         self.assertEqual(len(sampler.samples), 1)
         sample = sampler.samples[0]
         self.assertEqual(sample["gpu_util_percent"], 55)
+        self.assertEqual(sample["memory_controller_util_percent"], 15)
         self.assertEqual(sample["memory_used_mib"], 10000)
         self.assertEqual(sample["memory_free_mib"], 6000)
         self.assertEqual(sample["power_watts"], 175.5)
         self.assertNotIn("pid", sample)
 
+    def test_gpu_telemetry_sampler_rejects_out_of_range_utilization(self):
+        sampler = GpuTelemetrySampler()
+        sampler._started = 1.0
+        for row in ("101, 15, 10000, 6000, 175.5\n", "55, -1, 10000, 6000, 175.5\n"):
+            with mock.patch.object(runner.subprocess, "check_output", return_value=row):
+                sampler._sample()
+        self.assertEqual(sampler.samples, [])
+        self.assertEqual(sampler.errors, 2)
+
     def test_gpu_telemetry_sampler_counts_unavailable_and_malformed_samples(self):
         sampler = GpuTelemetrySampler()
         sampler._started = 1.0
-        with mock.patch.object(runner.subprocess, "check_output", return_value="N/A, N/A, N/A, N/A\n"):
+        with mock.patch.object(runner.subprocess, "check_output",
+                               return_value="N/A, N/A, N/A, N/A, N/A\n"):
             sampler._sample()
         with mock.patch.object(
             runner.subprocess, "check_output",
@@ -167,7 +182,7 @@ class VideoCacheGpuSmokeCpuTests(unittest.TestCase):
     def test_gpu_telemetry_stop_joins_mock_sampler_thread(self):
         sampler = GpuTelemetrySampler(interval_seconds=0.01)
         with mock.patch.object(runner.subprocess, "check_output",
-                               return_value="55, 10000, 6000, 175.5\n"):
+            return_value="55, 15, 10000, 6000, 175.5\n"):
             sampler.start()
             sampler._stop.wait(0.025)
             summary = sampler.stop()

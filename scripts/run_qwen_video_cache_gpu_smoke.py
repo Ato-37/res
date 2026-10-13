@@ -347,7 +347,8 @@ def summarize_gpu_telemetry(samples, errors: int, elapsed_seconds: float) -> dic
 
     result = {"sample_count": len(samples), "sample_errors": errors,
               "sampling_window_seconds": elapsed_seconds}
-    for field in ("gpu_util_percent", "memory_used_mib", "memory_free_mib", "power_watts"):
+    for field in ("gpu_util_percent", "memory_controller_util_percent",
+                  "memory_used_mib", "memory_free_mib", "power_watts"):
         values = [sample[field] for sample in samples if field in sample]
         result[field] = {
             "mean": statistics.fmean(values) if values else None,
@@ -371,18 +372,28 @@ class GpuTelemetrySampler:
         self._started = None
 
     def _sample(self):
-        command = ["nvidia-smi", "--query-gpu=utilization.gpu,memory.used,memory.free,power.draw",
+        command = ["nvidia-smi", "--query-gpu=utilization.gpu,utilization.memory,memory.used,memory.free,power.draw",
                    "--format=csv,noheader,nounits"]
         try:
             row = subprocess.check_output(command, text=True, timeout=5).strip().splitlines()[0].split(",")
-            if len(row) != 4:
+            if len(row) != 5:
                 raise ValueError("unexpected telemetry fields")
+            gpu_util = int(row[0].strip())
+            memory_util = int(row[1].strip())
+            memory_used = int(row[2].strip())
+            memory_free = int(row[3].strip())
+            power = float(row[4].strip())
+            if not 0 <= gpu_util <= 100 or not 0 <= memory_util <= 100:
+                raise ValueError("utilization outside [0, 100]")
+            if memory_used < 0 or memory_free < 0 or power < 0:
+                raise ValueError("negative GPU resource counter")
             self.samples.append({
                 "elapsed_seconds": time.monotonic() - self._started,
-                "gpu_util_percent": int(row[0].strip()),
-                "memory_used_mib": int(row[1].strip()),
-                "memory_free_mib": int(row[2].strip()),
-                "power_watts": float(row[3].strip()),
+                "gpu_util_percent": gpu_util,
+                "memory_controller_util_percent": memory_util,
+                "memory_used_mib": memory_used,
+                "memory_free_mib": memory_free,
+                "power_watts": power,
             })
         except (OSError, subprocess.SubprocessError, ValueError, IndexError):
             self.errors += 1
