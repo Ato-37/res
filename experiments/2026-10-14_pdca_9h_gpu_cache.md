@@ -259,3 +259,101 @@ At the 2026-10-14 03:06 JST checkpoint, about 21 minutes 10 seconds had elapsed
 in the nine-hour window. Continue with a distinct, useful backend or protocol
 check while respecting the closed data gates; do not repeat telemetry without
 a code or runtime change.
+
+## WSL memory and pending estimand audit
+
+Read-only host-runtime inspection after the GPU run showed WSL-visible Linux
+memory total 15,921,528 kB (about 15.2 GiB), `MemAvailable` 14,327,624 kB,
+`Cached` 11,679,956 kB, swap 56 MiB used of 4 GiB, and memory-pressure averages
+near zero. The largest process RSS in the sample was under 20 MiB. The
+workspace filesystem reported 893 GiB available. This snapshot does not
+support current WSL memory pressure; much of the displayed Linux usage is file
+cache that Linux can reclaim. It cannot identify which Windows processes
+contribute to a separate Windows Task Manager reading of 30/32 GiB, since that
+host-wide view is not exposed by these Linux counters.
+
+The independent CPU protocol audit found a real design-contract mismatch:
+`experiments/2026-10-13_claim_selective_protocol_design.md` describes a
+teacher-forced log-margin, while the claim-mask validator requires only generic
+teacher-forced log-probability; `target_text_sha256` and `answer_text_sha256`
+are undefined; and fixture labels say claim/nonclaim *tokens* are masked even
+though the design maps a claim to a video interval and masks frames. The
+design's baseline-correct primary cohort also differs from the broader
+faithfulness plan, which specifies all eligible videos as primary and baseline
+correctness only as a secondary analysis. No real-data experiment is currently
+gated on this schema, and the reviewer recommended the minimal consistent
+meaning of mean teacher-forced log-probability over a preselected claim span
+under claim-mapped frame masking versus an equal-size temporal control.
+
+A user preference question is pending before changing this estimand. Until it
+is resolved, keep the validator fail-closed and do not build a dependent runner.
+This does not block separate runtime, rights, or protocol-audit work.
+
+At the 2026-10-14 03:09:55 JST checkpoint, 24 minutes 43 seconds had elapsed
+and the 11:45:12 JST deadline remained. Faithfulness progress remains 79/79
+prior direct samples with estimate −0.0756 nat and 95% t CI
+[−0.1578,+0.0065], below +0.25 nat; this window adds zero direct samples.
+
+## Planned SDPA long-context runtime comparison
+
+Before running it, the discriminating question is whether Transformers' SDPA
+backend completes the same fixed 32-frame, 128-cached-decode workload with
+different runtime/resource use from the measured eager condition. The previous
+four-frame attention diagnostic found backend-dependent numerical behavior at
+short context, while the present 32-frame eager run recorded about 36.5 seconds,
+11.089 GiB PyTorch allocation, and sparse mean utilization around 44–50%.
+The upcoming SDPA run is a runtime/cache-path comparison only; this runner does
+not retain raw logits for cross-backend numeric comparison, so it cannot answer
+whether SDPA changes model scores or semantics.
+
+Predeclared settings: one fixed, already-cleared NOAA clip; 32 frames;
+Qwen2.5-VL-7B-Instruct pinned revision; 4-bit weights/BF16 compute; same prompt,
+seed, processor profile, three native/explicit/candidate position conditions,
+and 128 cached tokens per condition. Expected full work is 387 model calls and
+about 40 seconds based on the eager result, with roughly 11 GiB PyTorch peak
+allocation and a 13 GiB minimum-free-VRAM preflight gate. First run the fixed
+six-call/one-decode smoke. No metric or cohort changes are involved, and even a
+successful comparison advances zero faithfulness samples.
+
+### Verified result
+
+The SDPA smoke completed 1/1 sample, 32/32 frames, 3/3 conditions, and 6/6
+calls without failures. Its positions, cache invariants, finite scores/logits,
+and native-auto/explicit-native parity passed; peak PyTorch allocation was
+6.728 GiB. The fixed 128-step SDPA run then completed 1/1 sample, 32/32 frames,
+3/3 conditions, and 387/387 model calls without failures. Its artifact is
+`results/qwen_video_cache_gpu_smoke_20261014_32f_sdpa_128decode_01.json`,
+SHA-256 `2866224cee27610b4bde9d9b4460f4c791408090a29b151ba6df29920228cb16`;
+the recorded runner hash matches the source used. It took 33.10 seconds and
+peaked at 6.728 GiB of PyTorch allocation. Every condition reached cache length
+4,384 and decode coordinate 181; all 387 calls passed and native automatic vs
+explicit native remained exact.
+
+Against the single eager telemetry run with the same input/settings (36.50 s,
+11.089 GiB allocation), this one SDPA run was 3.40 s (9.3%) faster end-to-end
+and used 4.361 GiB (39.3%) less peak PyTorch allocation. Per-condition forward
+times were 9.48/5.75/8.21 s for SDPA versus 9.47/7.54/8.91 s for eager.
+NVIDIA-reported sampled memory maxima were 9,354/9,338/9,334 MiB for SDPA;
+sparse sampled mean utilization was 31.1/44.3/27.0%, with sampled maxima
+100/100/99%. These telemetry means use only 6–10 samples per condition. The
+first native-auto condition had nearly identical runtime (9.48 vs 9.47 s), and
+condition order, clocks, and sparse polling remain alternative explanations for
+the other runtime differences. No cross-backend logit comparison was run, so
+this is an exploratory backend runtime/memory result, not numerical or
+semantic equivalence. The run supports the narrow observation that SDPA
+completed this particular workload with materially lower allocated memory;
+it does not establish a general speedup or model-score effect.
+The run manifest records that `sdpa` was requested through Transformers, but
+does not introspect the installed model modules to prove which kernel each
+attention layer selected. The result is therefore a requested-backend runtime
+comparison, not a per-layer kernel audit.
+
+The GPU is therefore not idle in this workload: observed conditions reached
+100% sampled utilization and board power up to 202.81 W. However, the sparse
+sampled means are below saturation, and the result does not identify whether
+the limiting factor is sequential decode, host gaps, kernel selection, or
+another source. Batch scaling would be a separate throughput design, not a
+faithfulness experiment; the lower SDPA allocation creates apparent memory
+headroom, but any batch increase must first verify exact model/processor inputs
+and a safe maximum allocation. Direct faithfulness remains unchanged at 79/79,
+−0.0756 nat (95% t CI [−0.1578,+0.0065]); this window adds zero direct samples.

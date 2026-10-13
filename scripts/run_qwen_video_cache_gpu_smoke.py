@@ -46,6 +46,7 @@ PROFILES = {
 }
 MAX_NEW_TOKENS = 2
 DEFAULT_CACHED_DECODE_STEPS = 1
+ATTENTION_IMPLEMENTATIONS = ("eager", "sdpa")
 PROMPT = "Describe the visible scene briefly. Use only visual information."
 RUN_PROGRESS = {
     "stage": "preflight", "completed_model_calls": 0,
@@ -297,7 +298,9 @@ class GpuTelemetrySampler:
         return summarize_gpu_telemetry(sample_snapshot, error_snapshot, elapsed)
 
 
-def run_gpu_smoke(output: Path, frame_count: int, cached_decode_steps: int = DEFAULT_CACHED_DECODE_STEPS):
+def run_gpu_smoke(output: Path, frame_count: int,
+                  cached_decode_steps: int = DEFAULT_CACHED_DECODE_STEPS,
+                  attention_implementation: str = "eager"):
     import torch
     from transformers import AutoProcessor, BitsAndBytesConfig, Qwen2_5_VLForConditionalGeneration
     from transformers.cache_utils import DynamicCache
@@ -317,6 +320,8 @@ def run_gpu_smoke(output: Path, frame_count: int, cached_decode_steps: int = DEF
         raise RuntimeError("CUDA with BF16 support is required")
     free_bytes, total_bytes = torch.cuda.mem_get_info()
     profile = PROFILES[frame_count]
+    if attention_implementation not in ATTENTION_IMPLEMENTATIONS:
+        raise ValueError("unsupported attention implementation")
     expected_new_tokens = cached_decode_steps + 1
     expected_model_calls = 3 * expected_new_tokens
     if free_bytes < profile["min_free_vram_bytes"]:
@@ -340,7 +345,7 @@ def run_gpu_smoke(output: Path, frame_count: int, cached_decode_steps: int = DEF
         RUN_PROGRESS["stage"] = "load_model_and_processor"
         model = Qwen2_5_VLForConditionalGeneration.from_pretrained(
             str(model_path), local_files_only=True, torch_dtype=torch.bfloat16,
-            attn_implementation="eager", device_map="cuda",
+            attn_implementation=attention_implementation, device_map="cuda",
             quantization_config=BitsAndBytesConfig(
                 load_in_4bit=True, bnb_4bit_compute_dtype=torch.bfloat16
             ),
@@ -555,7 +560,7 @@ def run_gpu_smoke(output: Path, frame_count: int, cached_decode_steps: int = DEF
             "seed": SEED,
             "quantization": "4-bit",
             "compute_dtype": "bfloat16",
-            "attention_implementation": "eager",
+            "attention_implementation": attention_implementation,
             "cache": "fresh DynamicCache per condition; rope_deltas cleared before each generation",
             "kv_cache_payload_estimate": kv_cache_payload_estimate(
                 model.config.get_text_config(decoder=True), seq_len, dtype_bytes=2
@@ -626,6 +631,8 @@ def main(argv=None):
                         help="fixed input profile (4=baseline, 32=longer temporal context)")
     parser.add_argument("--cached-decode-steps", type=int, choices=(1, 16, 128), default=1,
                         help="cached one-token decode steps after prefill (1=baseline, 16=smoke, 128=long horizon)")
+    parser.add_argument("--attention-implementation", choices=ATTENTION_IMPLEMENTATIONS, default="eager",
+                        help="Transformers attention backend (fixed and recorded per run)")
     args = parser.parse_args(argv)
     repo = Path(__file__).resolve().parents[1]
     try:
@@ -634,7 +641,7 @@ def main(argv=None):
         parser.error(str(exc))
     process_started = time.monotonic()
     try:
-        run_gpu_smoke(output, args.frames, args.cached_decode_steps)
+        run_gpu_smoke(output, args.frames, args.cached_decode_steps, args.attention_implementation)
     except Exception as exc:
         if not output.exists():
             model_path = Path.home() / ".cache/huggingface/hub/models--Qwen--Qwen2.5-VL-7B-Instruct/snapshots" / REVISION

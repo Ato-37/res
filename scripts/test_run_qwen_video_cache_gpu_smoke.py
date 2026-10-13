@@ -53,6 +53,9 @@ class _TinyLanguageModel(nn.Module):
 
 
 class VideoCacheGpuSmokeCpuTests(unittest.TestCase):
+    def test_attention_backends_are_closed_to_measured_choices(self):
+        self.assertEqual(runner.ATTENTION_IMPLEMENTATIONS, ("eager", "sdpa"))
+
     def test_gpu_telemetry_summary_contains_only_sample_statistics(self):
         samples = [
             {"gpu_util_percent": 40, "memory_used_mib": 9000,
@@ -287,7 +290,7 @@ class VideoCacheGpuSmokeCpuTests(unittest.TestCase):
         output = repo / "results" / f".tmp_cache_failure_{uuid.uuid4().hex}.json"
         original = dict(runner.RUN_PROGRESS)
 
-        def fail_after_partial_progress(_output, _frame_count, _cached_decode_steps):
+        def fail_after_partial_progress(*_args):
             runner.RUN_PROGRESS.update(
                 stage="generate_explicit_native_noop", completed_model_calls=2,
                 effective_conditions=1, effective_frames=4,
