@@ -144,3 +144,8 @@ warm-up, about 1.79–1.81 GiB used memory, and up to about 280 W. This explains
 why a compute-dense workload fully occupies the GPU, while the video path can
 remain preprocessing/memory-bound. The telemetry JSON is synthetic GPU-path
 evidence only and does not advance faithfulness.
+
+The published telemetry artifact SHA-256 is
+`01f5e2cfa2e67b843affec622420d55daf2a044823e2e16f79f8ebc590eaf2b7`; a local
+privacy scan found no absolute paths, video paths, questions, or sample IDs in
+it or the temporal summary.
