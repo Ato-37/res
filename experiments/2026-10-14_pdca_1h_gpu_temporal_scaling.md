@@ -154,3 +154,10 @@ Across the 10 telemetry samples, mean utilization was 90.3%; excluding the
 first warm-up sample it was 100%, with mean sampled power 238.5 W. These are
 summaries of the inspectable telemetry artifact, not claims about the Qwen video
 runner's utilization.
+
+A follow-up 1-second, 1024² telemetry probe was bound to source commit
+`dfee23cf250144ec4d01dbf73b0f0165cdc80adf`, producing 19,633 iterations and
+five sampled utilization points (53–81% after warm-up). Its JSON SHA-256 is
+`7f6780793eb9122dcf0dbbd735dee383073d37b0b1d3e63b600f21ba1b4206ac`.
+This smaller probe confirms source-bound telemetry serialization; the larger
+8192² probe remains the sustained-utilization evidence.

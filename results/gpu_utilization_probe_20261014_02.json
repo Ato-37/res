@@ -1,0 +1,55 @@
+{
+  "schema_version": 1,
+  "diagnostic": "cuda_bf16_utilization_probe",
+  "source_commit": "dfee23cf250144ec4d01dbf73b0f0165cdc80adf",
+  "size": 1024,
+  "target_seconds": 1.0,
+  "elapsed_seconds": 1.0337038640000173,
+  "iterations": 19633,
+  "dtype": "bfloat16",
+  "torch": "2.11.0+cu128",
+  "cuda": "12.8",
+  "device": "NVIDIA GeForce RTX 5070 Ti",
+  "peak_cuda_memory_bytes": 16908288,
+  "telemetry_samples": [
+    {
+      "elapsed_seconds": 0.19820692799976314,
+      "gpu_util_percent": 3,
+      "memory_used_mib": 1311,
+      "memory_free_mib": 14685,
+      "power_watts": 36.0
+    },
+    {
+      "elapsed_seconds": 0.39827938500002347,
+      "gpu_util_percent": 53,
+      "memory_used_mib": 1311,
+      "memory_free_mib": 14685,
+      "power_watts": 53.7
+    },
+    {
+      "elapsed_seconds": 0.5982872189997579,
+      "gpu_util_percent": 81,
+      "memory_used_mib": 1311,
+      "memory_free_mib": 14685,
+      "power_watts": 83.68
+    },
+    {
+      "elapsed_seconds": 0.7982933700000103,
+      "gpu_util_percent": 68,
+      "memory_used_mib": 1310,
+      "memory_free_mib": 14686,
+      "power_watts": 110.19
+    },
+    {
+      "elapsed_seconds": 0.9987602669998523,
+      "gpu_util_percent": 60,
+      "memory_used_mib": 1307,
+      "memory_free_mib": 14689,
+      "power_watts": 132.83
+    }
+  ],
+  "status": "engineering_gpu_path_only",
+  "limitations": [
+    "Synthetic dense matmul only; no model, video, QA, or faithfulness claim."
+  ]
+}
