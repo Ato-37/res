@@ -1169,3 +1169,13 @@ match the final artifact. Full suite passes 559/559 after the final code change,
 with `git diff --check` and Python compilation clean. At 19:49:39 JST,
 2h26m27s elapsed and 33m33s remained; direct faithfulness progress remains
 0 samples / 0 effects.
+
+Publication: commit `965efa8adde939aec2f241e6bfca14d5d1671154` contains only
+the contract, diagnostic implementation/test, this log, and the final synthetic
+CPU audit artifact. Push succeeded; a live `git fetch origin main` verified
+`HEAD == origin/main == 965efa8adde939aec2f241e6bfca14d5d1671154` and the
+remote artifact SHA-256 equals
+`6d29b855ec966fbdfc0e4c313816f406cbbc3d71cb71113b0dec7b569dd6dafe`.
+Untracked private NExT-GQA data/sample files remain untouched and unstaged. At
+19:50:11 JST, 2h26m59s elapsed and 33m01s remained. No new faithfulness sample
+or effect estimate was obtained.
