@@ -1365,3 +1365,16 @@ identity reconciliation supports 79 unique IDs but explicitly does not
 establish statistical independence. No head search is reopened. At 20:04:32
 JST, 2h41m20s elapsed and 18m40s remained; this PDCA window still adds 0
 faithfulness samples and 0 effect estimates.
+
+## Frozen raw-token teacher-forcing utility check
+
+Because the synthetic free-text case exposed a BPE boundary merge, I checked
+the existing pure scoring utility intended for frozen generated token tails.
+Its 13 CPU tests pass, including raw-tail immutability, explicit prompt offset,
+teacher-forced row alignment, terminal-token provenance, and fail-closed shape
+and nonfinite handling. The code does not decode and retokenize a generated
+target. This is a unit-level scoring-mechanics check only: it does not prove a
+target is an annotated explanation claim, validate real generations, or
+measure faithfulness, and it does not alter the current A–E choice-margin
+protocol. No model, data, or GPU was used. At 20:06:06 JST, 2h42m54s elapsed
+and 17m06s remained; direct faithfulness remains 0 new samples / 0 new effects.
