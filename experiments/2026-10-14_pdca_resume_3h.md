@@ -680,3 +680,28 @@ progress remains 0 new samples / 0 effects.
 
 At 19:03:21 JST, 1h40m09s had elapsed and 1h19m03s remained. This log update
 has not yet been committed or published.
+
+## Claim-selective dependence interval contract
+
+The CPU arithmetic helper previously returned only the mean video-level
+contrast although the frozen design requires an all-eligible-video 95% t
+interval. It now reports sample SD, standard error, degrees-of-freedom-based
+two-sided Student-t 95% CI, and explicitly returns no inferential interval for
+n=1. The contrast is evaluated as `control_score - selected_score`, algebraically
+canceling the shared full score before floating-point arithmetic; independent
+review found that the former equivalent expression lost a -0.5 contrast under
+a synthetic 1e16 common offset. Nonfinite derived effects and dispersion/CI
+overflow fail closed. The independent reviewer re-ran the latest 10 focused
+tests and found no material issue; added tests cover exact interval values,
+n=1, constant effects, large offsets, and extreme values. The full scripts
+suite passes 551 tests; py_compile and `git diff --check` pass.
+
+This is an estimator/preparation contract only. It does not compute a p-value,
+fix the unresolved SESOI, establish the independence or representativeness of a
+real cohort, or authorize claim extraction, rights-sensitive scoring, human
+review, GPU inference, or efficacy claims. A t interval relies on independent
+video-level contrasts and its usual sampling assumptions. Direct faithfulness
+progress remains 0 new samples / 0 new effect estimates.
+
+At 19:06:08 JST, 1h42m56s had elapsed and 1h17m04s remained. The code and this
+log entry are not yet committed/published.
