@@ -9,14 +9,21 @@ contain only this blank worksheet and privacy-safe aggregate summaries.
 
 Before review begins, freeze and record the protocol revision, eligible-manifest
 hash, **pre-review frozen model-claim input manifest hash**, model/tokenizer
-revision, and the occurrence policy (`one_sufficient_occurrence` or
-`all_relevant_occurrences`). This input-manifest hash is not the completed
-claim-mapping ledger hash: the latter can be computed only after intervals and
-review records are frozen. Record both artifacts under distinct names. The
-occurrence policy must come from the protocol; a reviewer must not choose a
-policy per video. Record the approved review display and evidence modalities
-and use them consistently. If the protocol has not fixed these inputs, stop
-before opening items and return the decision to the protocol owner.
+revision, claim-review policy hash, and the occurrence policy
+(`one_sufficient_occurrence` or `all_relevant_occurrences`). This input-manifest
+hash is not the completed claim-mapping ledger hash: the latter can be computed
+only after intervals and review records are frozen. Record both artifacts under
+distinct names. The occurrence policy must come from the protocol; a reviewer
+must not choose a policy per video. Bind the display procedure and permitted
+evidence modalities, the claim-support decision rule, and the timestamp
+precision/boundary convention to the claim-review policy hash. Because the
+primary intervention masks video frames only, every primary evidence interval
+must be supported by visual content in the source video frames. Audio,
+subtitles, and metadata must not establish primary support, even when they are
+present in the model input; a multimodal evidence intervention requires its own
+separately frozen protocol. Use the frozen procedure consistently. If the
+protocol has not fixed these inputs, stop before opening items and return the
+decision to the protocol owner.
 
 ## Claim-to-evidence review
 
@@ -81,7 +88,8 @@ the review record.
 When transcribing a completed supported row into the claim-mapping ledger, use
 the exact contract keys: `claim_origin=model_generated_frozen`,
 `mapping_method=independent_claim_review`, the frozen model revision and
-generation-run hash, and the protocol's `occurrence_policy`. In `review`, set
+generation-run hash, and the protocol's `occurrence_policy`; set
+`claim_policy_sha256` to the frozen policy artifact hash. In `review`, set
 `status=completed`, `reviewer_role=independent_human`, the private
 `review_record_sha256` and UTC timestamp, `claim_text_sha256_seen` and
 `evidence_intervals_sha256_seen`, `video_reviewed=true`,

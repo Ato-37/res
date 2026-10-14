@@ -277,6 +277,9 @@ occurrence or all relevant occurrences, and reviewers must follow that rule.
 The schema-v12 hash declarations do not enforce these semantic requirements;
 the independent human inspection of claim and video remains necessary, and a
 structural pass alone cannot establish the mapping or authorize inference.
+Use the blank [private human-review worksheet](claim_mask_human_review_worksheet.md)
+to record the review procedure and decisions; it guides a local private record
+but does not replace the frozen claim policy or independent human review.
 
 For independence from QA-span anchoring, the primary mapper sees the video,
 question, and frozen generated claim, but not the QA interval seed, gold answer,
@@ -410,6 +413,8 @@ separate private record until the schema is deliberately extended. In this
 protocol, `aggregate_publication` means privacy-safe derived numerical
 summaries only. It does not authorize publishing source media, identifiable
 frames, item-level records, or raw model outputs.
+The blank [human-review worksheet](claim_mask_human_review_worksheet.md) also
+provides a private evidence checklist for claim and rights reviewers.
 
 For a private draft ledger, `scripts/audit_item_rights_manifest.py` checks the
 eligible-manifest byte hash, one-to-one video-ID row coverage, separate
