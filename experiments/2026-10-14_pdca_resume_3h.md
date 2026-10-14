@@ -1349,3 +1349,19 @@ followed by successful live fetches. The latest derived artifact hash remains
 Untracked local dataset/sample files remain untouched. No real faithfulness
 records or effect estimates were added. At 20:03:43 JST, 2h40m31s elapsed
 and 19m29s remained.
+
+## Recompute the closed head confirmation at checkpoint
+
+I reran the committed CPU analyzer on the published 2026-10-09 confirmation
+JSON and run manifest, without loading the private sample manifest or any
+video/model. It reproduces 79/79 records, zero failures, 79 unique result keys,
+target drop −0.0601 nat, control drop +0.0155 nat, selective effect −0.0756
+nat (SD 0.3667; 95% t CI [−0.1578,+0.0065]), and p=1.52e−11 versus the
+preregistered +0.25 nat threshold; the success rule remains false. This is a
+reproducibility check of the already closed primary, not new evidence. Because
+the analyzer was intentionally run without the private sample manifest, its
+current output labels unique-video count unverified; the separate published
+identity reconciliation supports 79 unique IDs but explicitly does not
+establish statistical independence. No head search is reopened. At 20:04:32
+JST, 2h41m20s elapsed and 18m40s remained; this PDCA window still adds 0
+faithfulness samples and 0 effect estimates.
