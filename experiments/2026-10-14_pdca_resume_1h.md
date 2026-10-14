@@ -121,6 +121,8 @@ The repeat's logged diagnostic time was 25.739 s; B=1/B=2 generation took
 1.985/3.467 s, with peak reserved VRAM 7.633/9.287 GiB. These are diagnostic
 timings, not comparable throughput because B=2 is constrained.
 
+An independent re-audit of the shared-context artifact confirmed the logits were captured before forced-token processing, both B=2 rows duplicated exactly, and all context prefixes matched. In the first run, step 1 had equal top-1 with margin 7.75 but nonzero max logit difference 0.0625; step 7 differed at a 0.125-vs-0.000 margin with max difference 0.125; step 8 differed at 0.000-vs-0.125 margin with max difference 0.25. The same-clip rerun reproduced the step-7/8 top-1 changes. This verifies a narrow near-tie batch-shape sensitivity case, not mismatch prevalence or answer impact. The engineering branch is stopped: do not run another duplicate clip, increase decode length, or report throughput. A new-clip diagnostic would require a separate clearance check, fixed candidate manifest and pre-outcome selection plan; even one clip would remain a case study.
+
 ## Faithfulness status and gates
 
 This window adds 0 direct faithfulness samples and 0 new faithfulness effect
@@ -133,14 +135,17 @@ explanation faithfulness.
 
 ## Next actions
 
-1. Publish the independently audited sanitized summary and protocol/log changes
-   with scoped staging, then fetch and verify remote hashes.
-2. Continue CPU-only estimand and statistical-gate design; the SESOI needs an
-   independent, pre-outcome basis and is the remaining statistical design gate.
-   Do not call the protocol confirmatory or run gated real data until SESOI,
-   human-review attestation, and item-level rights are resolved.
-3. The same-context diagnostic is engineering-only; do not add artificial load,
-   claim throughput improvement, or count it as faithfulness progress.
+1. Keep claim-mask execution at `no_go` until the independent pre-outcome SESOI,
+   human claim/evidence review, item-level media/annotation rights, and runtime
+   gates are separately documented and verified.
+2. Keep the preregistered head confirmation and B1/B2 batch branch closed. Any
+   new GPU diagnostic needs a distinct discriminating question, cleared inputs,
+   a frozen candidate/selection rule, and smoke validation; do not use artificial
+   load or claim throughput from constrained-prefix timing.
+3. Treat the normal and Student-t power grids only as hypothetical design
+   sensitivity. Once upstream gates permit, freeze a defensible primary SESOI
+   and cohort plan before outcomes, then use pilot data only for the already
+   specified variance/runtime and power tasks.
 
 
 ## Validator hardening follow-up
