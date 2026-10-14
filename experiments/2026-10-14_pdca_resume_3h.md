@@ -14,10 +14,12 @@ sample-manifest files were preserved and not staged.
 
 The preregistered head confirmation is closed after missing its +0.25 nat
 practical criterion; NOAA human review and NExT-GQA item-level rights remain
-unresolved. No new real-data GPU experiment is currently authorized by its
-scientific/data gates. The selected work is therefore an independent audit of
-review workflow interoperability, protocol structure, result provenance, and
-CPU validation while keeping the direct-estimand status explicit.
+unresolved, so no new direct faithfulness GPU experiment is authorized. The
+existing plan also contains one already-cleared fixed-clip GPU implementation
+diagnostic, but its same-clip batch-shape branch had already reached a stop
+before this resumed window. The initial work therefore focused on independent
+review-workflow, protocol, provenance, and CPU validation, keeping the direct
+estimand status explicit.
 
 ## Environment checkpoint
 
@@ -27,8 +29,9 @@ RTX 5070 Ti with 14,816 MiB free of 16,303 MiB, instantaneous GPU utilization
 12.8, `torch.cuda.is_available() == True`, and BF16 support. Linux reported
 15 GiB RAM total, 13 GiB available, and cgroup current use about 2.61 GiB with
 no configured cgroup maximum. These are point-in-time readings. No GPU job was
-started because available GPU branches are closed or gated, and an artificial
-load would have no discriminating scientific purpose.
+started at this initial checkpoint because direct-evaluation branches were
+closed or gated; an artificial load would have no discriminating scientific
+purpose.
 
 ## Independent review-workflow check
 
@@ -377,6 +380,40 @@ and local file path; they do not verify the source upload identity, original
 license, or authority to infer. The private result summaries include
 unsalted input hashes and remain local.
 
+### Post-stop duplicate GPU run (not a new research result)
+
+At 18:36 JST, I mistakenly resumed the fixed NOAA batch-shape diagnostic before
+checking the latest resumed-window log, which had already concluded that this
+same-clip branch was stopped after two matching runs. The four-frame smoke and
+32-frame/16-decode replay therefore duplicated a closed branch; this was an
+avoidable workflow error. The smoke completed 38/38 model calls and its
+same-context top-1 gate passed. The 32-frame replay completed 38/38 calls
+(34 measured, 4 warmup) and failed the same-context top-1 gate. Its artifact
+`results/qwen_video_batch_throughput_gpu_smoke_20261014_b1_b2_scalar_32f16_01.json`
+has SHA-256
+`6c0cf5877db25844bc0a244892601b2d6dfa9cf21c1c83bdd7b3fb9926cfe78e`, is mode
+0600, and remains local and uncommitted. The independent artifact audit
+verified its source commit/hash, call accounting, processor/cache geometry,
+and aggregate-only privacy.
+
+The replay reproduced the previously observed first top-1 disagreement at
+generated step 7; steps 1–6 agreed, the step-7 context prefixes were equal,
+B1's top-1 margin was 0.125 logit units, B2's was 0.0, and their top-2 sets
+matched. Step 8 also disagreed at a tie-adjacent margin; all comparisons used
+the forced shared B1 prefix. The same two mismatch steps, margins, and
+top-2-set result were already present in both earlier same-clip runs. This
+third run adds no independent video or new research conclusion; its differing
+timings are not throughput evidence. Do not publish it as a new confirmation
+or repeat this branch. The finding remains a narrow numerical near-tie case
+for one engineering clip, not an estimate of prevalence or a faithfulness
+effect.
+
+At the 18:38:04 JST checkpoint, 1h14m52s had elapsed in the requested window
+and 1h45m08s remained. Direct faithfulness progress remains 0 new samples and
+0 new effect estimates. The CUDA path was available (RTX 5070 Ti, 14,783 MiB
+free before the long smoke, CUDA-enabled `.venv`); hardware availability did
+not clear the human-review, rights, or claim-mask SESOI gates.
+
 ## Faithfulness progress at this checkpoint
 
 - New direct faithfulness samples this window: 0.
@@ -470,3 +507,44 @@ this historical cohort, but does not establish statistical independence,
 result-to-manifest crosshash linkage, or identify visually shared
 scenes/campaigns. It does not change the closed head result or its effect
 estimate.
+
+## Candidate-selection provenance repair
+
+An independent review of the untracked 80-row candidate cohort found that its
+original selection command, input hashes, candidate pool, and per-video QA-row
+choice cannot be recovered from tracked records. The tracked
+`scripts/build_samples.py` is a seeded random QA-row sampler that stops after
+finding `n` readable unique videos; it is not an all-eligible-video enumerator.
+Thus the old 80-row cohort must not be described as reproducibly selected.
+
+For future runs, the script now accepts optional `--audit-out` and records
+aggregate exclusion counts, seed/RNG and Python/OpenCV build versions, hashes of
+inputs and output, repository HEAD plus a boolean check that the current script
+matches that HEAD. The sidecar explicitly says the local video tree and media
+bytes are not hash-bound and decoder decisions are not reproduced. The sample
+manifest and sidecar are prepared as mode-0600 sibling temporary files, then
+published with exclusive hard links; a second-target collision rolls back the
+first link, and sidecar-construction failure happens before publication. The
+two names are not jointly atomic to concurrent readers, so a successful writer
+can briefly expose the sample before the sidecar. This prevents a failed writer
+from leaving an orphan sample that looks provenance-complete. The sidecar
+remains private because its unsalted hashes can link inputs. It does not repair historical selection
+provenance or authorize inference.
+
+Verification: 5 focused provenance tests pass, including matching the sidecar
+hash to the exact staged manifest, owner-only permissions, existing-output
+preservation, rollback after a collision, and rejection of `n <= 0`. A synthetic one-video CLI run
+selected 1/1 fake readable MP4, emitted both files at mode 0600, and its
+sidecar status/hash checks passed. The complete scripts suite passes 537 tests;
+expected failure-shaped JSON lines are emitted by negative-path tests. Python
+byte-compilation and `git diff --check` pass. No real sample selection, direct
+faithfulness scoring, or GPU task ran. The sidecar hashes the values of a
+whitelist of OpenCV backend/FFmpeg environment settings without storing the
+values, following an independent design review. The independent implementation
+audit found no correctness blocker; it noted that the pair is not jointly
+atomic to concurrent readers and suggested additional failure-injection tests.
+Those limitations remain explicit; no failure-injection result beyond the
+second-output collision is claimed.
+
+At 18:48:06 JST, 1h24m54s had elapsed and 1h35m06s remained. Direct faithfulness
+progress remains 0 new samples and 0 new effect estimates.

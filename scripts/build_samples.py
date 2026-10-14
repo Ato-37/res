@@ -34,21 +34,181 @@ Usage:
         --zip-path ~/nextgqa_sample/NExTVideo.zip \
         --n 3 --seed 1 \
         --exclude data/nextgqa_samples_big.json data/nextgqa_samples_big_heldout.json \
-        --out data/nextgqa_samples_confirm2_smoketest.json
+        --out data/nextgqa_samples_confirm2_smoketest.json \
+        --audit-out data/private/nextgqa_samples_confirm2_smoketest.audit.json
+
+The optional audit sidecar contains unsalted input/output hashes. Keep it
+private; it records a seeded QA-row sampling trace summary, not every eligible
+video or a rights/identity determination.
 """
 
 import argparse
 import csv
+import hashlib
 import json
 import math
 import os
 import random
 import re
 import shutil
+import subprocess
+import sys
 import tempfile
 import zipfile
 
 import cv2
+
+
+def sha256_file(path):
+    digest = hashlib.sha256()
+    with open(path, "rb") as stream:
+        for block in iter(lambda: stream.read(1024 * 1024), b""):
+            digest.update(block)
+    return digest.hexdigest()
+
+
+def write_private_json_exclusive(path, value):
+    """Write private sample/provenance JSON once, with owner-only permissions."""
+    descriptor = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+    with os.fdopen(descriptor, "w", encoding="utf-8") as stream:
+        json.dump(value, stream, ensure_ascii=False, indent=2, allow_nan=False)
+        stream.write("\n")
+
+
+def _write_private_temp(path, value):
+    """Serialize JSON to an owner-only temporary file beside its destination."""
+    parent = os.path.dirname(os.path.abspath(path))
+    os.makedirs(parent, exist_ok=True)
+    descriptor, temp_path = tempfile.mkstemp(prefix=".selection_tmp_", dir=parent)
+    try:
+        os.fchmod(descriptor, 0o600)
+        with os.fdopen(descriptor, "w", encoding="utf-8") as stream:
+            json.dump(value, stream, ensure_ascii=False, indent=2, allow_nan=False)
+            stream.write("\n")
+            stream.flush()
+            os.fsync(stream.fileno())
+    except BaseException:
+        try:
+            os.close(descriptor)
+        except OSError:
+            pass
+        os.unlink(temp_path)
+        raise
+    return temp_path
+
+
+def write_sample_and_audit_exclusive(sample_path, samples, audit_path, audit_factory):
+    """Publish a sample manifest and matching sidecar as an exclusive pair."""
+    if os.path.realpath(sample_path) == os.path.realpath(audit_path):
+        raise ValueError("sample and audit paths must differ")
+    sample_temp = _write_private_temp(sample_path, samples)
+    audit_temp = None
+    published = []
+    try:
+        audit = audit_factory(sample_temp)
+        audit_temp = _write_private_temp(audit_path, audit)
+        # Hard links provide atomic no-overwrite publication per target. The
+        # pair is failure-safe, though not jointly atomic to concurrent readers.
+        # Each temporary file is deliberately beside its destination.
+        os.link(sample_temp, sample_path)
+        published.append((sample_path, sample_temp))
+        os.link(audit_temp, audit_path)
+        published.append((audit_path, audit_temp))
+    except BaseException:
+        for target, temp in reversed(published):
+            try:
+                if os.path.samefile(target, temp):
+                    os.unlink(target)
+            except FileNotFoundError:
+                pass
+        raise
+    finally:
+        for temp in (sample_temp, audit_temp):
+            if temp:
+                try:
+                    os.unlink(temp)
+                except FileNotFoundError:
+                    pass
+
+
+def selection_audit_record(*, args, effective_zip_path, candidates_before_exclusion, preexcluded,
+                           candidates_after_exclusion, exclusion_counts,
+                           built_exclusions, results, manifest_path):
+    """Build a path/ID-free sidecar for this random QA-row sampling procedure."""
+    input_hashes = {
+        "test_csv_sha256": sha256_file(args.test_csv),
+        "grounding_json_sha256": sha256_file(args.gsub_json),
+        "video_map_json_sha256": sha256_file(args.map_json),
+        "exclusion_manifest_sha256": [sha256_file(path) for path in args.exclude],
+        "video_archive_sha256": sha256_file(effective_zip_path) if effective_zip_path else None,
+    }
+    source_path = os.path.abspath(__file__)
+    try:
+        repository_root = os.path.dirname(os.path.dirname(source_path))
+        repository_head_commit = subprocess.check_output(
+            ["git", "rev-parse", "HEAD"], cwd=repository_root,
+            text=True, stderr=subprocess.DEVNULL,
+        ).strip()
+        committed_source = subprocess.check_output(
+            ["git", "show", "HEAD:scripts/build_samples.py"], cwd=repository_root,
+            stderr=subprocess.DEVNULL,
+        )
+        source_matches_commit = hashlib.sha256(committed_source).hexdigest() == sha256_file(source_path)
+    except (OSError, subprocess.CalledProcessError):
+        repository_head_commit = None
+        source_matches_commit = None
+    merged_exclusions = dict(exclusion_counts)
+    for reason, count in built_exclusions.items():
+        merged_exclusions[reason] = merged_exclusions.get(reason, 0) + count
+    decoder_env = {
+        key: hashlib.sha256(value.encode("utf-8")).hexdigest()
+        for key, value in sorted(os.environ.items())
+        if (key.startswith("OPENCV_VIDEOIO_PRIORITY_")
+            or key in {"OPENCV_VIDEOIO_PLUGIN_PATH", "OPENCV_FFMPEG_CAPTURE_OPTIONS",
+                       "OPENCV_FFMPEG_READ_ATTEMPTS", "OPENCV_FFMPEG_DECODE_ATTEMPTS",
+                       "OPENCV_FFMPEG_THREADS"})
+    }
+    return {
+        "schema_version": 1,
+        "purpose": "sample_selection_provenance_only",
+        "status": "complete" if len(results) == args.n else "underfilled",
+        "selection_semantics": (
+            "QA rows are shuffled with Python random.Random(seed); accept the first readable rows "
+            "until n unique videos are selected. This is not an all-eligible-video enumerator."
+        ),
+        "configuration": {
+            "seed": args.seed,
+            "requested_samples": args.n,
+            "effective_samples": len(results),
+            "unique_videos": bool(args.unique_videos),
+            "python_version": sys.version.split()[0],
+            "rng_state_version": random.Random.VERSION,
+            "repository_head_commit": repository_head_commit,
+            "source_sha256": sha256_file(source_path),
+            "source_matches_commit": source_matches_commit,
+            "opencv_version": cv2.__version__,
+            "opencv_build_info_sha256": hashlib.sha256(
+                cv2.getBuildInformation().encode("utf-8")
+            ).hexdigest(),
+            "opencv_decoder_environment_sha256": decoder_env,
+        },
+        "input_sha256": input_hashes,
+        "selection_counts": {
+            "valid_candidate_rows_before_previous_video_exclusion": candidates_before_exclusion,
+            "candidate_rows_excluded_as_previously_used": preexcluded,
+            "valid_candidate_rows_after_previous_video_exclusion": candidates_after_exclusion,
+            "exclusions_by_reason": dict(sorted(merged_exclusions.items())),
+        },
+        "sample_manifest_sha256": sha256_file(manifest_path),
+        "media_availability_note": (
+            "A pre-existing video tree and selected media bytes are not content-hashed by "
+            "this sidecar; OpenCV version/build are recorded, but decoder decisions are not bound."
+        ),
+        "privacy": (
+            "Contains aggregate counts and unsalted hashes only; no file paths, video IDs, "
+            "questions, answers, or clip names. Keep this sidecar private because hashes can link inputs."
+        ),
+    }
 
 
 def normalize_answer(text):
@@ -261,10 +421,20 @@ def main():
     parser.add_argument("--unique-videos", action="store_true", default=True,
                          help="Don't reuse the same video twice within this new batch (default on)")
     parser.add_argument("--out", required=True)
+    parser.add_argument("--audit-out", default=None,
+                        help="optional private, aggregate-only selection provenance JSON sidecar")
     args = parser.parse_args()
+
+    if args.n <= 0:
+        parser.error("--n must be a positive integer")
 
     if os.path.exists(args.out):
         parser.error(f"refusing to overwrite existing output: {os.path.basename(args.out)}")
+    if args.audit_out:
+        if os.path.realpath(args.audit_out) == os.path.realpath(args.out):
+            parser.error("--audit-out must differ from --out")
+        if os.path.exists(args.audit_out):
+            parser.error(f"refusing to overwrite existing audit output: {os.path.basename(args.audit_out)}")
 
     random.seed(args.seed)
     video_root = os.path.expanduser(args.video_root)
@@ -272,9 +442,11 @@ def main():
     print(f"excluded previously used video count={len(excluded)}")
 
     candidates, exclusion_counts = load_candidates(args.test_csv, args.gsub_json, args.map_json)
+    candidates_before_exclusion = len(candidates)
     preexcluded = [c for c in candidates if c["vidor_id"] in excluded]
     exclusion_counts["previously_used_video"] = len(preexcluded)
     candidates = [c for c in candidates if c["vidor_id"] not in excluded]
+    candidates_after_exclusion = len(candidates)
     random.shuffle(candidates)
     print(f"eligible candidates after exclusions={len(candidates)}, seed={args.seed}")
 
@@ -338,9 +510,25 @@ def main():
         print(f"\nWARNING: only found {len(results)} of {args.n} requested valid samples "
               f"(ran out of eligible candidates or too many were unreadable)")
 
-    os.makedirs(os.path.dirname(args.out) or ".", exist_ok=True)
-    with open(args.out, "x", encoding="utf-8") as stream:
-        json.dump(results, stream, ensure_ascii=False, indent=2)
+    if args.audit_out:
+        def make_audit(sample_temp):
+            return selection_audit_record(
+                args=args,
+                effective_zip_path=zip_path,
+                candidates_before_exclusion=candidates_before_exclusion,
+                preexcluded=len(preexcluded),
+                candidates_after_exclusion=candidates_after_exclusion,
+                exclusion_counts=exclusion_counts,
+                built_exclusions=built_exclusions,
+                results=results,
+                manifest_path=sample_temp,
+            )
+        write_sample_and_audit_exclusive(
+            args.out, results, args.audit_out, make_audit,
+        )
+    else:
+        os.makedirs(os.path.dirname(args.out) or ".", exist_ok=True)
+        write_private_json_exclusive(args.out, results)
     print(f"wrote sample_count={len(results)} output_name={os.path.basename(args.out)}")
 
 
