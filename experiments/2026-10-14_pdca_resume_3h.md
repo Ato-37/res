@@ -1053,3 +1053,10 @@ pass. The first schema-v9 focused run had five failures because the hash helper
 rejected integer payload leaves; that exact cause was repaired and both
 subsequent focused runs pass 35/35. This is a fixed implementation defect, not
 a flaky test. At 19:33:41 JST, 2h10m29s elapsed and 49m31s remained.
+
+Scoped publication: commit `e4008ef67ae28b7d546f041fe043ec82cb4fb5f8`
+(`Reject empty claim evidence masks`) was pushed, then verified by live fetch
+with `HEAD == origin/main == e4008ef67ae28b7d546f041fe043ec82cb4fb5f8`.
+It updates only the same five protocol/log/source/test files. Private local
+untracked dataset/sample artifacts remain untouched. At 19:34:14 JST,
+2h10m58s elapsed and 49m02s remained.
