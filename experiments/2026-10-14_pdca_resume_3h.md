@@ -1390,3 +1390,12 @@ black/blur fill behavior, and fail-closed empty-evidence/control cases. These
 synthetic unit checks do not upgrade legacy outputs, clear gates, or authorize
 scoring. No inference/data access. At 20:07:40 JST, 2h44m28s elapsed and
 15m32s remained; 0 new faithfulness samples / 0 effects.
+
+## Duration checkpoint
+
+The authorized three-hour window began at 17:23:12 JST and has a hard
+20:23:12 JST deadline. At 20:21:17 JST, 2h58m05s had elapsed and 1m55s
+remained. The final checks still show no new real faithfulness observations or
+effect estimates; the historical confirmation remains closed, and the latest
+synthetic diagnostic remains CPU-only. I am keeping the authorized window
+open through its recorded deadline.
