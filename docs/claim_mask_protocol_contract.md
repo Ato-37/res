@@ -120,8 +120,51 @@ appendix asks annotators to label all relevant moments when the same evidence
 recurs. A future claim-level protocol must state whether it maps one sufficient
 occurrence or all relevant occurrences, and reviewers must follow that rule.
 The schema-v9 hash declarations do not enforce these semantic requirements;
-until an independent content-aware review gate exists, a structural pass alone
-cannot establish them or authorize inference.
+the independent human inspection of claim and video remains necessary, and a
+structural pass alone cannot establish the mapping or authorize inference.
+
+[`scripts/audit_claim_mapping_manifest.py`](../scripts/audit_claim_mapping_manifest.py)
+provides a separate private, CPU-only consistency check for this record. Its
+ledger binds one frozen model-generated claim per eligible video to one or more
+positive-duration reviewed intervals and a human-review record; it declares
+whether a NExT-GQA interval was not used or was used only as a seed, and freezes
+whether the review covers one sufficient occurrence or all relevant repeated
+occurrences.
+It rejects an explicit `qa_span_copy`, mutable model-revision aliases, missing
+claim/review fields, mismatched claim/interval hashes declared in the review
+row, parsed/raw-byte mismatches, non-finite numeric input, whitespace-padded
+IDs, invalid occurrence-policy types, float-collapsed endpoints, and review
+timestamps at or after a supplied scoring start. This remains a declaration
+checker: it cannot authenticate the model run or reviewer, inspect the linked
+video or review record, establish semantic support or exhaustive occurrence
+coverage, or authorize execution. Its summary omits identifiers, claims,
+interval values, locators, and per-item hashes.
+
+Identical QA-seed and reviewed interval coordinates are not automatically
+rejected: a human may independently confirm that the same interval supports
+the specific claim. The ledger's `seed_only` and `independent_claim_review`
+fields remain self-declarations, so a dishonest ledger can still label a
+copied span as independently reviewed. Structural acceptance is only a
+precondition to human audit, never proof that the review occurred.
+
+Run it only against the private eligible manifest and private claim ledger, for
+example:
+
+```sh
+.venv/bin/python scripts/audit_claim_mapping_manifest.py \
+  --eligible-manifest /private/path/eligible.json \
+  --claim-ledger /private/path/claim_mapping_ledger.json
+```
+
+The version-1 ledger binds the eligible-manifest hash, claim-review policy
+hash, occurrence policy, and optional scoring-start timestamp. Each claim row
+contains the video and claim IDs, claim-text hash, frozen model origin/revision
+and generation-run hash, mapping method, QA-seed usage and source intervals,
+the reviewed evidence intervals, and a review declaration binding the seen
+claim/interval hashes, independent-human role, record hash/time, video-only
+review conditions, support decision, and applied occurrence policy. Keep this
+ledger private; its row-level identifiers, timestamps, and hashes can reveal
+or link sensitive research records.
 
 Before scoring, a runner must verify that the five distinct A–E labels each
 map to one token and that the exact rendered chat-generation prefix remains
