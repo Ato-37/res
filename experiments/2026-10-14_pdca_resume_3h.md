@@ -876,3 +876,16 @@ this test addition. No result file was published from the invalid input. At
 19:20:37 JST, 1h57m25s had elapsed and 1h02m35s remained. This protects
 planning artifact integrity; direct faithfulness remains 0 new samples / 0
 effects.
+
+## Scoped publication audit
+
+The full change range from the starting checkpoint `52c9905` through live
+`origin/main` `1ff0569` contains 12 tracked files limited to protocol/template
+docs, this dated log, analysis/validator source, and tests. No result artifact,
+media, model weights, question/answer records, or private sample manifest was
+added. A diff scan for the local cohort filenames/paths and synthetic IDs
+found only the two intended public NExT-GQA source links. `git diff --check`
+passes. Current user-local untracked dataset/metadata entries remain untracked;
+they were not opened, staged, or modified. This is a scoped path/content audit,
+not a claim that all upstream rights are cleared. At 19:21:21 JST, 1h58m09s
+had elapsed and 1h01m51s remained.
