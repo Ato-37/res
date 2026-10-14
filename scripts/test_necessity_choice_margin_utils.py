@@ -1,6 +1,7 @@
 """CPU tests for necessity choice-margin matching and summary utilities."""
 import unittest
 from math import inf, nan
+from functools import lru_cache
 
 from analyze_necessity_choice_mask_fill import compare_results
 from necessity_choice_margin_utils import (apply_mask_fill, assess_frame_coverage,
@@ -80,6 +81,40 @@ class NecessityChoiceMarginUtilsTests(unittest.TestCase):
 
     def test_control_matching_ties_choose_lexicographically_lower_rank(self):
         self.assertEqual(nearest_control_indices([0, 1, 2, 3, 4], [2]), [1])
+
+    def test_control_assignment_matches_independent_dynamic_program_exhaustively(self):
+        def dp_oracle(indices, evidence):
+            evidence_positions = tuple(sorted(indices.index(item) for item in set(evidence)))
+            controls = tuple(pos for pos, item in enumerate(indices) if item not in set(evidence))
+            k = len(evidence_positions)
+            if k == 0 or len(controls) < k:
+                return []
+
+            @lru_cache(None)
+            def solve(evidence_rank, control_start):
+                if evidence_rank == k:
+                    return 0, ()
+                remaining = k - evidence_rank
+                best = None
+                last_start = len(controls) - remaining
+                for control_rank in range(control_start, last_start + 1):
+                    suffix_cost, suffix = solve(evidence_rank + 1, control_rank + 1)
+                    candidate = (abs(evidence_positions[evidence_rank] - controls[control_rank]) + suffix_cost,
+                                 (controls[control_rank],) + suffix)
+                    if best is None or candidate < best:
+                        best = candidate
+                return best
+
+            _, selected_positions = solve(0, 0)
+            return [indices[pos] for pos in selected_positions]
+
+        for n_frames in range(1, 9):
+            indices = list(range(n_frames))
+            for mask in range(1 << n_frames):
+                evidence = [i for i in indices if mask & (1 << i)]
+                with self.subTest(n_frames=n_frames, evidence=evidence):
+                    self.assertEqual(nearest_control_indices(indices, evidence),
+                                     dp_oracle(indices, evidence))
 
     def test_no_evidence_or_insufficient_controls_returns_empty(self):
         self.assertEqual(nearest_control_indices([0, 1, 2], []), [])
