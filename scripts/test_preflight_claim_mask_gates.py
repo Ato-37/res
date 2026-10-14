@@ -8,6 +8,7 @@ from pathlib import Path
 from unittest.mock import patch
 
 from preflight_claim_mask_gates import main, preflight
+from build_claim_input_manifest import build as build_claim_input
 from test_audit_claim_review_evidence_index import fixture as claim_review_fixture, REVISION
 from test_audit_item_rights_manifest import fixture as item_rights_fixture
 from test_validate_claim_mask_protocol import (fixture as protocol_fixture,
@@ -55,7 +56,15 @@ class ClaimMaskGatePreflightTests(unittest.TestCase):
         eligible_sha = hashlib.sha256(eligible_raw).hexdigest()
         claim_parts[3]["eligible_manifest_sha256"] = eligible_sha
         claim_parts[5]["eligible_manifest_sha256"] = eligible_sha
-        claim_input_raw = write_json(Path(root) / "claim-input-work.json", claim_parts[3])
+        generated_claims = {"schema_version": 1, "claims": [
+            {key: row[key] for key in ("video_id", "claim_id", "claim_text", "model_revision",
+                                       "generation_run_sha256")}
+            for row in claim_parts[3]["claims"]
+        ]}
+        claim_input, claim_input_raw = build_claim_input(
+            eligible, eligible_raw, generated_claims, claim_parts[3]["eligible_dataset_id"],
+            claim_parts[3]["claim_policy_sha256"], claim_parts[3]["occurrence_policy"],
+        )
         claim_ledger_raw = write_json(Path(root) / "claim-ledger-work.json", claim_parts[5])
         claim_parts[7]["mapping_ledger_sha256"] = hashlib.sha256(claim_ledger_raw).hexdigest()
         claim_review_raw = write_json(Path(root) / "claim-review-work.json", claim_parts[7])
@@ -98,14 +107,18 @@ class ClaimMaskGatePreflightTests(unittest.TestCase):
         protocol["analysis"]["inference_plan_sha256"] = compute_inference_plan_sha256(protocol)
         values = {
             "protocol": protocol, "eligible_manifest": eligible,
-            "claim_input_manifest": claim_parts[3], "claim_mapping_ledger": claim_parts[5],
+            "claim_input_manifest": claim_input, "claim_mapping_ledger": claim_parts[5],
             "claim_review_index": claim_parts[7], "item_rights_ledger": rights,
             "data_rights_index": evidence_index,
         }
         paths = {}
         for key, value in values.items():
             path = Path(root) / f"{key}.json"
-            write_json(path, value)
+            if key == "claim_input_manifest":
+                path.write_bytes(claim_input_raw)
+                self.assertEqual(path.read_bytes(), claim_input_raw)
+            else:
+                write_json(path, value)
             paths[key] = path
         return paths
 

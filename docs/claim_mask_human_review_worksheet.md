@@ -103,7 +103,9 @@ protocol occurrence policy, and choose a new output path. It writes only the
 private manifest and reports counts/hash, never claims or IDs; it performs no
 model/video processing and grants no execution authorization. The builder
 creates the new output exclusively with filesystem mode `0600`; keep its parent
-directory private as well.
+directory private as well. The builder checks hash syntax and a single model
+revision across rows; it does not authenticate the generation run, model
+revision, source videos, or eligibility declaration against external records.
 The v1 review-evidence index has `schema_version`, `mapping_ledger_sha256`,
 and `records`; each record has exactly `video_id`, `claim_id`,
 `review_record_sha256`, and `private_locator`, with one row for each reviewed
