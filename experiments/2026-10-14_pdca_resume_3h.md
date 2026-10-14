@@ -626,8 +626,11 @@ sample, and abrupt termination may leave that sidecar behind. One initial test
 run incorrectly expected `source_matches_commit=true` while the script was
 modified; correcting the assertion to check the field's boolean type made the
 test independent of dirty/clean worktree state. The focused suite passes 13 and
-the complete scripts suite 545. This publication-order patch is awaiting an
-independent audit before commit. Faithfulness progress remains 0 samples / 0
-effect estimates.
+the complete scripts suite 545. An independent audit verified the publication
+order, rollback on collision/second-link failure, and the stated concurrent
+reader and crash limitations. Commit
+`c5521a93dc6b862afbf33f05e38a9b3bd1983ce9` was pushed and live-fetched; remote
+script/test SHA-256 values match local bytes. Untracked data/sample files were
+preserved. Faithfulness progress remains 0 samples / 0 effect estimates.
 
-At 18:58:29 JST, 1h35m17s had elapsed and 1h24m43s remained.
+At 18:59:03 JST, 1h35m51s had elapsed and 1h24m09s remained.
