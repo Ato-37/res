@@ -114,13 +114,15 @@ resolved-conditions declarations, and explicit decisions for each declared use.
 The eligible manifest is a nonempty JSON array of objects with a unique
 `video_id` string. The ledger's top-level `intended_uses` must include
 `local_inference` and may also include `local_retention`,
-`aggregate_publication`, and `redistribution`. `annotation_rights` contains
-`license_id`, an `evidence_locator`, evidence and review-record SHA-256 values,
-`reviewer_role`, `review_status`, `reviewed_at_utc`, and decisions keyed by
-every intended use. Each `items` row contains `video_id`, `source_video_id`,
-`media_license_id`, `media_evidence_locator`, media-evidence, review-record,
-and conditions-record SHA-256 values, `media_reviewer_role`, media review
-status/time, `conditions_status`, and decisions keyed by every intended use.
+`aggregate_publication`, and `redistribution`. An `intended_use_scope` string
+records the human-declared purpose and constraints for those use categories.
+`annotation_rights` contains `dataset_id`, `license_id`, an `evidence_locator`,
+evidence and review-record SHA-256 values, `reviewer_role`, `review_status`,
+`reviewed_at_utc`, and decisions keyed by every intended use. Each `items` row
+contains `video_id`, `source_dataset_id`, `source_video_id`, `media_license_id`,
+`media_evidence_locator`, media-evidence, review-record, and conditions-record
+SHA-256 values, `media_reviewer_role`, media review status/time,
+`conditions_status`, and decisions keyed by every intended use.
 Locators, roles, and notes stay in the private ledger. Decisions are exactly
 `permitted`, `not_permitted`, or `unresolved`; review statuses must be completed
 and conditions must be declared `reviewed_resolved` for every eligible item.

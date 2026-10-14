@@ -26,6 +26,7 @@ def fixture():
     eligible_raw = raw(eligible)
     decisions = {use: "permitted" for use in USES}
     annotation = {
+        "dataset_id": "synthetic annotations",
         "license_id": "synthetic annotation terms",
         "evidence_locator": "private://synthetic/annotation-license",
         "evidence_sha256": H,
@@ -39,6 +40,7 @@ def fixture():
     for video_id, source_id in (("private-a", "source-a"), ("private-b", "source-b")):
         items.append({
             "video_id": video_id,
+            "source_dataset_id": "synthetic source collection",
             "source_video_id": source_id,
             "media_license_id": "CC-BY-2.0",
             "media_evidence_locator": "private://synthetic/source-license",
@@ -54,6 +56,7 @@ def fixture():
     ledger = {
         "schema_version": 1,
         "eligible_manifest_sha256": hashlib.sha256(eligible_raw).hexdigest(),
+        "intended_use_scope": "synthetic noncommercial local inference and aggregate results",
         "intended_uses": USES.copy(),
         "annotation_rights": annotation,
         "items": items,

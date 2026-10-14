@@ -144,6 +144,18 @@ declaration-completeness versus actual rights verification; that clarification
 is now applied. No real rights ledger or dataset manifest was passed to the
 new checker.
 
+### Follow-up refinement: scope and source-dataset lineage
+
+An additional independent review found that a free-text purpose scope and
+dataset lineage should be explicit required fields, rather than implicit in the
+allowed use categories and source identifiers. The ledger now requires a
+nonempty `intended_use_scope`, annotation `dataset_id`, and per-video
+`source_dataset_id`; the contract describes these as human declarations, not
+verified license conclusions. Their values remain excluded from the summary.
+The seven focused synthetic/CLI tests pass after the refinement, and the full
+suite was rerun: 489 tests passed. Byte-compilation and `git diff --check` also
+pass. This is structural evidence only; no actual permissions were inferred.
+
 The scoped NOAA workflow change was committed as
 `a5033f0d208780c5b452508cdf92635a91e8a1f7`; the rights-ledger structural audit,
 tests, contract, and log were committed as

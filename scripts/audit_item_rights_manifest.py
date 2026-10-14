@@ -72,13 +72,13 @@ def _eligible_ids(value: Any) -> list[str]:
 
 
 def _audit_annotation_rights(value: Any, intended_uses: list[str], failures: set[str]) -> bool:
-    required = {"license_id", "evidence_locator", "evidence_sha256", "review_record_sha256",
+    required = {"dataset_id", "license_id", "evidence_locator", "evidence_sha256", "review_record_sha256",
                 "reviewer_role", "review_status", "reviewed_at_utc", "decisions"}
     if not isinstance(value, dict) or set(value) != required:
         failures.add("annotation_rights_schema_invalid")
         return False
     valid = True
-    for field in ("license_id", "evidence_locator", "reviewer_role"):
+    for field in ("dataset_id", "license_id", "evidence_locator", "reviewer_role"):
         if not _nonempty_text(value.get(field)):
             failures.add("annotation_rights_evidence_invalid")
             valid = False
@@ -105,7 +105,7 @@ def _audit_annotation_rights(value: Any, intended_uses: list[str], failures: set
 
 
 def _audit_item(row: Any, intended_uses: list[str], failures: set[str]) -> tuple[str | None, bool]:
-    required = {"video_id", "source_video_id", "media_license_id", "media_evidence_locator",
+    required = {"video_id", "source_dataset_id", "source_video_id", "media_license_id", "media_evidence_locator",
                 "media_evidence_sha256", "media_review_record_sha256", "media_reviewer_role",
                 "media_review_status", "media_reviewed_at_utc", "conditions_record_sha256",
                 "conditions_status", "decisions"}
@@ -117,7 +117,8 @@ def _audit_item(row: Any, intended_uses: list[str], failures: set[str]) -> tuple
         failures.add("item_rights_video_id_invalid")
         video_id = None
     if not all(_nonempty_text(row.get(k)) for k in (
-            "source_video_id", "media_license_id", "media_evidence_locator", "media_reviewer_role")):
+            "source_dataset_id", "source_video_id", "media_license_id",
+            "media_evidence_locator", "media_reviewer_role")):
         failures.add("item_rights_source_evidence_invalid")
     if (not _is_sha(row.get("media_evidence_sha256"))
             or not _is_sha(row.get("media_review_record_sha256"))
@@ -151,7 +152,7 @@ def audit(eligible: Any, eligible_raw: bytes, ledger: Any, ledger_raw: bytes) ->
         failures.add("eligible_manifest_invalid")
 
     if not isinstance(ledger, dict) or set(ledger) != {
-        "schema_version", "eligible_manifest_sha256", "intended_uses",
+        "schema_version", "eligible_manifest_sha256", "intended_use_scope", "intended_uses",
         "annotation_rights", "items",
     }:
         failures.add("rights_ledger_schema_invalid")
@@ -160,6 +161,8 @@ def audit(eligible: Any, eligible_raw: bytes, ledger: Any, ledger_raw: bytes) ->
         failures.add("rights_ledger_version_invalid")
     if not _is_sha(ledger.get("eligible_manifest_sha256")) or ledger.get("eligible_manifest_sha256") != hashlib.sha256(eligible_raw).hexdigest():
         failures.add("eligible_manifest_hash_mismatch")
+    if not _nonempty_text(ledger.get("intended_use_scope")):
+        failures.add("intended_use_scope_missing")
     uses = ledger.get("intended_uses")
     if (not isinstance(uses, list) or not uses
             or any(not isinstance(use, str) or use not in ALLOWED_USES for use in uses)
