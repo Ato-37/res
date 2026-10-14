@@ -294,10 +294,18 @@ def compare_generation_outputs(reference, candidate, batch_size: int):
         left = left.detach().float().cpu()
         right = right.detach().float().cpu()
         difference = (left - right).abs()
+        left_top2 = left.topk(2, dim=-1)
+        right_top2 = right.topk(2, dim=-1)
+        left_margin = left_top2.values[..., 0] - left_top2.values[..., 1]
+        right_margin = right_top2.values[..., 0] - right_top2.values[..., 1]
+        top2_overlap = (left_top2.indices.unsqueeze(-1) == right_top2.indices.unsqueeze(-2)).any(-1).sum(-1)
         return {
             "maximum_absolute_difference": float(difference.max()),
             "mean_absolute_difference": float(difference.mean()),
             "top1_equal": bool(torch.equal(left.argmax(-1), right.argmax(-1))),
+            "top1_margin_left": float(left_margin.max()),
+            "top1_margin_right": float(right_margin.max()),
+            "top2_set_equal": bool(int(top2_overlap.min()) == 2),
             "bitwise_equal": bool(torch.equal(left, right)),
         }
 
@@ -324,7 +332,16 @@ def compare_generation_outputs(reference, candidate, batch_size: int):
         "b1_sequence_equals_b2_item0": bool(torch.equal(reference_sequences[0], candidate_sequences[0])),
         "b1_sequence_equals_b2_item1": bool(torch.equal(reference_sequences[0], candidate_sequences[1])),
     }
-    return {"per_generated_step_logits": steps, "sequence_equality": sequence_checks}
+    first_top1_divergence_step = next((
+        step["generated_step"] for step in steps
+        if not step["b1_vs_b2_item0"]["top1_equal"]
+        or not step["b1_vs_b2_item1"]["top1_equal"]
+    ), None)
+    return {
+        "per_generated_step_logits": steps,
+        "sequence_equality": sequence_checks,
+        "first_top1_divergence_step": first_top1_divergence_step,
+    }
 
 
 def output_equivalence_gate(comparison):

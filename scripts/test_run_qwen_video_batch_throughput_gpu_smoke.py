@@ -152,6 +152,11 @@ class BatchThroughputSmokeCpuTests(unittest.TestCase):
         )
         report = runner.compare_generation_outputs(one, two, 2)
         self.assertTrue(report["per_generated_step_logits"][0]["b1_vs_b2_item1"]["bitwise_equal"])
+        compared = report["per_generated_step_logits"][0]["b1_vs_b2_item0"]
+        self.assertEqual(compared["top1_margin_left"], 1.0)
+        self.assertEqual(compared["top1_margin_right"], 1.0)
+        self.assertTrue(compared["top2_set_equal"])
+        self.assertIsNone(report["first_top1_divergence_step"])
         self.assertTrue(report["sequence_equality"]["b2_duplicate_sequences_equal"])
         self.assertTrue(runner.output_equivalence_gate(report)["passed"])
         self.assertNotIn('"logits":', json.dumps(report))
@@ -171,9 +176,28 @@ class BatchThroughputSmokeCpuTests(unittest.TestCase):
         )
         report = runner.compare_generation_outputs(one, two, 2)
         gate = runner.output_equivalence_gate(report)
+        self.assertEqual(report["first_top1_divergence_step"], 1)
         self.assertFalse(gate["passed"])
         self.assertFalse(gate["greedy_sequences_equal"])
         self.assertFalse(gate["per_step_top1_equal"])
+
+    def test_swapped_top1_can_be_reported_without_exporting_token_ids(self):
+        one = SimpleNamespace(
+            logits=(torch.tensor([[10.0, 9.0, 0.0]]), torch.tensor([[10.0, 9.0, 0.0]])),
+            sequences=torch.tensor([[7, 8, 8]]),
+        )
+        two = SimpleNamespace(
+            logits=(torch.tensor([[9.0, 10.0, 0.0], [9.0, 10.0, 0.0]]),
+                    torch.tensor([[9.0, 10.0, 0.0], [9.0, 10.0, 0.0]])),
+            sequences=torch.tensor([[7, 9, 9], [7, 9, 9]]),
+        )
+        report = runner.compare_generation_outputs(one, two, 2)
+        comparison = report["per_generated_step_logits"][0]["b1_vs_b2_item0"]
+        self.assertFalse(comparison["top1_equal"])
+        self.assertTrue(comparison["top2_set_equal"])
+        self.assertEqual(comparison["top1_margin_left"], 1.0)
+        self.assertEqual(comparison["top1_margin_right"], 1.0)
+        self.assertNotIn("indices", str(report))
 
     def test_cpu_comparison_projection_drops_scores_and_cache_fields(self):
         output = SimpleNamespace(
