@@ -6,7 +6,7 @@ H = "0" * 64
 G = "0" * 40
 def fixture():
     value = {
-        "schema_version": 6,
+        "schema_version": 7,
         "protocol_stage": "exploratory",
         "model": {"revision": G, "tokenizer_revision": G, "quant": "4bit", "dtype": "bfloat16", "attention_implementation": "sdpa"},
         "cohort": {"candidate_manifest_sha256": H, "eligible_manifest_sha256": H, "exclusion_manifest_sha256": H, "overlap_audit_sha256": H, "candidate_video_count": 2, "eligible_video_count": 2, "prerun_exclusion_count": 0, "analysis_unit_count": 2, "split_overlap_count": 0, "primary_population": "all_eligible_videos", "secondary_population": "baseline_correctness_strata"},
@@ -15,7 +15,7 @@ def fixture():
         "sampling": {"policy": "whole_video_fixed", "config_sha256": H, "uses_claim_for_selection": False, "num_frames": 16, "frame_size": 1024, "max_pixels": 200704, "cap_pixels_per_frame": True},
         "estimand": {"answer_candidate_protocol_sha256": H, "gold_choice_manifest_sha256": H, "primary_estimand_sha256": H, "score_kind": "teacher_forced_gold_vs_best_foil_logprob_margin", "baseline_correction": "selected_minus_control_margin_drop", "triplet_manifest_sha256": H, "target_definition": "fixed_gold_choice_from_annotation", "margin_definition": "gold_label_logprob_minus_max_foil_label_logprob_same_prompt"},
         "intervention": {"kind": "claim_linked_evidence_frame_mask", "selector_sha256": H, "control_sha256": H, "selected_condition": "claim-linked evidence frames masked", "control_condition": "matched temporal control frames masked", "selected_unit": "sampled_frames_overlapping_reviewed_claim_evidence_interval", "control_matching": "equal_count_minimum_total_temporal_rank_distance_lexicographic_tie_break"},
-        "analysis": {"primary_contrast_count": 1, "primary_multiplicity": "none_single_primary_contrast", "secondary_families": ["baseline_correctness_strata", "question_type_strata"], "secondary_adjustment": "holm_within_each_predeclared_family", "secondary_hypothesis_manifest_sha256": H, "sesoi": {"status": "unresolved", "value_nat": None, "decision_rule": None, "estimand_sha256": None, "rationale_category": None, "rationale_sha256": None, "fixed_at_utc": None, "review_status": None, "review_timing": None, "independent_review_sha256": None, "independent_reviewed_at_utc": None, "outcome_access_status": None, "outcome_access_record_sha256": None}},
+        "analysis": {"primary_contrast_count": 1, "primary_multiplicity": "none_single_primary_contrast", "primary_ci_method": "two_sided_student_t_df_n_minus_1", "secondary_families": ["baseline_correctness_strata", "question_type_strata"], "secondary_adjustment": "holm_within_each_predeclared_family", "secondary_hypothesis_manifest_sha256": H, "sesoi": {"status": "unresolved", "value_nat": None, "decision_rule": None, "estimand_sha256": None, "rationale_category": None, "rationale_sha256": None, "fixed_at_utc": None, "review_status": None, "review_timing": None, "independent_review_sha256": None, "independent_reviewed_at_utc": None, "outcome_access_status": None, "outcome_access_record_sha256": None}},
         "runtime": {"seed": 1, "source_commit": "0123456789abcdef0123456789abcdef01234567", "execution_authorization": False},
     }
     value["estimand"]["primary_estimand_sha256"] = compute_primary_estimand_sha256(value)
@@ -75,9 +75,13 @@ class TestClaimMaskProtocol(unittest.TestCase):
         x=fixture(); x["protocol_stage"]="confirmatory"
         self.assertIn("protocol_stage_invalid",validate(x)["failure_codes"])
 
-    def test_schema_v5_is_rejected_after_v6_change(self):
-        x=fixture(); x["schema_version"]=5
+    def test_schema_v6_is_rejected_after_v7_change(self):
+        x=fixture(); x["schema_version"]=6
         self.assertIn("schema_version_invalid",validate(x)["failure_codes"])
+
+    def test_primary_ci_method_is_frozen(self):
+        x=fixture(); x["analysis"]["primary_ci_method"]="bootstrap"
+        self.assertIn("analysis_fields_invalid",validate(x)["failure_codes"])
 
     def test_eligible_denominator_must_equal_video_level_analysis_units(self):
         x=fixture(); x["cohort"]["analysis_unit_count"]=1
@@ -195,7 +199,7 @@ class TestClaimMaskProtocol(unittest.TestCase):
         self.assertIn("runtime_fields_invalid",r["failure_codes"])
 
     def test_duplicate_json_key_is_rejected_without_echoing_input(self):
-        raw=json.dumps(fixture()).replace('"schema_version": 6', '"schema_version": 6, "schema_version": 6', 1)
+        raw=json.dumps(fixture()).replace('"schema_version": 7', '"schema_version": 7, "schema_version": 7', 1)
         with tempfile.TemporaryDirectory() as directory:
             path=Path(directory)/"duplicate.json"; path.write_text(raw, encoding="utf-8")
             stdout=io.StringIO()

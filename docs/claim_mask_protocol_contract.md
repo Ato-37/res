@@ -1,14 +1,19 @@
-# Claim-linked evidence-frame mask protocol contract (schema v6)
+# Claim-linked evidence-frame mask protocol contract (schema v7)
 
 `scripts/validate_claim_mask_protocol.py` is a CPU-only, fail-closed structural
 validator for the exploratory design stage. The secondary-family multiplicity
 policy is inherited from the research plan: Holm correction within each
 predeclared family (baseline-correctness strata and question-type strata), with
-one unadjusted primary contrast. Family membership must be frozen before
-scoring. The SESOI is still not fixed, so schema v6 rejects a `confirmatory` stage.
+one unadjusted primary contrast. Its uncertainty interval is a two-sided 95%
+Student-t interval over one contrast per video, assuming independent
+video-level contrasts, with sample SD and `df=n-1`; the primary decision rule
+compares the lower bound with the separately fixed SESOI. Family membership
+must be frozen before scoring. The SESOI is still
+not fixed, so schema v7 rejects a `confirmatory` stage.
 Structural validity neither authenticates evidence nor authorizes inference.
 
-The `analysis` object must declare one unadjusted primary contrast, the two
+The `analysis` object must declare one unadjusted primary contrast and
+`primary_ci_method=two_sided_student_t_df_n_minus_1`, the two
 secondary families (`baseline_correctness_strata` and `question_type_strata`),
 Holm adjustment within each family, and a SHA-256 reference to a frozen manifest
 listing each secondary hypothesis/test and its family membership. That manifest

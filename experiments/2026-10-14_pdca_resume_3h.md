@@ -707,3 +707,25 @@ progress remains 0 new samples / 0 new effect estimates.
 
 At 19:06:08 JST, 1h42m56s had elapsed and 1h17m04s remained. The code and this
 log entry are not yet committed/published.
+
+## Freeze the claim-mask interval method in the protocol schema
+
+The new estimator exposed a protocol gap: the SESOI rule said “95% CI lower
+bound” but did not identify the interval method. Before any claim-mask outcomes
+exist, schema v7 now requires
+`primary_ci_method=two_sided_student_t_df_n_minus_1`, matching the tested CPU
+estimator. The contract and decision template identify the 95% interval,
+video-level independence assumption, and `df=n-1`; v6 inputs are rejected, and
+a new test rejects an alternate method. The validator still requires an
+unresolved SESOI and always reports `execution_authorization=not_granted`.
+Focused validator tests pass 33/33; py_compile and `git diff --check` pass.
+This freezes an analysis method, not a threshold; no outcome data or GPU were
+used. Direct faithfulness progress remains 0 new samples / 0 effects.
+
+At 19:08:12 JST, 1h45m00s had elapsed and 1h15m00s remained. Independent
+review and the complete regression suite were pending. The independent auditor
+then verified the v7 fields/docs, old-schema rejection, retained exploratory
+and no-authorization gates, and ran 33/33 focused tests successfully. The full
+scripts suite passes 552/552; expected failure-shaped diagnostics came from
+negative-path fixtures. The validator, tests, template, contract, and this log
+entry are not yet committed/published.
