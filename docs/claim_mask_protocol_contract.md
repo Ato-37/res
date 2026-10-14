@@ -115,10 +115,13 @@ map to one token and that the exact rendered chat-generation prefix remains
 stable when each label is appended as the assistant target, with the target's
 first contextual token equal to its standalone label token. For video inputs,
 also verify prefix stability and target-token identity after the production
-video processor expands sampled frames into model inputs. Bind the pinned
-tokenizer, chat template, prompt builder, video processor, and these
-boundary-audit results in the answer-candidate protocol provenance. A CPU-only
-synthetic boundary audit does not validate any model score or real item.
+video processor expands sampled frames into model inputs. Verify the selected
+and control mask transforms preserve input token IDs, video-grid metadata, and
+pixel tensor shape while changing pixel content; otherwise, freeze an explicit
+score-position rule before outcomes. Bind the pinned tokenizer, chat template,
+prompt builder, video processor, and these boundary-audit results in the
+answer-candidate protocol provenance. A CPU-only synthetic boundary audit
+does not validate any model score or real item.
 
 The selected mask contains the fixed sampled-frame indices overlapping the
 reviewed claim-evidence interval. Under the current implementation convention,

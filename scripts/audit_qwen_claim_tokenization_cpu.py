@@ -61,6 +61,12 @@ CHOICE_PROMPT = (
 )
 SYNTHETIC_VIDEO_FRAME_COUNT = 16
 SYNTHETIC_VIDEO_FRAME_SIZE = 224
+SYNTHETIC_MASKED_FRAME_COUNT = 4
+SYNTHETIC_SELECTED_MASK_INDICES = tuple(range(SYNTHETIC_MASKED_FRAME_COUNT))
+SYNTHETIC_CONTROL_MASK_INDICES = tuple(
+    range(SYNTHETIC_VIDEO_FRAME_COUNT - SYNTHETIC_MASKED_FRAME_COUNT,
+          SYNTHETIC_VIDEO_FRAME_COUNT)
+)
 FIXTURE_SPEC = {
     "prompt": FIXED_PROMPT,
     "targets": list(FIXED_TARGETS),
@@ -70,6 +76,9 @@ FIXTURE_SPEC = {
     "synthetic_video_frame_count": SYNTHETIC_VIDEO_FRAME_COUNT,
     "synthetic_video_frame_size": SYNTHETIC_VIDEO_FRAME_SIZE,
     "synthetic_video_cap_pixels_per_frame": False,
+    "synthetic_mask_fill": "black",
+    "synthetic_selected_mask_indices": list(SYNTHETIC_SELECTED_MASK_INDICES),
+    "synthetic_control_mask_indices": list(SYNTHETIC_CONTROL_MASK_INDICES),
 }
 
 
@@ -233,20 +242,24 @@ def audit_fixed_choice_labels(processor: Any) -> dict[str, Any]:
 
 def audit_video_choice_labels(processor: Any) -> dict[str, Any]:
     """Check label boundaries after the production video-input processor expands frames."""
-    from activation_patching_sweep import build_inputs
+    from activation_patching_sweep import build_inputs, write_frame_set
+    from necessity_choice_margin_utils import apply_mask_fill
     from qwen_vl_utils import process_vision_info
+    import torch
 
     prompt = CHOICE_PROMPT
     with tempfile.TemporaryDirectory(prefix="synthetic_choice_video_") as directory:
         frame_paths = []
-        colors = ("red", "green", "blue", "yellow", "magenta", "cyan")
+        frame_images = []
         for index in range(SYNTHETIC_VIDEO_FRAME_COUNT):
-            color = colors[index % len(colors)]
+            color = (index * 13 % 256, index * 53 % 256, index * 97 % 256)
             path = Path(directory) / f"frame_{index}.jpg"
-            Image.new(
+            frame = Image.new(
                 "RGB", (SYNTHETIC_VIDEO_FRAME_SIZE, SYNTHETIC_VIDEO_FRAME_SIZE), color
-            ).save(path, format="JPEG")
+            )
+            frame.save(path, format="JPEG")
             frame_paths.append(str(path))
+            frame_images.append(frame)
 
         user_message = {
             "role": "user",
@@ -257,6 +270,48 @@ def audit_video_choice_labels(processor: Any) -> dict[str, Any]:
         }
         base_inputs = build_inputs(processor, "cpu", frame_paths, prompt)
         base_ids = ids_list(base_inputs["input_ids"])
+
+        mask_audit = {}
+        base_grid = ids_list(base_inputs["video_grid_thw"]) if base_inputs.get("video_grid_thw") is not None else []
+        base_pixels = base_inputs.get("pixel_values_videos")
+        for condition, masked_indices in (
+            ("selected_black_mask", set(SYNTHETIC_SELECTED_MASK_INDICES)),
+            ("control_black_mask", set(SYNTHETIC_CONTROL_MASK_INDICES)),
+        ):
+            masked_frames = [
+                apply_mask_fill(frame, "black") if index in masked_indices else frame.copy()
+                for index, frame in enumerate(frame_images)
+            ]
+            mask_dir = Path(directory) / condition
+            masked_paths = write_frame_set(masked_frames, str(mask_dir))
+            masked_inputs = build_inputs(processor, "cpu", masked_paths, prompt)
+            masked_ids = ids_list(masked_inputs["input_ids"])
+            masked_grid = (
+                ids_list(masked_inputs["video_grid_thw"])
+                if masked_inputs.get("video_grid_thw") is not None else []
+            )
+            masked_pixels = masked_inputs.get("pixel_values_videos")
+            same_pixel_shape = (
+                base_pixels is not None and masked_pixels is not None
+                and tuple(base_pixels.shape) == tuple(masked_pixels.shape)
+            )
+            mask_audit[condition] = {
+                "masked_frame_count": len(masked_indices),
+                "input_ids_equal_to_full": masked_ids == base_ids,
+                "video_grid_equal_to_full": masked_grid == base_grid,
+                "pixel_values_shape_equal_to_full": same_pixel_shape,
+                "pixel_values_content_changed": (
+                    same_pixel_shape and not torch.equal(base_pixels, masked_pixels)
+                ),
+                "masked_input_token_ids_sha256": _token_hash(masked_ids),
+            }
+        mask_gate_pass = all(
+            row["input_ids_equal_to_full"]
+            and row["video_grid_equal_to_full"]
+            and row["pixel_values_shape_equal_to_full"]
+            and row["pixel_values_content_changed"]
+            for row in mask_audit.values()
+        )
         records = []
         for label in CHOICE_LABELS:
             messages = [user_message, {"role": "assistant", "content": label}]
@@ -299,7 +354,13 @@ def audit_video_choice_labels(processor: Any) -> dict[str, Any]:
             "expanded_video_contextual_label_match_count": sum(
                 row["expanded_video_target_starts_with_label"] for row in records
             ),
-            "gate_pass": gate_pass,
+            "mask_input_stability": {
+                "selected_frame_count": SYNTHETIC_MASKED_FRAME_COUNT,
+                "control_frame_count": SYNTHETIC_MASKED_FRAME_COUNT,
+                "conditions": mask_audit,
+                "gate_pass": mask_gate_pass,
+            },
+            "gate_pass": gate_pass and mask_gate_pass,
             "labels": records,
         }
 
@@ -335,12 +396,14 @@ def _local_tokenizer_source_hashes(snapshot: Path) -> dict[str, str]:
 def _installed_implementation_hashes(processor: Any, tokenizer: Any) -> dict[str, str | None]:
     """Hash installed implementation files without returning their local paths."""
     from qwen_vl_utils import process_vision_info
+    from necessity_choice_margin_utils import apply_mask_fill
 
     objects = {
         "processor_class_source": type(processor),
         "tokenizer_class_source": type(tokenizer),
         "chat_template_method_source": getattr(processor, "apply_chat_template", None),
         "video_preprocessor_source": process_vision_info,
+        "mask_fill_implementation_source": apply_mask_fill,
     }
     try:
         objects["chat_template_utils_module_source"] = import_module(
@@ -497,6 +560,7 @@ def main(argv: list[str] | None = None) -> int:
     choice_gate_pass = (
         report["choice_label_boundary"]["gate_pass"]
         and report["video_choice_label_boundary"]["gate_pass"]
+        and report["video_choice_label_boundary"]["mask_input_stability"]["gate_pass"]
     )
     print(
         "Claim tokenizer boundary CPU check: "
@@ -508,6 +572,8 @@ def main(argv: list[str] | None = None) -> int:
         f"chat-boundary A-E={report['choice_label_boundary']['contextual_label_match_count']}/5 "
         f"video-input-boundary A-E="
         f"{report['video_choice_label_boundary']['expanded_video_contextual_label_match_count']}/5 "
+        f"mask-input-stability="
+        f"{'pass' if report['video_choice_label_boundary']['mask_input_stability']['gate_pass'] else 'fail'} "
         f"gate={'pass' if choice_gate_pass else 'fail'} | "
         f"artifact=results/{output.name}"
     )

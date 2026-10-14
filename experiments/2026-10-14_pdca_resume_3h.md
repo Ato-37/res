@@ -1245,3 +1245,36 @@ matches the logged SHA-256. The earlier 3-frame artifact remains a separate
 published diagnostic; the 16-frame default-scale result is the current
 stronger boundary check, not a faithfulness result. At 19:54:18 JST, 2h31m06s
 elapsed and 28m54s remained. No model/GPU/data scoring occurred.
+
+## Synthetic mask-induced score-position stability check
+
+Because the runner selects next-token logits at the end of the processor input,
+I tested whether black masking changes the input sequence or only the pixels.
+Using the same fixed 16×224 synthetic video, I masked four selected frames and
+four separate control frames with the production `apply_mask_fill(...,
+"black")` helper. For both conditions, `input_ids` and `video_grid_thw`
+exactly match full, pixel tensor shapes match, and pixel tensor content differs
+from full. Both selected/control checks pass. This addresses a possible
+position-shift confound for the tested preprocessing configuration only; it
+does not establish equivalence for every media shape or fill transform and
+does not measure model scores or faithfulness.
+
+The fixed mask kind and exact synthetic frame indices enter the fixture hash;
+the artifact additionally hashes the production mask-fill implementation.
+Updated result:
+`results/qwen_claim_tokenization_cpu_20261014T105700Z.json`, SHA-256
+`1bcd6b8ac6d328fb7e4f9a2301f27634fc8a2c60cce0011b8f61d195d24e0fa2`.
+Runner SHA-256:
+`d7c5740b8fda1914005252051d63e706323f61b77953768d410ff4651b2ed525`;
+fixture SHA-256:
+`8ae8a04aa1a3ec18fbfbb0c8c6e50fbc86c5f49b5a218451d8fdc54e5dc08313`;
+mask-fill source SHA-256:
+`38e3dcdc1e756e9a5f70ce3daa047a3a2a948e0db8f54e8dc33f8dedd8629961`.
+The CPU boundary core took 0.322 seconds, excluding imports, processor load,
+and artifact write. Focused tests pass 7/7; the full suite passes 559/559,
+`py_compile` and `git diff --check` pass. An independent reviewer recomputed
+the artifact, fixture, runner, video-builder, and mask-fill hashes; all match.
+The reviewer independently reran the synthetic audit with the same counts and
+gates, confirmed the output contains no prompt, option text, or local paths,
+and found no check-logic issue. Direct faithfulness progress remains 0 samples
+/ 0 effects. At 19:57:04 JST, 2h33m52s elapsed and 26m08s remained.

@@ -168,6 +168,7 @@ class ClaimTokenizationAuditTests(unittest.TestCase):
                         "label_count": 5,
                         "expanded_video_prefix_stable_count": 5,
                         "expanded_video_contextual_label_match_count": 5,
+                        "mask_input_stability": {"gate_pass": True},
                         "gate_pass": True,
                         "labels": [],
                     },
@@ -182,13 +183,14 @@ class ClaimTokenizationAuditTests(unittest.TestCase):
         self.assertIn("synthetic_video_preprocessor_only", report["scope"])
         self.assertIn("no_real_video_or_QA", report["scope"])
         self.assertTrue(report["video_choice_label_boundary"]["gate_pass"])
+        self.assertTrue(report["video_choice_label_boundary"]["mask_input_stability"]["gate_pass"])
         self.assertGreaterEqual(report["timing"]["synthetic_boundary_check_core_seconds"], 0)
         self.assertIn("excludes_imports_processor_loading", report["timing"]["scope"])
         hashes = report["source_sha256"]["installed_implementation_files"]
         self.assertEqual(set(hashes), {
             "processor_class_source", "tokenizer_class_source", "chat_template_method_source",
             "chat_template_utils_module_source", "production_video_prompt_builder_source",
-            "video_preprocessor_source",
+            "video_preprocessor_source", "mask_fill_implementation_source",
         })
         self.assertNotIn(str(root), json.dumps(report))
 
