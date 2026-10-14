@@ -216,6 +216,8 @@ def validate(value: Any, input_sha256: str | None = None) -> dict:
                     or not _sha(sesoi.get("estimand_sha256"))
                     or not isinstance(es, dict) or sesoi.get("estimand_sha256") != es.get("primary_estimand_sha256")
                     or sesoi.get("inference_plan_sha256") != an.get("inference_plan_sha256")
+                    or not isinstance(inference, dict) or inference.get("target_kind") == "unresolved"
+                    or not isinstance(dep, dict) or dep.get("method_status") != "resolved"
                     or not isinstance(sesoi.get("rationale_category"), str)
                     or sesoi.get("rationale_category") not in {"annotation_granularity", "output_reproducibility", "measurement_interpretability", "other"}
                     or not _sha(sesoi.get("rationale_sha256"))

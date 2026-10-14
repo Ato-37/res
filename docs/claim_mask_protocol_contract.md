@@ -81,14 +81,17 @@ must bind grouping definitions, contrast directions, test/statistic, and family
 size; the validator checks only the hash shape, not the file contents or when it
 was frozen. The current design records SESOI as unresolved, with the value and
 supporting fields null. A future `preoutcome_fixed` declaration must supply a
-positive threshold in nat, the primary CI decision rule, a rationale category
-the primary-estimand hash and inference-plan hash, a rationale category and
-hash, a UTC fixed time, and a separate independent review record hash with
+positive threshold in nat, the primary CI decision rule, both the
+primary-estimand and inference-plan hashes, a rationale category and hash, a
+UTC fixed time, and a separate independent review record hash with
 completed/before-scoring declarations and review timestamp no later than the
 fixed time. It also requires an explicit `not_accessed_at_freeze` outcome-score
 access declaration and a hash for its private access-audit record. These remain
 caller declarations; schema validity does not prove access history, reviewer
 independence, or that referenced records are authentic. The primary-estimand
+and uncertainty target plus CI method must already be resolved before fixing
+the SESOI; an unresolved target/method remains invalid even with both hash
+strings present. The primary-estimand
 SHA-256 is recomputed from compact,
 sorted-key UTF-8 JSON (`ensure_ascii=false`) containing the model identity,
 eligible-manifest hash and primary population, the explicit target/sampling

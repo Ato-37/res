@@ -24,6 +24,14 @@ def fixture():
     value["analysis"]["inference_plan_sha256"] = compute_inference_plan_sha256(value)
     return value
 
+def resolved_inference_fixture():
+    value = fixture()
+    value["inference_design"].update(target_kind="eligible_video_superpopulation", selection_design="nonprobability_sample")
+    value["dependence_plan"].update(uncertainty_target="model_based_video_superpopulation", cluster_audit_status="reviewed_no_known_cluster_fields", method_status="resolved")
+    value["estimand"]["primary_estimand_sha256"] = compute_primary_estimand_sha256(value)
+    value["analysis"]["inference_plan_sha256"] = compute_inference_plan_sha256(value)
+    return value
+
 class TestClaimMaskProtocol(unittest.TestCase):
     def test_valid_is_structural_only(self):
         r=validate(fixture(),H); self.assertTrue(r["structurally_valid"]); self.assertEqual(r["execution_authorization"],"not_granted")
@@ -217,11 +225,12 @@ class TestClaimMaskProtocol(unittest.TestCase):
         self.assertIn("sesoi_unresolved_fields_not_null",validate(x)["failure_codes"])
 
     def test_fixed_sesoi_requires_estimand_bound_independent_record(self):
-        bound_hash=compute_primary_estimand_sha256(fixture())
-        x=fixture(); x["analysis"]["sesoi"].update(
+        base=resolved_inference_fixture()
+        bound_hash=compute_primary_estimand_sha256(base)
+        x=resolved_inference_fixture(); x["analysis"]["sesoi"].update(
             status="preoutcome_fixed", value_nat=0.2,
             decision_rule="primary_95pct_ci_lower_gt_sesoi", estimand_sha256=bound_hash,
-            inference_plan_sha256=x["analysis"]["inference_plan_sha256"],
+            inference_plan_sha256=base["analysis"]["inference_plan_sha256"],
             rationale_category="measurement_interpretability", rationale_sha256=H,
             fixed_at_utc="2026-10-14T13:00:00Z", review_status="completed",
             review_timing="before_scoring", independent_review_sha256=H,
@@ -229,6 +238,22 @@ class TestClaimMaskProtocol(unittest.TestCase):
             outcome_access_status="not_accessed_at_freeze", outcome_access_record_sha256=H)
         self.assertTrue(validate(x)["structurally_valid"])
         x["analysis"]["sesoi"]["estimand_sha256"]="1"*64
+        self.assertIn("sesoi_fixed_fields_invalid",validate(x)["failure_codes"])
+        x=resolved_inference_fixture(); x["analysis"]["sesoi"].update(
+            status="preoutcome_fixed", value_nat=0.2,
+            decision_rule="primary_95pct_ci_lower_gt_sesoi",
+            estimand_sha256=compute_primary_estimand_sha256(x),
+            inference_plan_sha256=x["analysis"]["inference_plan_sha256"],
+            rationale_category="measurement_interpretability", rationale_sha256=H,
+            fixed_at_utc="2026-10-14T13:00:00Z", review_status="completed",
+            review_timing="before_scoring", independent_review_sha256=H,
+            independent_reviewed_at_utc="2026-10-14T12:00:00Z",
+            outcome_access_status="not_accessed_at_freeze", outcome_access_record_sha256=H)
+        x["analysis"]["sesoi"]["inference_plan_sha256"]="1"*64
+        self.assertIn("sesoi_fixed_fields_invalid",validate(x)["failure_codes"])
+
+    def test_fixed_sesoi_cannot_precede_target_and_method_resolution(self):
+        x=fixture(); x["analysis"]["sesoi"].update(status="preoutcome_fixed", value_nat=0.2)
         self.assertIn("sesoi_fixed_fields_invalid",validate(x)["failure_codes"])
 
     def test_primary_estimand_hash_recomputes_from_definition_and_provenance(self):
@@ -241,6 +266,8 @@ class TestClaimMaskProtocol(unittest.TestCase):
         x=fixture(); x["cohort"]["eligible_manifest_sha256"]="1"*64
         self.assertIn("primary_estimand_hash_mismatch",validate(x)["failure_codes"])
         x=fixture(); x["inference_design"]["target_kind"]="frozen_eligible_video_cohort"
+        self.assertIn("primary_estimand_hash_mismatch",validate(x)["failure_codes"])
+        x=fixture(); x["inference_design"]["selection_record_sha256"]="1"*64
         self.assertIn("primary_estimand_hash_mismatch",validate(x)["failure_codes"])
         x=fixture(); x["dependence_plan"]["cluster_audit_sha256"]="1"*64
         self.assertIn("inference_plan_hash_mismatch",validate(x)["failure_codes"])
@@ -258,7 +285,7 @@ class TestClaimMaskProtocol(unittest.TestCase):
     def test_fixed_sesoi_rejects_nonfinite_boolean_nonpositive_and_bad_time(self):
         base={"status":"preoutcome_fixed", "value_nat":0.2,
               "decision_rule":"primary_95pct_ci_lower_gt_sesoi", "estimand_sha256":H,
-              "inference_plan_sha256":fixture()["analysis"]["inference_plan_sha256"],
+              "inference_plan_sha256":resolved_inference_fixture()["analysis"]["inference_plan_sha256"],
               "rationale_category":"measurement_interpretability", "rationale_sha256":H,
               "fixed_at_utc":"2026-10-14T13:00:00Z", "review_status":"completed",
               "review_timing":"before_scoring", "independent_review_sha256":H,
@@ -273,7 +300,7 @@ class TestClaimMaskProtocol(unittest.TestCase):
                         ("review_timing","after_scoring"),
                         ("rationale_category",[])):
             with self.subTest(key=key,bad=bad):
-                x=fixture(); x["analysis"]["sesoi"]=dict(base); x["analysis"]["sesoi"][key]=bad
+                x=resolved_inference_fixture(); x["analysis"]["sesoi"]=dict(base); x["analysis"]["sesoi"][key]=bad
                 self.assertIn("sesoi_fixed_fields_invalid",validate(x)["failure_codes"])
 
     def test_intervention_masks_frames_not_claim_tokens(self):
