@@ -4,7 +4,9 @@ The default ``noaa`` fixture preserves the existing fixed NOAA video behavior.
 The fixed ``synthetic_subsecond`` fixture uses four deterministic in-memory
 frames at 8/3 FPS, with no NOAA media, annotations, or QA. It compares native
 automatic IDs, explicit-native no-op IDs, and an explicit reconstruction of
-the Transformers 5.17 integer-pretruncate reference. This is an engineering
+the Transformers 5.17 integer-pretruncate video temporal row. The legacy
+condition deliberately leaves spatial and post-video text rows fixed, so it
+does not reproduce the entire 5.17 position tensor. This is an engineering
 diagnostic, not a faithfulness result. Does not edit .venv.
 
 Usage::
@@ -91,7 +93,11 @@ def legacy_pretruncate_position_ids(
     native_position_ids, *, video_token_start, video_token_stop,
     video_grid_thw, spatial_merge_size, seconds_per_grid, tokens_per_second,
 ):
-    """Reconstruct the old `tps * int(seconds_per_grid)` temporal video row."""
+    """Reconstruct only the old `tps * int(seconds_per_grid)` video temporal row.
+
+    Spatial and post-video text rows remain native. This isolates temporal-row
+    sensitivity and is not a full replay of the older get_rope_index method.
+    """
     rows = [list(row) for row in native_position_ids]
     if len(rows) != 3 or not rows[0] or len({len(row) for row in rows}) != 1:
         raise ValueError("native position IDs must have shape (3, sequence_length)")
