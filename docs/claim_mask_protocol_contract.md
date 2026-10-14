@@ -1,17 +1,68 @@
-# Claim-mask protocol contract (schema v1)
+# Claim-linked evidence-frame mask protocol contract (schema v2)
 
 `scripts/validate_claim_mask_protocol.py` is a CPU-only, fail-closed structural
-validator for a future claim-selective dependence run. It requires separate
-hashes for claim extraction, claim-to-intervention mapping, completed human
-review, target/answer text, triplet manifest, sampling, selector, and control.
-It also requires whole-video sampling, explicit baseline correction, and a
-runtime declaration with execution authorization set to false.
+validator for the exploratory design stage. The SESOI and secondary-family
+multiplicity rule are not fixed, so schema v2 rejects a `confirmatory` stage.
+Structural validity neither authenticates evidence nor authorizes inference.
 
-Passing means only that declarations are structurally complete. The validator
-does not inspect private claims or videos, authenticate reviewers, verify hash
-targets, establish semantic alignment, or authorize GPU inference. NOAA review
-and NExT-GQA rights remain independent gates; this contract does not satisfy
-either gate.
+## Proposed estimand
+
+Before scoring, freeze the annotated gold answer choice and one independently
+reviewed, answer-relevant claim mapped to a temporal evidence interval. Keep the
+gold label and four foil labels fixed in every condition; the foil with the
+largest score may differ by condition, matching the existing five-choice margin
+implementation. For condition `z`, `S_i(z)` is the teacher-forced next-token
+log-probability of the gold label minus the largest log-probability among the
+four foil labels, under the same question, five choices, prompt, tokenization,
+and processor settings. This is a gold-answer choice margin, not claim-text
+likelihood. Baseline prediction correctness is a secondary grouping variable.
+
+`d_i = [S_i(full) - S_i(claim-linked-frame-mask)] - [S_i(full) - S_i(control-frame-mask)]`.
+
+The primary mean includes every predeclared eligible video, regardless of
+baseline correctness. Correctness is determined before masking as whether the
+unmasked greedy answer equals the gold label; correct and incorrect strata are
+secondary. A positive `d_i` means the gold-answer margin dropped more under the
+selected mask than the matched control. This is an operational dependence
+contrast, not proof that a claim is true or causally explained.
+
+## Cohort, mapping, and control
+
+`candidate_manifest_sha256` binds the pre-screen universe;
+`eligible_manifest_sha256` binds the frozen one-video/one-QA eligibility set;
+`exclusion_manifest_sha256` binds pre-scoring exclusions and reason codes. The
+candidate count must reconcile with eligible count plus pre-run exclusions;
+the eligible count is the analysis denominator. The answer-candidate
+protocol hash binds the prompt, five choices, label tokenization, and scoring
+implementation. `gold_choice_manifest_sha256` binds per-video gold labels;
+`triplet_manifest_sha256` binds full/selected/control assignments. Claim,
+mapping, review, and rights hashes refer to separate artifacts. These are
+declared references; the validator does not resolve or authenticate them.
+
+The selected mask contains the fixed sampled-frame indices overlapping the
+reviewed claim-evidence interval. Under the current implementation convention,
+sampled time is original frame index divided by decoded source FPS and interval
+endpoints are inclusive (`start <= time <= end`); the mapping hash must bind
+source timestamps and mapping code. This reviewed interval determines the
+evidence mask and its size `k`; observed model scores cannot alter it. For
+control, sort evidence ranks `e_1..e_k` and candidate control ranks `c_1..c_k`,
+then choose a subset of `k` non-evidence frames minimizing
+`sum_j |e_j-c_j|`. Resolve equal-cost ties with the lexicographically lower
+ordered control-rank tuple. If fewer than `k` control frames exist, mark the
+item ineligible before scoring; do not substitute after observing outcomes.
+Full, selected, and control conditions share frame
+sampling, fill, preprocessing, model, precision, prompt, gold target, and
+execution settings. Masking can create out-of-distribution input.
+
+## Gates and limits
+
+`execution_authorization` must remain false. Review timing and data-rights status
+are separate declarations, but a structural pass does not make either gate
+true. The validator does not authenticate signatures, validate hash targets,
+establish claim/interval semantics, verify rights, or validate model behavior.
+NOAA human review remains incomplete and NExT-GQA item-level rights unresolved;
+the real-data branch remains `no_go`. No efficacy result comes from this
+contract or its synthetic tests.
 
 CPU check:
 

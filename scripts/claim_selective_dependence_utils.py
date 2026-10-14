@@ -33,15 +33,15 @@ def summarize(records: list[dict]) -> dict:
         # d = selected intervention drop - matched-control drop.
         d = (scores[0] - scores[1]) - (scores[0] - scores[2])
         values.append(d)
-    digests = {row["target_sha256"] for row in records}
-    if len(digests) != 1:
-        raise ValueError("mixed target digests")
+    # The frozen gold answer/claim target is video-specific. Each triplet is
+    # checked by its own hash; requiring one shared hash would incorrectly
+    # reject a multi-video cohort with different answers.
     mean = sum(values) / len(values)
     return {
-        "schema_version": 1,
+        "schema_version": 2,
         "status": "synthetic_contract_only",
         "n_videos": len(values),
-        "target_sha256": next(iter(digests)),
+        "n_unique_target_hashes": len({row["target_sha256"] for row in records}),
         "video_level_d": values,
         "mean_d": mean,
         "interpretation_limit": "arithmetic contract only; no claim extraction, semantic alignment, human review, GPU inference, or faithfulness efficacy",

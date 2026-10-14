@@ -1,10 +1,10 @@
-"""Bounded Qwen2.5-VL processor/generation comparison for batch sizes one and two.
+"""Bounded Qwen2.5-VL same-context batch-shape diagnostic.
 
 The two-item batch contains two independently processor-encoded copies of one
-fixed, cleared NOAA clip. This is a batch-path and throughput engineering
-diagnostic, not a representative heterogeneous-video benchmark or a QA/
-faithfulness evaluation. The default uses four frames and 16 cached decode
-steps; the higher-load profile supports 32 frames and up to 128 decode steps.
+fixed, cleared NOAA clip. B=1 generates a greedy prefix and B=2 is forced to
+consume it, so raw next-token logits are compared under shared contexts. This
+is a numerical diagnostic, not a throughput, QA, or faithfulness evaluation.
+The default uses four frames and 16 cached decode steps.
 
 Usage::
 
@@ -281,6 +281,27 @@ def _finite_generation(output, batch_size: int, expected_tokens: int):
     return True
 
 
+def make_force_prefix_logits_processor(token_ids, prompt_length: int):
+    """Create a Transformers processor that forces every row through one prefix."""
+    import torch
+    from transformers.generation.logits_process import LogitsProcessor, LogitsProcessorList
+
+    forced = tuple(int(token) for token in token_ids)
+    if not forced or type(prompt_length) is not int or prompt_length <= 0:
+        raise ValueError("a nonempty forced prefix and positive prompt length are required")
+
+    class ForceSharedPrefix(LogitsProcessor):
+        def __call__(self, input_ids, scores):
+            step = int(input_ids.shape[-1]) - prompt_length
+            if step < 0 or step >= len(forced):
+                raise RuntimeError("forced shared-prefix step is out of range")
+            constrained = torch.full_like(scores, torch.finfo(scores.dtype).min)
+            constrained[:, forced[step]] = 0
+            return constrained
+
+    return LogitsProcessorList([ForceSharedPrefix()])
+
+
 def compare_generation_outputs(reference, candidate, batch_size: int):
     """Return scalar comparison summaries and never retain/export token/logit arrays."""
     import torch
@@ -344,8 +365,8 @@ def compare_generation_outputs(reference, candidate, batch_size: int):
     }
 
 
-def output_equivalence_gate(comparison):
-    """Require identical greedy sequences and each-step top-1 choices; retain scalar deltas."""
+def shared_context_top1_gate(comparison):
+    """Check raw-logit top-1 agreement while B=2 consumes the B=1 prefix."""
     sequences = comparison["sequence_equality"]
     sequences_equal = all(bool(value) for value in sequences.values())
     top1_equal = all(
@@ -360,7 +381,7 @@ def output_equivalence_gate(comparison):
     )
     return {
         "passed": sequences_equal and top1_equal and contexts_equal,
-        "greedy_sequences_equal": sequences_equal,
+        "forced_shared_sequences_equal": sequences_equal,
         "per_step_top1_equal": top1_equal,
         "compared_context_prefixes_equal": contexts_equal,
         "logit_bitwise_equality_required": False,
@@ -416,6 +437,7 @@ def _failure_code(error, stage: str):
         "generate_batch_1": "generation_batch1_failed",
         "prepare_batch_2": "processor_batch2_failed",
         "generate_batch_2": "generation_batch2_failed",
+        "generate_batch_2_forced_prefix": "generation_batch2_forced_prefix_failed",
     }.get(stage, "runtime_failed")
 
 
@@ -446,16 +468,21 @@ def _prepare_processor_batch(processor, conversations, frame_paths, fps):
 
 def _run_generation(model, batch, batch_size: int, native_positions, decode_coords,
                     max_new_tokens: int = MAX_NEW_TOKENS, collect_telemetry: bool = True,
-                    measured: bool = True):
+                    measured: bool = True, force_prefix_tokens=None):
     import torch
     from transformers.cache_utils import DynamicCache
-
     device_batch = {
         key: value.to("cuda") if torch.is_tensor(value) else value
         for key, value in batch.items()
     }
     sequence_length = int(device_batch["input_ids"].shape[1])
     actual_decode_steps = max_new_tokens - 1
+    logits_processor = None
+    if force_prefix_tokens is not None:
+        forced = tuple(int(token) for token in force_prefix_tokens)
+        if len(forced) != max_new_tokens:
+            raise ValueError("forced prefix length must equal max_new_tokens")
+        logits_processor = make_force_prefix_logits_processor(forced, sequence_length)
     cache = DynamicCache(config=model.config)
     trace = BatchGenerationTrace(model.model.language_model, batch_size)
     telemetry = GpuTelemetrySampler(interval_seconds=1.0) if collect_telemetry else None
@@ -466,6 +493,9 @@ def _run_generation(model, batch, batch_size: int, native_positions, decode_coor
         telemetry.start()
     try:
         with torch.inference_mode():
+            generate_kwargs = {}
+            if logits_processor is not None:
+                generate_kwargs["logits_processor"] = logits_processor
             output = model.generate(
                 **device_batch, past_key_values=cache, use_cache=True,
                 do_sample=False, max_new_tokens=max_new_tokens,
@@ -473,6 +503,7 @@ def _run_generation(model, batch, batch_size: int, native_positions, decode_coor
                 pad_token_id=model.generation_config.pad_token_id,
                 forced_eos_token_id=None,
                 return_dict_in_generate=True, output_scores=True, output_logits=True,
+                **generate_kwargs,
             )
         torch.cuda.synchronize()
     finally:
@@ -646,7 +677,7 @@ def run(frame_count: int = FRAME_COUNT, decode_steps: int = DECODE_STEPS):
             gc.collect()
             torch.cuda.empty_cache()
 
-            # Both batch shapes have now completed the same excluded warmup.
+            # B=1 autoregressive output supplies the shared forced prefix for B=2.
             RUN["current_batch_size"] = 1
             model.model.rope_deltas = None
             if model.model.rope_deltas is not None:
@@ -661,6 +692,9 @@ def run(frame_count: int = FRAME_COUNT, decode_steps: int = DECODE_STEPS):
             RUN["batch_runs"].append(run1)
             RUN["effective_batch_sizes"].append(1)
             logits1_cpu = _copy_logits_to_cpu(output1)
+            forced_prefix_tokens = output1.sequences[0, int(prepared1_cpu["input_ids"].shape[1]):].detach().cpu().tolist()
+            if len(forced_prefix_tokens) != max_new_tokens:
+                raise RuntimeError("B=1 did not produce a complete forced prefix")
             del output1, native1
             gc.collect()
             torch.cuda.empty_cache()
@@ -669,29 +703,35 @@ def run(frame_count: int = FRAME_COUNT, decode_steps: int = DECODE_STEPS):
             model.model.rope_deltas = None
             if model.model.rope_deltas is not None:
                 raise RuntimeError("rope_deltas was not cleared before measured batch-two generation")
-            RUN["stage"] = "generate_batch_2"
+            RUN["stage"] = "generate_batch_2_forced_prefix"
             run2, output2 = _run_generation(
                 model, prepared2_cpu, 2, native2, coords2,
                 max_new_tokens=max_new_tokens,
+                force_prefix_tokens=forced_prefix_tokens,
             )
             run2["processor_seconds"] = prep2_seconds
             run2["processor_geometry"] = duplicate_report["batch2"]
             RUN["batch_runs"].append(run2)
             RUN["effective_batch_sizes"].append(2)
+            # This compares a greedy B=1 pass with a prefix-forced B=2 pass;
+            # per-clip rates would not be a meaningful throughput comparison.
+            for record in (run1, run2):
+                record.pop("clips_per_second", None)
+                record.pop("seconds_per_clip", None)
             if (RUN["measured_model_calls"] != 2 * (1 + decode_steps)
                     or RUN["warmup_model_calls"] != 2 * (1 + 1)
                     or RUN["completed_model_calls"] != RUN["measured_model_calls"] + RUN["warmup_model_calls"]):
                 raise RuntimeError("measured/warmup model call accounting is inconsistent")
             comparisons = compare_generation_outputs(logits1_cpu, output2, 2)
-            equivalence = output_equivalence_gate(comparisons)
+            equivalence = shared_context_top1_gate(comparisons)
             RUN["processor_comparison"] = duplicate_report
             del output2, native2, prepared2_cpu, logits1_cpu
             RUN["stage"] = "complete"
 
             return {
                 "schema_version": 1,
-                "status": "ok" if equivalence["passed"] else "completed_with_output_mismatch",
-                "purpose": "fixed_noaa_qwen_batch1_vs_batch2_processor_throughput_smoke",
+                "status": "completed_same_context_top1_match" if equivalence["passed"] else "completed_same_context_argmax_mismatch",
+                "purpose": "fixed_noaa_qwen_batch_shape_same_context_diagnostic",
                 "started_utc": started_utc,
                 "elapsed_seconds": time.monotonic() - run_started,
                 "source_commit": source_commit,
@@ -712,8 +752,9 @@ def run(frame_count: int = FRAME_COUNT, decode_steps: int = DECODE_STEPS):
                                "cached_decode_steps": decode_steps,
                                "output_scores": True, "output_logits": True,
                                "outputs_exported": False,
-                               "batch_execution_order": ["warmup1", "warmup2", "measure1", "measure2"],
-                               "warmup_new_tokens_per_batch": 2},
+                               "batch_execution_order": ["warmup1", "warmup2", "batch1_greedy_reference", "batch2_forced_reference_prefix"],
+                               "warmup_new_tokens_per_batch": 2,
+                               "batch2_forced_prefix_from_batch1": True},
                 "requested_batch_sizes": [1, 2],
                 "requested_conditions": 2,
                 "effective_batch_sizes": RUN["effective_batch_sizes"],
@@ -729,12 +770,8 @@ def run(frame_count: int = FRAME_COUNT, decode_steps: int = DECODE_STEPS):
                 "warmup_runs": RUN["warmup_runs"],
                 "processor_batch_comparison": duplicate_report,
                 "batch_runs": [run1, run2],
-                "batch2_throughput_ratio_vs_batch1": (
-                    run2["clips_per_second"] / run1["clips_per_second"]
-                    if run1["clips_per_second"] else None
-                ),
                 "numerical_comparison": comparisons,
-                "output_equivalence_gate": equivalence,
+                "shared_context_top1_gate": equivalence,
                 "gpu_name": torch.cuda.get_device_name(0),
                 "gpu_free_before_load_gib": free_bytes / 1024**3,
                 "gpu_total_gib": total_bytes / 1024**3,
@@ -742,13 +779,13 @@ def run(frame_count: int = FRAME_COUNT, decode_steps: int = DECODE_STEPS):
                 "cuda_version": torch.version.cuda,
                 "limitations": [
                     f"One fixed {frame_count}-frame NOAA clip is duplicated; this does not represent heterogeneous videos.",
-                    "Throughput is an engineering observation for this clip, model, backend, and runtime only.",
+                    "B=2 is forced to consume the B=1 greedy prefix; timing is not a batch-throughput comparison.",
                     "Requested SDPA is recorded; selected per-layer kernels are not introspected.",
                     "Numerical comparisons do not validate QA, temporal semantics, grounding, or faithfulness.",
                 ],
                 "privacy": "Aggregate only; no media, text, tokens, raw logits, QA labels, or local paths exported.",
                 "failures": 0 if equivalence["passed"] else 1,
-                "failure_codes": [] if equivalence["passed"] else ["batch_greedy_output_mismatch"],
+                "failure_codes": [] if equivalence["passed"] else ["shared_context_top1_mismatch"],
             }
         finally:
             if model is not None:
@@ -771,7 +808,7 @@ def run(frame_count: int = FRAME_COUNT, decode_steps: int = DECODE_STEPS):
         return {
             "schema_version": 1,
             "status": "failed",
-            "purpose": "fixed_noaa_qwen_batch1_vs_batch2_processor_throughput_smoke",
+            "purpose": "fixed_noaa_qwen_batch_shape_same_context_diagnostic",
             "started_utc": started_utc,
             "elapsed_seconds": time.monotonic() - run_started,
             "source_sha256": RUN.get("source_sha256", {"runner": sha256(Path(__file__).resolve())}),
@@ -828,7 +865,14 @@ def main(argv=None):
         "completed_model_calls": record.get("completed_model_calls", 0),
         "failure_codes": record.get("failure_codes", []),
     }, sort_keys=True))
-    return 0 if record["status"] == "ok" else 1
+    return runner_exit_code(record)
+
+
+def runner_exit_code(record):
+    """Completed diagnostic outcomes, including a failed agreement gate, exit 0."""
+    return 0 if record.get("status") in {
+        "ok", "completed_same_context_top1_match", "completed_same_context_argmax_mismatch"
+    } else 1
 
 
 if __name__ == "__main__":

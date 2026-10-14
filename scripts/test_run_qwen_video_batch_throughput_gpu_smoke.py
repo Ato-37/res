@@ -158,12 +158,12 @@ class BatchThroughputSmokeCpuTests(unittest.TestCase):
         self.assertTrue(compared["top2_set_equal"])
         self.assertIsNone(report["first_top1_divergence_step"])
         self.assertTrue(report["sequence_equality"]["b2_duplicate_sequences_equal"])
-        self.assertTrue(runner.output_equivalence_gate(report)["passed"])
+        self.assertTrue(runner.shared_context_top1_gate(report)["passed"])
         self.assertNotIn('"logits":', json.dumps(report))
         self.assertIsInstance(report["per_generated_step_logits"][0]["b1_vs_b2_item0"][
             "maximum_absolute_difference"], float)
 
-    def test_output_equivalence_gate_fails_on_top1_or_sequence_mismatch(self):
+    def test_shared_context_gate_fails_on_top1_or_prefix_mismatch(self):
         one = SimpleNamespace(
             logits=tuple(torch.tensor([[1.0, 2.0]]) for _ in range(runner.MAX_NEW_TOKENS)),
             sequences=torch.tensor([[1] + [2] * runner.MAX_NEW_TOKENS]),
@@ -175,11 +175,29 @@ class BatchThroughputSmokeCpuTests(unittest.TestCase):
                                     [1] + [3] * runner.MAX_NEW_TOKENS]),
         )
         report = runner.compare_generation_outputs(one, two, 2)
-        gate = runner.output_equivalence_gate(report)
+        gate = runner.shared_context_top1_gate(report)
         self.assertEqual(report["first_top1_divergence_step"], 1)
         self.assertFalse(gate["passed"])
-        self.assertFalse(gate["greedy_sequences_equal"])
+        self.assertFalse(gate["forced_shared_sequences_equal"])
         self.assertFalse(gate["per_step_top1_equal"])
+
+    def test_force_prefix_processor_forces_same_tokens_for_each_batch_row(self):
+        processor = runner.make_force_prefix_logits_processor([3, 1], prompt_length=5)
+        ids0 = torch.tensor([[1, 2, 3, 4, 5]])
+        scores = torch.zeros((2, 6))
+        out0 = processor(ids0, scores)
+        self.assertEqual(out0.argmax(-1).tolist(), [3, 3])
+        self.assertTrue(torch.isfinite(out0).all())
+        ids1 = torch.tensor([[1, 2, 3, 4, 5, 3]])
+        out1 = processor(ids1, scores)
+        self.assertEqual(out1.argmax(-1).tolist(), [1, 1])
+        with self.assertRaisesRegex(RuntimeError, "out of range"):
+            processor(torch.ones((1, 7), dtype=torch.long), scores)
+
+    def test_completed_gate_mismatch_is_a_completed_cli_run(self):
+        self.assertEqual(runner.runner_exit_code({"status": "completed_same_context_argmax_mismatch"}), 0)
+        self.assertEqual(runner.runner_exit_code({"status": "completed_same_context_top1_match"}), 0)
+        self.assertEqual(runner.runner_exit_code({"status": "failed"}), 1)
 
     def test_swapped_top1_can_be_reported_without_exporting_token_ids(self):
         one = SimpleNamespace(

@@ -5,7 +5,18 @@ from validate_claim_mask_protocol import main, validate
 H = "0" * 64
 G = "0" * 40
 def fixture():
-    return {"schema_version":1,"protocol_stage":"confirmatory","model":{"revision":G,"tokenizer_revision":G,"quant":"4bit","dtype":"bfloat16","attention_implementation":"sdpa"},"cohort":{"split_manifest_sha256":H,"overlap_audit_sha256":H,"video_count":2,"analysis_unit_count":2,"split_overlap_count":0},"claim_review":{"claim_manifest_sha256":H,"mapping_sha256":H,"review_record_sha256":H,"review_status":"completed"},"sampling":{"policy":"whole_video_fixed","config_sha256":H,"uses_claim_for_selection":False,"num_frames":16,"frame_size":1024,"max_pixels":200704,"cap_pixels_per_frame":True},"estimand":{"target_text_sha256":H,"answer_text_sha256":H,"score_kind":"teacher_forced_logprob","baseline_correction":"selected_minus_control_drop","triplet_manifest_sha256":H},"intervention":{"kind":"claim_mask","selector_sha256":H,"control_sha256":H,"selected_condition":"claim tokens masked","control_condition":"matched nonclaim tokens masked"},"runtime":{"seed":1,"source_commit":"0123456789abcdef0123456789abcdef01234567","execution_authorization":False}}
+    return {
+        "schema_version": 2,
+        "protocol_stage": "exploratory",
+        "model": {"revision": G, "tokenizer_revision": G, "quant": "4bit", "dtype": "bfloat16", "attention_implementation": "sdpa"},
+        "cohort": {"candidate_manifest_sha256": H, "eligible_manifest_sha256": H, "exclusion_manifest_sha256": H, "overlap_audit_sha256": H, "candidate_video_count": 2, "eligible_video_count": 2, "prerun_exclusion_count": 0, "analysis_unit_count": 2, "split_overlap_count": 0, "primary_population": "all_eligible_videos", "secondary_population": "baseline_correctness_strata"},
+        "claim_review": {"claim_manifest_sha256": H, "mapping_sha256": H, "review_record_sha256": H, "review_status": "completed", "review_timing": "before_scoring", "mapping_unit": "claim_to_evidence_frames"},
+        "data_rights": {"scope": "future chosen dataset split", "status": "unresolved", "evidence_sha256": H},
+        "sampling": {"policy": "whole_video_fixed", "config_sha256": H, "uses_claim_for_selection": False, "num_frames": 16, "frame_size": 1024, "max_pixels": 200704, "cap_pixels_per_frame": True},
+        "estimand": {"answer_candidate_protocol_sha256": H, "gold_choice_manifest_sha256": H, "score_kind": "teacher_forced_gold_vs_best_foil_logprob_margin", "baseline_correction": "selected_minus_control_margin_drop", "triplet_manifest_sha256": H, "target_definition": "fixed_gold_choice_from_annotation", "margin_definition": "gold_label_logprob_minus_max_foil_label_logprob_same_prompt"},
+        "intervention": {"kind": "claim_linked_evidence_frame_mask", "selector_sha256": H, "control_sha256": H, "selected_condition": "claim-linked evidence frames masked", "control_condition": "matched temporal control frames masked", "selected_unit": "sampled_frames_overlapping_reviewed_claim_evidence_interval", "control_matching": "equal_count_minimum_total_temporal_rank_distance_lexicographic_tie_break"},
+        "runtime": {"seed": 1, "source_commit": "0123456789abcdef0123456789abcdef01234567", "execution_authorization": False},
+    }
 
 class TestClaimMaskProtocol(unittest.TestCase):
     def test_valid_is_structural_only(self):
@@ -53,12 +64,51 @@ class TestClaimMaskProtocol(unittest.TestCase):
         x=fixture(); x["intervention"]["control_condition"]=x["intervention"]["selected_condition"]
         r=validate(x); self.assertIn("intervention_fields_invalid",r["failure_codes"])
 
+    def test_primary_population_is_all_eligible_and_correctness_is_secondary(self):
+        x=fixture(); x["cohort"]["primary_population"]="baseline_correct_only"
+        r=validate(x); self.assertIn("cohort_fields_invalid",r["failure_codes"])
+
+    def test_confirmatory_stage_is_blocked_until_statistics_are_frozen(self):
+        x=fixture(); x["protocol_stage"]="confirmatory"
+        self.assertIn("protocol_stage_invalid",validate(x)["failure_codes"])
+
+    def test_eligible_denominator_must_equal_video_level_analysis_units(self):
+        x=fixture(); x["cohort"]["analysis_unit_count"]=1
+        self.assertIn("analysis_unit_not_video_level",validate(x)["failure_codes"])
+
+    def test_candidate_eligible_and_prerun_exclusion_counts_reconcile(self):
+        x=fixture(); x["cohort"]["prerun_exclusion_count"]=1
+        self.assertIn("cohort_fields_invalid",validate(x)["failure_codes"])
+
+    def test_review_must_precede_scoring(self):
+        x=fixture(); x["claim_review"]["review_timing"]="after_scoring"
+        self.assertIn("claim_review_timing_invalid",validate(x)["failure_codes"])
+
+    def test_rights_status_is_recorded_but_does_not_authorize_execution(self):
+        r=validate(fixture())
+        self.assertTrue(r["structurally_valid"])
+        self.assertEqual(r["execution_authorization"],"not_granted")
+        x=fixture(); x["data_rights"]["status"]=[]
+        self.assertIn("data_rights_fields_invalid",validate(x)["failure_codes"])
+
+    def test_review_mapping_must_end_in_evidence_frames(self):
+        x=fixture(); x["claim_review"]["mapping_unit"]="claim_tokens"
+        r=validate(x); self.assertIn("claim_review_mapping_unit_invalid",r["failure_codes"])
+
+    def test_score_must_be_fixed_answer_margin(self):
+        x=fixture(); x["estimand"]["score_kind"]="teacher_forced_logprob"
+        r=validate(x); self.assertIn("estimand_fields_invalid",r["failure_codes"])
+
+    def test_intervention_masks_frames_not_claim_tokens(self):
+        x=fixture(); x["intervention"]["selected_unit"]="claim_tokens"
+        r=validate(x); self.assertIn("intervention_fields_invalid",r["failure_codes"])
+
     def test_runtime_cannot_grant_execution_authorization(self):
         x=fixture(); x["runtime"]["execution_authorization"]=True; r=validate(x)
         self.assertIn("runtime_fields_invalid",r["failure_codes"])
 
     def test_duplicate_json_key_is_rejected_without_echoing_input(self):
-        raw=json.dumps(fixture()).replace('"schema_version": 1', '"schema_version": 1, "schema_version": 1', 1)
+        raw=json.dumps(fixture()).replace('"schema_version": 2', '"schema_version": 2, "schema_version": 2', 1)
         with tempfile.TemporaryDirectory() as directory:
             path=Path(directory)/"duplicate.json"; path.write_text(raw, encoding="utf-8")
             stdout=io.StringIO()
