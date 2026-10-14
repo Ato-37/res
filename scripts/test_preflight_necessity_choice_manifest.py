@@ -1,10 +1,14 @@
 from __future__ import annotations
 
 import sys
+import json
+import tempfile
 import unittest
 from types import SimpleNamespace
 from pathlib import Path
 from unittest.mock import MagicMock, patch
+from contextlib import redirect_stdout
+from io import StringIO
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import preflight_necessity_choice_manifest as preflight  # noqa: E402
@@ -109,6 +113,31 @@ class DistinctFramePreflightTests(unittest.TestCase):
         self.assertEqual(selected, [])
         self.assertEqual(records[0]["status"], "invalid_assignment_geometry")
         self.assertIn("intervals must be a list", records[0]["error"])
+
+    def test_cli_counts_geometry_failures_and_writes_only_valid_selection(self):
+        valid = {"video_id": "synthetic-valid", "qid": "q1", "video": "valid.mp4",
+                 "grounding": [[0.0, 0.0]]}
+        invalid = {"video_id": "synthetic-invalid", "qid": "q2", "video": "invalid.mp4",
+                   "grounding": [[2.0, 1.0]]}
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            samples_path = root / "input.json"
+            selected_path = root / "selected.json"
+            smoke_path = root / "smoke.json"
+            audit_path = root / "audit.json"
+            samples_path.write_text(json.dumps([valid, invalid]))
+            argv = ["preflight", "--samples-file", str(samples_path), "--n-valid", "1",
+                    "--n-smoke", "0", "--output-samples", str(selected_path),
+                    "--smoke-samples-output", str(smoke_path), "--audit-output", str(audit_path)]
+            with patch.object(sys, "argv", argv), patch.object(
+                    preflight, "decodable_video_info", return_value=(16, 1.0)), \
+                    redirect_stdout(StringIO()):
+                preflight.main()
+
+            report = json.loads(audit_path.read_text())
+            self.assertEqual(report["status_counts"], {"invalid_assignment_geometry": 1, "ok": 1})
+            self.assertEqual(json.loads(selected_path.read_text()), [valid])
+            self.assertEqual(json.loads(smoke_path.read_text()), [])
 
 
 if __name__ == "__main__":
