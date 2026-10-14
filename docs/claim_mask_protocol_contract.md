@@ -171,6 +171,10 @@ the specific claim. The ledger's `seed_only` and `independent_claim_review`
 fields remain self-declarations, so a dishonest ledger can still label a
 copied span as independently reviewed. Structural acceptance is only a
 precondition to human audit, never proof that the review occurred.
+If a `claim_support_decision` field is present and is not `supports_claim`,
+the checker emits the generic `claim_support_not_established` failure code,
+even if another review field is missing. It does not disclose which
+non-support category was selected or which item failed.
 
 Run it only against the private eligible manifest and private claim ledger, for
 example:

@@ -96,8 +96,16 @@ class ClaimMappingManifestAuditTests(unittest.TestCase):
         row["review"]["claim_support_decision"] = "contradicts_claim"
         result = self.run_audit(make_ledger(self.eligible_raw, rows=[row]))
         self.assertFalse(result["structurally_valid"])
-        self.assertIn("independent_human_review_incomplete", result["failure_codes"])
+        self.assertIn("claim_support_not_established", result["failure_codes"])
         self.assertEqual(result["execution_authorization"], "not_granted")
+
+    def test_non_support_decision_is_reported_even_if_review_is_incomplete(self):
+        row = make_row()
+        row["review"]["claim_support_decision"] = "contradicts_claim"
+        row["review"].pop("reviewed_at_utc")
+        result = self.run_audit(make_ledger(self.eligible_raw, rows=[row]))
+        self.assertIn("independent_human_review_incomplete", result["failure_codes"])
+        self.assertIn("claim_support_not_established", result["failure_codes"])
 
     def test_post_scoring_review_is_rejected(self):
         ledger = make_ledger(self.eligible_raw, scoring_started_at_utc="2026-10-15T00:00:00Z")

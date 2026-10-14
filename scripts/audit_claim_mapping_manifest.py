@@ -185,12 +185,14 @@ def _review_row(row: Any, policy: str, scoring_started: Any, failures: set[str])
                 or review.get("video_reviewed") is not True
                 or review.get("answer_and_gold_hidden") is not True
                 or review.get("outcome_scores_seen") is not False
-                or review.get("claim_support_decision") != "supports_claim"
                 or review.get("occurrence_policy_applied") != policy):
             failures.add("independent_human_review_incomplete")
         if scoring_started is not None and _utc(scoring_started) and _utc(review.get("reviewed_at_utc")):
             if review["reviewed_at_utc"] >= scoring_started:
                 failures.add("review_not_before_scoring")
+    if (isinstance(review, dict) and "claim_support_decision" in review
+            and review["claim_support_decision"] != "supports_claim"):
+        failures.add("claim_support_not_established")
     return video_id if isinstance(video_id, str) else None
 
 
