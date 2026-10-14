@@ -729,3 +729,16 @@ and no-authorization gates, and ran 33/33 focused tests successfully. The full
 scripts suite passes 552/552; expected failure-shaped diagnostics came from
 negative-path fixtures. The validator, tests, template, contract, and this log
 entry are not yet committed/published.
+
+## Publication scope audit
+
+After publication, `HEAD` and `origin/main` both resolve to `689dd9d`. The five
+commits since `52c9905` contain only the intended provenance regression test,
+claim estimator/tests, claim protocol validator/tests/docs, and this dated log.
+The log was searched for local absolute paths, private cohort filenames, and
+synthetic IDs; no matches appeared. User-local untracked files remain
+unmodified and unstaged. This is a tracked-path/content hygiene check, not a
+claim that every public-source legal statement was independently adjudicated.
+
+At 19:09:13 JST, 1h46m01s had elapsed and 1h13m59s remained. This publication
+scope audit note is not yet committed.
