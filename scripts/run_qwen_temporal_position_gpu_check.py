@@ -39,32 +39,43 @@ SYNTHETIC_SUBSECOND_TIMESTAMPS = (0.0, 0.375, 0.75, 1.125)
 SYNTHETIC_SUBSECOND_FPS = 8 / 3
 
 
-def make_synthetic_subsecond_fixture():
+def make_synthetic_subsecond_fixture(frame_count=4):
     """Create deterministic PIL frames and hash their ordered pixel bytes."""
     from PIL import Image
 
+    if frame_count not in (4, 16):
+        raise ValueError('Synthetic fixture frame_count must be 4 or 16')
     frame_size = 224
-    colors = ((17, 43, 89), (61, 97, 131), (109, 151, 173), (197, 211, 229))
+    legacy_four = ((17, 43, 89), (61, 97, 131), (109, 151, 173), (197, 211, 229))
+    colors = legacy_four + tuple(
+        ((17 + i * 37) % 256, (43 + i * 53) % 256,
+         (89 + i * 71) % 256) for i in range(4, frame_count)
+    )
     frames = [Image.new('RGB', (frame_size, frame_size), color) for color in colors]
     digest = hashlib.sha256()
-    digest.update(b'qwen-temporal-smoke/synthetic-subsecond/v1\0')
+    digest.update(b'qwen-temporal-smoke/synthetic-subsecond/v2\0')
     digest.update(frame_size.to_bytes(4, 'big'))
+    digest.update(frame_count.to_bytes(4, 'big'))
     for image in frames:
         digest.update(image.tobytes())
-    return frames, list(SYNTHETIC_SUBSECOND_TIMESTAMPS), SYNTHETIC_SUBSECOND_FPS, digest.hexdigest()
+    timestamps = [i / SYNTHETIC_SUBSECOND_FPS for i in range(frame_count)]
+    return frames, timestamps, SYNTHETIC_SUBSECOND_FPS, digest.hexdigest()
 
 
 def validate_synthetic_subsecond_geometry(
     timestamps, sampled_fps, grid_thw, seconds_per_grid,
     native_temporal_anchors, fractional_temporal_anchors, tokens_per_second,
+    expected_frames=None,
 ):
-    """Fail closed on the fixed subsecond processor/model regression fixture."""
-    if tuple(float(value) for value in timestamps) != SYNTHETIC_SUBSECOND_TIMESTAMPS:
+    """Fail closed on a supported synthetic subsecond processor geometry."""
+    frame_count = expected_frames if expected_frames is not None else len(SYNTHETIC_SUBSECOND_TIMESTAMPS)
+    expected_timestamps = tuple(i / SYNTHETIC_SUBSECOND_FPS for i in range(frame_count))
+    if tuple(float(value) for value in timestamps) != expected_timestamps:
         raise RuntimeError('Synthetic subsecond timestamps changed from the fixed fixture')
     if not math.isclose(float(sampled_fps), SYNTHETIC_SUBSECOND_FPS, rel_tol=0, abs_tol=1e-12):
         raise RuntimeError('Synthetic subsecond sample FPS changed from the fixed fixture')
-    if len(grid_thw) != 3 or int(grid_thw[0]) != 2:
-        raise RuntimeError(f'Synthetic processor temporal grid must be 2, got {grid_thw}')
+    if len(grid_thw) != 3 or int(grid_thw[0]) != frame_count // 2:
+        raise RuntimeError(f'Synthetic processor temporal grid must be {frame_count // 2}, got {grid_thw}')
     if not math.isclose(float(seconds_per_grid), 0.75, rel_tol=0, abs_tol=1e-6):
         raise RuntimeError(f'Synthetic second_per_grid_ts must be 0.75, got {seconds_per_grid}')
     native = tuple(int(value) for value in native_temporal_anchors)
@@ -164,6 +175,8 @@ def main():
     parser.add_argument('--output',required=True)
     parser.add_argument('--fixture',choices=('noaa','synthetic_subsecond'),default='noaa',
         help='Input fixture; noaa preserves existing behavior (default)')
+    parser.add_argument('--synthetic-frame-count',type=int,choices=(4,16),default=4,
+        help='Synthetic fixture frame count; ignored for NOAA')
     args = parser.parse_args()
     repo = Path(__file__).resolve().parents[1]
     output = (repo / args.output).resolve()
@@ -198,10 +211,11 @@ def main():
     if args.fixture == 'noaa':
         frames,tmp,timestamps,fps=extract_frames(str(video),4,224)
     else:
-        frames,timestamps,fps,fixture_sha256=make_synthetic_subsecond_fixture()
+        frames,timestamps,fps,fixture_sha256=make_synthetic_subsecond_fixture(args.synthetic_frame_count)
     try:
-        if len(timestamps)!=4 or len(frames)!=4:
-            raise RuntimeError('Four effective frames required')
+        expected_frame_count = 4 if args.fixture == 'noaa' else args.synthetic_frame_count
+        if len(timestamps)!=expected_frame_count or len(frames)!=expected_frame_count:
+            raise RuntimeError(f'{expected_frame_count} effective frames required')
         model=Qwen2_5_VLForConditionalGeneration.from_pretrained(str(model_path),
             local_files_only=True,torch_dtype=torch.bfloat16,attn_implementation='eager',
             quantization_config=BitsAndBytesConfig(load_in_4bit=True,bnb_4bit_compute_dtype=torch.bfloat16),device_map='cuda').eval()
@@ -215,7 +229,7 @@ def main():
             raise RuntimeError('Exactly one processed video required')
         tensor,metadata=videos[0]
         if args.fixture == 'synthetic_subsecond':
-            if metadata.get('frames_indices') != [0,1,2,3] or not math.isclose(
+            if metadata.get('frames_indices') != list(range(expected_frame_count)) or not math.isclose(
                 float(metadata.get('fps',0)),fps,rel_tol=0,abs_tol=1e-12):
                 raise RuntimeError('Synthetic list-frame metadata differs from fixed fixture')
             if [i/float(metadata['fps']) for i in metadata['frames_indices']] != timestamps:
@@ -232,8 +246,8 @@ def main():
             raise RuntimeError('Video modality mapping mismatch or image input')
         seconds=float(batch['second_per_grid_ts'][0])
         if args.fixture == 'synthetic_subsecond':
-            if int(grid[0]) != 2:
-                raise RuntimeError(f'Synthetic processor grid T must equal 2, got {grid}')
+            if int(grid[0]) != expected_frame_count // 2:
+                raise RuntimeError(f'Synthetic processor grid T must equal {expected_frame_count // 2}, got {grid}')
             if not math.isclose(seconds,0.75,rel_tol=0,abs_tol=1e-6):
                 raise RuntimeError(f'Synthetic processor second_per_grid_ts must equal 0.75, got {seconds}')
         config=model.config.vision_config
@@ -295,12 +309,12 @@ def main():
         if args.fixture == 'synthetic_subsecond':
             validate_synthetic_subsecond_geometry(
                 timestamps,fps,grid,seconds,anchors_native,anchors_candidate,
-                int(config.tokens_per_second),
+                int(config.tokens_per_second),expected_frames=expected_frame_count,
             )
             # Check this exact 0.75s/two-token-per-second case against Torch's
             # float32 arithmetic. This is a fixture-specific equality check,
             # not a claim about all floating-point rates or model versions.
-            float32_ticks=(torch.arange(2,dtype=torch.float32)*
+            float32_ticks=(torch.arange(expected_frame_count//2,dtype=torch.float32)*
                 torch.tensor(seconds,dtype=torch.float32)*int(config.tokens_per_second)
                 ).long()+anchors_native[0]
             if tuple(int(value) for value in float32_ticks.tolist())!=tuple(anchors_candidate):
@@ -329,7 +343,7 @@ def main():
             'seed':20261012,'quantization':'4bit','compute_dtype':'bfloat16','attention_implementation':'eager',
             'prompt':prompt,'audio_used':False,'annotations_used':False,
             'requested_samples':1,'effective_samples':1,'requested_forwards':3,'effective_forwards':3,'failures':0,
-            'requested_frames':4,'effective_frames':len(timestamps),'frame_max_dimension':224,'max_pixels':256*28*28,
+            'requested_frames':expected_frame_count,'effective_frames':len(timestamps),'frame_max_dimension':224,'max_pixels':256*28*28,
             'sample_timestamps_seconds':timestamps,'sampled_fps':fps,'grid_thw':grid,'video_tokens':len(positions),
             'input_tokens':int(batch['input_ids'].shape[1]),'seconds_per_grid':seconds,
             'native_temporal_anchors':anchors_native,'fractional_temporal_anchors':anchors_candidate,
@@ -369,7 +383,7 @@ def main():
                     'total_num_frames':metadata['total_num_frames']},
                 'human_qa_attestation':'not applicable to synthetic fixture',
                 'synthetic_temporal_assertions':{
-                    'expected_grid_temporal_steps':2,
+                    'expected_grid_temporal_steps':expected_frame_count//2,
                     'expected_seconds_per_grid':0.75,
                     'native_matches_fractional_reference':anchors_native==anchors_candidate,
                     'candidate_matches_fractional_reference':True,

@@ -28,7 +28,18 @@ def derive_public_summary(raw: dict, raw_sha256: str) -> dict:
     """Validate synthetic-only scope and retain minimum derived diagnostics."""
     if raw.get("fixture") != "synthetic_subsecond":
         raise ValueError("only the synthetic_subsecond fixture may be published")
-    if raw.get("failures") != 0 or raw.get("effective_samples") != 1:
+    if raw.get("effective_frames") not in (4, 16) or raw.get("requested_frames") != raw.get("effective_frames"):
+        raise ValueError("only the validated 4- or 16-frame synthetic fixture may be published")
+    frame_count = raw["effective_frames"]
+    grid = raw.get("grid_thw")
+    if not isinstance(grid, list) or len(grid) != 3 or grid[0] != frame_count // 2:
+        raise ValueError("temporal processor grid does not match synthetic frame count")
+    if len(raw.get("native_temporal_anchors", [])) != grid[0] or len(
+        raw.get("fractional_temporal_anchors", [])
+    ) != grid[0]:
+        raise ValueError("temporal anchor count does not match processor grid")
+    if (raw.get("failures") != 0 or raw.get("effective_samples") != 1
+            or raw.get("requested_samples") != 1):
         raise ValueError("run did not complete the one requested synthetic sample")
     if raw.get("effective_forwards") != 3 or raw.get("requested_forwards") != 3:
         raise ValueError("expected exactly three completed synthetic forwards")
@@ -102,11 +113,11 @@ def _output_paths(repo: Path, prefix: str) -> tuple[Path, Path]:
     return summary, manifest
 
 
-def _run_raw_gpu_check(repo: Path, raw_path: Path) -> None:
+def _run_raw_gpu_check(repo: Path, raw_path: Path, frame_count: int) -> None:
     command = [
         str(repo / ".venv/bin/python"),
         str(repo / "scripts/run_qwen_temporal_position_gpu_check.py"),
-        "--fixture", "synthetic_subsecond", "--output",
+        "--fixture", "synthetic_subsecond", "--synthetic-frame-count", str(frame_count), "--output",
         str(raw_path.relative_to(repo)),
     ]
     run(command, repo)
@@ -118,6 +129,7 @@ def main(argv=None):
         "--output-prefix",
         help="unique filename prefix directly under results/ (defaults to UTC timestamp)",
     )
+    parser.add_argument("--synthetic-frame-count", type=int, choices=(4, 16), default=4)
     args = parser.parse_args(argv)
     repo = Path(__file__).resolve().parents[1]
     branch = git_output(repo, "branch", "--show-current")
@@ -138,8 +150,8 @@ def main(argv=None):
     summary_path, manifest_path = _output_paths(repo, prefix)
     raw_path = repo / "results" / f".qwen_temporal_position_raw_{uuid.uuid4().hex}.json"
     source_commit = git_output(repo, "rev-parse", "HEAD")
-    print("Running 1 synthetic sample and 3 Qwen forwards; no real media/QA used.", flush=True)
-    _run_raw_gpu_check(repo, raw_path)
+    print(f"Running 1 synthetic {args.synthetic_frame_count}-frame sample and 3 Qwen forwards; no real media/QA used.", flush=True)
+    _run_raw_gpu_check(repo, raw_path, args.synthetic_frame_count)
     try:
         raw_bytes = raw_path.read_bytes()
         raw = json.loads(raw_bytes)

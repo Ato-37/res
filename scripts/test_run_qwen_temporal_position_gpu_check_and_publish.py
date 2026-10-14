@@ -34,6 +34,7 @@ def valid_raw():
         "quantization": "4bit",
         "compute_dtype": "bfloat16",
         "effective_frames": 4,
+        "requested_frames": 4,
         "sampled_fps": 8 / 3,
         "grid_thw": [2, 2, 2],
         "seconds_per_grid": 0.75,
@@ -60,6 +61,16 @@ class PublishSummaryTests(unittest.TestCase):
         raw = valid_raw()
         raw["fixture"] = "noaa"
         with self.assertRaisesRegex(ValueError, "only the synthetic"):
+            derive_public_summary(raw, "1" * 64)
+
+    def test_refuses_frame_grid_or_anchor_mismatch(self):
+        raw = valid_raw()
+        raw["grid_thw"] = [8, 32, 32]
+        with self.assertRaisesRegex(ValueError, "grid does not match"):
+            derive_public_summary(raw, "1" * 64)
+        raw = valid_raw()
+        raw["fractional_temporal_anchors"] = [0]
+        with self.assertRaisesRegex(ValueError, "anchor count"):
             derive_public_summary(raw, "1" * 64)
 
     def test_refuses_incomplete_or_mismatched_forward_counts(self):
