@@ -1145,8 +1145,9 @@ it and began their assistant suffix with the same standalone label token
 stability to the required future runner gate.
 
 An intermediate candidate report for this extension was superseded and deleted
-after review found stale `no_video` metadata; it was not published. The final
-CPU diagnostic records both text-template and expanded video checks in
+after review found stale `no_video` metadata; it was not published. The
+3-frame CPU diagnostic at this checkpoint records both text-template and
+expanded video checks in
 `results/qwen_claim_tokenization_cpu_20261014T104900Z.json`, SHA-256
 `6d29b855ec966fbdfc0e4c313816f406cbbc3d71cb71113b0dec7b569dd6dafe`.
 Runner SHA-256:
@@ -1208,3 +1209,31 @@ and [YFCC100M Core Dataset](https://multimediacommons.wordpress.com/yfcc100m-cor
 The independent audit verified validator no-go behavior and the direct CLI
 path; it did not read local data. Faithfulness remains at 0 new samples / 0
 new effects. At 19:52:02 JST, 2h28m50s elapsed and 31m10s remained.
+
+## Default-scale synthetic video token-boundary confirmation
+
+To test whether the previous 3-frame/32-pixel check missed an input-length
+interaction, I changed only the fixed synthetic video fixture to the legacy
+runner defaults: 16 frames at 224×224, with per-frame pixel capping omitted as
+in the current production builder. On the pinned local processor, the fully
+expanded base prompt contains 1,217 input tokens; all five completed A–E
+inputs preserve the exact expanded prefix and their suffix begins with the
+standalone label token (5/5, `gate_pass=true`). The CPU-only boundary core took
+0.208 seconds excluding imports, processor loading, and artifact writing; this
+is not a real-video runtime estimate. The processor again warned that the
+uncapped path may use more tokens than qwen-vl-utils' capped behavior. No model
+weights, forward pass, GPU, real/private video, or QA data was used.
+
+The updated diagnostic is
+`results/qwen_claim_tokenization_cpu_20261014T105200Z.json`, SHA-256
+`556ff4e6b26bdbc0de128de1a2f5c7e9a02d8cde51c1dec2799a91aad5b0441a`;
+runner SHA-256 is
+`aa073b1fc56ea7adf04e2ffb5024e70aa52984bfb825a518f231dc7e067c0dca` and
+fixture SHA-256 is
+`427fd55a59d86bb4e2f34e67b4a29315765e7773adbb50c690de0f864e0747fa`. The
+independent reviewer confirmed the fixture matches the runner defaults,
+reproduced the 1,217-token input and 5/5 boundary result, and verified the
+source hashes and output privacy. Focused tests pass 7/7; the full scripts
+suite passes 559/559, `py_compile` and `git diff --check` pass. Direct
+faithfulness remains 0 new samples / 0 effects. At 19:53:13 JST, 2h30m01s
+elapsed and 29m59s remained.

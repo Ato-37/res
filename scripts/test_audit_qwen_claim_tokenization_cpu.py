@@ -19,6 +19,7 @@ from audit_qwen_claim_tokenization_cpu import (
     build_report,
     ids_list,
     MODEL_REVISION,
+    SYNTHETIC_VIDEO_FRAME_COUNT,
     safe_output_path,
     write_report,
 )
@@ -163,7 +164,7 @@ class ClaimTokenizationAuditTests(unittest.TestCase):
                     audit_module,
                     "audit_video_choice_labels",
                     return_value={
-                        "synthetic_frame_count": 3,
+                        "synthetic_frame_count": SYNTHETIC_VIDEO_FRAME_COUNT,
                         "label_count": 5,
                         "expanded_video_prefix_stable_count": 5,
                         "expanded_video_contextual_label_match_count": 5,

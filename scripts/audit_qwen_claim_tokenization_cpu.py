@@ -59,12 +59,17 @@ CHOICE_PROMPT = (
     "C. option three\nD. option four\nE. option five\n"
     "Choose the best answer. Respond with one letter only.\nAnswer:"
 )
+SYNTHETIC_VIDEO_FRAME_COUNT = 16
+SYNTHETIC_VIDEO_FRAME_SIZE = 224
 FIXTURE_SPEC = {
     "prompt": FIXED_PROMPT,
     "targets": list(FIXED_TARGETS),
     "cases_are_synthetic_and_fixed_before_outcomes": True,
     "choice_prompt": CHOICE_PROMPT,
     "choice_labels": list(CHOICE_LABELS),
+    "synthetic_video_frame_count": SYNTHETIC_VIDEO_FRAME_COUNT,
+    "synthetic_video_frame_size": SYNTHETIC_VIDEO_FRAME_SIZE,
+    "synthetic_video_cap_pixels_per_frame": False,
 }
 
 
@@ -234,9 +239,13 @@ def audit_video_choice_labels(processor: Any) -> dict[str, Any]:
     prompt = CHOICE_PROMPT
     with tempfile.TemporaryDirectory(prefix="synthetic_choice_video_") as directory:
         frame_paths = []
-        for index, color in enumerate(("red", "green", "blue")):
+        colors = ("red", "green", "blue", "yellow", "magenta", "cyan")
+        for index in range(SYNTHETIC_VIDEO_FRAME_COUNT):
+            color = colors[index % len(colors)]
             path = Path(directory) / f"frame_{index}.jpg"
-            Image.new("RGB", (32, 32), color).save(path, format="JPEG")
+            Image.new(
+                "RGB", (SYNTHETIC_VIDEO_FRAME_SIZE, SYNTHETIC_VIDEO_FRAME_SIZE), color
+            ).save(path, format="JPEG")
             frame_paths.append(str(path))
 
         user_message = {
@@ -279,6 +288,8 @@ def audit_video_choice_labels(processor: Any) -> dict[str, Any]:
         )
         return {
             "synthetic_frame_count": len(frame_paths),
+            "synthetic_frame_size": SYNTHETIC_VIDEO_FRAME_SIZE,
+            "cap_pixels_per_frame": False,
             "base_expanded_video_input_token_count": len(base_ids),
             "base_expanded_video_input_token_ids_sha256": _token_hash(base_ids),
             "label_count": len(records),
