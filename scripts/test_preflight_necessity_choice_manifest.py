@@ -43,6 +43,16 @@ class DistinctFramePreflightTests(unittest.TestCase):
                 preflight.decodable_video_info("synthetic.mp4")
         cap.release.assert_called_once()
 
+    def test_capture_is_released_if_open_fails(self):
+        cap, cv2 = self._mock_capture(29.97)
+        cap.isOpened.return_value = False
+        with patch.dict(sys.modules, {"cv2": cv2}):
+            with self.assertRaisesRegex(RuntimeError, "Could not open video"):
+                preflight.decodable_video_info("synthetic.mp4")
+        cap.release.assert_called_once()
+        cap.get.assert_not_called()
+        cap.read.assert_not_called()
+
     def test_short_clip_with_duplicate_sampled_indices_is_excluded_pre_score(self):
         sample = {"video_id": "synthetic-video", "qid": "q1", "video": "synthetic.mp4",
                   "grounding": [[0.0, 0.0]]}
