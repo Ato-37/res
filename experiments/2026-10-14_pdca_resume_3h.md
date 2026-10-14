@@ -812,3 +812,29 @@ Direct faithfulness progress remains 0 new samples / 0 effects.
 
 At 19:14:57 JST, 1h51m45s had elapsed and 1h08m15s remained. Publication is
 pending.
+
+## Fail closed on numerically invalid conditional power
+
+An independent numerical stress check of the existing planning-only
+`analyze_claim_mask_power_sensitivity.py` found that finite inputs
+`n=10000, excess_over_sesoi_sd=1e100` cause SciPy's noncentral-t survival
+function to return NaN. The helper previously returned that value as if it
+were power, and `build_grid` could then serialize it only by failing later at
+JSON output. The helper now raises `ValueError` whenever computed power is
+non-finite or outside [0,1]; regression coverage checks both the direct helper
+and grid path. This is a numerical safety repair; it selects no SESOI and uses
+no empirical outcomes. Focused tests pass 6/6, `py_compile` and
+`git diff --check` pass, and the complete scripts suite passes 554/554.
+
+Independent audit reproduced SciPy's NaN at the same extreme input and
+confirmed both fail-closed paths; it found no material issue. As a separate
+formula check, a seeded simulation of 300,000 independent normal video-level
+paired differences (`n=40`, true mean 0.3 paired SD above the hypothetical
+SESOI, seed 20261014) estimated success probability 0.45634 (binomial SE
+0.00091), versus noncentral-t calculation 0.45645; difference was -0.13
+Monte Carlo SE. This checks the conditional normal-model arithmetic only; it
+does not validate normality for real videos, choose an SESOI, or establish
+faithfulness. Direct faithfulness progress remains 0 new samples / 0 effects.
+
+At 19:16:55 JST, 1h53m43s had elapsed and 1h06m17s remained. Change and log
+await scoped publication.

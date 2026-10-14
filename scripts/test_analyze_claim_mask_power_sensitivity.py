@@ -39,6 +39,14 @@ class TestClaimMaskPowerSensitivity(unittest.TestCase):
             with self.subTest(args=args), self.assertRaises(ValueError):
                 paired_t_lower_ci_power(*args)
 
+    def test_numerically_unstable_extreme_power_fails_closed(self):
+        # SciPy may return NaN for these finite inputs; that must not escape
+        # as a purported power value or enter a JSON sensitivity grid.
+        with self.assertRaisesRegex(ValueError, "numerically unstable"):
+            paired_t_lower_ci_power(10000, 1e100)
+        with self.assertRaisesRegex(ValueError, "numerically unstable"):
+            build_grid([10000], [1e100])
+
 
 if __name__ == "__main__":
     unittest.main()
