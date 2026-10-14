@@ -171,7 +171,7 @@ def audit(protocol: Any, protocol_raw: Any, eligible: Any, eligible_raw: Any,
         failures.add("claim_input_to_mapping_header_mismatch")
 
     input_rows = claim_input.get("claims")
-    input_required = {"video_id", "claim_id", "claim_text_sha256", "model_revision", "generation_run_sha256"}
+    input_required = {"video_id", "claim_id", "claim_text", "claim_text_sha256", "model_revision", "generation_run_sha256"}
     input_by_video = {}
     if not isinstance(input_rows, list):
         failures.add("claim_input_rows_invalid")
@@ -179,12 +179,20 @@ def audit(protocol: Any, protocol_raw: Any, eligible: Any, eligible_raw: Any,
     for row in input_rows:
         if (not isinstance(row, dict) or set(row) != input_required
                 or not _text(row.get("video_id")) or not _text(row.get("claim_id"))
+                or not isinstance(row.get("claim_text"), str) or not row["claim_text"].strip()
                 or not _sha(row.get("claim_text_sha256"))
                 or not isinstance(row.get("model_revision"), str)
                 or MODEL_REVISION.fullmatch(row["model_revision"]) is None
                 or not _sha(row.get("generation_run_sha256"))):
             failures.add("claim_input_row_invalid")
             continue
+        try:
+            claim_text_sha = hashlib.sha256(row["claim_text"].encode("utf-8")).hexdigest()
+        except UnicodeEncodeError:
+            failures.add("claim_input_text_invalid_unicode")
+            claim_text_sha = None
+        if claim_text_sha != row["claim_text_sha256"]:
+            failures.add("claim_input_text_hash_mismatch")
         if row["video_id"] in input_by_video:
             failures.add("claim_input_duplicate_video")
         input_by_video[row["video_id"]] = row

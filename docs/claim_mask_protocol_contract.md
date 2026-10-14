@@ -265,7 +265,9 @@ implementation. `gold_choice_manifest_sha256` binds per-video gold labels;
 mapping, review, and rights hashes refer to separate artifacts. These are
 declared references; the validator does not resolve or authenticate them.
 For claim review, `claim_manifest_sha256` refers to the exact frozen pre-review
-claim-input manifest bytes, `mapping_sha256` to the exact completed v2
+claim-input manifest bytes, including each private frozen claim text;
+`claim_text_sha256` is computed over exact UTF-8 bytes without normalization.
+`mapping_sha256` refers to the exact completed v2
 claim-mapping ledger bytes, and `review_record_sha256` to the exact bytes of a
 private index that lists each ledger row's per-row review-record hash and
 private reference. The private worksheet specifies the two v1 record shapes;
@@ -273,6 +275,19 @@ private reference. The private worksheet specifies the two v1 record shapes;
 row joins. This checker complements, but does not replace, the protocol and
 claim-ledger validators or the human semantic review. It always returns
 `execution_authorization=not_granted`.
+
+`scripts/preflight_claim_mask_gates.py` is a CPU-only cross-gate diagnostic for
+the protocol, eligible manifest, claim-input manifest, claim ledger, claim
+review index, item-rights ledger, and dataset-rights evidence index. It reads
+each file once, runs the structural checks against those exact byte snapshots,
+and emits only component statuses and fixed failure codes. Even if every
+structural component passes, it reports `overall_status=blocked` and
+`execution_authorization=not_granted`: schema v12 only permits exploratory
+protocols, and the claim-mask SESOI is unresolved. This tool does not initialize
+a model or video processor, authenticate human/legal evidence, or authorize a
+future run. Do not use its process exit code alone as an execution permission.
+It exits nonzero for every result, including when all structural components
+pass, because `overall_status` is always blocked under schema v12.
 
 For NExT-GQA, the supplied temporal interval is a QA-pair-level answer-evidence
 annotation. It is not, by itself, a mapping for a later Qwen-generated

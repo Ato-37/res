@@ -84,20 +84,28 @@ separate private review-evidence index. The claim-input manifest uses a closed
 v1 schema with `schema_version`, `eligible_dataset_id`,
 `eligible_manifest_sha256`, `claim_policy_sha256`, `occurrence_policy`, and
 `claims`. It has one row per eligible video with exactly `video_id`,
-`claim_id`, `claim_text_sha256`, `model_revision`, and
+`claim_id`, `claim_text`, `claim_text_sha256`, `model_revision`, and
 `generation_run_sha256`; it records claims before interval mapping/review.
+Keep this manifest private because it contains generated claim text. Compute
+`claim_text_sha256` over that row's exact UTF-8 bytes, without Unicode or
+whitespace normalization; the checker recomputes this digest from the frozen
+text. The reviewer must inspect that same frozen text. This proves byte/hash
+consistency within the supplied artifacts, not when those artifacts were
+created or which bytes a human actually saw.
 The v1 review-evidence index has `schema_version`, `mapping_ledger_sha256`,
 and `records`; each record has exactly `video_id`, `claim_id`,
 `review_record_sha256`, and `private_locator`, with one row for each reviewed
 ledger row and a distinct review-record hash per row. The index's
 `mapping_ledger_sha256` is the exact completed-ledger hash. This one-way
 reference avoids a hash cycle. `scripts/audit_claim_review_evidence_index.py`
-checks these raw-byte protocol bindings, eligible coverage, frozen claim-row
-identity/model/generation correspondence, and one-to-one review-record hash
+checks these raw-byte protocol bindings, eligible coverage, frozen claim text
+and row identity/model/generation correspondence, and one-to-one review-record hash
 references. Run it alongside the protocol and claim-ledger validators. A
 structural pass does not authenticate evidence or establish semantic support,
 source identity, blinding, reviewer independence, or the truth of any record;
-those remain human responsibilities.
+those remain human responsibilities. Review timestamps and `before_scoring`
+declarations are self-reported; this checker does not verify chronology or
+access logs.
 
 When transcribing a completed supported row into the claim-mapping ledger, use
 the exact contract keys: `claim_origin=model_generated_frozen`,

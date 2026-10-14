@@ -27,14 +27,15 @@ def fixture():
     review_records = []
     for index, video_id in enumerate(VIDEO_IDS):
         claim_id = f"claim-{index}"
-        claim_hash = ("c" if index == 0 else "d") * 64
+        claim_text = f"Frozen synthetic claim {index}."
+        claim_hash = hashlib.sha256(claim_text.encode("utf-8")).hexdigest()
         generation_hash = ("e" if index == 0 else "f") * 64
         review_hash = ("1" if index == 0 else "2") * 64
         model_revision = f"Qwen/model@{REVISION}"
         intervals = [[1.0, 2.0]]
         input_rows.append({
             "video_id": video_id, "claim_id": claim_id,
-            "claim_text_sha256": claim_hash, "model_revision": model_revision,
+            "claim_text": claim_text, "claim_text_sha256": claim_hash, "model_revision": model_revision,
             "generation_run_sha256": generation_hash,
         })
         ledger_rows.append({
@@ -137,6 +138,51 @@ class ClaimReviewEvidenceIndexTests(unittest.TestCase):
         parts[0]["claim_review"]["review_record_sha256"] = hashlib.sha256(parts[8]).hexdigest()
         result = run_audit(parts)
         self.assertIn("claim_input_to_mapping_row_mismatch", result["failure_codes"])
+
+    def test_frozen_claim_text_bytes_must_match_declared_sha256(self):
+        parts = list(fixture())
+        parts[3] = copy.deepcopy(parts[3])
+        parts[3]["claims"][0]["claim_text"] = "A different frozen claim."
+        parts[4] = raw(parts[3])
+        parts[0] = copy.deepcopy(parts[0])
+        parts[0]["claim_review"]["claim_manifest_sha256"] = hashlib.sha256(parts[4]).hexdigest()
+        result = run_audit(parts)
+        self.assertIn("claim_input_text_hash_mismatch", result["failure_codes"])
+
+    def test_unpaired_surrogate_claim_text_fails_closed(self):
+        parts = list(fixture())
+        parts[3] = copy.deepcopy(parts[3])
+        parts[3]["claims"][0]["claim_text"] = "bad\ud800text"
+        parts[4] = raw(parts[3])
+        parts[0] = copy.deepcopy(parts[0])
+        parts[0]["claim_review"]["claim_manifest_sha256"] = hashlib.sha256(parts[4]).hexdigest()
+        result = run_audit(parts)
+        self.assertEqual(result["structural_status"], "failed")
+        self.assertIn("claim_input_text_invalid_unicode", result["failure_codes"])
+
+    def test_blank_claim_text_is_rejected(self):
+        parts = list(fixture())
+        parts[3] = copy.deepcopy(parts[3])
+        parts[3]["claims"][0]["claim_text"] = " \t\n"
+        parts[4] = raw(parts[3])
+        parts[0] = copy.deepcopy(parts[0])
+        parts[0]["claim_review"]["claim_manifest_sha256"] = hashlib.sha256(parts[4]).hexdigest()
+        result = run_audit(parts)
+        self.assertIn("claim_input_row_invalid", result["failure_codes"])
+
+    def test_claim_text_hash_does_not_normalize_unicode(self):
+        parts = list(fixture())
+        parts[3] = copy.deepcopy(parts[3])
+        nfc_text = "caf\u00e9"
+        nfd_text = "cafe\u0301"
+        self.assertNotEqual(nfc_text.encode("utf-8"), nfd_text.encode("utf-8"))
+        parts[3]["claims"][0]["claim_text"] = nfd_text
+        parts[3]["claims"][0]["claim_text_sha256"] = hashlib.sha256(nfc_text.encode("utf-8")).hexdigest()
+        parts[4] = raw(parts[3])
+        parts[0] = copy.deepcopy(parts[0])
+        parts[0]["claim_review"]["claim_manifest_sha256"] = hashlib.sha256(parts[4]).hexdigest()
+        result = run_audit(parts)
+        self.assertIn("claim_input_text_hash_mismatch", result["failure_codes"])
 
     def test_claim_model_revision_must_match_protocol_model_pin(self):
         parts = list(fixture())
