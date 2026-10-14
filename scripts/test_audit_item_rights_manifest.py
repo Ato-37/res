@@ -223,6 +223,26 @@ class ItemRightsManifestAuditTests(unittest.TestCase):
         result = audit(eligible, eligible_raw, ledger, raw(ledger))
         self.assertIn("item_source_lineage_evidence_invalid", result["failure_codes"])
 
+    def test_lineage_allows_upstream_reuse_of_source_video_identifier(self):
+        eligible, eligible_raw, ledger, _ = fixture()
+        item = ledger["items"][0]
+        item["source_dataset_id"] = "YFCC100M"
+        item["source_video_id"] = "yfcc-id-123"
+        item["source_lineage"] = [
+            {"from_dataset_id": "synthetic annotations", "from_record_id": item["video_id"],
+             "to_dataset_id": "NExT-QA", "to_record_id": "nextqa-key",
+             "mapping_evidence_locator": "private://synthetic/edge-1", "mapping_evidence_sha256": H},
+            {"from_dataset_id": "NExT-QA", "from_record_id": "nextqa-key",
+             "to_dataset_id": "VidOR", "to_record_id": "yfcc-id-123",
+             "mapping_evidence_locator": "private://synthetic/edge-2", "mapping_evidence_sha256": H},
+            {"from_dataset_id": "VidOR", "from_record_id": "yfcc-id-123",
+             "to_dataset_id": "YFCC100M", "to_record_id": "yfcc-id-123",
+             "mapping_evidence_locator": "private://synthetic/edge-3", "mapping_evidence_sha256": H},
+        ]
+        result = audit(eligible, eligible_raw, ledger, raw(ledger))
+        self.assertTrue(result["structurally_valid"])
+        self.assertEqual(result["execution_authorization"], "not_granted")
+
     def test_empty_or_missing_source_lineage_keeps_gate_closed(self):
         eligible, eligible_raw, ledger, _ = fixture()
         ledger["items"][0]["source_lineage"] = []
