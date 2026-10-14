@@ -1316,3 +1316,20 @@ integrated with this validator; the legacy runner remains explicitly outside
 the v9 path. No private records, data, videos, or model were accessed. Direct
 faithfulness progress remains 0 new samples / 0 effects. At 20:00:10 JST,
 2h36m58s elapsed and 22m02s remained.
+
+## Synthetic text-boundary mismatch interpretation
+
+The T110000Z fixed-text diagnostic has one of 12 cases with an unstable chat
+prefix: case 10 begins with a newline, and literal concatenation produces 34
+tokens versus 35 from separately encoded prefix plus target. Independent
+inspection confirmed the prefix-ending newline and target-leading newline are
+resegmented across the BPE boundary, so this is an expected tokenizer-boundary
+sensitivity in that synthetic fixture. The five A–E labels separately pass
+their exact chat-generation boundary 5/5 and their production-expanded video
+boundary 5/5; the newline-leading text target is not part of that score path.
+This does not establish behavior for real QA or historical scores. It
+reinforces that free-text targets need their own frozen raw-token boundary
+handling; it does not change the current choice-margin estimand. No code,
+model, or dataset was changed or run. Faithfulness progress is unchanged at
+0 new samples / 0 effects. At 20:00:48 JST, 2h37m36s elapsed and 22m24s
+remained.
