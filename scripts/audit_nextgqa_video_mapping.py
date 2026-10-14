@@ -8,8 +8,9 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import os
 import posixpath
-from pathlib import Path, PurePosixPath
+from pathlib import Path, PurePosixPath, PureWindowsPath
 from typing import Any
 
 
@@ -32,12 +33,14 @@ def _read(path: Path) -> tuple[Any, bytes]:
     return _decode(raw), raw
 
 
-def audit(rows: Any, rows_raw: bytes, mapping: Any, mapping_raw: bytes) -> dict:
+def audit(rows: Any, rows_raw: bytes, mapping: Any, mapping_raw: bytes,
+          video_root: Path | None = None) -> dict:
     failures: set[str] = set()
     if not isinstance(rows, list) or not rows:
         failures.add("sample_manifest_invalid")
         rows = []
     names = []
+    row_paths = []
     for row in rows:
         if not isinstance(row, dict) or not isinstance(row.get("video"), str) or not row["video"].strip():
             failures.add("sample_video_field_invalid")
@@ -55,6 +58,7 @@ def audit(rows: Any, rows_raw: bytes, mapping: Any, mapping_raw: bytes) -> dict:
             failures.add("sample_video_stem_invalid")
             continue
         names.append(stem)
+        row_paths.append(row["video"].strip())
     if len(names) != len(rows):
         failures.add("sample_video_rows_unresolved")
     if len(names) != len(set(names)):
@@ -71,6 +75,57 @@ def audit(rows: Any, rows_raw: bytes, mapping: Any, mapping_raw: bytes) -> dict:
     missing = sum(name not in mapping for name in names)
     if len(targets) != len(set(targets)):
         failures.add("mapped_video_paths_duplicate")
+    local_path_audit = None
+    if video_root is not None:
+        root = video_root.expanduser().resolve()
+        matched = present = outside = invalid_target = 0
+        for name, raw_path in zip(names, row_paths):
+            source = Path(raw_path).expanduser()
+            source = (source if source.is_absolute() else root / source).resolve(strict=False)
+            try:
+                relative = PurePosixPath(*source.relative_to(root).parts)
+            except ValueError:
+                outside += 1
+                continue
+            if source.is_file():
+                present += 1
+            mapped = mapping.get(name) if isinstance(mapping, dict) else None
+            if not isinstance(mapped, str) or not mapped.strip():
+                continue
+            target = PurePosixPath(mapped.strip().replace("\\", "/"))
+            windows_target = PureWindowsPath(mapped.strip())
+            if (target.is_absolute() or windows_target.is_absolute() or windows_target.drive
+                    or ".." in target.parts or not target.name):
+                invalid_target += 1
+                continue
+            if target.suffix:
+                if target.suffix.lower() != ".mp4":
+                    invalid_target += 1
+                    continue
+            else:
+                target = target.with_suffix(".mp4")
+            if relative == target:
+                matched += 1
+        if outside:
+            failures.add("local_video_path_outside_root")
+        if invalid_target:
+            failures.add("local_mapping_path_invalid")
+        if matched != len(row_paths):
+            failures.add("local_video_path_mapping_mismatch")
+        if present != len(row_paths):
+            failures.add("local_video_files_missing")
+        local_path_audit = {
+            "status": "matched" if matched == len(rows) and present == len(rows)
+                      and outside == 0 and invalid_target == 0 else "incomplete_or_invalid",
+            "requested_rows": len(rows),
+            "valid_rows_checked": len(row_paths),
+            "unresolved_rows": len(rows) - len(row_paths),
+            "mapping_relative_path_matches": matched,
+            "files_present": present,
+            "paths_outside_root": outside,
+            "invalid_mapping_paths": invalid_target,
+            "root_path_or_file_names_emitted": False,
+        }
     return {
         "schema_version": 1,
         "status": "mapped" if not failures and not missing else "incomplete_or_invalid",
@@ -79,6 +134,7 @@ def audit(rows: Any, rows_raw: bytes, mapping: Any, mapping_raw: bytes) -> dict:
         "mapped_rows": len(targets),
         "unmapped_rows": missing,
         "unique_mapped_video_paths": len(set(targets)),
+        "local_path_mapping_audit": local_path_audit,
         "failure_codes": sorted(failures),
         "sample_manifest_sha256": hashlib.sha256(rows_raw).hexdigest(),
         "mapping_sha256": hashlib.sha256(mapping_raw).hexdigest(),
@@ -92,11 +148,13 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--sample-manifest", required=True, type=Path)
     parser.add_argument("--video-map", required=True, type=Path)
     parser.add_argument("--output", required=True, type=Path)
+    parser.add_argument("--video-root", type=Path,
+                        help="optional local NExTVideo root for path-to-map verification")
     args = parser.parse_args(argv)
     try:
         rows, rows_raw = _read(args.sample_manifest)
         mapping, mapping_raw = _read(args.video_map)
-        result = audit(rows, rows_raw, mapping, mapping_raw)
+        result = audit(rows, rows_raw, mapping, mapping_raw, args.video_root)
     except Exception:
         result = {
             "schema_version": 1, "status": "input_error", "requested_rows": 0,
@@ -109,7 +167,12 @@ def main(argv: list[str] | None = None) -> int:
     args.output.parent.mkdir(parents=True, exist_ok=True)
     if args.output.exists():
         parser.error("output already exists; choose a new path")
-    args.output.write_text(json.dumps(result, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    try:
+        descriptor = os.open(args.output, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+        with os.fdopen(descriptor, "w", encoding="utf-8") as stream:
+            stream.write(json.dumps(result, indent=2, sort_keys=True) + "\n")
+    except FileExistsError:
+        parser.error("output already exists; choose a new path")
     print(json.dumps(result, sort_keys=True))
     return 0 if result["status"] == "mapped" else 2
 

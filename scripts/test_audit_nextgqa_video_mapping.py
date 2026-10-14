@@ -1,6 +1,11 @@
 import hashlib
 import json
+import contextlib
+import io
+import os
+import tempfile
 import unittest
+from pathlib import Path
 
 from scripts.audit_nextgqa_video_mapping import _decode, audit
 
@@ -63,6 +68,88 @@ class NextGQAVideoMappingAuditTests(unittest.TestCase):
         rows, mapping = [{"video": "a.mp4"}], {"a": "v"}
         result = audit(rows, b'{ "video": "a.mp4" }', mapping, raw(mapping))
         self.assertEqual(result["sample_manifest_sha256"], hashlib.sha256(b'{ "video": "a.mp4" }').hexdigest())
+
+    def test_local_media_path_matches_mapped_relative_path_without_emitting_paths(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp) / "NExTVideo"
+            media = root / "1014" / "clip-a.mp4"
+            media.parent.mkdir(parents=True)
+            media.write_bytes(b"synthetic video bytes")
+            rows = [{"video": str(media)}]
+            mapping = {"clip-a": "1014/clip-a"}
+            result = audit(rows, raw(rows), mapping, raw(mapping), root)
+            self.assertEqual(result["local_path_mapping_audit"]["status"], "matched")
+            self.assertEqual(result["local_path_mapping_audit"]["mapping_relative_path_matches"], 1)
+            serialized = json.dumps(result)
+            self.assertNotIn(str(root), serialized)
+            self.assertNotIn("clip-a", serialized)
+
+    def test_local_media_path_mismatch_fails_closed(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp) / "NExTVideo"
+            media = root / "1014" / "clip-a.mp4"
+            media.parent.mkdir(parents=True)
+            media.write_bytes(b"synthetic")
+            rows = [{"video": str(media)}]
+            mapping = {"clip-a": "other-folder/clip-a"}
+            result = audit(rows, raw(rows), mapping, raw(mapping), root)
+            self.assertEqual(result["status"], "incomplete_or_invalid")
+            self.assertIn("local_video_path_mapping_mismatch", result["failure_codes"])
+
+    def test_local_media_audit_rejects_windows_absolute_mapping_target(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp) / "NExTVideo"
+            media = root / "C:" / "folder" / "clip-a.mp4"
+            media.parent.mkdir(parents=True)
+            media.write_bytes(b"synthetic")
+            rows = [{"video": str(media)}]
+            mapping = {"clip-a": "C:\\folder\\clip-a"}
+            result = audit(rows, raw(rows), mapping, raw(mapping), root)
+            self.assertEqual(result["local_path_mapping_audit"]["status"], "incomplete_or_invalid")
+            self.assertIn("local_mapping_path_invalid", result["failure_codes"])
+
+    def test_local_media_audit_rejects_windows_unc_mapping_target(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp) / "NExTVideo"
+            media = root / "clip-a.mp4"
+            root.mkdir()
+            media.write_bytes(b"synthetic")
+            rows = [{"video": str(media)}]
+            mapping = {"clip-a": r"\\server\share\clip-a"}
+            result = audit(rows, raw(rows), mapping, raw(mapping), root)
+            self.assertEqual(result["local_path_mapping_audit"]["status"], "incomplete_or_invalid")
+            self.assertIn("local_mapping_path_invalid", result["failure_codes"])
+
+    def test_local_path_substatus_fails_when_any_sample_row_is_invalid(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp) / "NExTVideo"
+            media = root / "clip-a.mp4"
+            root.mkdir()
+            media.write_bytes(b"synthetic")
+            rows = [{"video": str(media)}, {"video": "bad/"}]
+            mapping = {"clip-a": "clip-a"}
+            result = audit(rows, raw(rows), mapping, raw(mapping), root)
+            self.assertEqual(result["local_path_mapping_audit"]["status"], "incomplete_or_invalid")
+            self.assertEqual(result["local_path_mapping_audit"]["unresolved_rows"], 1)
+
+    def test_cli_summary_artifact_is_private_and_does_not_emit_paths(self):
+        from scripts.audit_nextgqa_video_mapping import main
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            sample = root / "samples.json"
+            mapping_path = root / "mapping.json"
+            output = root / "summary.json"
+            sample.write_text('[{"video":"/private/root/clip.mp4"}]', encoding="utf-8")
+            mapping_path.write_text('{"clip":"folder/clip"}', encoding="utf-8")
+            stdout = io.StringIO()
+            with contextlib.redirect_stdout(stdout):
+                self.assertEqual(main(["--sample-manifest", str(sample), "--video-map", str(mapping_path),
+                                       "--output", str(output)]), 0)
+            self.assertEqual(os.stat(output).st_mode & 0o777, 0o600)
+            self.assertNotIn("clip", stdout.getvalue())
+            with self.assertRaises(SystemExit), contextlib.redirect_stderr(io.StringIO()):
+                main(["--sample-manifest", str(sample), "--video-map", str(mapping_path),
+                      "--output", str(output)])
 
 
 if __name__ == "__main__":

@@ -363,6 +363,20 @@ these aggregate counts. This is filename-only evidence: it does not establish
 rights, and metadata may exist outside the archive. The archive itself and
 member names remain private; no media was copied or published.
 
+The mapping audit was extended to compare each sample's local path relative to
+the `NExTVideo` root with its `map_vid_vidorID` target after adding the archive's
+`.mp4` suffix. All 25 held-out and 80 candidate rows join exactly to the
+expected relative mapped path, and all 105 files exist. The comparison resolves
+paths under the declared root, rejects POSIX/Windows absolute and traversal
+targets, reports unresolved rows, and emits counts only. CLI output is created
+exclusively with mode 0600 because it includes unsalted input hashes. Six
+focused regression tests cover path match/mismatch, root containment, Windows
+drive and UNC paths, incomplete rows, and output privacy.
+These checks verify consistency among the local annotation ID, mapping table,
+and local file path; they do not verify the source upload identity, original
+license, or authority to infer. The private result summaries include
+unsalted input hashes and remain local.
+
 ## Faithfulness progress at this checkpoint
 
 - New direct faithfulness samples this window: 0.
@@ -377,17 +391,24 @@ member names remain private; no media was copied or published.
 - Remaining gates: NOAA human review is incomplete; NExT-GQA per-item video
   rights are unresolved; claim-mask SESOI is unresolved; the historical local
   sample manifest does not reproduce the recorded input hash.
-- Current window checkpoint (18:24:54 JST; 1h01m42s elapsed, 1h58m18s remain):
+- Current window checkpoint (18:28:40 JST; 1h05m28s elapsed, 1h54m32s remain):
   direct faithfulness is `未実施` (0 new samples / 0 new effect estimates);
-  local video-name mapping is `補助診断のみ` (105/105 rows mapped to distinct
-  normalized path strings); exact-file identity is `補助診断のみ` (105/105 read,
+  local video-name/path mapping is `補助診断のみ` (105/105 local paths match
+  normalized mapped paths and files are present); exact-file identity is
+  `補助診断のみ` (105/105 read,
   105 unique byte sequences, zero exact-content overlap between the two cohorts).
   Candidate-use overlap is also an auxiliary provenance finding (63/80 already
   outcome-scored; 17/80 absent from result manifests but preflight-screened,
   of which only 9 were old-rule eligible and unscored). Per-video rights and the
-  human/SESOI gates remain `no_go`. The full CPU suite passes 526 tests after
+  human/SESOI gates remain `no_go`. The full CPU suite passes 531 tests after
   fixing issues found by independent audits. No GPU run occurred because no
   cleared direct-evaluation branch is available.
+- Current window checkpoint (18:33:39 JST; 1h10m27s elapsed, 1h49m33s remain):
+  direct faithfulness is still `未実施` (0 new samples / 0 new effect estimates).
+  Added an explicit UNC-path regression after independent review; the focused
+  mapping/overlap suites pass 20 tests, and the full scripts suite passes 532
+  tests. `py_compile` and `git diff --check` also pass. This hardens only a
+  local provenance audit and does not open a rights or inference gate.
 
 ## Next action
 

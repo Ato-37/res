@@ -63,8 +63,9 @@ class SampleManifestOverlapTests(unittest.TestCase):
             output = root / "summary.json"
             candidate.write_bytes(raw([{"video_id": "private-video-id"}]))
             historical.write_bytes(raw([{"video_id": "different-private-id"}]))
-            self.assertEqual(main(["--candidate", str(candidate), "--historical", str(historical),
-                                   "--output", str(output)]), 0)
+            with contextlib.redirect_stdout(io.StringIO()):
+                self.assertEqual(main(["--candidate", str(candidate), "--historical", str(historical),
+                                       "--output", str(output)]), 0)
             self.assertEqual(os.stat(output).st_mode & 0o777, 0o600)
             serialized = output.read_text()
             self.assertNotIn("private-video-id", serialized)
