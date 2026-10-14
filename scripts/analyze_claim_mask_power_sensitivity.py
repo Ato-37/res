@@ -31,9 +31,12 @@ def paired_t_lower_ci_power(n: int, excess_over_sesoi_sd: float, confidence: flo
         raise ValueError("excess_over_sesoi_sd must be finite and >= 0")
     if not _finite_real(confidence) or not 0 < confidence < 1:
         raise ValueError("confidence must be strictly between 0 and 1")
-    critical = t.ppf((1 + confidence) / 2, n - 1)
-    noncentrality = excess_over_sesoi_sd * math.sqrt(n)
-    power = float(nct.sf(critical, n - 1, noncentrality))
+    try:
+        critical = float(t.ppf((1 + confidence) / 2, n - 1))
+        noncentrality = excess_over_sesoi_sd * math.sqrt(n)
+        power = float(nct.sf(critical, n - 1, noncentrality))
+    except (ArithmeticError, TypeError, ValueError) as exc:
+        raise ValueError("noncentral-t power calculation was numerically unstable") from exc
     # SciPy's noncentral-t survival function can return NaN for finite but
     # extreme noncentralities. Never serialize that as a power estimate.
     if not math.isfinite(power) or not 0.0 <= power <= 1.0:

@@ -35,7 +35,7 @@ class TestClaimMaskPowerSensitivity(unittest.TestCase):
 
     def test_invalid_inputs_fail(self):
         for args in ((1, 0.2), (20, -0.1), (20, float("nan")), (20, 10**1000),
-                     (20, "0.2"), (20, 0.2, 1.0)):
+                     (20, "0.2"), (20, 0.2, 1.0), (10**100, 0.1)):
             with self.subTest(args=args), self.assertRaises(ValueError):
                 paired_t_lower_ci_power(*args)
 

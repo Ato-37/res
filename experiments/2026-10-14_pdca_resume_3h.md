@@ -836,5 +836,16 @@ Monte Carlo SE. This checks the conditional normal-model arithmetic only; it
 does not validate normality for real videos, choose an SESOI, or establish
 faithfulness. Direct faithfulness progress remains 0 new samples / 0 effects.
 
-At 19:16:55 JST, 1h53m43s had elapsed and 1h06m17s remained. Change and log
-await scoped publication.
+At 19:16:55 JST, 1h53m43s had elapsed and 1h06m17s remained.
+
+A second boundary check found that an arbitrarily large but positive integer
+sample size (`n=10**100`) made SciPy's t quantile raise `TypeError` before the
+power-result guard. The numerical calculation block now normalizes arithmetic,
+type-conversion, and value errors into the same explicit `ValueError`; the
+regression input is included in the invalid-input test. Independent review
+reproduced the `stdtrit` type failure and confirmed normalization. The focused
+suite remains 6/6 and the full scripts suite passes 554/554; syntax and diff
+checks pass. This protects the planning CLI from an internal library exception
+on infeasible inputs; no valid-sample design or scientific conclusion changes.
+At 19:18:13 JST, 1h55m01s had elapsed and 1h04m59s remained. The addition and
+log await scoped publication.
