@@ -311,6 +311,58 @@ unresolved. No reviewer attestation was created, and execution authorization
 remains `not_granted`. This prepares a human worksheet only; it does not advance
 faithfulness evidence or clear data rights.
 
+### Candidate-use and exact-media overlap audit
+
+Before treating the 80-row necessity-choice candidate manifest as a fresh
+cohort, a local CPU audit compared opaque `video_id` values and video-path
+filename stems against all 14
+other `data/nextgqa_samples*.json` manifests. The 80 candidates contain 80
+unique video identities and QA pairs; 63 already occur in historical sample
+manifests: 60 in the necessity-choice replication heldout set and 3 in its
+smoke set. Both historical black and blur outputs contain those 60 held-out
+records and 3 smoke records, all with zero failures. The local preflight
+screened all 80 under the older 16-frame grounding/control rule: 72 were
+marked `ok`, 7 had insufficient controls, and 1 had no evidence. Of the 17
+candidates absent from previous sample manifests, 9 were `ok` but not selected
+for that old run and 8 were preflight-ineligible under its rule. Thus these 17
+are not wholly unseen: all were preflight-screened, and only 9 were not
+previously outcome-scored. The 80-row pool cannot be called a fresh independent
+cohort relative to historical necessity-choice outcomes. Whether reuse is
+appropriate for the distinct claim-mask intervention must be fixed before
+scoring; the remaining 9 are not a fresh random sample, and power for a
+restricted set remains unassessed. These counts do not redefine the claim-mask
+estimand or establish eligibility under its future review protocol.
+
+The 25-row held-out and 80-row candidate media files are all locally present
+and readable (requested/effective 25/25 and 80/80; total bytes hashed
+102,221,199 and 369,691,580). Their normalized video stems, resolved paths,
+and exact SHA-256 file contents are unique within each cohort, with zero exact
+file-content overlap between cohorts. This only excludes repeated byte-identical
+files; it does not detect transcodes, shared scenes, aliases, or campaign-level
+dependence. This output is a local-only audit: it binds unsalted hashes of
+private manifests containing paths and annotation text, so that artifact was
+not published. The new reusable identity-overlap auditor uses fixed manifest
+labels, rejects malformed supplied identity fields, and emits counts only in
+the CLI summary; its eight tests cover overlap, duplicates, privacy, and
+malformed inputs. Its private JSON contains
+unsalted manifest hashes and should remain local.
+
+An independent reviewer confirmed all 80 candidate pairs, the 60 held-out plus
+3 smoke overlap, prior outcome joins, and the 72/8 preflight split. The primary
+reproduced these aggregate counts from the private preflight and result
+artifacts. The exact-media check is verified only for the local files and
+stated sets. No GPU inference was run; item-rights and human-review gates
+remain unresolved.
+
+As another bounded source-provenance check, the local `NExTVideo.zip` central
+directory was inspected without extraction or video reads. It lists 5,600
+members: 5,440 MP4 files and 160 directory entries, with 24,583,229,969 total
+uncompressed bytes. No filename matched license/rights, attribution/credit,
+metadata, manifest, README, or index terms. An independent auditor reproduced
+these aggregate counts. This is filename-only evidence: it does not establish
+rights, and metadata may exist outside the archive. The archive itself and
+member names remain private; no media was copied or published.
+
 ## Faithfulness progress at this checkpoint
 
 - New direct faithfulness samples this window: 0.
@@ -325,13 +377,17 @@ faithfulness evidence or clear data rights.
 - Remaining gates: NOAA human review is incomplete; NExT-GQA per-item video
   rights are unresolved; claim-mask SESOI is unresolved; the historical local
   sample manifest does not reproduce the recorded input hash.
-- Current window checkpoint (17:59:19 JST; 36m07s elapsed, 2h23m53s remain):
+- Current window checkpoint (18:24:54 JST; 1h01m42s elapsed, 1h58m18s remain):
   direct faithfulness is `未実施` (0 new samples / 0 new effect estimates);
   local video-name mapping is `補助診断のみ` (105/105 rows mapped to distinct
-  normalized path strings); per-video rights and the human/SESOI gates remain
-  `no_go`. The full CPU suite passes 508 tests after fixing issues found by the
-  independent audit. No GPU run occurred because no cleared direct-evaluation
-  branch is available.
+  normalized path strings); exact-file identity is `補助診断のみ` (105/105 read,
+  105 unique byte sequences, zero exact-content overlap between the two cohorts).
+  Candidate-use overlap is also an auxiliary provenance finding (63/80 already
+  outcome-scored; 17/80 absent from result manifests but preflight-screened,
+  of which only 9 were old-rule eligible and unscored). Per-video rights and the
+  human/SESOI gates remain `no_go`. The full CPU suite passes 526 tests after
+  fixing issues found by independent audits. No GPU run occurred because no
+  cleared direct-evaluation branch is available.
 
 ## Next action
 
