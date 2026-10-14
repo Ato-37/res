@@ -16,6 +16,36 @@ def _finite_number(value):
         return False
 
 
+def require_valid_source_fps(fps):
+    """Return positive finite source FPS; never invent a timestamp scale."""
+    if not _finite_number(fps) or fps <= 0:
+        raise ValueError("video source FPS must be finite and positive")
+    return fps
+
+
+def inspect_video_capture(cap, fps_property):
+    """Read source FPS and frame count, releasing the capture on every path."""
+    if not cap.isOpened():
+        cap.release()
+        raise RuntimeError("Could not open video")
+    count = 0
+    try:
+        try:
+            fps = require_valid_source_fps(cap.get(fps_property))
+        except ValueError as exc:
+            raise RuntimeError("Video reports invalid source FPS") from exc
+        while True:
+            ok, _ = cap.read()
+            if not ok:
+                break
+            count += 1
+        if count <= 0:
+            raise RuntimeError("Could not decode any frames")
+        return count, fps
+    finally:
+        cap.release()
+
+
 def uniform_sample_indices(total_frames, num_frames):
     """Match the repository's endpoint-inclusive rounded uniform sampling.
 

@@ -29,7 +29,7 @@ import cv2
 import torch
 from PIL import Image
 
-from necessity_choice_margin_utils import uniform_sample_indices
+from necessity_choice_margin_utils import inspect_video_capture, uniform_sample_indices
 from transformers import AutoProcessor, BitsAndBytesConfig, Qwen2_5_VLForConditionalGeneration
 from qwen_vl_utils import process_vision_info
 
@@ -38,21 +38,7 @@ from soft_ablation_sweep import append_answer_tokens, sequence_answer_logprobs
 
 def decodable_video_info(video_path):
     cap = cv2.VideoCapture(video_path)
-    if not cap.isOpened():
-        raise RuntimeError(f"Could not open video {video_path}")
-    fps = cap.get(cv2.CAP_PROP_FPS) or 25.0
-    count = 0
-    try:
-        while True:
-            ok, _ = cap.read()
-            if not ok:
-                break
-            count += 1
-    finally:
-        cap.release()
-    if count <= 0:
-        raise RuntimeError(f"Could not decode any frames from {video_path}")
-    return count, fps
+    return inspect_video_capture(cap, cv2.CAP_PROP_FPS)
 
 
 def sample_indices(total, num_frames):

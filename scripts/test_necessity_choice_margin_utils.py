@@ -7,12 +7,53 @@ from analyze_necessity_choice_mask_fill import compare_results
 from necessity_choice_margin_utils import (apply_mask_fill, assess_frame_coverage,
                                            assign_evidence_control_frames,
                                            interaction_ci, nearest_control_indices,
+                                           inspect_video_capture,
+                                           require_valid_source_fps,
                                            strict_evidence_indices, summarize,
                                            uniform_sample_indices,
                                            validate_choice_logprobs)
 
 
 class NecessityChoiceMarginUtilsTests(unittest.TestCase):
+    def test_source_fps_requires_finite_positive_metadata_without_fallback(self):
+        self.assertEqual(require_valid_source_fps(29.97), 29.97)
+        for fps in (0, 0.0, -1, inf, nan, True, "25"):
+            with self.subTest(fps=fps), self.assertRaises(ValueError):
+                require_valid_source_fps(fps)
+
+    def test_video_capture_is_released_on_every_metadata_path(self):
+        class Capture:
+            def __init__(self, opened=True, fps=29.97, frames=2):
+                self.opened, self.fps, self.frames = opened, fps, frames
+                self.released = 0
+                self.reads = 0
+
+            def isOpened(self):
+                return self.opened
+
+            def get(self, _):
+                return self.fps
+
+            def read(self):
+                self.reads += 1
+                return (True, object()) if self.reads <= self.frames else (False, None)
+
+            def release(self):
+                self.released += 1
+
+        opened = Capture()
+        self.assertEqual(inspect_video_capture(opened, 5), (2, 29.97))
+        self.assertEqual(opened.released, 1)
+        unopened = Capture(opened=False)
+        with self.assertRaisesRegex(RuntimeError, "Could not open video"):
+            inspect_video_capture(unopened, 5)
+        self.assertEqual(unopened.released, 1)
+        invalid_fps = Capture(fps=0)
+        with self.assertRaisesRegex(RuntimeError, "invalid source FPS"):
+            inspect_video_capture(invalid_fps, 5)
+        self.assertEqual(invalid_fps.released, 1)
+        self.assertEqual(invalid_fps.reads, 0)
+
     def test_uniform_sample_indices_preserve_legacy_rounding_and_short_clip_duplicates(self):
         self.assertEqual(uniform_sample_indices(10, 4), [0, 3, 6, 9])
         self.assertEqual(uniform_sample_indices(2, 4), [0, 0, 1, 1])

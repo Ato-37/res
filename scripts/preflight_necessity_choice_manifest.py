@@ -16,11 +16,12 @@ Usage:
 import argparse
 from collections import Counter
 import json
-import math
 import os
 from pathlib import Path
 
-from necessity_choice_margin_utils import assign_evidence_control_frames, uniform_sample_indices
+from necessity_choice_margin_utils import (assign_evidence_control_frames,
+                                           inspect_video_capture,
+                                           uniform_sample_indices)
 
 
 def decodable_video_info(video_path):
@@ -29,24 +30,7 @@ def decodable_video_info(video_path):
     import cv2
 
     cap = cv2.VideoCapture(video_path)
-    if not cap.isOpened():
-        cap.release()
-        raise RuntimeError(f'Could not open video {video_path}')
-    count = 0
-    try:
-        fps = cap.get(cv2.CAP_PROP_FPS)
-        if isinstance(fps, bool) or not isinstance(fps, (int, float)) or not math.isfinite(fps) or fps <= 0:
-            raise RuntimeError('Video reports invalid source FPS')
-        while True:
-            ok, _ = cap.read()
-            if not ok:
-                break
-            count += 1
-    finally:
-        cap.release()
-    if count <= 0:
-        raise RuntimeError(f'Could not decode any frames from {video_path}')
-    return count, fps
+    return inspect_video_capture(cap, cv2.CAP_PROP_FPS)
 
 
 def sample_indices(total, num_frames):
