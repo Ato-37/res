@@ -901,3 +901,30 @@ Thus the extreme-input fail-closed repair did not alter this valid-range
 artifact. These are unchanged hypothetical design values, not new empirical
 evidence. At 19:22:24 JST, 1h59m12s had elapsed and 1h00m48s remained; direct
 faithfulness progress remains 0 new samples / 0 effects.
+
+## Exploratory licensed-dataset alternative (not a protocol change)
+
+Because the NExT-GQA item-rights path remains unresolved, I checked the
+official Perception Test repository and paper as a possible future fallback.
+The repository describes 11,609 real-world videos, 38,060 three-option
+multiple-choice questions over 10,361 videos, 6,086 grounded questions over
+3,063 videos, and 73,503 temporally bounded action segments. Its README labels
+software Apache-2.0 and all other materials CC-BY 4.0; the paper describes
+filming by roughly 100 participants, and the supplement states participants
+gave informed consent. See the [official repository](https://github.com/google-deepmind/perception_test),
+[paper](https://papers.nips.cc/paper_files/paper/2023/file/8540fba4abdc7f9f7a7b1cc6cd60e409-Paper-Datasets_and_Benchmarks.pdf),
+and [supplement](https://papers.nips.cc/paper_files/paper/2023/file/8540fba4abdc7f9f7a7b1cc6cd60e409-Supplemental-Datasets_and_Benchmarks.pdf).
+
+An independent design review confirmed it is only a candidate: the current
+claim-mask protocol is a fixed five-choice answer margin, while Perception
+Test MC-QA has three options; its grounded-QA answer is a list of object-track
+IDs. Action intervals are not automatically answer-relevant evidence for each
+QA, and object tracks are typically annotated around once per second. Thus
+the source may make rights provenance clearer, but replacing NExT-GQA changes
+the estimand/score distribution and still requires pre-outcome human QA-to-
+claim-to-time mapping, split/license-scope review, and a new SESOI/power
+assessment. This is a literature/schema check only: no dataset was downloaded,
+opened, counted locally, or used for inference; the primary NExT-GQA plan is
+unchanged. It does not add faithfulness evidence. At 19:26:34 JST, 2h03m22s
+had elapsed and 56m38s remained; direct faithfulness progress is 0 new samples
+/ 0 effects.
