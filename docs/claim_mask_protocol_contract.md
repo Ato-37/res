@@ -28,6 +28,16 @@ error estimation ([Statistics Canada](https://www150.statcan.gc.ca/n1/edu/power-
 The usual one-sample t interval is motivated by independent observations from
 a population model (see [NIST's confidence-limit discussion](https://www.itl.nist.gov/div898/handbook/eda/section3/eda352.htm)).
 
+For the candidate NExT-GQA test cohort, the official dataset README describes
+its test/validation rows as a subset of NExT-QA and says global-content and
+descriptive questions are excluded. The NExT-QA dataset page reports a released
+1,000-video test split, but neither source describes probability sampling of
+videos from a broader real-world population ([NExT-GQA README](https://github.com/doc-doc/NExT-GQA/blob/main/datasets/nextgqa/README.md),
+[NExT-QA dataset page](https://doc-doc.github.io/docs/nextqa.html)). These
+documents define benchmark provenance, not a probability-sampling frame. Until
+the target is fixed, claims must not generalize from the benchmark cohort to
+VideoQA videos generally.
+
 One row per unique `video_id` prevents counting multiple questions from the
 same video as independent units, but does not establish independence across
 different videos. Videos may share a creator, recording event, series, or
