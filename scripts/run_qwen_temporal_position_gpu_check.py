@@ -54,7 +54,7 @@ def make_synthetic_subsecond_fixture():
 
 def validate_synthetic_subsecond_geometry(
     timestamps, sampled_fps, grid_thw, seconds_per_grid,
-    native_temporal_anchors, fractional_temporal_anchors,
+    native_temporal_anchors, fractional_temporal_anchors, tokens_per_second,
 ):
     """Fail closed on the fixed subsecond processor/model regression fixture."""
     if tuple(float(value) for value in timestamps) != SYNTHETIC_SUBSECOND_TIMESTAMPS:
@@ -67,10 +67,24 @@ def validate_synthetic_subsecond_geometry(
         raise RuntimeError(f'Synthetic second_per_grid_ts must be 0.75, got {seconds_per_grid}')
     native = tuple(int(value) for value in native_temporal_anchors)
     fractional = tuple(int(value) for value in fractional_temporal_anchors)
-    if len(native) != 2 or native[0] != native[1]:
-        raise RuntimeError(f'Installed native subsecond temporal anchors did not collapse: {native}')
-    if len(fractional) != 2 or fractional[1] != fractional[0] + 1:
-        raise RuntimeError(f'Fractional subsecond candidate must advance by one tick: {fractional}')
+    if len(native) != int(grid_thw[0]) or len(fractional) != len(native):
+        raise RuntimeError('Native/candidate temporal anchors do not match the processor grid')
+    expected_fractional = tuple(
+        native[0] + int(step * float(seconds_per_grid) * int(tokens_per_second))
+        for step in range(len(native))
+    )
+    expected_legacy = tuple(
+        native[0] + step * int(tokens_per_second) * int(float(seconds_per_grid))
+        for step in range(len(native))
+    )
+    if fractional != expected_fractional:
+        raise RuntimeError(
+            f'Candidate temporal anchors differ from fractional reference: {fractional}'
+        )
+    if native not in (expected_legacy, expected_fractional):
+        raise RuntimeError(
+            f'Installed temporal anchors match neither legacy nor fixed formula: {native}'
+        )
 
 
 def compare_logits(reference, candidate):
@@ -234,7 +248,8 @@ def main():
         anchors_candidate=[int(candidate[0,0,positions[0]+i*step_tokens]) for i in range(grid[0])]
         if args.fixture == 'synthetic_subsecond':
             validate_synthetic_subsecond_geometry(
-                timestamps,fps,grid,seconds,anchors_native,anchors_candidate
+                timestamps,fps,grid,seconds,anchors_native,anchors_candidate,
+                int(config.tokens_per_second),
             )
             # Check this exact 0.75s/two-token-per-second case against Torch's
             # float32 arithmetic. This is a fixture-specific equality check,
@@ -309,8 +324,8 @@ def main():
                 'synthetic_temporal_assertions':{
                     'expected_grid_temporal_steps':2,
                     'expected_seconds_per_grid':0.75,
-                    'native_temporal_anchors_collapsed':True,
-                    'fractional_anchor_increment':1,
+                    'native_matches_fractional_reference':anchors_native==anchors_candidate,
+                    'candidate_matches_fractional_reference':True,
                     'torch_float32_fixture_arithmetic_checked':True,
                 },
             })

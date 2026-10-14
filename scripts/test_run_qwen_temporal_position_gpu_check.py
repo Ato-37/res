@@ -107,6 +107,7 @@ class SyntheticSubsecondProcessorTests(unittest.TestCase):
         fractional_anchors = [int(candidate[0, 0, positions[0] + i * tokens_per_step]) for i in range(2)]
         validate_synthetic_subsecond_geometry(
             timestamps, fps, grid, seconds, native_anchors, fractional_anchors,
+            int(config.vision_config.tokens_per_second),
         )
 
         # Check the exact fixture against float32 arithmetic only; 0.75 is

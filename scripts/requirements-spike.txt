@@ -1,6 +1,6 @@
 # torch and torchvision are installed separately with a CUDA-matched index url.
 # See docs/remote_run.md; the exact index depends on the remote GPU/driver.
-transformers>=4.49
+transformers>=5.18.0  # Includes the Qwen2.5-VL fractional video temporal-RoPE fix.
 accelerate
 qwen-vl-utils
 pillow

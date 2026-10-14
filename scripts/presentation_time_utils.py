@@ -96,6 +96,40 @@ def strict_evidence_indices_from_times(indices, presentation_times, intervals):
             if any(start <= presentation_times[index] <= end for start, end in parsed)]
 
 
+def uniform_sampling_rate_from_times(sampled_times, tolerance_seconds):
+    """Infer the Qwen list-input FPS only when sampled PTS fit a uniform grid.
+
+    Qwen2.5-VL's current processor accepts one temporal spacing per video, so
+    arbitrary per-frame VFR times cannot be represented by this interface.
+    Return the exact mean-grid FPS and maximum absolute deviation from that
+    grid; callers must freeze the tolerance and bind these times to the exact
+    frame buffers sent through preprocessing.
+    """
+    if not isinstance(sampled_times, (list, tuple)) or len(sampled_times) < 2:
+        raise ValueError("at least two sampled presentation times are required")
+    if any(not isinstance(t, Fraction) or t < 0 for t in sampled_times):
+        raise ValueError("sampled presentation times must be nonnegative Fractions")
+    if any(right <= left for left, right in zip(sampled_times, sampled_times[1:])):
+        raise ValueError("sampled presentation times must be strictly increasing")
+    if isinstance(tolerance_seconds, Fraction):
+        tolerance = tolerance_seconds
+        if tolerance < 0:
+            raise ValueError("uniform-grid tolerance must be finite and nonnegative")
+    else:
+        tolerance = _interval_seconds(tolerance_seconds, "uniform-grid tolerance")
+
+    interval = (sampled_times[-1] - sampled_times[0]) / (len(sampled_times) - 1)
+    if interval <= 0:
+        raise ValueError("sampled presentation-time interval must be positive")
+    max_deviation = max(
+        abs(actual - (sampled_times[0] + position * interval))
+        for position, actual in enumerate(sampled_times)
+    )
+    if max_deviation > tolerance:
+        raise ValueError("sampled presentation times exceed the frozen uniform-grid tolerance")
+    return Fraction(1, 1) / interval, max_deviation
+
+
 def assign_evidence_control_frames_from_times(total_frames, num_frames,
                                               presentation_times, intervals):
     """Build the claim/control assignment using a complete decoded PTS map.

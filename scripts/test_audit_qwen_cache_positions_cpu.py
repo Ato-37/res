@@ -24,9 +24,16 @@ class QwenCachePositionCpuAuditTests(unittest.TestCase):
         geometry = result["position_geometry"]
         self.assertEqual(result["fixture"]["video_grid_thw"], [8, 4, 4])
         self.assertEqual(result["fixture"]["second_per_grid_seconds"], 0.75)
-        self.assertEqual(geometry["native_temporal_anchors"], [2] * 8)
         self.assertEqual(geometry["candidate_temporal_anchors"], [2, 3, 5, 6, 8, 9, 11, 12])
-        self.assertTrue(geometry["candidate_delta_differs"])
+        if geometry["fractional_candidate_equals_native"]:
+            self.assertEqual(
+                geometry["native_temporal_anchors"],
+                geometry["candidate_temporal_anchors"],
+            )
+            self.assertFalse(geometry["candidate_delta_differs"])
+        else:
+            self.assertEqual(geometry["native_temporal_anchors"], [2] * 8)
+            self.assertTrue(geometry["candidate_delta_differs"])
         self.assertTrue(geometry["non_temporal_positions_preserved"])
         self.assertIn("not semantic validation", geometry["delta_convention"])
 
@@ -48,18 +55,30 @@ class QwenCachePositionCpuAuditTests(unittest.TestCase):
         state = self.result["explicit_prefill_state"]
         self.assertTrue(state["cleared_rope_delta_stayed_cleared"])
         self.assertTrue(state["stale_rope_delta_survived_explicit_prefill"])
-        self.assertNotEqual(
-            state["native_delta_from_actual_get_rope_index"],
-            state["candidate_delta_manually_set_for_cache_resume"],
-        )
+        if self.result["position_geometry"]["fractional_candidate_equals_native"]:
+            self.assertEqual(
+                state["native_delta_from_actual_get_rope_index"],
+                state["candidate_delta_manually_set_for_cache_resume"],
+            )
+        else:
+            self.assertNotEqual(
+                state["native_delta_from_actual_get_rope_index"],
+                state["candidate_delta_manually_set_for_cache_resume"],
+            )
 
     def test_cache_resume_slices_full_mask_and_exposes_delta_policy(self):
         cache = self.result["cache_resume_generate"]
         self.assertTrue(cache["one_token_positions_after_generation_slice"])
         self.assertTrue(cache["finite_scores_all_cases"])
         self.assertEqual(cache["cleared_delta_decode_position"], 36)
-        self.assertEqual(cache["native_delta_decode_position"], 6)
-        self.assertEqual(cache["candidate_mechanical_delta_decode_position"], 13)
+        if self.result["position_geometry"]["fractional_candidate_equals_native"]:
+            self.assertEqual(
+                cache["native_delta_decode_position"],
+                cache["candidate_mechanical_delta_decode_position"],
+            )
+        else:
+            self.assertEqual(cache["native_delta_decode_position"], 6)
+            self.assertEqual(cache["candidate_mechanical_delta_decode_position"], 13)
         self.assertIn("not claimed semantically correct", cache["interpretation"])
 
     def test_direct_full_mask_cached_forward_shape_is_reported_before_any_fix(self):

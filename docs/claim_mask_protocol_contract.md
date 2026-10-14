@@ -238,17 +238,66 @@ video metadata; it does not substitute a conventional FPS when metadata is zero,
 missing, or non-finite, because that would silently change the time-to-frame
 mapping used for evidence intervals. A finite nominal FPS alone does not prove
 that decoded frame index divided by FPS equals media presentation time. Before
-any schema-v12 scoring run, the runner must either validate constant-frame-rate
-presentation timestamps for every eligible video or use a validated per-frame
-presentation-time map for both interval assignment and the exact frames passed
-to the model. Bind the timestamp source, conversion, and mapping code in the
-private mapping provenance, along with the time origin, time base, numeric
-precision/tolerance, and fail-closed handling of missing, duplicate, or
-non-monotonic timestamps. Freeze these choices before outcome access. If
-timestamps are missing or cannot be reconciled to the decoded frame sequence,
-stop before scoring. The current OpenCV index/FPS helper has not passed this
-validation and remains geometry only. The structural protocol validator does
-not inspect media timestamps or enforce this gate.
+any schema-v12 scoring run, the runner must obtain a validated presentation-time
+map for the exact decoded sequence and exact frames passed to the model. The
+current sampler/control objective is based on sampled-frame rank, which
+corresponds to elapsed media time only when sampled PTS fit a uniform temporal
+grid within a tolerance frozen before outcomes. The runner must check this for
+every eligible video and pass an explicit effective `sample_fps` to the
+processor that agrees with the validated grid. A PTS map alone does not make an
+irregular VFR sequence compatible: the current processor and rank-distance
+control do not consume an arbitrary per-frame time vector.
+
+This is confirmed for the active local path: `qwen_vl_utils` 0.0.14's
+frame-list `fetch_video` defaults `sample_fps` to 2.0 and synthesizes uniform
+frame indices. However, `activation_patching_sweep.build_inputs` calls
+`process_vision_info` without requesting video metadata/kwargs and then passes
+only its video tensor to Transformers; the 2.0-FPS metadata is discarded.
+Transformers 5.17.0 creates fallback metadata with `fps=None`, whose
+`sampled_fps` property returns 24, and the Qwen2.5-VL processor derives one
+`second_per_grid_ts` value per video from that `sampled_fps` and
+`temporal_patch_size`, rather than accepting per-frame PTS. With the local
+temporal patch size of 2, missing metadata therefore yields 1/12 second per
+temporal grid. A synthetic four-frame CPU path confirmed fallback 24 FPS and
+that grid interval; it did not load a model or score an item. The separate
+`fetch_video` unit smoke confirmed its own 2.0-FPS default, but that value does
+not reach this caller's processor. Preserve legacy results as outputs of that
+historical input pipeline; do not treat these checks as a retroactive
+correction to their scores.
+
+The active local Transformers 5.17.0 Qwen model implementation adds another
+timing gate: `get_rope_index` calculates the temporal position step as
+`tokens_per_second * int(second_per_grid_ts)`. An interval below one second is
+therefore truncated to zero before scaling. With temporal patch size 2 and the
+fallback 24 FPS, the processor's 1/12-second interval produces zero temporal
+spacing in this installed source path. A call to the installed method on a
+four-step synthetic grid returned `[0, 0, 0, 0]`. Transformers 5.18.0 changes
+this calculation to preserve the fractional interval until final integer
+position quantization; the same CPU fixture returned `[0, 0, 0, 1]`. The
+upstream regression test deliberately includes repeated adjacent coordinates
+for fractional intervals, so the protocol must compare against that version's
+defined quantization rather than require every timestamp to have a unique
+integer ID. Pin at least the fixed implementation, bind its source/version and
+checkpoint timing config, and test expected position IDs on the exact processor
+path before scoring. This is a verified source-level compatibility issue, not
+a model-output efficacy result, and does not retroactively alter historical
+scores ([Transformers 5.18 release notes](https://newreleases.io/project/pypi/transformers/release/5.18.0),
+[upstream Qwen fractional-position regression test](https://github.com/huggingface/transformers/blob/main/tests/models/qwen2_5_vl/test_modeling_qwen2_5_vl.py)).
+
+For the current rank-matched design, a future schema-v12 runner must fail the
+entire frozen cohort before scoring if any selected PTS sequence exceeds the
+predeclared uniform-grid tolerance, lacks complete/strictly ordered timestamps,
+or cannot be bound to the actual input pixels. It must derive and record the
+effective sample rate from those same PTS and bind the decoder/source, exact
+frame ordering, time origin, time base, sample-rate conversion, processor/model
+versions, tolerance, preprocessing, and mapping code in private provenance.
+The exact same temporal metadata must be supplied to full, selected, and
+control conditions. An arbitrary VFR cohort requires a new protocol version
+with an elapsed-time control rule and an input representation that preserves
+its timing; do not silently reuse the rank-matched estimand. The current
+OpenCV index/FPS helper has not passed this validation and remains geometry
+only. The structural protocol validator does not inspect media timestamps or
+enforce this gate.
 
 `scripts/presentation_time_utils.py` implements exact arithmetic for a
 decoder-provided display-order PTS sequence and rational time base, including

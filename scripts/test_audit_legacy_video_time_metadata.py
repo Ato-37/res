@@ -1,10 +1,12 @@
 """CPU-only integration test for current legacy video metadata reconstruction."""
 
 import os
+from importlib.metadata import version
 from pathlib import Path
 import tempfile
 import unittest
 
+from packaging.version import Version
 from audit_legacy_video_time_metadata import (
     MODEL_REVISION,
     compare_metadata_paths,
@@ -59,7 +61,18 @@ class LegacyVideoMetadataAuditTests(unittest.TestCase):
         ):
             self.assertTrue(identity[key], key)
         self.assertEqual(len(legacy["temporal_anchors"]), 8)
-        self.assertEqual(len(set(legacy["temporal_anchors"])), 1)
+        if Version(version("transformers")) >= Version("5.18.0"):
+            legacy_start = legacy["temporal_anchors"][0]
+            expected_legacy = [
+                legacy_start + int(
+                    step * legacy["second_per_grid_seconds"]
+                    * int(config.vision_config.tokens_per_second)
+                )
+                for step in range(legacy["grid_thw"][0])
+            ]
+            self.assertEqual(legacy["temporal_anchors"], expected_legacy)
+        else:
+            self.assertEqual(len(set(legacy["temporal_anchors"])), 1)
         explicit_steps = [b - a for a, b in zip(
             explicit["temporal_anchors"], explicit["temporal_anchors"][1:]
         )]

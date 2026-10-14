@@ -1,6 +1,8 @@
 import unittest
+from importlib.metadata import version
 from types import SimpleNamespace
 
+from packaging.version import Version
 import torch
 from transformers.models.qwen2_5_vl.modeling_qwen2_5_vl import Qwen2_5_VLModel
 
@@ -125,9 +127,14 @@ class QwenTemporalGeometryTests(unittest.TestCase):
             prefix_tokens:prefix_tokens + video_tokens].reshape(
                 temporal_steps, tokens_per_step
             )
+        fixed_fractional_rope = Version(version("transformers")) >= Version("5.18.0")
+        if fixed_fractional_rope:
+            expected_ticks = (3, 4, 6, 7)
+        else:
+            expected_ticks = (3, 3, 3, 3)
         self.assertTrue(torch.equal(
             actual_video_time_ticks,
-            torch.full((temporal_steps, tokens_per_step), prefix_tokens),
+            torch.tensor(expected_ticks).view(-1, 1).expand(-1, tokens_per_step),
         ))
 
         # The companion helper makes the discrepancy with 4.49.0/main explicit;
@@ -138,10 +145,17 @@ class QwenTemporalGeometryTests(unittest.TestCase):
             tokens_per_second=2,
             video_start_position=prefix_tokens,
         )
-        self.assertEqual(
-            geometry["transformers_5_17_temporal_rope_ticks_pretruncate"],
-            tuple(int(row[0].item()) for row in actual_video_time_ticks),
-        )
+        actual_anchors = tuple(int(row[0].item()) for row in actual_video_time_ticks)
+        if fixed_fractional_rope:
+            self.assertEqual(
+                geometry["transformers_4_49_0_temporal_rope_ticks_fractional"],
+                actual_anchors,
+            )
+        else:
+            self.assertEqual(
+                geometry["transformers_5_17_temporal_rope_ticks_pretruncate"],
+                actual_anchors,
+            )
         self.assertEqual(
             geometry["transformers_4_49_0_temporal_rope_ticks_fractional"],
             (3, 4, 6, 7),

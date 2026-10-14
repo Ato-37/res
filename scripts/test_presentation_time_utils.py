@@ -5,7 +5,8 @@ import unittest
 from presentation_time_utils import (FFMPEG_AV_NOPTS_VALUE,
                                      INT64_MAX, presentation_times_from_pts,
                                      assign_evidence_control_frames_from_times,
-                                     strict_evidence_indices_from_times)
+                                     strict_evidence_indices_from_times,
+                                     uniform_sampling_rate_from_times)
 
 
 class PresentationTimeUtilsTests(unittest.TestCase):
@@ -84,6 +85,34 @@ class PresentationTimeUtilsTests(unittest.TestCase):
         for intervals in (None, [[0]], [[1, 0]], [[float("nan"), 1]], [[False, 1]]):
             with self.subTest(intervals=intervals), self.assertRaises(ValueError):
                 strict_evidence_indices_from_times([0, 1], times, intervals)
+
+    def test_uniform_sampled_times_return_exact_qwen_rate(self):
+        rate, deviation = uniform_sampling_rate_from_times(
+            [Fraction(0), Fraction(1, 2), Fraction(1), Fraction(3, 2)], 0)
+        self.assertEqual(rate, Fraction(2))
+        self.assertEqual(deviation, Fraction(0))
+
+    def test_rounding_jitter_is_accepted_only_with_frozen_tolerance(self):
+        times = [Fraction(0), Fraction(7, 10), Fraction(14, 10), Fraction(22, 10)]
+        rate, deviation = uniform_sampling_rate_from_times(times, Fraction(1, 10))
+        self.assertEqual(rate, Fraction(15, 11))
+        self.assertEqual(deviation, Fraction(1, 15))
+        with self.assertRaisesRegex(ValueError, "uniform-grid tolerance"):
+            uniform_sampling_rate_from_times(times, Fraction(1, 40))
+
+    def test_nonuniform_vfr_times_fail_uniform_qwen_rate_gate(self):
+        times = [Fraction(0), Fraction(1, 10), Fraction(5), Fraction(10)]
+        with self.assertRaisesRegex(ValueError, "uniform-grid tolerance"):
+            uniform_sampling_rate_from_times(times, Fraction(1, 100))
+
+    def test_uniform_rate_gate_rejects_missing_or_invalid_times(self):
+        for times, tolerance in (([], 0), ([Fraction(0)], 0),
+                                 ([Fraction(0), Fraction(0)], 0),
+                                 ([Fraction(0), Fraction(1, 2)], True),
+                                 ([Fraction(0), Fraction(1, 2)], Fraction(-1, 10)),
+                                 ([0, Fraction(1, 2)], 0)):
+            with self.subTest(times=times, tolerance=tolerance), self.assertRaises(ValueError):
+                uniform_sampling_rate_from_times(times, tolerance)
 
 
 if __name__ == "__main__":

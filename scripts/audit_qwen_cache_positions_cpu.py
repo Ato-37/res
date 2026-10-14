@@ -252,8 +252,7 @@ def _run_diagnostic_impl():
     packed_native, packed_candidate = _packed_positions(native, candidate, prompt_length)
     native_delta_scalar = int(native_delta[0, 0].item())
     candidate_delta_scalar = _delta_for(candidate_single, prompt_length)
-    if candidate_delta_scalar == native_delta_scalar:
-        raise RuntimeError("fixed CPU fixture failed to distinguish native and candidate cache deltas")
+    candidate_equals_native = torch.equal(candidate_single, native_single)
 
     # Uninterrupted generate: the generic GenerationMixin extends supplied
     # positions from the last prompt token, while Qwen auto-preparation sets
@@ -490,6 +489,7 @@ def _run_diagnostic_impl():
             "native_rope_delta": native_delta_scalar,
             "candidate_mechanical_rope_delta": candidate_delta_scalar,
             "candidate_delta_differs": candidate_delta_scalar != native_delta_scalar,
+            "fractional_candidate_equals_native": candidate_equals_native,
             "non_temporal_positions_preserved": non_temporal_preserved,
             "delta_convention": "max(position IDs)+1−valid prompt length; source mechanical rule only, not semantic validation",
         },
