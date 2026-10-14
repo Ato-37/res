@@ -33,8 +33,8 @@ def validate(value: Any, input_sha256: str | None = None) -> dict:
     if set(value) != req: f.add("protocol_schema_keys_invalid")
     if type(value.get("schema_version")) is not int or value.get("schema_version") != 2: f.add("schema_version_invalid")
     stage = value.get("protocol_stage")
-    # The estimand direction is selected, but the SESOI and multiplicity rule
-    # are not fixed. This schema must not label a run confirmatory yet.
+    # The estimand direction and secondary Holm families are selected, but the
+    # SESOI is not fixed. This schema must not label a run confirmatory yet.
     if stage != "exploratory": f.add("protocol_stage_invalid")
     model = value.get("model"); mk = {"revision", "tokenizer_revision", "quant", "dtype", "attention_implementation"}
     if not _keys(model, mk): f.add("model_schema_invalid")

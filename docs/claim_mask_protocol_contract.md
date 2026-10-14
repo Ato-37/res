@@ -1,8 +1,11 @@
 # Claim-linked evidence-frame mask protocol contract (schema v2)
 
 `scripts/validate_claim_mask_protocol.py` is a CPU-only, fail-closed structural
-validator for the exploratory design stage. The SESOI and secondary-family
-multiplicity rule are not fixed, so schema v2 rejects a `confirmatory` stage.
+validator for the exploratory design stage. The secondary-family multiplicity
+policy is inherited from the research plan: Holm correction within each
+predeclared family (baseline-correctness strata and question-type strata), with
+one unadjusted primary contrast. Family membership must be frozen before
+scoring. The SESOI is still not fixed, so schema v2 rejects a `confirmatory` stage.
 Structural validity neither authenticates evidence nor authorizes inference.
 
 ## Proposed estimand

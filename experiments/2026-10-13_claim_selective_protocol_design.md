@@ -5,8 +5,12 @@
 This is an exploratory pre-execution protocol design, revised to match the user's selection:
 fixed-answer log-margin, a claim-linked evidence-frame mask, all eligible videos
 as primary, and baseline-correct videos as a secondary cohort. It reports no
-claim-mask efficacy run. SESOI and secondary-family multiplicity are not yet
-fixed, so schema v2 rejects a confirmatory stage. NOAA's required human review is incomplete and
+claim-mask efficacy run. The existing research plan's Holm correction within
+each predeclared secondary family is adopted; the secondary families are
+baseline-correctness strata and question-type strata, with family membership
+frozen before scoring. The primary is one contrast and has no within-study
+multiplicity adjustment. The SESOI remains unfixed, so schema v2 rejects a
+confirmatory stage. NOAA's required human review is incomplete and
 NExT-GQA item-level rights are unresolved; real-data execution remains `no_go`.
 
 ## Frozen estimand
@@ -52,7 +56,8 @@ model, precision, prompt, gold target, and execution settings.
 
 Report requested/effective video counts, pre-run exclusions, failures, all-video
 primary effect and uncertainty interval, baseline-correct/incorrect secondary
-effects, and the prespecified multiplicity handling. Do not select or replace
+effects, and Holm-adjusted p-values within each predeclared secondary family.
+Do not select or replace
 the primary cohort based on correctness. Do not transfer the old head-search
 `+0.25 nat` threshold without a separate pre-outcome justification. Mask OOD,
 temporal-control content mismatch, claim-to-interval validity, and one QA per

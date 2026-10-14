@@ -55,8 +55,10 @@ estimand/population labels. Candidate count reconciles with eligible plus
 pre-scoring exclusions. The timestamp mapping now states inclusive
 `frame_index / decoded_fps` interval membership, and the control cost is the
 one-to-one sorted-rank sum used by the existing temporal helper. The structural
-validator only accepts the exploratory stage because SESOI and
-secondary-family multiplicity remain unfixed; it always returns
+validator only accepts the exploratory stage because SESOI remains unfixed.
+Secondary multiplicity now follows the existing plan: Holm within predeclared
+baseline-correctness and question-type families, with one primary contrast. It
+always returns
 `execution_authorization: not_granted`. It does not authenticate review
 signatures, rights, hash targets, mapping semantics, per-item mask cardinality,
 or runtime behavior. The arithmetic helper now permits distinct per-video
@@ -69,14 +71,37 @@ audit of the protocol found no blocker for an exploratory structural contract;
 the control semantics were compared directly with the existing helper. No
 private candidate data or GPU inference was used for this protocol work.
 
-The next bounded GPU diagnostic changes the batch question from throughput to
-same-context numerical behavior: let B=1 generate its greedy prefix, then force
-both B=2 rows to consume those tokens while retaining only scalar summaries of
-the raw per-step logits. The purpose is to see whether argmax differences
-persist under a common prefix beyond the first shared-context divergence. The
-planned 32-frame/16-step run makes 34 measured plus 4 warmup forwards (38
-total), with no speed comparison. CPU and independent code audits must pass;
-fresh GPU/WSL preflight and an unused output path are required first.
+The follow-up GPU diagnostic held autoregressive context constant: B=1 generated
+its 17-token prefix, then both B=2 rows were forced to consume exactly that
+prefix; scalar summaries of raw per-step logits were compared. The run completed
+on one fixed 32-frame NOAA clip, with 34 measured and 4 warmup model calls (38
+total), 16 cached decode steps per measured condition, and no throughput claim.
+Result: `results/qwen_video_batch_throughput_gpu_smoke_20261014_b1_b2_32f_16decode_sharedctx_01.json`
+(SHA-256 `9a1625ced7a19cac80596c4358a28d4c9503cae883fa8bc5c7ee6d17d6a5f9fa`, 29,743 bytes, mode 0600).
+Source commit was `ea0121d1bf6fb0bea1d8219c38a2c2e043109962`; the recorded
+runner SHA-256 `feb55724609ff9f7d4cd1aa306cd8f3c33d33182a428a9561a65c0f867dcd31d`
+matches the runner inspected locally.
+
+All 17 context prefixes and forced sequences matched, and duplicate B=2 rows
+were identical. Nevertheless, B=1 versus B=2 raw-logit top-1 differed at steps
+7 and 8 (first divergence 7); both steps had a near-tie margin of 0.125 versus
+0.000, then 0.000 versus 0.125, and the top-2 sets matched. Thus free-running
+context divergence is not needed to explain these two observed differences in
+this one clip. The `shared_context_top1_mismatch` gate failed. This does not
+estimate mismatch prevalence, establish answer/semantic impact, or support a
+faithfulness claim. B=1 generation took 1.8938 s and B=2 forced generation
+3.4804 s; because B=2 tokens were constrained, these timings are not a valid
+throughput comparison. Peak allocated memory was 6.7274/7.6202 GiB and reserved
+7.6328/9.2871 GiB, respectively. An independent auditor verified the 38-call reconciliation, cache geometry,
+all 17 identical context prefixes, forced-sequence equality, raw-logit
+collection before the forcing processor, runner/helper/runtime hashes, and
+privacy boundaries. It confirmed top-1 differences at steps 7 and 8 for both
+B=2 rows. The auditor noted warm-up speed fields could be misread as throughput;
+the published derived summary removes only `clips_per_second` and
+`seconds_per_clip` from warm-up rows. Its SHA-256 is
+`6e14bad29baf087bda6051b6e13d76015c92380d049c3cb6e5cdca0638be2f06`; the
+runner-native source result remains unchanged locally under the hash above.
+A follow-up 51-test CPU suite, byte-compilation, and `git diff --check` passed.
 
 ## Faithfulness status and gates
 
@@ -90,11 +115,11 @@ explanation faithfulness.
 
 ## Next actions
 
-1. Complete the independent code/protocol audit and repair any blocker.
-2. Publish only privacy-safe derived artifacts and this experiment record with
-   scoped protocol/code changes, then fetch and verify remote hashes.
-3. Continue CPU-only estimand and statistical-gate design. Do not call the
-   protocol confirmatory or run gated real data until SESOI/multiplicity,
+1. Publish the independently audited sanitized summary and protocol/log changes
+   with scoped staging, then fetch and verify remote hashes.
+2. Continue CPU-only estimand and statistical-gate design; the SESOI needs an
+   independent, pre-outcome basis and is the remaining statistical design gate.
+   Do not call the protocol confirmatory or run gated real data until SESOI,
    human-review attestation, and item-level rights are resolved.
-4. The same-context diagnostic is engineering-only; do not add artificial load,
+3. The same-context diagnostic is engineering-only; do not add artificial load,
    claim throughput improvement, or count it as faithfulness progress.

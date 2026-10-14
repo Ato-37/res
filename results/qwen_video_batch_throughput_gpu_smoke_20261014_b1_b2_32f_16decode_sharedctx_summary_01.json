@@ -1,0 +1,1041 @@
+{
+  "attention_implementation_requested": "sdpa",
+  "batch_runs": [
+    {
+      "batch_size": 1,
+      "generation_seconds": 1.8937828989999161,
+      "gpu_telemetry": {
+        "gpu_util_percent": {
+          "max": 100,
+          "mean": 68.0,
+          "median": 68.0
+        },
+        "memory_busy_time_percent": {
+          "max": 23,
+          "mean": 17.0,
+          "median": 17.0
+        },
+        "memory_free_mib": {
+          "max": 7329,
+          "mean": 7030.5,
+          "median": 7030.5
+        },
+        "memory_used_mib": {
+          "max": 9264,
+          "mean": 8965.5,
+          "median": 8965.5
+        },
+        "power_watts": {
+          "max": 212.78,
+          "mean": 207.235,
+          "median": 207.235
+        },
+        "sample_count": 2,
+        "sample_errors": 0,
+        "sampling_window_seconds": 1.8937476229998538
+      },
+      "measured": true,
+      "model_calls": 17,
+      "peak_allocated_gib": 6.72737455368042,
+      "peak_reserved_gib": 7.6328125,
+      "processor_geometry": {
+        "all_attention_positions_valid": true,
+        "batch_size": 1,
+        "grid_thw_per_item": [
+          [
+            16,
+            24,
+            44
+          ]
+        ],
+        "input_tokens_per_item": 4256,
+        "patch_rows_per_item": [
+          16896
+        ],
+        "pixel_values_video_shape": [
+          16896,
+          1176
+        ],
+        "seconds_per_grid_count": 1,
+        "video_tokens_per_item": [
+          4224
+        ]
+      },
+      "processor_seconds": 0.12284979400010343,
+      "trace": {
+        "batch_size_per_call": 1,
+        "cache_batch_size_after": [
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1
+        ],
+        "cache_lengths_after": [
+          4256,
+          4257,
+          4258,
+          4259,
+          4260,
+          4261,
+          4262,
+          4263,
+          4264,
+          4265,
+          4266,
+          4267,
+          4268,
+          4269,
+          4270,
+          4271,
+          4272
+        ],
+        "model_calls": 17,
+        "positions_verified_per_item": true,
+        "prefill_input_length": 4256
+      }
+    },
+    {
+      "batch_size": 2,
+      "generation_seconds": 3.480367724999951,
+      "gpu_telemetry": {
+        "gpu_util_percent": {
+          "max": 100,
+          "mean": 62.0,
+          "median": 57.5
+        },
+        "memory_busy_time_percent": {
+          "max": 38,
+          "mean": 23.75,
+          "median": 20.0
+        },
+        "memory_free_mib": {
+          "max": 7898,
+          "mean": 5986.5,
+          "median": 5505.0
+        },
+        "memory_used_mib": {
+          "max": 10958,
+          "mean": 10009.5,
+          "median": 10491.0
+        },
+        "power_watts": {
+          "max": 241.61,
+          "mean": 214.02,
+          "median": 211.46
+        },
+        "sample_count": 4,
+        "sample_errors": 0,
+        "sampling_window_seconds": 3.4803419649999796
+      },
+      "measured": true,
+      "model_calls": 17,
+      "peak_allocated_gib": 7.6202473640441895,
+      "peak_reserved_gib": 9.287109375,
+      "processor_geometry": {
+        "all_attention_positions_valid": true,
+        "batch_size": 2,
+        "grid_thw_per_item": [
+          [
+            16,
+            24,
+            44
+          ],
+          [
+            16,
+            24,
+            44
+          ]
+        ],
+        "input_tokens_per_item": 4256,
+        "patch_rows_per_item": [
+          16896,
+          16896
+        ],
+        "pixel_values_video_shape": [
+          33792,
+          1176
+        ],
+        "seconds_per_grid_count": 2,
+        "video_tokens_per_item": [
+          4224,
+          4224
+        ]
+      },
+      "processor_seconds": 0.1997034099999837,
+      "trace": {
+        "batch_size_per_call": 2,
+        "cache_batch_size_after": [
+          2,
+          2,
+          2,
+          2,
+          2,
+          2,
+          2,
+          2,
+          2,
+          2,
+          2,
+          2,
+          2,
+          2,
+          2,
+          2,
+          2
+        ],
+        "cache_lengths_after": [
+          4256,
+          4257,
+          4258,
+          4259,
+          4260,
+          4261,
+          4262,
+          4263,
+          4264,
+          4265,
+          4266,
+          4267,
+          4268,
+          4269,
+          4270,
+          4271,
+          4272
+        ],
+        "model_calls": 17,
+        "positions_verified_per_item": true,
+        "prefill_input_length": 4256
+      }
+    }
+  ],
+  "checkpoint_config_sha256": "77d9ec7321cc572e3579e2c84799c9cadaded63c49ce93b101733349fc330c43",
+  "checkpoint_generation_config_sha256": "0a3aea82869fe29f20dc95ccf3e2bcff380eca1f5ad6447a4a4b37110b08e43e",
+  "checkpoint_processor_config_sha256": "f2058c716eef96ccaed1cc1e2d0c08306b62586d535b28d9d08e691b2fab7ca0",
+  "checkpoint_revision": "cc594898137f460bfe9f0759e9844b3ce807cfb5",
+  "completed_model_calls": 38,
+  "compute_dtype": "bfloat16",
+  "cuda_version": "12.8",
+  "effective_batch_sizes": [
+    1,
+    2
+  ],
+  "effective_conditions": 2,
+  "elapsed_seconds": 28.479016139999885,
+  "expected_model_calls": {
+    "measured": 34,
+    "total": 38,
+    "warmup": 4
+  },
+  "failure_codes": [
+    "shared_context_top1_mismatch"
+  ],
+  "failures": 1,
+  "frame_count": 32,
+  "frame_timestamps_seconds": [
+    0.0,
+    9.676333333333334,
+    19.352666666666668,
+    29.029,
+    38.705333333333336,
+    48.38166666666667,
+    58.058,
+    67.73433333333334,
+    77.41066666666667,
+    87.087,
+    96.76333333333334,
+    106.43966666666667,
+    116.116,
+    125.79233333333335,
+    135.46866666666668,
+    145.145,
+    154.82133333333334,
+    164.49766666666667,
+    174.174,
+    183.85033333333334,
+    193.52666666666667,
+    203.203,
+    212.87933333333334,
+    222.55566666666667,
+    232.232,
+    241.90833333333333,
+    251.5846666666667,
+    261.261,
+    270.93733333333336,
+    280.6136666666667,
+    290.29,
+    299.96633333333335
+  ],
+  "generation": {
+    "batch2_forced_prefix_from_batch1": true,
+    "batch_execution_order": [
+      "warmup1",
+      "warmup2",
+      "batch1_greedy_reference",
+      "batch2_forced_reference_prefix"
+    ],
+    "cached_decode_steps": 16,
+    "do_sample": false,
+    "max_new_tokens": 17,
+    "output_logits": true,
+    "output_scores": true,
+    "outputs_exported": false,
+    "warmup_new_tokens_per_batch": 2
+  },
+  "gpu_free_before_load_gib": 14.6572265625,
+  "gpu_name": "NVIDIA GeForce RTX 5070 Ti",
+  "gpu_total_gib": 15.89398193359375,
+  "limitations": [
+    "One fixed 32-frame NOAA clip is duplicated; this does not represent heterogeneous videos.",
+    "B=2 is forced to consume the B=1 greedy prefix; timing is not a batch-throughput comparison.",
+    "Requested SDPA is recorded; selected per-layer kernels are not introspected.",
+    "Numerical comparisons do not validate QA, temporal semantics, grounding, or faithfulness."
+  ],
+  "measured_model_calls": 34,
+  "media_sha256": "13ab1d0e12d9c6b9e776890d123f363c12c572d52d1f58464b57a2e98667f126",
+  "numerical_comparison": {
+    "first_top1_divergence_step": 7,
+    "per_generated_step_logits": [
+      {
+        "b1_vs_b2_item0": {
+          "bitwise_equal": false,
+          "maximum_absolute_difference": 0.0625,
+          "mean_absolute_difference": 2.105845487676561e-05,
+          "top1_equal": true,
+          "top1_margin_left": 7.75,
+          "top1_margin_right": 7.75,
+          "top2_set_equal": true
+        },
+        "b1_vs_b2_item1": {
+          "bitwise_equal": false,
+          "maximum_absolute_difference": 0.0625,
+          "mean_absolute_difference": 2.105845487676561e-05,
+          "top1_equal": true,
+          "top1_margin_left": 7.75,
+          "top1_margin_right": 7.75,
+          "top2_set_equal": true
+        },
+        "b2_duplicate_items": {
+          "bitwise_equal": true,
+          "maximum_absolute_difference": 0.0,
+          "mean_absolute_difference": 0.0,
+          "top1_equal": true,
+          "top1_margin_left": 7.75,
+          "top1_margin_right": 7.75,
+          "top2_set_equal": true
+        },
+        "context_prefixes_equal": [
+          true,
+          true
+        ],
+        "generated_step": 1
+      },
+      {
+        "b1_vs_b2_item0": {
+          "bitwise_equal": false,
+          "maximum_absolute_difference": 0.25,
+          "mean_absolute_difference": 0.028597397729754448,
+          "top1_equal": true,
+          "top1_margin_left": 0.25,
+          "top1_margin_right": 0.5,
+          "top2_set_equal": true
+        },
+        "b1_vs_b2_item1": {
+          "bitwise_equal": false,
+          "maximum_absolute_difference": 0.25,
+          "mean_absolute_difference": 0.028597397729754448,
+          "top1_equal": true,
+          "top1_margin_left": 0.25,
+          "top1_margin_right": 0.5,
+          "top2_set_equal": true
+        },
+        "b2_duplicate_items": {
+          "bitwise_equal": true,
+          "maximum_absolute_difference": 0.0,
+          "mean_absolute_difference": 0.0,
+          "top1_equal": true,
+          "top1_margin_left": 0.5,
+          "top1_margin_right": 0.5,
+          "top2_set_equal": true
+        },
+        "context_prefixes_equal": [
+          true,
+          true
+        ],
+        "generated_step": 2
+      },
+      {
+        "b1_vs_b2_item0": {
+          "bitwise_equal": false,
+          "maximum_absolute_difference": 0.375,
+          "mean_absolute_difference": 0.1274058222770691,
+          "top1_equal": true,
+          "top1_margin_left": 0.75,
+          "top1_margin_right": 0.625,
+          "top2_set_equal": true
+        },
+        "b1_vs_b2_item1": {
+          "bitwise_equal": false,
+          "maximum_absolute_difference": 0.375,
+          "mean_absolute_difference": 0.1274058222770691,
+          "top1_equal": true,
+          "top1_margin_left": 0.75,
+          "top1_margin_right": 0.625,
+          "top2_set_equal": true
+        },
+        "b2_duplicate_items": {
+          "bitwise_equal": true,
+          "maximum_absolute_difference": 0.0,
+          "mean_absolute_difference": 0.0,
+          "top1_equal": true,
+          "top1_margin_left": 0.625,
+          "top1_margin_right": 0.625,
+          "top2_set_equal": true
+        },
+        "context_prefixes_equal": [
+          true,
+          true
+        ],
+        "generated_step": 3
+      },
+      {
+        "b1_vs_b2_item0": {
+          "bitwise_equal": false,
+          "maximum_absolute_difference": 0.25,
+          "mean_absolute_difference": 0.08584587275981903,
+          "top1_equal": true,
+          "top1_margin_left": 4.875,
+          "top1_margin_right": 5.0,
+          "top2_set_equal": true
+        },
+        "b1_vs_b2_item1": {
+          "bitwise_equal": false,
+          "maximum_absolute_difference": 0.25,
+          "mean_absolute_difference": 0.08584587275981903,
+          "top1_equal": true,
+          "top1_margin_left": 4.875,
+          "top1_margin_right": 5.0,
+          "top2_set_equal": true
+        },
+        "b2_duplicate_items": {
+          "bitwise_equal": true,
+          "maximum_absolute_difference": 0.0,
+          "mean_absolute_difference": 0.0,
+          "top1_equal": true,
+          "top1_margin_left": 5.0,
+          "top1_margin_right": 5.0,
+          "top2_set_equal": true
+        },
+        "context_prefixes_equal": [
+          true,
+          true
+        ],
+        "generated_step": 4
+      },
+      {
+        "b1_vs_b2_item0": {
+          "bitwise_equal": false,
+          "maximum_absolute_difference": 0.15625,
+          "mean_absolute_difference": 0.02762262336909771,
+          "top1_equal": true,
+          "top1_margin_left": 1.125,
+          "top1_margin_right": 1.125,
+          "top2_set_equal": true
+        },
+        "b1_vs_b2_item1": {
+          "bitwise_equal": false,
+          "maximum_absolute_difference": 0.15625,
+          "mean_absolute_difference": 0.02762262336909771,
+          "top1_equal": true,
+          "top1_margin_left": 1.125,
+          "top1_margin_right": 1.125,
+          "top2_set_equal": true
+        },
+        "b2_duplicate_items": {
+          "bitwise_equal": true,
+          "maximum_absolute_difference": 0.0,
+          "mean_absolute_difference": 0.0,
+          "top1_equal": true,
+          "top1_margin_left": 1.125,
+          "top1_margin_right": 1.125,
+          "top2_set_equal": true
+        },
+        "context_prefixes_equal": [
+          true,
+          true
+        ],
+        "generated_step": 5
+      },
+      {
+        "b1_vs_b2_item0": {
+          "bitwise_equal": false,
+          "maximum_absolute_difference": 0.142578125,
+          "mean_absolute_difference": 0.03180477023124695,
+          "top1_equal": true,
+          "top1_margin_left": 1.5,
+          "top1_margin_right": 1.375,
+          "top2_set_equal": false
+        },
+        "b1_vs_b2_item1": {
+          "bitwise_equal": false,
+          "maximum_absolute_difference": 0.142578125,
+          "mean_absolute_difference": 0.03180477023124695,
+          "top1_equal": true,
+          "top1_margin_left": 1.5,
+          "top1_margin_right": 1.375,
+          "top2_set_equal": false
+        },
+        "b2_duplicate_items": {
+          "bitwise_equal": true,
+          "maximum_absolute_difference": 0.0,
+          "mean_absolute_difference": 0.0,
+          "top1_equal": true,
+          "top1_margin_left": 1.375,
+          "top1_margin_right": 1.375,
+          "top2_set_equal": true
+        },
+        "context_prefixes_equal": [
+          true,
+          true
+        ],
+        "generated_step": 6
+      },
+      {
+        "b1_vs_b2_item0": {
+          "bitwise_equal": false,
+          "maximum_absolute_difference": 0.125,
+          "mean_absolute_difference": 0.017908846959471703,
+          "top1_equal": false,
+          "top1_margin_left": 0.125,
+          "top1_margin_right": 0.0,
+          "top2_set_equal": true
+        },
+        "b1_vs_b2_item1": {
+          "bitwise_equal": false,
+          "maximum_absolute_difference": 0.125,
+          "mean_absolute_difference": 0.017908846959471703,
+          "top1_equal": false,
+          "top1_margin_left": 0.125,
+          "top1_margin_right": 0.0,
+          "top2_set_equal": true
+        },
+        "b2_duplicate_items": {
+          "bitwise_equal": true,
+          "maximum_absolute_difference": 0.0,
+          "mean_absolute_difference": 0.0,
+          "top1_equal": true,
+          "top1_margin_left": 0.0,
+          "top1_margin_right": 0.0,
+          "top2_set_equal": true
+        },
+        "context_prefixes_equal": [
+          true,
+          true
+        ],
+        "generated_step": 7
+      },
+      {
+        "b1_vs_b2_item0": {
+          "bitwise_equal": false,
+          "maximum_absolute_difference": 0.25,
+          "mean_absolute_difference": 0.07928751409053802,
+          "top1_equal": false,
+          "top1_margin_left": 0.0,
+          "top1_margin_right": 0.125,
+          "top2_set_equal": true
+        },
+        "b1_vs_b2_item1": {
+          "bitwise_equal": false,
+          "maximum_absolute_difference": 0.25,
+          "mean_absolute_difference": 0.07928751409053802,
+          "top1_equal": false,
+          "top1_margin_left": 0.0,
+          "top1_margin_right": 0.125,
+          "top2_set_equal": true
+        },
+        "b2_duplicate_items": {
+          "bitwise_equal": true,
+          "maximum_absolute_difference": 0.0,
+          "mean_absolute_difference": 0.0,
+          "top1_equal": true,
+          "top1_margin_left": 0.125,
+          "top1_margin_right": 0.125,
+          "top2_set_equal": true
+        },
+        "context_prefixes_equal": [
+          true,
+          true
+        ],
+        "generated_step": 8
+      },
+      {
+        "b1_vs_b2_item0": {
+          "bitwise_equal": false,
+          "maximum_absolute_difference": 0.125,
+          "mean_absolute_difference": 0.019091861322522163,
+          "top1_equal": true,
+          "top1_margin_left": 0.75,
+          "top1_margin_right": 0.625,
+          "top2_set_equal": true
+        },
+        "b1_vs_b2_item1": {
+          "bitwise_equal": false,
+          "maximum_absolute_difference": 0.125,
+          "mean_absolute_difference": 0.019091861322522163,
+          "top1_equal": true,
+          "top1_margin_left": 0.75,
+          "top1_margin_right": 0.625,
+          "top2_set_equal": true
+        },
+        "b2_duplicate_items": {
+          "bitwise_equal": true,
+          "maximum_absolute_difference": 0.0,
+          "mean_absolute_difference": 0.0,
+          "top1_equal": true,
+          "top1_margin_left": 0.625,
+          "top1_margin_right": 0.625,
+          "top2_set_equal": true
+        },
+        "context_prefixes_equal": [
+          true,
+          true
+        ],
+        "generated_step": 9
+      },
+      {
+        "b1_vs_b2_item0": {
+          "bitwise_equal": false,
+          "maximum_absolute_difference": 0.21875,
+          "mean_absolute_difference": 0.054560206830501556,
+          "top1_equal": true,
+          "top1_margin_left": 0.5,
+          "top1_margin_right": 0.5,
+          "top2_set_equal": true
+        },
+        "b1_vs_b2_item1": {
+          "bitwise_equal": false,
+          "maximum_absolute_difference": 0.21875,
+          "mean_absolute_difference": 0.054560206830501556,
+          "top1_equal": true,
+          "top1_margin_left": 0.5,
+          "top1_margin_right": 0.5,
+          "top2_set_equal": true
+        },
+        "b2_duplicate_items": {
+          "bitwise_equal": true,
+          "maximum_absolute_difference": 0.0,
+          "mean_absolute_difference": 0.0,
+          "top1_equal": true,
+          "top1_margin_left": 0.5,
+          "top1_margin_right": 0.5,
+          "top2_set_equal": true
+        },
+        "context_prefixes_equal": [
+          true,
+          true
+        ],
+        "generated_step": 10
+      },
+      {
+        "b1_vs_b2_item0": {
+          "bitwise_equal": false,
+          "maximum_absolute_difference": 0.1875,
+          "mean_absolute_difference": 0.029397226870059967,
+          "top1_equal": true,
+          "top1_margin_left": 1.25,
+          "top1_margin_right": 1.25,
+          "top2_set_equal": true
+        },
+        "b1_vs_b2_item1": {
+          "bitwise_equal": false,
+          "maximum_absolute_difference": 0.1875,
+          "mean_absolute_difference": 0.029397226870059967,
+          "top1_equal": true,
+          "top1_margin_left": 1.25,
+          "top1_margin_right": 1.25,
+          "top2_set_equal": true
+        },
+        "b2_duplicate_items": {
+          "bitwise_equal": true,
+          "maximum_absolute_difference": 0.0,
+          "mean_absolute_difference": 0.0,
+          "top1_equal": true,
+          "top1_margin_left": 1.25,
+          "top1_margin_right": 1.25,
+          "top2_set_equal": true
+        },
+        "context_prefixes_equal": [
+          true,
+          true
+        ],
+        "generated_step": 11
+      },
+      {
+        "b1_vs_b2_item0": {
+          "bitwise_equal": false,
+          "maximum_absolute_difference": 0.15625,
+          "mean_absolute_difference": 0.02199357934296131,
+          "top1_equal": true,
+          "top1_margin_left": 1.75,
+          "top1_margin_right": 1.75,
+          "top2_set_equal": true
+        },
+        "b1_vs_b2_item1": {
+          "bitwise_equal": false,
+          "maximum_absolute_difference": 0.15625,
+          "mean_absolute_difference": 0.02199357934296131,
+          "top1_equal": true,
+          "top1_margin_left": 1.75,
+          "top1_margin_right": 1.75,
+          "top2_set_equal": true
+        },
+        "b2_duplicate_items": {
+          "bitwise_equal": true,
+          "maximum_absolute_difference": 0.0,
+          "mean_absolute_difference": 0.0,
+          "top1_equal": true,
+          "top1_margin_left": 1.75,
+          "top1_margin_right": 1.75,
+          "top2_set_equal": true
+        },
+        "context_prefixes_equal": [
+          true,
+          true
+        ],
+        "generated_step": 12
+      },
+      {
+        "b1_vs_b2_item0": {
+          "bitwise_equal": false,
+          "maximum_absolute_difference": 0.1875,
+          "mean_absolute_difference": 0.034762803465127945,
+          "top1_equal": true,
+          "top1_margin_left": 1.5625,
+          "top1_margin_right": 1.5,
+          "top2_set_equal": true
+        },
+        "b1_vs_b2_item1": {
+          "bitwise_equal": false,
+          "maximum_absolute_difference": 0.1875,
+          "mean_absolute_difference": 0.034762803465127945,
+          "top1_equal": true,
+          "top1_margin_left": 1.5625,
+          "top1_margin_right": 1.5,
+          "top2_set_equal": true
+        },
+        "b2_duplicate_items": {
+          "bitwise_equal": true,
+          "maximum_absolute_difference": 0.0,
+          "mean_absolute_difference": 0.0,
+          "top1_equal": true,
+          "top1_margin_left": 1.5,
+          "top1_margin_right": 1.5,
+          "top2_set_equal": true
+        },
+        "context_prefixes_equal": [
+          true,
+          true
+        ],
+        "generated_step": 13
+      },
+      {
+        "b1_vs_b2_item0": {
+          "bitwise_equal": false,
+          "maximum_absolute_difference": 0.1875,
+          "mean_absolute_difference": 0.028688937425613403,
+          "top1_equal": true,
+          "top1_margin_left": 13.75,
+          "top1_margin_right": 13.75,
+          "top2_set_equal": true
+        },
+        "b1_vs_b2_item1": {
+          "bitwise_equal": false,
+          "maximum_absolute_difference": 0.1875,
+          "mean_absolute_difference": 0.028688937425613403,
+          "top1_equal": true,
+          "top1_margin_left": 13.75,
+          "top1_margin_right": 13.75,
+          "top2_set_equal": true
+        },
+        "b2_duplicate_items": {
+          "bitwise_equal": true,
+          "maximum_absolute_difference": 0.0,
+          "mean_absolute_difference": 0.0,
+          "top1_equal": true,
+          "top1_margin_left": 13.75,
+          "top1_margin_right": 13.75,
+          "top2_set_equal": true
+        },
+        "context_prefixes_equal": [
+          true,
+          true
+        ],
+        "generated_step": 14
+      },
+      {
+        "b1_vs_b2_item0": {
+          "bitwise_equal": false,
+          "maximum_absolute_difference": 0.125,
+          "mean_absolute_difference": 0.019532470032572746,
+          "top1_equal": true,
+          "top1_margin_left": 1.0,
+          "top1_margin_right": 0.875,
+          "top2_set_equal": true
+        },
+        "b1_vs_b2_item1": {
+          "bitwise_equal": false,
+          "maximum_absolute_difference": 0.125,
+          "mean_absolute_difference": 0.019532470032572746,
+          "top1_equal": true,
+          "top1_margin_left": 1.0,
+          "top1_margin_right": 0.875,
+          "top2_set_equal": true
+        },
+        "b2_duplicate_items": {
+          "bitwise_equal": true,
+          "maximum_absolute_difference": 0.0,
+          "mean_absolute_difference": 0.0,
+          "top1_equal": true,
+          "top1_margin_left": 0.875,
+          "top1_margin_right": 0.875,
+          "top2_set_equal": true
+        },
+        "context_prefixes_equal": [
+          true,
+          true
+        ],
+        "generated_step": 15
+      },
+      {
+        "b1_vs_b2_item0": {
+          "bitwise_equal": false,
+          "maximum_absolute_difference": 0.234375,
+          "mean_absolute_difference": 0.09843222796916962,
+          "top1_equal": true,
+          "top1_margin_left": 1.125,
+          "top1_margin_right": 1.125,
+          "top2_set_equal": true
+        },
+        "b1_vs_b2_item1": {
+          "bitwise_equal": false,
+          "maximum_absolute_difference": 0.234375,
+          "mean_absolute_difference": 0.09843222796916962,
+          "top1_equal": true,
+          "top1_margin_left": 1.125,
+          "top1_margin_right": 1.125,
+          "top2_set_equal": true
+        },
+        "b2_duplicate_items": {
+          "bitwise_equal": true,
+          "maximum_absolute_difference": 0.0,
+          "mean_absolute_difference": 0.0,
+          "top1_equal": true,
+          "top1_margin_left": 1.125,
+          "top1_margin_right": 1.125,
+          "top2_set_equal": true
+        },
+        "context_prefixes_equal": [
+          true,
+          true
+        ],
+        "generated_step": 16
+      },
+      {
+        "b1_vs_b2_item0": {
+          "bitwise_equal": false,
+          "maximum_absolute_difference": 0.25,
+          "mean_absolute_difference": 0.09419108182191849,
+          "top1_equal": true,
+          "top1_margin_left": 4.5,
+          "top1_margin_right": 4.625,
+          "top2_set_equal": true
+        },
+        "b1_vs_b2_item1": {
+          "bitwise_equal": false,
+          "maximum_absolute_difference": 0.25,
+          "mean_absolute_difference": 0.09419108182191849,
+          "top1_equal": true,
+          "top1_margin_left": 4.5,
+          "top1_margin_right": 4.625,
+          "top2_set_equal": true
+        },
+        "b2_duplicate_items": {
+          "bitwise_equal": true,
+          "maximum_absolute_difference": 0.0,
+          "mean_absolute_difference": 0.0,
+          "top1_equal": true,
+          "top1_margin_left": 4.625,
+          "top1_margin_right": 4.625,
+          "top2_set_equal": true
+        },
+        "context_prefixes_equal": [
+          true,
+          true
+        ],
+        "generated_step": 17
+      }
+    ],
+    "sequence_equality": {
+      "b1_sequence_equals_b2_item0": true,
+      "b1_sequence_equals_b2_item1": true,
+      "b2_duplicate_sequences_equal": true
+    }
+  },
+  "privacy": "Aggregate only; no media, text, tokens, raw logits, QA labels, or local paths exported.",
+  "processor_batch_comparison": {
+    "batch1": {
+      "all_attention_positions_valid": true,
+      "batch_size": 1,
+      "grid_thw_per_item": [
+        [
+          16,
+          24,
+          44
+        ]
+      ],
+      "input_tokens_per_item": 4256,
+      "patch_rows_per_item": [
+        16896
+      ],
+      "pixel_values_video_shape": [
+        16896,
+        1176
+      ],
+      "seconds_per_grid_count": 1,
+      "video_tokens_per_item": [
+        4224
+      ]
+    },
+    "batch2": {
+      "all_attention_positions_valid": true,
+      "batch_size": 2,
+      "grid_thw_per_item": [
+        [
+          16,
+          24,
+          44
+        ],
+        [
+          16,
+          24,
+          44
+        ]
+      ],
+      "input_tokens_per_item": 4256,
+      "patch_rows_per_item": [
+        16896,
+        16896
+      ],
+      "pixel_values_video_shape": [
+        33792,
+        1176
+      ],
+      "seconds_per_grid_count": 2,
+      "video_tokens_per_item": [
+        4224,
+        4224
+      ]
+    },
+    "duplicate_items_match": true
+  },
+  "purpose": "fixed_noaa_qwen_batch_shape_same_context_diagnostic",
+  "quantization": "4-bit",
+  "requested_batch_sizes": [
+    1,
+    2
+  ],
+  "requested_conditions": 2,
+  "sampled_fps": 0.10334493093113782,
+  "schema_version": 1,
+  "seed": 20261014,
+  "shared_context_top1_gate": {
+    "compared_context_prefixes_equal": true,
+    "forced_shared_sequences_equal": true,
+    "logit_bitwise_equality_required": false,
+    "numeric_logit_deltas_reported_descriptively": true,
+    "passed": false,
+    "per_step_top1_equal": false
+  },
+  "source_commit": "ea0121d1bf6fb0bea1d8219c38a2c2e043109962",
+  "source_sha256": {
+    "cache_runner_helpers": "dacc534b12af284f70719a94898ce34a36593d0e600626c7384825899b9be9fe",
+    "frame_extractor": "c8deb59615bbea9de796771d70de484dfc2218a0b1b900db0be33f3d068a0280",
+    "frame_smoke_helper": "a9801b139e4a9a8c590193a3c9fb4b14242463f3728eabf6555652c409464539",
+    "installed_generation_utils": "bb558d8676be95457126c82a32600dad206c13e4fb96b4f5d114f1f2483d7f62",
+    "installed_processor": "a65cba8047b8d2a381d3634b42ee441322d4e885f02b6e84e6787bc9ba3649af",
+    "installed_qwen_model": "507cb2c383ead0e0e22b16ec9c8af2eb82703843cd5849112715751d990ff15e",
+    "installed_video_processor": "810143b5e06c17ba9ec43962c991e4946bac8ad227d8299a92db3d990edaf1e1",
+    "installed_vision_utils": "f3710ced8ffe735da57d08cf5236cf9d326ff646ed1bdad2e62593a7801adc33",
+    "runner": "feb55724609ff9f7d4cd1aa306cd8f3c33d33182a428a9561a65c0f867dcd31d"
+  },
+  "started_utc": "2026-10-14T04:50:31.912322+00:00",
+  "status": "completed_same_context_argmax_mismatch",
+  "versions": {
+    "bitsandbytes": "0.50.2",
+    "opencv-python-headless": "5.0.0.93",
+    "qwen-vl-utils": "0.0.14",
+    "torch": "2.11.0+cu128",
+    "transformers": "5.17.0"
+  },
+  "warmup_model_calls": 4,
+  "warmup_runs": [
+    {
+      "batch_size": 1,
+      "generation_seconds": 3.187366898999926,
+      "gpu_telemetry": null,
+      "measured": false,
+      "model_calls": 2,
+      "peak_allocated_gib": 6.727184295654297,
+      "peak_reserved_gib": 7.6328125,
+      "trace": {
+        "batch_size_per_call": 1,
+        "cache_batch_size_after": [
+          1,
+          1
+        ],
+        "cache_lengths_after": [
+          4256,
+          4257
+        ],
+        "model_calls": 2,
+        "positions_verified_per_item": true,
+        "prefill_input_length": 4256
+      }
+    },
+    {
+      "batch_size": 2,
+      "generation_seconds": 3.3355395280000266,
+      "gpu_telemetry": null,
+      "measured": false,
+      "model_calls": 2,
+      "peak_allocated_gib": 7.62034273147583,
+      "peak_reserved_gib": 9.287109375,
+      "trace": {
+        "batch_size_per_call": 2,
+        "cache_batch_size_after": [
+          2,
+          2
+        ],
+        "cache_lengths_after": [
+          4256,
+          4257
+        ],
+        "model_calls": 2,
+        "positions_verified_per_item": true,
+        "prefill_input_length": 4256
+      }
+    }
+  ]
+}
