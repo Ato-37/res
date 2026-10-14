@@ -92,8 +92,9 @@ def assign_evidence_control_frames(total_frames, num_frames, fps, intervals):
         if not _finite_number(start) or not _finite_number(end) or start < 0 or end < start:
             raise ValueError("interval endpoints must be finite nonnegative-duration times")
         parsed_intervals.append((start, end))
-    if parsed_intervals != sorted(parsed_intervals) or len(set(parsed_intervals)) != len(parsed_intervals):
-        raise ValueError("intervals must be sorted and unique")
+    # Interval order and duplication do not change union membership. Normalize
+    # them here to preserve the legacy coverage behavior for QA annotations.
+    parsed_intervals = sorted(set(parsed_intervals))
 
     sampled = uniform_sample_indices(total_frames, num_frames)
     indices = sorted(set(sampled))

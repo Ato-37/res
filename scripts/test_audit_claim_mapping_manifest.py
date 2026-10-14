@@ -155,6 +155,17 @@ class ClaimMappingManifestAuditTests(unittest.TestCase):
                 self.assertFalse(result["structurally_valid"])
                 self.assertIn("claim_evidence_intervals_invalid", result["failure_codes"])
 
+    def test_private_claim_ledger_still_requires_sorted_unique_intervals(self):
+        for intervals in ([[5.0, 6.0], [1.0, 2.0]],
+                          [[1.0, 2.0], [1.0, 2.0]]):
+            with self.subTest(intervals=intervals):
+                row = make_row(evidence_intervals=intervals)
+                row["review"]["evidence_intervals_sha256_seen"] = gate._intervals_sha256(
+                    intervals)
+                result = self.run_audit(make_ledger(self.eligible_raw, rows=[row]))
+                self.assertFalse(result["structurally_valid"])
+                self.assertIn("claim_evidence_intervals_invalid", result["failure_codes"])
+
     def test_nonfinite_values_anywhere_in_input_fail(self):
         eligible = [{"video_id": VIDEO, "unused_metadata": float("inf")}]
         eligible_raw = json.dumps(eligible, allow_nan=True, separators=(",", ":")).encode()
