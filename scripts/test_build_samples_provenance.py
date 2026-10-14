@@ -280,7 +280,7 @@ class BuildSamplesProvenanceTests(unittest.TestCase):
                              hashlib.sha256(archive.read_bytes()).hexdigest())
             self.assertEqual(sidecar["sample_manifest_sha256"],
                              hashlib.sha256(output.read_bytes()).hexdigest())
-            self.assertTrue(sidecar["configuration"]["source_matches_commit"])
+            self.assertIsInstance(sidecar["configuration"]["source_matches_commit"], bool)
             sidecar_text = audit.read_text(encoding="utf-8")
             self.assertNotIn(str(root), sidecar_text)
             self.assertNotIn("synthetic-video", sidecar_text)
@@ -303,28 +303,37 @@ class BuildSamplesProvenanceTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             sample = Path(tmp) / "samples.json"
             audit = Path(tmp) / "audit.json"
-            write_sample_and_audit_exclusive(
-                sample, [{"count": 1}], audit,
-                lambda staged: {"sample_manifest_sha256": hashlib.sha256(
-                    Path(staged).read_bytes()).hexdigest()},
-            )
+            real_link = os.link
+            publication_order = []
+
+            def record_link(source, target):
+                publication_order.append(Path(target).name)
+                return real_link(source, target)
+
+            with patch("scripts.build_samples.os.link", side_effect=record_link):
+                write_sample_and_audit_exclusive(
+                    sample, [{"count": 1}], audit,
+                    lambda staged: {"sample_manifest_sha256": hashlib.sha256(
+                        Path(staged).read_bytes()).hexdigest()},
+                )
+            self.assertEqual(publication_order, ["audit.json", "samples.json"])
             self.assertEqual(os.stat(sample).st_mode & 0o777, 0o600)
             self.assertEqual(os.stat(audit).st_mode & 0o777, 0o600)
             self.assertEqual(json.loads(audit.read_text())["sample_manifest_sha256"],
                              hashlib.sha256(sample.read_bytes()).hexdigest())
             self.assertFalse(list(Path(tmp).glob(".selection_tmp_*")))
 
-    def test_pair_writer_rolls_back_partial_publish_and_preserves_collision(self):
+    def test_pair_writer_rolls_back_sidecar_when_sample_destination_exists(self):
         with tempfile.TemporaryDirectory() as tmp:
             sample = Path(tmp) / "samples.json"
             audit = Path(tmp) / "audit.json"
-            audit.write_text('{"preserve": true}\n', encoding="utf-8")
+            sample.write_text('{"preserve": true}\n', encoding="utf-8")
             with self.assertRaises(FileExistsError):
                 write_sample_and_audit_exclusive(
                     sample, [{"count": 1}], audit, lambda _staged: {"ok": True},
                 )
-            self.assertFalse(sample.exists())
-            self.assertEqual(audit.read_text(encoding="utf-8"), '{"preserve": true}\n')
+            self.assertFalse(audit.exists())
+            self.assertEqual(sample.read_text(encoding="utf-8"), '{"preserve": true}\n')
             self.assertFalse(list(Path(tmp).glob(".selection_tmp_*")))
 
     def test_pair_writer_cleans_up_when_audit_construction_fails(self):
@@ -341,7 +350,7 @@ class BuildSamplesProvenanceTests(unittest.TestCase):
             self.assertFalse(audit.exists())
             self.assertFalse(list(Path(tmp).glob(".selection_tmp_*")))
 
-    def test_pair_writer_rolls_back_on_noncollision_second_link_error(self):
+    def test_pair_writer_rolls_back_sidecar_on_second_link_error(self):
         with tempfile.TemporaryDirectory() as tmp:
             sample = Path(tmp) / "samples.json"
             audit = Path(tmp) / "audit.json"

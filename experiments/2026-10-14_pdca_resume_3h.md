@@ -523,12 +523,13 @@ inputs and output, repository HEAD plus a boolean check that the current script
 matches that HEAD. The sidecar explicitly says the local video tree and media
 bytes are not hash-bound and decoder decisions are not reproduced. The sample
 manifest and sidecar are prepared as mode-0600 sibling temporary files, then
-published with exclusive hard links; a second-target collision rolls back the
-first link, and sidecar-construction failure happens before publication. The
-two names are not jointly atomic to concurrent readers, so a successful writer
-can briefly expose the sample before the sidecar. This prevents a failed writer
-from leaving an orphan sample when cleanup runs; abrupt process/system
-termination between the links can still leave one. The sidecar remains private
+published with exclusive hard links; the sidecar is linked before the sample.
+A second-target collision rolls back the first link, and sidecar-construction
+failure happens before publication. The two names are not jointly atomic: a
+concurrent reader can briefly see the sidecar before the sample, while ordinary
+publication does not expose a sample before its sidecar. Abrupt process/system
+termination between the links can leave an orphan sidecar; crash durability is
+not guaranteed. The sidecar remains private
 because its unsalted hashes can link inputs. It does not repair
 historical selection provenance or authorize inference.
 
@@ -611,3 +612,22 @@ not overstate media validation.
 
 At 18:56:12 JST, 1h33m00s had elapsed and 1h27m00s remained. Direct faithfulness
 progress remains 0 new samples / 0 new effect estimates.
+
+## Sidecar-first pair publication
+
+Reviewing the pair writer's concurrent-reader window led to one further
+adjustment: it now links the provenance sidecar first and the sample manifest
+second. If a reader observes the sample during normal execution, its sidecar is
+already present. The test asserts this ordering and forces a pre-existing sample
+collision after sidecar publication to check rollback and preservation. A
+separate injected second-link error exercises cleanup. The pair is still not
+jointly atomic or crash-durable: readers may briefly see a sidecar without a
+sample, and abrupt termination may leave that sidecar behind. One initial test
+run incorrectly expected `source_matches_commit=true` while the script was
+modified; correcting the assertion to check the field's boolean type made the
+test independent of dirty/clean worktree state. The focused suite passes 13 and
+the complete scripts suite 545. This publication-order patch is awaiting an
+independent audit before commit. Faithfulness progress remains 0 samples / 0
+effect estimates.
+
+At 18:58:29 JST, 1h35m17s had elapsed and 1h24m43s remained.

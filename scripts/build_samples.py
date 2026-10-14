@@ -107,13 +107,14 @@ def write_sample_and_audit_exclusive(sample_path, samples, audit_path, audit_fac
     try:
         audit = audit_factory(sample_temp)
         audit_temp = _write_private_temp(audit_path, audit)
-        # Hard links provide atomic no-overwrite publication per target. The
-        # pair is failure-safe, though not jointly atomic to concurrent readers.
+        # Publish the provenance sidecar first so a visible sample never lacks
+        # its sidecar during ordinary concurrent reads. Each link is atomic and
+        # exclusive, though the pair is not jointly atomic or crash-durable.
         # Each temporary file is deliberately beside its destination.
-        os.link(sample_temp, sample_path)
-        published.append((sample_path, sample_temp))
         os.link(audit_temp, audit_path)
         published.append((audit_path, audit_temp))
+        os.link(sample_temp, sample_path)
+        published.append((sample_path, sample_temp))
     except BaseException:
         for target, temp in reversed(published):
             try:
