@@ -53,7 +53,13 @@ def _read(path: Path) -> tuple[Any, bytes]:
 
 
 def _text(value: Any) -> bool:
-    return isinstance(value, str) and bool(value.strip()) and value == value.strip()
+    if not isinstance(value, str) or not value.strip() or value != value.strip():
+        return False
+    try:
+        value.encode("utf-8")
+    except UnicodeEncodeError:
+        return False
+    return True
 
 
 def _raw_matches(value: Any, raw: Any) -> bool:
@@ -115,7 +121,7 @@ def build(eligible: Any, eligible_raw: bytes, generation: Any, dataset_id: str,
         claim_text = row.get("claim_text")
         if (not _text(video_id) or not _text(row.get("claim_id"))
                 or not isinstance(claim_text, str) or not claim_text.strip()
-                or not isinstance(row.get("model_revision"), str)
+                or not _text(row.get("model_revision"))
                 or MODEL_REVISION.fullmatch(row["model_revision"]) is None
                 or not isinstance(row.get("generation_run_sha256"), str)
                 or SHA256.fullmatch(row["generation_run_sha256"]) is None):

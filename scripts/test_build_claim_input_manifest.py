@@ -69,6 +69,17 @@ class BuildClaimInputManifestTests(unittest.TestCase):
             build(eligible, eligible_raw, invalid_unicode, "synthetic-dataset", H,
                   "one_sufficient_occurrence")
 
+    def test_unpaired_surrogate_identifiers_fail_as_validation_errors(self):
+        eligible, eligible_raw, generation = fixtures()
+        for field, value in (("claim_id", "bad\ud800id"),
+                             ("model_revision", "Qwen/\ud800model@" + "b" * 40)):
+            with self.subTest(field=field):
+                invalid_identifier = json.loads(json.dumps(generation))
+                invalid_identifier["claims"][0][field] = value
+                with self.assertRaisesRegex(ValueError, "generation_row_invalid"):
+                    build(eligible, eligible_raw, invalid_identifier, "synthetic-dataset", H,
+                          "one_sufficient_occurrence")
+
     def test_direct_api_rejects_detached_eligible_object(self):
         eligible, eligible_raw, generation = fixtures()
         detached = [{"video_id": "other-a"}, {"video_id": "other-b"}]
