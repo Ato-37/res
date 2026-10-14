@@ -205,6 +205,10 @@ def run_audit() -> dict:
 
         model_file = inspect.getfile(Qwen2_5_VLModel)
         processor_file = inspect.getfile(type(processor))
+        vision_utils_file = inspect.getfile(process_vision_info)
+        processor_config_path = model_path / "preprocessor_config.json"
+        if not processor_config_path.is_file():
+            raise RuntimeError("pinned processor configuration file is missing")
         return {
             "schema_version": 1,
             "purpose": "synthetic_pts_pixels_qwen_processor_rope_integration",
@@ -213,9 +217,15 @@ def run_audit() -> dict:
             "presentation_time_utils_sha256": digest_bytes((repo / "scripts/presentation_time_utils.py").read_bytes()),
             "model_revision": REVISION,
             "model_config_sha256": digest_bytes((model_path / "config.json").read_bytes()),
+            "processor_config_sha256": digest_bytes(processor_config_path.read_bytes()),
             "installed_model_source_sha256": digest_bytes(Path(model_file).read_bytes()),
             "installed_processor_source_sha256": digest_bytes(Path(processor_file).read_bytes()),
-            "versions": {"pyav": av.__version__, "torch": torch.__version__, "transformers": __import__("transformers").__version__},
+            "installed_vision_utils_source_sha256": digest_bytes(Path(vision_utils_file).read_bytes()),
+            "versions": {
+                "pyav": av.__version__,
+                "av_linked_libraries": {name: list(version) for name, version in av.library_versions.items()},
+                "torch": torch.__version__, "transformers": __import__("transformers").__version__,
+            },
             "cfr": {"requested_frames": 4, "decoded_source_frames": len(all_frames),
                     "decoded_frames": len(frames), "pts": list(pts),
                     "time_base": str(time_base), "presentation_seconds": [str(x) for x in times],

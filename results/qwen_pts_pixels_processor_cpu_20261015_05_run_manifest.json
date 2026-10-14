@@ -1,0 +1,60 @@
+{
+  "artifact": "results/qwen_pts_pixels_processor_cpu_20261015_05.json",
+  "artifact_sha256": "85c0f96506fd1a88b032724026c63b9989a76acfb793a9ec0eb8f36f51979715",
+  "effective_frames": 4,
+  "installed_model_source_sha256": "1b7a2a6403d309cdfe1ba31184708ed1a9f14b0ffd8e5bd4992f05a699e4f630",
+  "installed_processor_source_sha256": "dcecc3dff4ebb07c58e66923f1d62c73edee1edf572d27947c27ee5f5f2e654f",
+  "installed_vision_utils_source_sha256": "f3710ced8ffe735da57d08cf5236cf9d326ff646ed1bdad2e62593a7801adc33",
+  "irregular_sample_rejected": true,
+  "model_config_sha256": "77d9ec7321cc572e3579e2c84799c9cadaded63c49ce93b101733349fc330c43",
+  "model_revision": "cc594898137f460bfe9f0759e9844b3ce807cfb5",
+  "processor_config_sha256": "f2058c716eef96ccaed1cc1e2d0c08306b62586d535b28d9d08e691b2fab7ca0",
+  "purpose": "synthetic_pts_pixels_qwen_processor_rope_integration",
+  "requested_frames": 4,
+  "runner_sha256": "a312a7b76ff0110f8c5485dd8d8aa512e8fa4868603c0773190e85295cfc24fd",
+  "schema_version": 1,
+  "source_commit": "5313e828012b32858e60e94963ae9f224334b03e",
+  "versions": {
+    "av_linked_libraries": {
+      "libavcodec": [
+        62,
+        28,
+        102
+      ],
+      "libavdevice": [
+        62,
+        3,
+        102
+      ],
+      "libavfilter": [
+        11,
+        14,
+        102
+      ],
+      "libavformat": [
+        62,
+        12,
+        102
+      ],
+      "libavutil": [
+        60,
+        26,
+        102
+      ],
+      "libswresample": [
+        6,
+        3,
+        102
+      ],
+      "libswscale": [
+        9,
+        5,
+        102
+      ]
+    },
+    "pyav": "18.1.0",
+    "torch": "2.11.0+cu128",
+    "transformers": "5.18.0"
+  },
+  "vfr_rejected": true
+}
