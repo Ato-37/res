@@ -133,6 +133,9 @@ ledger separately requires ordered, unique, positive-duration reviewed
 intervals. The legacy preflight passes its
 existing QA grounding intervals to this generic helper; that does not turn
 those QA-level intervals into independently reviewed model-claim mappings.
+Preflight also requires an exact nonempty `video_id` and rejects every
+otherwise-preflightable row sharing a `video_id` before decoding, preserving
+the one-video analysis unit instead of selecting a first row from duplicates.
 The helper also cannot authenticate source FPS or referenced review records.
 
 ## Cohort, mapping, and control

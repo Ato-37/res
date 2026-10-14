@@ -141,13 +141,30 @@ class DistinctFramePreflightTests(unittest.TestCase):
             self.assertEqual(json.loads(smoke_path.read_text()), [])
 
     def test_invalid_manifest_rows_are_recorded_without_aborting_audit(self):
-        selected, records = preflight.audit_samples([None, 17, "bad", {}], num_frames=16)
+        malformed = [None, 17, "bad", {}, {"video": "no-id.mp4"},
+                     {"video_id": " padded ", "video": "padded.mp4"}]
+        selected, records = preflight.audit_samples(malformed, num_frames=16)
 
         self.assertEqual(selected, [])
         self.assertEqual([record["status"] for record in records],
-                         ["invalid_manifest_record"] * 4)
+                         ["invalid_manifest_record"] * len(malformed))
         self.assertEqual([record["sample_id"] for record in records],
-                         ["0:0", "1:1", "2:2", "3:3"])
+                         [f"{index}:{index}" for index in range(len(malformed))])
+
+    def test_duplicate_video_rows_are_rejected_before_video_decode(self):
+        samples = [
+            {"video_id": "same-video", "qid": "q1", "video": "a.mp4",
+             "grounding": [[0.0, 0.0]]},
+            {"video_id": "same-video", "qid": "q2", "video": "b.mp4",
+             "grounding": [[1.0, 1.0]]},
+        ]
+        with patch.object(preflight, "decodable_video_info") as decode:
+            selected, records = preflight.audit_samples(samples, num_frames=16)
+
+        self.assertEqual(selected, [])
+        self.assertEqual([record["status"] for record in records],
+                         ["duplicate_video_id", "duplicate_video_id"])
+        decode.assert_not_called()
 
 
 if __name__ == "__main__":

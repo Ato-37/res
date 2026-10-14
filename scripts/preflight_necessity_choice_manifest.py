@@ -56,15 +56,31 @@ def sample_indices(total, num_frames):
 
 def audit_samples(samples, num_frames):
     selected, records = [], []
+    candidate_video_ids = [sample['video_id'] for sample in samples
+                           if isinstance(sample, dict)
+                           and isinstance(sample.get('video_id'), str)
+                           and sample['video_id'].strip()
+                           and sample['video_id'] == sample['video_id'].strip()]
+    video_id_counts = Counter(candidate_video_ids)
+    duplicated_video_ids = {video_id for video_id, count in video_id_counts.items()
+                            if count > 1}
     for sample_idx, sample in enumerate(samples):
         if (not isinstance(sample, dict)
+                or not isinstance(sample.get('video_id'), str)
+                or not sample['video_id'].strip()
+                or sample['video_id'] != sample['video_id'].strip()
                 or not isinstance(sample.get('video'), str)
                 or not sample['video']):
             records.append({'sample_id': f'{sample_idx}:{sample_idx}',
                             'status': 'invalid_manifest_record',
-                            'error': 'sample row must be an object with a nonempty video path'})
+                            'error': 'sample row must have an exact video_id and nonempty video path'})
             continue
         sample_id = f"{sample.get('video_id', sample_idx)}:{sample.get('qid', sample_idx)}"
+        if sample['video_id'] in duplicated_video_ids:
+            records.append({'sample_id': sample_id, 'status': 'duplicate_video_id',
+                            'video': sample['video'],
+                            'error': 'multiple candidate rows share a video_id'})
+            continue
         try:
             video = os.path.expanduser(sample['video'])
             total, fps = decodable_video_info(video)
