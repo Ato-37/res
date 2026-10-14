@@ -1,8 +1,12 @@
 import json
 import hashlib
+import contextlib
+import csv
+import io
 import os
 import tempfile
 import unittest
+import zipfile
 from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import patch
@@ -66,6 +70,169 @@ class BuildSamplesProvenanceTests(unittest.TestCase):
                 main()
             self.assertEqual(raised.exception.code, 2)
             self.assertFalse(output.exists())
+
+    def test_missing_archive_error_omits_local_absolute_path(self):
+        with tempfile.TemporaryDirectory(prefix="private_root_") as tmp:
+            root = Path(tmp)
+            (root / "test.csv").write_text(
+                "video_id,question,answer,qid\n", encoding="utf-8",
+            )
+            (root / "gsub.json").write_text("{}", encoding="utf-8")
+            (root / "map.json").write_text("{}", encoding="utf-8")
+            archive = root / "secret_media_archive.zip"
+            argv = ["build_samples.py", "--test-csv", str(root / "test.csv"),
+                    "--gsub-json", str(root / "gsub.json"), "--map-json",
+                    str(root / "map.json"), "--video-root", str(root / "videos"),
+                    "--zip-path", str(archive), "--n", "1", "--out",
+                    str(root / "out.json")]
+            stderr = io.StringIO()
+            with patch("sys.argv", argv), contextlib.redirect_stderr(stderr):
+                with self.assertRaises(SystemExit) as raised:
+                    main()
+            message = stderr.getvalue()
+            self.assertEqual(raised.exception.code, 2)
+            self.assertIn("secret_media_archive.zip", message)
+            self.assertNotIn(tmp, message)
+
+    def test_unreadable_requested_and_fallback_archives_omit_paths(self):
+        with tempfile.TemporaryDirectory(prefix="private_archive_root_") as tmp:
+            root = Path(tmp)
+            (root / "test.csv").write_text(
+                "video_id,question,answer,qid\n", encoding="utf-8",
+            )
+            (root / "gsub.json").write_text("{}", encoding="utf-8")
+            (root / "map.json").write_text("{}", encoding="utf-8")
+            requested = root / "requested" / "secret_media_archive.zip"
+            requested.parent.mkdir()
+            requested.write_text("not a zip", encoding="utf-8")
+            home = root / "private_home"
+            home.mkdir()
+            fallback = home / requested.name
+            fallback.write_text("also not a zip", encoding="utf-8")
+
+            def run(archive, mocked_home=None):
+                argv = ["build_samples.py", "--test-csv", str(root / "test.csv"),
+                        "--gsub-json", str(root / "gsub.json"), "--map-json",
+                        str(root / "map.json"), "--video-root", str(root / "videos"),
+                        "--zip-path", str(archive), "--n", "1", "--out",
+                        str(root / f"out_{'fallback' if mocked_home else 'direct'}.json")]
+                stderr, stdout = io.StringIO(), io.StringIO()
+                real_expanduser = os.path.expanduser
+
+                def expanduser(value):
+                    if value == "~" and mocked_home is not None:
+                        return str(mocked_home)
+                    return real_expanduser(value)
+
+                with patch("sys.argv", argv), patch(
+                        "scripts.build_samples.os.path.expanduser", side_effect=expanduser), \
+                        contextlib.redirect_stderr(stderr), contextlib.redirect_stdout(stdout):
+                    with self.assertRaises(SystemExit) as raised:
+                        main()
+                self.assertEqual(raised.exception.code, 2)
+                self.assertIn(requested.name, stderr.getvalue())
+                self.assertNotIn(tmp, stderr.getvalue())
+                self.assertNotIn(tmp, stdout.getvalue())
+
+            run(requested)
+            requested.unlink()
+            run(requested, home)
+
+    def test_archive_index_exception_omits_path_from_traceback(self):
+        with tempfile.TemporaryDirectory(prefix="private_archive_error_") as tmp:
+            root = Path(tmp)
+            (root / "test.csv").write_text(
+                "video_id,question,answer,qid\n", encoding="utf-8",
+            )
+            (root / "gsub.json").write_text("{}", encoding="utf-8")
+            (root / "map.json").write_text("{}", encoding="utf-8")
+            archive = root / "secret_media_archive.zip"
+            archive.write_text("placeholder", encoding="utf-8")
+            argv = ["build_samples.py", "--test-csv", str(root / "test.csv"),
+                    "--gsub-json", str(root / "gsub.json"), "--map-json",
+                    str(root / "map.json"), "--video-root", str(root / "videos"),
+                    "--zip-path", str(archive), "--n", "1", "--out",
+                    str(root / "out.json")]
+            stderr, stdout = io.StringIO(), io.StringIO()
+            with patch("sys.argv", argv), \
+                    patch("scripts.build_samples.zipfile.is_zipfile", return_value=True), \
+                    patch("scripts.build_samples.zipfile.ZipFile",
+                          side_effect=zipfile.BadZipFile(str(archive))), \
+                    contextlib.redirect_stderr(stderr), contextlib.redirect_stdout(stdout):
+                with self.assertRaises(SystemExit) as raised:
+                    main()
+            self.assertEqual(raised.exception.code, 2)
+            self.assertIn("Unable to index archive secret_media_archive.zip (BadZipFile)",
+                          stderr.getvalue())
+            self.assertNotIn(tmp, stderr.getvalue())
+            self.assertNotIn(tmp, stdout.getvalue())
+
+    def test_archive_inspection_exception_omits_path_from_traceback(self):
+        with tempfile.TemporaryDirectory(prefix="private_archive_inspection_") as tmp:
+            root = Path(tmp)
+            (root / "test.csv").write_text(
+                "video_id,question,answer,qid\n", encoding="utf-8",
+            )
+            (root / "gsub.json").write_text("{}", encoding="utf-8")
+            (root / "map.json").write_text("{}", encoding="utf-8")
+            archive = root / "secret_media_archive.zip"
+            archive.write_text("placeholder", encoding="utf-8")
+            argv = ["build_samples.py", "--test-csv", str(root / "test.csv"),
+                    "--gsub-json", str(root / "gsub.json"), "--map-json",
+                    str(root / "map.json"), "--video-root", str(root / "videos"),
+                    "--zip-path", str(archive), "--n", "1", "--out",
+                    str(root / "out.json")]
+            stderr = io.StringIO()
+            with patch("sys.argv", argv), patch(
+                    "scripts.build_samples.zipfile.is_zipfile",
+                    side_effect=OSError(f"private path: {archive}")), \
+                    contextlib.redirect_stderr(stderr):
+                with self.assertRaises(SystemExit) as raised:
+                    main()
+            self.assertEqual(raised.exception.code, 2)
+            self.assertIn("Unable to inspect archive secret_media_archive.zip (OSError)",
+                          stderr.getvalue())
+            self.assertNotIn(tmp, stderr.getvalue())
+
+    def test_archive_extraction_exception_omits_path_from_traceback(self):
+        with tempfile.TemporaryDirectory(prefix="private_archive_extract_") as tmp:
+            root = Path(tmp)
+            with (root / "test.csv").open("w", newline="", encoding="utf-8") as stream:
+                writer = csv.DictWriter(
+                    stream, fieldnames=["video_id", "question", "answer", "qid", "type"]
+                    + [f"a{i}" for i in range(5)],
+                )
+                writer.writeheader()
+                writer.writerow({"video_id": "private-video", "question": "q?",
+                                 "answer": "yes", "qid": "q1", "type": "what",
+                                 "a0": "yes", "a1": "no", "a2": "maybe",
+                                 "a3": "none", "a4": "other"})
+            (root / "gsub.json").write_text(json.dumps({
+                "private-video": {"duration": 1, "location": {"q1": [[0, .5]]}},
+            }), encoding="utf-8")
+            (root / "map.json").write_text(
+                json.dumps({"private-video": "folder/clip"}), encoding="utf-8",
+            )
+            archive = root / "secret_media_archive.zip"
+            with zipfile.ZipFile(archive, "w") as zf:
+                zf.writestr("folder/clip.mp4", b"synthetic")
+            argv = ["build_samples.py", "--test-csv", str(root / "test.csv"),
+                    "--gsub-json", str(root / "gsub.json"), "--map-json",
+                    str(root / "map.json"), "--video-root", str(root / "videos"),
+                    "--zip-path", str(archive), "--n", "1", "--out",
+                    str(root / "out.json")]
+            stderr, stdout = io.StringIO(), io.StringIO()
+            with patch("sys.argv", argv), patch(
+                    "scripts.build_samples.ensure_video_available",
+                    side_effect=OSError(f"private path: {archive}")), \
+                    contextlib.redirect_stderr(stderr), contextlib.redirect_stdout(stdout):
+                with self.assertRaises(SystemExit) as raised:
+                    main()
+            self.assertEqual(raised.exception.code, 2)
+            self.assertIn("Unable to extract from archive secret_media_archive.zip (OSError)",
+                          stderr.getvalue())
+            self.assertNotIn(tmp, stderr.getvalue())
+            self.assertNotIn(tmp, stdout.getvalue())
 
     def test_underfilled_status_and_private_exclusive_writer(self):
         with tempfile.TemporaryDirectory() as tmp:

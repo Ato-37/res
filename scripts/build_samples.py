@@ -453,24 +453,38 @@ def main():
     zip_index = None
     if args.zip_path:
         requested_zip_path = os.path.expanduser(args.zip_path)
+        archive_label = os.path.basename(requested_zip_path) or "archive"
         zip_path = requested_zip_path
         if not os.path.isfile(zip_path):
             home_archive = os.path.join(os.path.expanduser('~'),
                                         os.path.basename(requested_zip_path))
             if os.path.isfile(home_archive):
-                print(f"NOTICE: requested archive missing; using same-named home archive: {home_archive}")
+                print(f"NOTICE: requested archive missing; using same-named home archive: {archive_label}")
                 zip_path = home_archive
             else:
                 parser.error(
-                    f"NExTVideo archive not found: {requested_zip_path}; "
-                    f"also checked {home_archive}. Correct --zip-path or omit it "
+                    f"NExTVideo archive not found: {archive_label}; "
+                    "also checked the home directory for a same-named archive. Correct --zip-path or omit it "
                     "if all required videos are already under --video-root."
                 )
-        if not zipfile.is_zipfile(zip_path):
-            parser.error(f"Archive is not a readable ZIP file: {zip_path}")
-        print(f"indexing {zip_path} ...")
-        with zipfile.ZipFile(zip_path) as zf:
-            zip_index = {os.path.basename(n): n for n in zf.namelist() if n.endswith(".mp4")}
+        try:
+            readable_zip = zipfile.is_zipfile(zip_path)
+        except OSError as error:
+            parser.error(
+                f"Unable to inspect archive {archive_label} ({type(error).__name__})"
+            )
+        if not readable_zip:
+            parser.error(
+                f"Archive is not a readable ZIP file: {os.path.basename(zip_path) or 'archive'}"
+            )
+        print(f"indexing archive {os.path.basename(zip_path)} ...")
+        try:
+            with zipfile.ZipFile(zip_path) as zf:
+                zip_index = {os.path.basename(n): n for n in zf.namelist() if n.endswith(".mp4")}
+        except (OSError, RuntimeError, zipfile.BadZipFile) as error:
+            parser.error(
+                f"Unable to index archive {archive_label} ({type(error).__name__})"
+            )
         print(f"  {len(zip_index)} mp4 entries found in archive")
     else:
         zip_path = None
@@ -490,7 +504,15 @@ def main():
             if args.unique_videos and c["vidor_id"] in used_vidor_ids:
                 exclude_build_reason("duplicate_video_skipped")
                 continue
-            path = ensure_video_available(c["vidor_id"], video_root, zip_index, zip_path, tmp_extract_root)
+            try:
+                path = ensure_video_available(
+                    c["vidor_id"], video_root, zip_index, zip_path, tmp_extract_root,
+                )
+            except (OSError, RuntimeError, zipfile.BadZipFile, KeyError) as error:
+                parser.error(
+                    f"Unable to extract from archive {os.path.basename(zip_path) or 'archive'} "
+                    f"({type(error).__name__})"
+                )
             if path is None:
                 exclude_build_reason("video_unavailable")
                 continue

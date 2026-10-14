@@ -561,3 +561,28 @@ temporary files left over. Full scripts suite: 539 passed.
 
 At 18:49:42 JST, 1h26m30s had elapsed and 1h33m30s remained. Direct faithfulness
 progress remains 0 new samples and 0 new effect estimates.
+
+## Archive-path privacy hardening
+
+A second audit of the sample-builder CLI found that archive paths could appear
+in its missing/invalid ZIP diagnostics and indexing progress. The first fix
+changed intentional messages to basenames and added tests for missing,
+requested-invalid, home-fallback-invalid, and indexing errors. An independent
+review then noticed that `is_zipfile` and extraction exceptions also needed
+path-safe handling, so the first 10-test validation was not treated as final.
+
+The independent review then traced the exceptional `is_zipfile`, ZIP-index, and
+member-extraction paths, finding that Python exception text could include the
+archive path. Those expected archive failures are now caught and reduced to the
+archive basename plus exception class. Regression tests inject path-bearing
+errors into all three branches, in addition to missing/invalid requested and
+fallback archive cases; all assert that the temporary absolute path is absent
+from stdout/stderr. The focused suite passes 12 tests and the complete scripts
+suite passes 544. The independent reviewer found no remaining leak in the
+explicit or handled archive paths. This does not promise redaction from
+unrelated interpreter or operating-system diagnostics. Direct faithfulness
+progress remains 0 new samples / 0 effects; no real video was read in these
+privacy tests and no GPU run occurred.
+
+At 18:54:08 JST, 1h30m56s had elapsed and 1h29m04s remained. These changes are
+not yet committed; the next step is scoped publication after final diff review.
