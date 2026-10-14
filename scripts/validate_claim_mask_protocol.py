@@ -6,10 +6,12 @@ videos, authenticate review, or authorize inference.
 from __future__ import annotations
 
 import argparse, hashlib, json, math, re, sys
+from datetime import datetime
 from typing import Any
 
 SHA = re.compile(r"^[a-f0-9]{64}$")
 GIT_COMMIT = re.compile(r"^[a-f0-9]{40}$")
+UTC_TIMESTAMP = re.compile(r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$")
 
 def _obj(pairs):
     out = {}
@@ -19,11 +21,48 @@ def _obj(pairs):
     return out
 
 def _finite(x):
-    return isinstance(x, (int, float)) and not isinstance(x, bool) and math.isfinite(x)
+    if not isinstance(x, (int, float)) or isinstance(x, bool): return False
+    try: return math.isfinite(x)
+    except (OverflowError, TypeError, ValueError): return False
 
 def _sha(x): return isinstance(x, str) and SHA.fullmatch(x) is not None
 def _text(x): return isinstance(x, str) and bool(x.strip())
 def _keys(x, required): return isinstance(x, dict) and set(x) == set(required)
+
+def compute_primary_estimand_sha256(value: dict) -> str | None:
+    """Hash the canonical, outcome-independent definition of the primary contrast."""
+    try:
+        m, c, s, e, i = (value[k] for k in ("model", "cohort", "sampling", "estimand", "intervention"))
+        payload = {
+            "model": {k: m[k] for k in ("revision", "tokenizer_revision", "quant", "dtype", "attention_implementation")},
+            "eligible_manifest_sha256": c["eligible_manifest_sha256"],
+            "primary_population": c["primary_population"],
+            "sampling_config_sha256": s["config_sha256"],
+            "answer_candidate_protocol_sha256": e["answer_candidate_protocol_sha256"],
+            "gold_choice_manifest_sha256": e["gold_choice_manifest_sha256"],
+            "triplet_manifest_sha256": e["triplet_manifest_sha256"],
+            "score_kind": e["score_kind"],
+            "baseline_correction": e["baseline_correction"],
+            "target_definition": e["target_definition"],
+            "margin_definition": e["margin_definition"],
+            "intervention": {k: i[k] for k in ("kind", "selector_sha256", "control_sha256", "selected_condition", "control_condition", "selected_unit", "control_matching")},
+        }
+        if not all(_text(v) for v in _flatten_strings(payload)):
+            return None
+        raw = json.dumps(payload, sort_keys=True, separators=(",", ":"), ensure_ascii=False).encode("utf-8")
+        return hashlib.sha256(raw).hexdigest()
+    except (KeyError, TypeError, UnicodeError):
+        return None
+
+def _flatten_strings(value):
+    if isinstance(value, dict):
+        for key, item in value.items():
+            yield key
+            yield from _flatten_strings(item)
+    elif isinstance(value, str):
+        yield value
+    else:
+        yield value
 
 def validate(value: Any, input_sha256: str | None = None) -> dict:
     f = set()
@@ -31,7 +70,7 @@ def validate(value: Any, input_sha256: str | None = None) -> dict:
            "data_rights", "sampling", "estimand", "intervention", "analysis", "runtime"}
     if not isinstance(value, dict): return _summary({"protocol_not_object"}, input_sha256)
     if set(value) != req: f.add("protocol_schema_keys_invalid")
-    if type(value.get("schema_version")) is not int or value.get("schema_version") != 4: f.add("schema_version_invalid")
+    if type(value.get("schema_version")) is not int or value.get("schema_version") != 5: f.add("schema_version_invalid")
     stage = value.get("protocol_stage")
     # The estimand direction and secondary Holm families are selected, but the
     # SESOI is not fixed. This schema must not label a run confirmatory yet.
@@ -75,13 +114,16 @@ def validate(value: Any, input_sha256: str | None = None) -> dict:
     if not _keys(sm, sk): f.add("sampling_schema_invalid")
     elif (sm.get("policy") != "whole_video_fixed" or not _sha(sm.get("config_sha256")) or sm.get("uses_claim_for_selection") is not False
           or any(type(sm.get(k)) is not int or sm[k] <= 0 for k in ("num_frames", "frame_size", "max_pixels")) or type(sm.get("cap_pixels_per_frame")) is not bool): f.add("sampling_fields_invalid")
-    es = value.get("estimand"); ek = {"answer_candidate_protocol_sha256", "gold_choice_manifest_sha256", "score_kind", "baseline_correction", "triplet_manifest_sha256", "target_definition", "margin_definition"}
+    es = value.get("estimand"); ek = {"answer_candidate_protocol_sha256", "gold_choice_manifest_sha256", "primary_estimand_sha256", "score_kind", "baseline_correction", "triplet_manifest_sha256", "target_definition", "margin_definition"}
     if not _keys(es, ek): f.add("estimand_schema_invalid")
-    elif (not _sha(es.get("answer_candidate_protocol_sha256")) or not _sha(es.get("gold_choice_manifest_sha256")) or not _sha(es.get("triplet_manifest_sha256"))
+    elif (not _sha(es.get("answer_candidate_protocol_sha256")) or not _sha(es.get("gold_choice_manifest_sha256")) or not _sha(es.get("primary_estimand_sha256")) or not _sha(es.get("triplet_manifest_sha256"))
           or es.get("score_kind") != "teacher_forced_gold_vs_best_foil_logprob_margin"
           or es.get("baseline_correction") != "selected_minus_control_margin_drop"
           or es.get("target_definition") != "fixed_gold_choice_from_annotation"
           or es.get("margin_definition") != "gold_label_logprob_minus_max_foil_label_logprob_same_prompt"): f.add("estimand_fields_invalid")
+    computed_estimand_sha = compute_primary_estimand_sha256(value)
+    if computed_estimand_sha is None or not isinstance(es, dict) or es.get("primary_estimand_sha256") != computed_estimand_sha:
+        f.add("primary_estimand_hash_mismatch")
     iv = value.get("intervention"); ik = {"kind", "selector_sha256", "control_sha256", "selected_condition", "control_condition", "selected_unit", "control_matching"}
     if not _keys(iv, ik): f.add("intervention_schema_invalid")
     elif (iv.get("kind") != "claim_linked_evidence_frame_mask" or not _sha(iv.get("selector_sha256")) or not _sha(iv.get("control_sha256"))
@@ -89,15 +131,36 @@ def validate(value: Any, input_sha256: str | None = None) -> dict:
           or iv.get("selected_condition") == iv.get("control_condition")
           or iv.get("selected_unit") != "sampled_frames_overlapping_reviewed_claim_evidence_interval"
           or iv.get("control_matching") != "equal_count_minimum_total_temporal_rank_distance_lexicographic_tie_break"): f.add("intervention_fields_invalid")
-    an = value.get("analysis"); ak = {"primary_contrast_count", "primary_multiplicity", "secondary_families", "secondary_adjustment", "sesoi_status"}
+    an = value.get("analysis"); ak = {"primary_contrast_count", "primary_multiplicity", "secondary_families", "secondary_adjustment", "sesoi"}
     if not _keys(an, ak): f.add("analysis_schema_invalid")
     elif (type(an.get("primary_contrast_count")) is not int or an.get("primary_contrast_count") != 1
           or an.get("primary_multiplicity") != "none_single_primary_contrast"
           or an.get("secondary_families") != ["baseline_correctness_strata", "question_type_strata"]
-          or an.get("secondary_adjustment") != "holm_within_each_predeclared_family"
-          or not isinstance(an.get("sesoi_status"), str)
-          or an.get("sesoi_status") not in {"unresolved", "preoutcome_fixed"}):
+          or an.get("secondary_adjustment") != "holm_within_each_predeclared_family"):
         f.add("analysis_fields_invalid")
+    else:
+        sesoi = an.get("sesoi")
+        sk = {"status", "value_nat", "decision_rule", "estimand_sha256", "rationale_category",
+              "rationale_sha256", "fixed_at_utc", "review_status", "review_timing",
+              "independent_review_sha256"}
+        if not _keys(sesoi, sk): f.add("sesoi_schema_invalid")
+        elif sesoi.get("status") == "unresolved":
+            if any(sesoi.get(k) is not None for k in sk - {"status"}): f.add("sesoi_unresolved_fields_not_null")
+        elif sesoi.get("status") == "preoutcome_fixed":
+            if (not _finite(sesoi.get("value_nat")) or sesoi["value_nat"] <= 0
+                    or sesoi.get("decision_rule") != "primary_95pct_ci_lower_gt_sesoi"
+                    or not _sha(sesoi.get("estimand_sha256"))
+                    or not isinstance(es, dict) or sesoi.get("estimand_sha256") != es.get("primary_estimand_sha256")
+                    or not isinstance(sesoi.get("rationale_category"), str)
+                    or sesoi.get("rationale_category") not in {"annotation_granularity", "output_reproducibility", "measurement_interpretability", "other"}
+                    or not _sha(sesoi.get("rationale_sha256"))
+                    or not isinstance(sesoi.get("fixed_at_utc"), str) or not UTC_TIMESTAMP.fullmatch(sesoi["fixed_at_utc"])
+                    or not _valid_utc_timestamp(sesoi["fixed_at_utc"])
+                    or sesoi.get("review_status") != "completed"
+                    or sesoi.get("review_timing") != "before_scoring"
+                    or not _sha(sesoi.get("independent_review_sha256"))):
+                f.add("sesoi_fixed_fields_invalid")
+        else: f.add("sesoi_status_invalid")
     rt = value.get("runtime"); tk = {"seed", "source_commit", "execution_authorization"}
     if not _keys(rt, tk): f.add("runtime_schema_invalid")
     elif type(rt.get("seed")) is not int or not isinstance(rt.get("source_commit"), str) or GIT_COMMIT.fullmatch(rt["source_commit"]) is None or rt.get("execution_authorization") is not False: f.add("runtime_fields_invalid")
@@ -108,9 +171,16 @@ def _summary(f, digest):
     if digest is not None and not _sha(digest):
         failures.add("input_sha256_invalid")
         digest = None
-    return {"schema_version": 4, "structurally_valid": not failures, "failure_codes": sorted(failures),
+    return {"schema_version": 5, "structurally_valid": not failures, "failure_codes": sorted(failures),
             "semantic_validation": "not_machine_verifiable", "execution_authorization": "not_granted",
             **({"input_sha256": digest} if digest else {})}
+
+def _valid_utc_timestamp(value):
+    try:
+        datetime.strptime(value, "%Y-%m-%dT%H:%M:%SZ")
+        return True
+    except ValueError:
+        return False
 
 def main(argv=None):
     ap = argparse.ArgumentParser(); ap.add_argument("path"); a = ap.parse_args(argv)

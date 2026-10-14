@@ -1,19 +1,31 @@
-# Claim-linked evidence-frame mask protocol contract (schema v4)
+# Claim-linked evidence-frame mask protocol contract (schema v5)
 
 `scripts/validate_claim_mask_protocol.py` is a CPU-only, fail-closed structural
 validator for the exploratory design stage. The secondary-family multiplicity
 policy is inherited from the research plan: Holm correction within each
 predeclared family (baseline-correctness strata and question-type strata), with
 one unadjusted primary contrast. Family membership must be frozen before
-scoring. The SESOI is still not fixed, so schema v4 rejects a `confirmatory` stage.
+scoring. The SESOI is still not fixed, so schema v5 rejects a `confirmatory` stage.
 Structural validity neither authenticates evidence nor authorizes inference.
 
 The `analysis` object must declare one unadjusted primary contrast, the two
 secondary families (`baseline_correctness_strata` and `question_type_strata`),
-Holm adjustment within each family, and an SESOI status. `preoutcome_fixed` is
-only a caller declaration here: this schema does not validate the SESOI value,
-units, rationale, timestamp, or a preregistration artifact. The current design
-still records SESOI as unresolved. This validates policy declaration shape only.
+Holm adjustment within each family, and a nested SESOI declaration. The current
+design records it as unresolved, with the value and supporting fields null. A
+future `preoutcome_fixed` declaration must supply a positive threshold in nat,
+the primary CI decision rule, a rationale category and hash, a UTC fixed time,
+and a separate independent review record hash with completed/before-scoring
+declarations. The primary-estimand SHA-256 is recomputed from compact,
+sorted-key UTF-8 JSON (`ensure_ascii=false`) containing the model identity,
+eligible-manifest hash and primary population, sampling-config hash,
+answer-candidate, gold-choice, and full/selected/control triplet hashes,
+score/baseline/target/margin definitions, and all intervention/control
+definition fields and hashes. This
+stops a threshold for another estimand from being structurally substituted by
+unit alone and catches changes to those declared inputs if the hash is stale.
+The validator cannot authenticate referenced artifacts, reviewer independence,
+or that the declaration predates outcome access. A pass remains exploratory
+and does not authorize inference.
 
 ## Proposed estimand
 
@@ -42,8 +54,12 @@ contrast, not proof that a claim is true or causally explained.
 `eligible_manifest_sha256` binds the frozen one-video/one-QA eligibility set;
 `exclusion_manifest_sha256` binds pre-scoring exclusions and reason codes. The
 candidate count must reconcile with eligible count plus pre-run exclusions;
-the eligible count is the analysis denominator. The answer-candidate
-protocol hash binds the prompt, five choices, label tokenization, and scoring
+the eligible count is the analysis denominator. The primary-estimand hash
+binds the final eligible set, while the candidate,
+exclusion, and overlap-audit hashes remain separately required provenance for
+the screening and selection process; changes to that process are not encoded in
+the primary-estimand hash itself. The answer-candidate protocol hash binds the
+prompt, five choices, label tokenization, and scoring
 implementation. `gold_choice_manifest_sha256` binds per-video gold labels;
 `triplet_manifest_sha256` binds full/selected/control assignments. Claim,
 mapping, review, and rights hashes refer to separate artifacts. These are

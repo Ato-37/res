@@ -1,0 +1,106 @@
+{
+  "analysis": "one_sample_t_on_video_level_paired_differences",
+  "assumption": "independent normally distributed video-level paired differences with common variance",
+  "empirical_data_used": false,
+  "power_inputs_are_hypothetical": true,
+  "rows": [
+    {
+      "confidence": 0.95,
+      "effective_video_n": 20,
+      "power": 0.0624112262857165,
+      "true_mean_minus_sesoi_in_paired_sd": 0.1
+    },
+    {
+      "confidence": 0.95,
+      "effective_video_n": 20,
+      "power": 0.13348840002310083,
+      "true_mean_minus_sesoi_in_paired_sd": 0.2
+    },
+    {
+      "confidence": 0.95,
+      "effective_video_n": 20,
+      "power": 0.24648576760631005,
+      "true_mean_minus_sesoi_in_paired_sd": 0.3
+    },
+    {
+      "confidence": 0.95,
+      "effective_video_n": 20,
+      "power": 0.5644828966786236,
+      "true_mean_minus_sesoi_in_paired_sd": 0.5
+    },
+    {
+      "confidence": 0.95,
+      "effective_video_n": 40,
+      "power": 0.08964579210220153,
+      "true_mean_minus_sesoi_in_paired_sd": 0.1
+    },
+    {
+      "confidence": 0.95,
+      "effective_video_n": 40,
+      "power": 0.2338961178869503,
+      "true_mean_minus_sesoi_in_paired_sd": 0.2
+    },
+    {
+      "confidence": 0.95,
+      "effective_video_n": 40,
+      "power": 0.45645319016689956,
+      "true_mean_minus_sesoi_in_paired_sd": 0.3
+    },
+    {
+      "confidence": 0.95,
+      "effective_video_n": 40,
+      "power": 0.8693979112082977,
+      "true_mean_minus_sesoi_in_paired_sd": 0.5
+    },
+    {
+      "confidence": 0.95,
+      "effective_video_n": 60,
+      "power": 0.11547603569369674,
+      "true_mean_minus_sesoi_in_paired_sd": 0.1
+    },
+    {
+      "confidence": 0.95,
+      "effective_video_n": 60,
+      "power": 0.33143201729528715,
+      "true_mean_minus_sesoi_in_paired_sd": 0.2
+    },
+    {
+      "confidence": 0.95,
+      "effective_video_n": 60,
+      "power": 0.6277419833137972,
+      "true_mean_minus_sesoi_in_paired_sd": 0.3
+    },
+    {
+      "confidence": 0.95,
+      "effective_video_n": 60,
+      "power": 0.9677885833841653,
+      "true_mean_minus_sesoi_in_paired_sd": 0.5
+    },
+    {
+      "confidence": 0.95,
+      "effective_video_n": 80,
+      "power": 0.14088018039107186,
+      "true_mean_minus_sesoi_in_paired_sd": 0.1
+    },
+    {
+      "confidence": 0.95,
+      "effective_video_n": 80,
+      "power": 0.4235335265054896,
+      "true_mean_minus_sesoi_in_paired_sd": 0.2
+    },
+    {
+      "confidence": 0.95,
+      "effective_video_n": 80,
+      "power": 0.7550820377191264,
+      "true_mean_minus_sesoi_in_paired_sd": 0.3
+    },
+    {
+      "confidence": 0.95,
+      "effective_video_n": 80,
+      "power": 0.992998671087154,
+      "true_mean_minus_sesoi_in_paired_sd": 0.5
+    }
+  ],
+  "sesoi_selected": false,
+  "success_rule": "two_sided_ci_lower_bound_exceeds_sesoi"
+}
