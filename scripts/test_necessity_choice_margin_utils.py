@@ -109,7 +109,7 @@ class NecessityChoiceMarginUtilsTests(unittest.TestCase):
             _, selected_positions = solve(0, 0)
             return [indices[pos] for pos in selected_positions]
 
-        for n_frames in range(1, 9):
+        for n_frames in range(1, 11):
             indices = list(range(n_frames))
             for mask in range(1 << n_frames):
                 evidence = [i for i in indices if mask & (1 << i)]
