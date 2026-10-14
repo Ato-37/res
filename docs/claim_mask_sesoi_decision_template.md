@@ -60,6 +60,12 @@ claim is true. A numerical value chosen only because it is convenient for
 power or because a prior result exceeded it has no practical-threshold
 justification.
 
+Do not transfer a threshold from the Correlational Counterfactual Test (CCT):
+that work measures standardized association between intervention TVD and
+explanation mention, and its mention threshold depends on the observed TVD
+distribution. It does not specify a natural-log-unit minimum important
+difference for this per-video gold-versus-foil margin contrast.
+
 ## Evidence considered
 
 For each item, distinguish evidence actually available from a proposal for
