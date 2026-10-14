@@ -73,6 +73,21 @@ gold-answer margin dropped more under the
 selected mask than the matched control. This is an operational dependence
 contrast, not proof that a claim is true or causally explained.
 
+For this current all-eligible-video estimand, the independent pre-score review
+must establish a supportable claim-to-interval mapping for every eligible
+video. A contradicted, unsupported, ambiguous, unlocalizable, or unreviewed
+claim does not authorize silently dropping that video, substituting another
+claim/video, or continuing with a reduced denominator. Any such case is a
+no-go for the planned full-cohort claim-mask run; record the gate failure and
+retain the frozen cohort. This preserves the stated population but makes
+feasibility contingent on every mapping. A future study may instead define a
+supportable-claim population before outcome access, but that is a different,
+restricted estimand: it must freeze the eligibility rule and screened
+denominator in a new protocol version, report screening attrition, and limit
+claims to that population. Unsupported-claim rates may be reported as a
+separate descriptive grounding outcome; they must not be converted into
+margin-drop values without a separately justified estimand.
+
 ## Existing-runner compatibility
 
 [`necessity_choice_margin_test.py`](../scripts/necessity_choice_margin_test.py)

@@ -91,6 +91,14 @@ class ClaimMappingManifestAuditTests(unittest.TestCase):
         result = self.run_audit(make_ledger(self.eligible_raw, rows=[row]))
         self.assertIn("independent_human_review_incomplete", result["failure_codes"])
 
+    def test_unsupported_claim_fails_full_cohort_gate_instead_of_dropping_item(self):
+        row = make_row()
+        row["review"]["claim_support_decision"] = "contradicts_claim"
+        result = self.run_audit(make_ledger(self.eligible_raw, rows=[row]))
+        self.assertFalse(result["structurally_valid"])
+        self.assertIn("independent_human_review_incomplete", result["failure_codes"])
+        self.assertEqual(result["execution_authorization"], "not_granted")
+
     def test_post_scoring_review_is_rejected(self):
         ledger = make_ledger(self.eligible_raw, scoring_started_at_utc="2026-10-15T00:00:00Z")
         result = self.run_audit(ledger)
