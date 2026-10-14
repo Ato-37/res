@@ -6,10 +6,30 @@ from analyze_necessity_choice_mask_fill import compare_results
 from necessity_choice_margin_utils import (apply_mask_fill, assess_frame_coverage,
                                            interaction_ci, nearest_control_indices,
                                            strict_evidence_indices, summarize,
+                                           uniform_sample_indices,
                                            validate_choice_logprobs)
 
 
 class NecessityChoiceMarginUtilsTests(unittest.TestCase):
+    def test_uniform_sample_indices_preserve_legacy_rounding_and_short_clip_duplicates(self):
+        self.assertEqual(uniform_sample_indices(10, 4), [0, 3, 6, 9])
+        self.assertEqual(uniform_sample_indices(2, 4), [0, 0, 1, 1])
+        self.assertEqual(uniform_sample_indices(7, 1), [0])
+
+    def test_uniform_sample_indices_reject_invalid_dimensions(self):
+        for total_frames, num_frames in ((0, 4), (4, 0), (-1, 4), (4, -1),
+                                         (True, 4), (4, 2.5)):
+            with self.subTest(total_frames=total_frames, num_frames=num_frames):
+                with self.assertRaises(ValueError):
+                    uniform_sample_indices(total_frames, num_frames)
+
+    def test_video_preflight_uses_shared_sampling_implementation(self):
+        from preflight_necessity_choice_manifest import sample_indices
+        for total_frames, num_frames in ((1, 16), (7, 4), (101, 16)):
+            with self.subTest(total_frames=total_frames, num_frames=num_frames):
+                self.assertEqual(sample_indices(total_frames, num_frames),
+                                 uniform_sample_indices(total_frames, num_frames))
+
     @staticmethod
     def _fill_result(fill, effects):
         return {

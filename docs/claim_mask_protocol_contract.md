@@ -108,6 +108,16 @@ interval and frozen Holm secondary families, establish the independent claim
 mapping, record zero-overlap exclusions before scoring, and enforce/hash the
 v9 mask-transform and nonempty-mask rules.
 
+The legacy scorer and CPU preflight share one endpoint-inclusive rounded
+uniform sampler, `round(i * (N - 1) / max(F - 1, 1))`, where `N` is decoded
+frame count and `F` is requested frame count. For clips shorter than `F`, the
+helper deliberately preserves repeated indices for legacy parity; the
+preflight deduplicates and checks coverage, while the old scoring path may
+fail when it cannot materialize the requested distinct frames. The future v9
+runner must freeze its sampling rule in the sampling-config hash and reject
+insufficient distinct frames before any model score call. This shared helper
+does not by itself establish timestamp precision or v9 runner compatibility.
+
 ## Cohort, mapping, and control
 
 `candidate_manifest_sha256` binds the pre-screen universe;

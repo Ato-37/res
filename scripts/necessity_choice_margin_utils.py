@@ -8,6 +8,20 @@ from statistics import stdev
 MIN_BOOTSTRAP_DRAWS = 100
 
 
+def uniform_sample_indices(total_frames, num_frames):
+    """Match the repository's endpoint-inclusive rounded uniform sampling.
+
+    The returned list may contain duplicate indices for clips shorter than the
+    requested frame count. Callers that need distinct decoded frames must
+    deduplicate and enforce their own minimum coverage.
+    """
+    for name, value in (("total_frames", total_frames), ("num_frames", num_frames)):
+        if isinstance(value, bool) or not isinstance(value, int) or value < 1:
+            raise ValueError(f"{name} must be a positive integer")
+    return [round(i * (total_frames - 1) / max(num_frames - 1, 1))
+            for i in range(num_frames)]
+
+
 def _validate_bootstrap_inputs(values, draws):
     if isinstance(draws, bool) or not isinstance(draws, int) or draws < MIN_BOOTSTRAP_DRAWS:
         raise ValueError(f'draws must be an integer >= {MIN_BOOTSTRAP_DRAWS}')

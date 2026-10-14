@@ -28,6 +28,8 @@ import tempfile
 import cv2
 import torch
 from PIL import Image
+
+from necessity_choice_margin_utils import uniform_sample_indices
 from transformers import AutoProcessor, BitsAndBytesConfig, Qwen2_5_VLForConditionalGeneration
 from qwen_vl_utils import process_vision_info
 
@@ -54,8 +56,7 @@ def decodable_video_info(video_path):
 
 
 def sample_indices(total, num_frames):
-    return [round(i * (total - 1) / max(num_frames - 1, 1))
-            for i in range(num_frames)]
+    return uniform_sample_indices(total, num_frames)
 
 
 def overlaps(timestamp, intervals):
@@ -178,6 +179,8 @@ def main():
     parser.add_argument("--quant", choices=["4bit", "8bit", "none"], default="4bit")
     parser.add_argument("--output", required=True)
     args = parser.parse_args()
+    if args.num_frames < 2:
+        parser.error("--num-frames must be >=2 to construct disjoint evidence/control masks")
 
     samples = json.load(open(args.samples_file))
     if args.n_samples is not None:

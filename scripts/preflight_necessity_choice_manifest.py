@@ -19,7 +19,7 @@ import json
 import os
 from pathlib import Path
 
-from necessity_choice_margin_utils import assess_frame_coverage
+from necessity_choice_margin_utils import assess_frame_coverage, uniform_sample_indices
 
 
 def decodable_video_info(video_path):
@@ -46,9 +46,8 @@ def decodable_video_info(video_path):
 
 
 def sample_indices(total, num_frames):
-    # Must stay in sync with necessity_mask_test.sample_indices.
-    return [round(i * (total - 1) / max(num_frames - 1, 1))
-            for i in range(num_frames)]
+    # Keep the CLI-level preflight API while sharing the runner implementation.
+    return uniform_sample_indices(total, num_frames)
 
 
 def audit_samples(samples, num_frames):
