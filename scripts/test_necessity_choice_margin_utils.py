@@ -173,6 +173,31 @@ class NecessityChoiceMarginUtilsTests(unittest.TestCase):
             with self.subTest(intervals=intervals), self.assertRaises(ValueError):
                 assign_evidence_control_frames(16, 16, 1.0, intervals)
 
+    def test_integrated_interval_membership_matches_independent_inclusive_time_oracle(self):
+        for total_frames in range(3, 15):
+            for fps in (1.0, 2.5, 29.97):
+                frame_times = [index / fps for index in range(total_frames)]
+                midpoints = [(left + right) / 2
+                             for left, right in zip(frame_times, frame_times[1:])]
+                boundaries = sorted(set([0.0, frame_times[-1] + 1.0,
+                                         *frame_times, *midpoints]))
+                for start_position, start in enumerate(boundaries):
+                    for end in boundaries[start_position:]:
+                        intervals = [[start, end]]
+                        result = assign_evidence_control_frames(
+                            total_frames, total_frames, fps, intervals)
+                        expected = [index for index, timestamp in enumerate(frame_times)
+                                    if start <= timestamp <= end]
+                        with self.subTest(total_frames=total_frames, fps=fps,
+                                          interval=(start, end)):
+                            self.assertEqual(result['evidence_indices'], expected)
+                            if not expected:
+                                self.assertEqual(result['status'], 'no_evidence')
+                            elif len(expected) * 2 > total_frames:
+                                self.assertEqual(result['status'], 'insufficient_control')
+                            else:
+                                self.assertEqual(result['status'], 'ok')
+
     def test_mask_fill_preserves_frame_size_and_blur_preserves_nonblack_content(self):
         from PIL import Image
         image = Image.new('RGB', (21, 21), (0, 0, 0))
