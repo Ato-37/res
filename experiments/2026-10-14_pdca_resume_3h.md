@@ -660,7 +660,9 @@ were checked without opening local annotations or sample IDs. They describe
 NExT-GQA QA annotations as a subset of NExT-QA and describe a mapping from QA
 video IDs to video paths. The official NExT-QA repository README says raw video
 is sourced from VidOR and asks dataset users to cite/attribute the project; its
-`LICENSE` file is an MIT license for software/documentation. The official
+`LICENSE` file is an MIT license for software/documentation. NExT-GQA also has
+an MIT `LICENSE` whose grant is expressly for software/documentation. The
+official
 NExT-QA dataset page links to separate video, mapping, and annotation downloads,
 but the page itself does not state item-level media licenses or an annotation
 data-use license. The official
@@ -675,6 +677,7 @@ source-bound item-level media license/conditions review plus an annotation
 dataset terms review, for the exact frozen eligible cohort.
 
 Sources inspected: <https://github.com/doc-doc/NExT-GQA>;
+<https://github.com/doc-doc/NExT-GQA/blob/main/LICENSE>;
 <https://github.com/doc-doc/NExT-GQA/blob/main/datasets/nextgqa/README.md>;
 <https://github.com/doc-doc/NExT-QA/blob/main/README.md>;
 <https://github.com/doc-doc/NExT-QA/blob/main/LICENSE>;
