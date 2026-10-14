@@ -661,6 +661,9 @@ NExT-GQA QA annotations as a subset of NExT-QA and describe a mapping from QA
 video IDs to video paths. The official NExT-QA repository README says raw video
 is sourced from VidOR and asks dataset users to cite/attribute the project; its
 `LICENSE` file is an MIT license for software/documentation. The official
+NExT-QA dataset page links to separate video, mapping, and annotation downloads,
+but the page itself does not state item-level media licenses or an annotation
+data-use license. The official
 VidOR project page describes its 10,000 videos as drawn from YFCC100M. The
 Multimedia Commons YFCC page currently says its Webscope route is unavailable,
 that dataset access is subject to a Webscope agreement, and that original media
@@ -675,6 +678,7 @@ Sources inspected: <https://github.com/doc-doc/NExT-GQA>;
 <https://github.com/doc-doc/NExT-GQA/blob/main/datasets/nextgqa/README.md>;
 <https://github.com/doc-doc/NExT-QA/blob/main/README.md>;
 <https://github.com/doc-doc/NExT-QA/blob/main/LICENSE>;
+<https://doc-doc.github.io/docs/nextqa.html>;
 <https://xdshang.github.io/docs/vidor.html>;
 <https://multimediacommons.wordpress.com/yfcc100m-core-dataset/>.
 This is a research-log note, not a rights determination. Direct faithfulness
