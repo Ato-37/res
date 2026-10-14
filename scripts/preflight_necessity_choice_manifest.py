@@ -58,11 +58,27 @@ def audit_samples(samples, num_frames):
             video = os.path.expanduser(sample['video'])
             total, fps = decodable_video_info(video)
             indices = sorted(set(sample_indices(total, num_frames)))
+            if len(indices) < num_frames:
+                record = {
+                    'sample_id': sample_id,
+                    'status': 'insufficient_distinct_sample_frames',
+                    'video': sample['video'],
+                    'requested_frame_count': num_frames,
+                    'sampled_frame_count': len(indices),
+                    'sampled_indices': indices,
+                    'evidence_frame_count': 0,
+                    'control_frame_count': 0,
+                    'evidence_indices': [],
+                    'control_indices': [],
+                }
+                records.append(record)
+                continue
             coverage = assess_frame_coverage(indices, fps, sample['grounding'])
             record = {
                 'sample_id': sample_id,
                 'status': coverage['status'],
                 'video': sample['video'],
+                'requested_frame_count': num_frames,
                 'sampled_frame_count': len(indices),
                 'evidence_frame_count': len(coverage['evidence']),
                 'control_frame_count': len(coverage['control']),

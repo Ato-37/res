@@ -112,11 +112,13 @@ The legacy scorer and CPU preflight share one endpoint-inclusive rounded
 uniform sampler, `round(i * (N - 1) / max(F - 1, 1))`, where `N` is decoded
 frame count and `F` is requested frame count. For clips shorter than `F`, the
 helper deliberately preserves repeated indices for legacy parity; the
-preflight deduplicates and checks coverage, while the old scoring path may
-fail when it cannot materialize the requested distinct frames. The future v9
-runner must freeze its sampling rule in the sampling-config hash and reject
-insufficient distinct frames before any model score call. This shared helper
-does not by itself establish timestamp precision or v9 runner compatibility.
+preflight deduplicates and now explicitly rejects a clip when fewer than the
+requested number of distinct frames remain, before model scoring. The old
+scoring path may still fail when it cannot materialize the requested distinct
+frames. The future v9 runner must freeze its sampling rule in the sampling-config
+hash and enforce the same requirement before any model score call. This shared
+helper does not by itself establish timestamp precision or v9 runner
+compatibility.
 
 ## Cohort, mapping, and control
 
