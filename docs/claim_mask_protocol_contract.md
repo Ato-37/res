@@ -425,6 +425,13 @@ dataset-level agreement applicability/use review (including substantiation of
 non-applicability when relevant). The validator checks only hash shape and
 does not resolve the index or its entries. The blank worksheet specifies the
 minimum private review record; it does not substitute for evidence inspection.
+The CPU-only `scripts/audit_data_rights_evidence_index.py` can separately
+cross-check exact-byte links and declared scope/count consistency across the
+protocol, eligible manifest, v2 ledger, and evidence index. Run it alongside
+the existing structural protocol and item-rights audits. This component is not
+a launch orchestrator, does not authenticate private evidence or legal
+judgments, and always reports `execution_authorization=not_granted`; a passing
+structural check is not permission to load a model or score data.
 The blank [human-review worksheet](claim_mask_human_review_worksheet.md) also
 provides a private evidence checklist for claim and rights reviewers.
 

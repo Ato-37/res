@@ -159,6 +159,33 @@ bytes; keep `data_rights.item_rights_manifest_sha256` bound separately to the
 v2 item-rights ledger. The structural validator checks only hash syntax and
 does not read this index or authenticate any evidence.
 
+For the optional CPU cross-checker `scripts/audit_data_rights_evidence_index.py`,
+use a closed schema with root keys `schema_version=1`, `eligible_manifest`,
+`item_rights_manifest`, `annotation_terms`, `item_media_conditions`, and
+`dataset_access_agreement`. The first three evidence entries contain
+`sha256` and `private_locator`; `eligible_manifest` also contains
+`eligible_video_count`. `item_media_conditions` contains `sha256`,
+`private_locator`, and `covered_video_count`. The agreement entry contains
+`applicability` (`applicable`, `not_applicable`, or `unresolved`), evidence
+`sha256`, `private_locator`, `review_record_sha256`, `reviewer_role`,
+`reviewed_at_utc`, `planned_use_scope`, `decisions`, and
+`non_applicability_basis_sha256`. When applicable, `decisions` has exactly one
+`permitted`/`not_permitted`/`unresolved` value per ledger intended use and the
+non-applicability basis is null. When not applicable, preserve a basis hash
+equal to the entry's `sha256` and set `decisions` to null. For an applicable
+agreement, `sha256` identifies the reviewed agreement evidence; for a
+substantiated non-applicability decision, it identifies that basis evidence.
+Unresolved applicability or any uncleared planned use cannot pass the
+structural cross-check. Bind ledger and eligible-manifest
+entries to their exact bytes, annotation terms to the ledger's declared
+annotation-evidence hash, media/conditions to the restricted evidence bundle,
+and the agreement entry to the reviewed agreement or non-applicability
+evidence. The checker also cross-checks the exact intended-use scope and
+eligible count/hash across protocol, ledger, and index. Run it in addition to
+the protocol and item-rights validators; its pass means only that declarations
+and byte references are structurally consistent. It cannot authenticate
+evidence, decide rights, establish reviewer authority, or grant execution.
+
 The v2 item-rights ledger records hashes and declarations, not the full legal
 reasoning. Preserve the private evidence bundle and any applicable
 dataset-level agreement in a restricted project record and link its hash from
