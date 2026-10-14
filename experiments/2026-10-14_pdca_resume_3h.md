@@ -782,16 +782,17 @@ is justified in this window: hardware is available, but every remaining model
 evaluation path is gated or scientifically stopped. Direct faithfulness
 progress remains 0 new samples / 0 new effect estimates.
 
-Next, the unresolved external prerequisites are (1) the actual human review
-and private attestation for NOAA's 3 videos/6 questions, (2) item-specific
-NExT-GQA annotation/media rights evidence for an exact frozen cohort, and
-(3) an estimand-bound, independently reviewed SESOI with outcome-access record
-fixed before scoring. After those declarations are supplied, run the existing
-privacy-safe validators; only a passing protocol, rights, and review audit can
-unlock a small smoke followed by the preregistered all-eligible-video primary
-GPU run. Keep all local IDs, raw media, annotation text, and rights evidence
-private. This is the gate sequence, not a claim that those inputs exist or are
-complete.
+Next, unresolved prerequisites are (1) the actual human review and private
+attestation for NOAA's 3 videos/6 questions if that separate branch is resumed;
+(2) item-specific NExT-GQA annotation/media rights evidence for an exact frozen
+cohort; (3) an independently reviewed, answer-relevant claim-to-frame mapping
+for every eligible NExT-GQA video; and (4) an estimand-bound, independently
+reviewed SESOI with outcome-access record fixed before scoring. After the
+NExT-GQA inputs are complete, run the existing privacy-safe validators; only a
+passing protocol, rights, claim-review, and SESOI audit can unlock a small smoke
+followed by the preregistered all-eligible-video primary GPU run. Keep all local
+IDs, raw media, annotation text, and rights evidence private. This is the gate
+sequence, not a claim that those inputs exist or are complete.
 
 At 19:13:23 JST, 1h50m11s had elapsed and 1h09m49s remained. The gate update is
 not yet committed.
