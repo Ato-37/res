@@ -1060,3 +1060,72 @@ with `HEAD == origin/main == e4008ef67ae28b7d546f041fe043ec82cb4fb5f8`.
 It updates only the same five protocol/log/source/test files. Private local
 untracked dataset/sample artifacts remain untouched. At 19:34:14 JST,
 2h10m58s elapsed and 49m02s remained.
+
+## Legacy 5-choice runner compatibility audit
+
+Static source review compared the proposed v9 contract with
+`necessity_choice_margin_test.py` and its utility/tests. The implementation
+scores distinct A–E single-token IDs at the prompt's next-token position,
+computes gold log-probability minus the condition-specific best foil, and sets
+baseline correctness by unmasked argmax among the five choice-label logits
+versus gold. Its inclusive timestamp membership and equal-count minimum
+temporal-rank control/tie rule agree with the proposed geometric selection. It
+checks empty evidence and insufficient controls before scoring, but the
+independent audit found these become generic runtime failures rather than
+pre-scoring exclusion rows reconciled into the frozen cohort denominator.
+The contract now specifies the restricted-choice correctness definition and
+the first-label tie rule.
+
+Other critical gaps are population/inference and claim mapping: the legacy
+runner labels baseline-correct samples as primary, uses bootstrap intervals
+and unadjusted sign-flip tests, has no question-type secondary family, and
+uses existing grounding intervals without binding an independently reviewed
+answer-relevant claim mapping. The user-selected v9 estimand requires all
+eligible videos primary, a Student-t primary interval, and Holm correction for
+the predeclared baseline-correctness and question-type secondary families. An
+independent source/test audit confirmed these differences and the distinction
+between pre-score failure and cohort exclusion; 14/14 focused utility/failure
+tests pass with `PYTHONPATH=scripts`. The existing script is explicitly
+marked in the contract as legacy and not v9-compatible; historical artifacts
+must not be upgraded by relabeling. No runner was changed and no GPU/data was
+used. At 19:35:30 JST, 2h12m18s elapsed and 47m42s remained; direct
+faithfulness progress is unchanged at 0 new samples / 0 new effects.
+
+## Fixed A–E chat-generation boundary gate
+
+The compatibility audit exposed a tokenization assumption that the legacy
+runner checked only in isolation: each label had to be one standalone token,
+but no check compared that token with the first assistant-target token after
+the actual chat-generation prefix. The v9 contract now requires all five A–E
+labels to be distinct single tokens, the generation prefix to remain stable
+when each label is completed, and the contextual first target token to equal
+the standalone label token. The requirement binds to pinned tokenizer, chat
+template, prompt builder, and the audit result; it does not claim the CPU audit
+validates scores or any real QA item.
+
+Extended `audit_qwen_claim_tokenization_cpu.py` with a prospective fixed
+synthetic five-choice prompt. Its gate requires all three conditions and the
+CLI writes a diagnostic report before returning nonzero on gate failure. The
+report contains counts and token-sequence hashes, not prompt text or token IDs.
+Regression tests cover the valid boundary and reject duplicate/multi-token
+label mappings; focused tests pass 7/7. An independent review reran those tests
+and verified the failure-gate ordering and privacy properties. The full
+repository suite passes 559/559 after the gate-exit-code addition, along with
+`git diff --check` and Python compilation.
+
+Pinned local processor CPU audit: 12/12 prior synthetic boundary cases
+completed without failures; A–E each map to one distinct token, the 63-token
+generation prefix is stable for all five, and contextual target-start matches
+are 5/5 (`gate_pass=true`). Artifact:
+`results/qwen_claim_tokenization_cpu_20261014T104500Z.json`, SHA-256
+`02d0eef5ace528fae41404c29d3a49608830bcf0d1a873cdb4456154d45a546c`.
+Runner SHA-256 is
+`f6bf4999b6f79a76b0e99bc77c7bd0d7877dfa98f584da3c6e644831c0592c43`; pinned
+tokenizer revision is `cc594898137f460bfe9f0759e9844b3ce807cfb5`, with
+`tokenizers 0.23.2` and `transformers 5.17.0`. This is tokenizer/template
+evidence on one fixed synthetic prompt only; it cannot establish model
+behavior, correctness of historical per-item scoring, or faithfulness efficacy.
+No model weights, data, GPU, or user-local samples were read. Direct
+faithfulness progress remains 0 new samples / 0 new effect estimates, with
+the historical head result unchanged. At 19:42:52 JST, 2h19m40s elapsed and
+40m20s remained.

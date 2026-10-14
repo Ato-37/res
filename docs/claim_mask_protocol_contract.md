@@ -64,11 +64,34 @@ exactly `d_i = S_i(control-frame-mask) - S_i(claim-linked-frame-mask)`.
 secondary stratum; it does not contribute numerically to the primary contrast.
 
 The primary mean includes every predeclared eligible video, regardless of
-baseline correctness. Correctness is determined before masking as whether the
-unmasked greedy answer equals the gold label; correct and incorrect strata are
-secondary. A positive `d_i` means the gold-answer margin dropped more under the
+baseline correctness. Determine correctness before masking by taking the
+highest next-token log-probability among the five fixed A–E label tokens in the
+unmasked condition; break exact ties by the fixed A-to-E label order. This is a
+restricted-choice prediction, not unrestricted free-generation exact match.
+Correct and incorrect strata are secondary. A positive `d_i` means the
+gold-answer margin dropped more under the
 selected mask than the matched control. This is an operational dependence
 contrast, not proof that a claim is true or causally explained.
+
+## Existing-runner compatibility
+
+[`necessity_choice_margin_test.py`](../scripts/necessity_choice_margin_test.py)
+is a legacy exploratory runner, not an implementation of schema v9. It shares
+the gold-versus-best-foil next-token margin, per-condition best-foil selection,
+pre-mask restricted-choice correctness, inclusive timestamp membership, and
+equal-count nearest temporal-rank control. It uses the existing grounding
+interval directly; it does not bind an independently reviewed answer-relevant
+claim-to-interval mapping. Its empty-evidence/insufficient-control cases fail
+before that sample's score calls, but are recorded as generic runtime failures
+rather than frozen pre-scoring exclusions in the cohort denominator. It
+currently declares the baseline-correct cohort as primary, reports bootstrap
+intervals and unadjusted sign-flip tests, and has no question-type secondary
+family. Preserve its historical outputs as such; do not treat them as v9
+results or use it unchanged for a future v9 run. A future runner must score all
+eligible videos for the primary population, use the fixed Student-t primary
+interval and frozen Holm secondary families, establish the independent claim
+mapping, record zero-overlap exclusions before scoring, and enforce/hash the
+v9 mask-transform and nonempty-mask rules.
 
 ## Cohort, mapping, and control
 
@@ -86,6 +109,14 @@ implementation. `gold_choice_manifest_sha256` binds per-video gold labels;
 `triplet_manifest_sha256` binds full/selected/control assignments. Claim,
 mapping, review, and rights hashes refer to separate artifacts. These are
 declared references; the validator does not resolve or authenticate them.
+
+Before scoring, a runner must verify that the five distinct A–E labels each
+map to one token and that the exact rendered chat-generation prefix remains
+stable when each label is appended as the assistant target, with the target's
+first contextual token equal to its standalone label token. Bind the pinned
+tokenizer, chat template, prompt builder, and this boundary-audit result in
+the answer-candidate protocol provenance. A CPU-only synthetic boundary audit
+does not validate any model score or real item.
 
 The selected mask contains the fixed sampled-frame indices overlapping the
 reviewed claim-evidence interval. Under the current implementation convention,

@@ -14,6 +14,7 @@ from audit_qwen_claim_tokenization_cpu import (
     FIXED_PROMPT,
     FIXED_TARGETS,
     audit_fixed_cases,
+    audit_fixed_choice_labels,
     build_report,
     ids_list,
     MODEL_REVISION,
@@ -63,6 +64,21 @@ class FakeProcessor:
         return {"input_ids": [ids]} if return_dict else ids
 
 
+class BoundarySafeProcessor(FakeProcessor):
+    """Model a chat template whose assistant-generation marker is a special token."""
+
+    @staticmethod
+    def _render(messages, add_generation_prompt):
+        user = next(message["content"] for message in messages if message["role"] == "user")
+        prefix = f"USER:{user}<EOT>ASSISTANT⟨GEN⟩"
+        assistant = [message["content"] for message in messages if message["role"] == "assistant"]
+        if assistant:
+            return prefix + assistant[-1] + "<END>"
+        if add_generation_prompt:
+            return prefix
+        return f"USER:{user}<EOT>"
+
+
 class ClaimTokenizationAuditTests(unittest.TestCase):
     def test_fixed_fixture_is_exactly_12_prospective_synthetic_cases(self):
         self.assertEqual(len(FIXED_TARGETS), 12)
@@ -88,6 +104,36 @@ class ClaimTokenizationAuditTests(unittest.TestCase):
 
     def test_ids_list_normalizes_a_single_batch_row(self):
         self.assertEqual(ids_list({"input_ids": [[1, 2, 3]]}), [1, 2, 3])
+
+    def test_choice_labels_are_checked_at_chat_generation_boundary(self):
+        report = audit_fixed_choice_labels(BoundarySafeProcessor())
+        self.assertTrue(report["distinct_single_token_labels"])
+        self.assertTrue(report["gate_pass"])
+        self.assertEqual(report["label_count"], 5)
+        self.assertEqual(report["stable_prefix_count"], 5)
+        self.assertEqual(report["contextual_label_match_count"], 5)
+        self.assertEqual([row["label_index"] for row in report["labels"]], list(range(5)))
+        serialized = json.dumps(report)
+        self.assertNotIn("Synthetic question", serialized)
+        self.assertNotIn("token_ids\"", serialized)
+
+    def test_choice_audit_rejects_non_distinct_or_multitoken_labels(self):
+        class BadTokenizer(FakeTokenizer):
+            def __call__(self, text, *, add_special_tokens):
+                if text in {"A", "B", "C", "D", "E"}:
+                    return {"input_ids": [ord(text[0]), ord(text[0])]} if text == "E" else {
+                        "input_ids": [42] if text == "D" else [ord(text[0])]
+                    }
+                return super().__call__(text, add_special_tokens=add_special_tokens)
+
+        class BadProcessor(BoundarySafeProcessor):
+            def __init__(self):
+                self.tokenizer = BadTokenizer()
+
+        report = audit_fixed_choice_labels(BadProcessor())
+        self.assertFalse(report["distinct_single_token_labels"])
+        self.assertFalse(report["gate_pass"])
+        self.assertEqual(report["contextual_label_match_count"], 3)
 
     def test_artifact_is_private_and_never_overwritten(self):
         with tempfile.TemporaryDirectory() as temp:

@@ -49,10 +49,18 @@ FIXED_TARGETS = (
     "水中の物体。",
     "é",
 )
+CHOICE_LABELS = ("A", "B", "C", "D", "E")
+CHOICE_PROMPT = (
+    "Synthetic question?\nOptions:\nA. option one\nB. option two\n"
+    "C. option three\nD. option four\nE. option five\n"
+    "Choose the best answer. Respond with one letter only.\nAnswer:"
+)
 FIXTURE_SPEC = {
     "prompt": FIXED_PROMPT,
     "targets": list(FIXED_TARGETS),
     "cases_are_synthetic_and_fixed_before_outcomes": True,
+    "choice_prompt": CHOICE_PROMPT,
+    "choice_labels": list(CHOICE_LABELS),
 }
 
 
@@ -164,6 +172,56 @@ def audit_fixed_cases(processor: Any) -> dict[str, Any]:
     }
 
 
+def audit_fixed_choice_labels(processor: Any) -> dict[str, Any]:
+    """Verify A-E next-token IDs at the exact chat generation boundary."""
+    tokenizer = processor.tokenizer
+    messages = [{"role": "user", "content": CHOICE_PROMPT}]
+    prefix_ids = _template_ids(processor, messages, add_generation_prompt=True)
+    records = []
+    standalone_ids = []
+    for label in CHOICE_LABELS:
+        ids = _tokenize(tokenizer, label)
+        standalone_ids.append(ids)
+        complete = _template_ids(
+            processor,
+            messages + [{"role": "assistant", "content": label}],
+            add_generation_prompt=False,
+        )
+        stable_prefix = complete[:len(prefix_ids)] == prefix_ids
+        suffix = complete[len(prefix_ids):] if stable_prefix else []
+        records.append({
+            "label_index": len(records),
+            "standalone_token_count": len(ids),
+            "standalone_token_ids_sha256": _token_hash(ids),
+            "completed_chat_prefix_stable": stable_prefix,
+            "completed_chat_starts_with_standalone_label": bool(ids) and suffix[:len(ids)] == ids,
+            "completed_chat_suffix_token_count": len(suffix),
+            "completed_chat_token_ids_sha256": _token_hash(complete),
+        })
+    distinct_single_tokens = (
+        all(len(ids) == 1 for ids in standalone_ids)
+        and len({ids[0] for ids in standalone_ids if len(ids) == 1}) == len(CHOICE_LABELS)
+    )
+    gate_pass = (
+        distinct_single_tokens
+        and sum(row["completed_chat_prefix_stable"] for row in records) == len(CHOICE_LABELS)
+        and sum(row["completed_chat_starts_with_standalone_label"] for row in records)
+        == len(CHOICE_LABELS)
+    )
+    return {
+        "label_count": len(CHOICE_LABELS),
+        "distinct_single_token_labels": distinct_single_tokens,
+        "gate_pass": gate_pass,
+        "generation_prefix_token_count": len(prefix_ids),
+        "generation_prefix_token_ids_sha256": _token_hash(prefix_ids),
+        "stable_prefix_count": sum(row["completed_chat_prefix_stable"] for row in records),
+        "contextual_label_match_count": sum(
+            row["completed_chat_starts_with_standalone_label"] for row in records
+        ),
+        "labels": records,
+    }
+
+
 def _source_commit(repo_root: Path) -> str | None:
     try:
         result = subprocess.run(
@@ -237,6 +295,7 @@ def build_report(
     )
     comparison_started = time.perf_counter()
     observations = audit_fixed_cases(processor)
+    choice_labels = audit_fixed_choice_labels(processor)
     comparison_elapsed = time.perf_counter() - comparison_started
     result = {
         "schema_version": 1,
@@ -262,6 +321,7 @@ def build_report(
             "fixed_fixture_spec": sha256_json(FIXTURE_SPEC),
         },
         "observations": observations,
+        "choice_label_boundary": choice_labels,
         "timing": {
             "tokenizer_comparison_core_seconds": comparison_elapsed,
             "scope": "audit_fixed_cases_only_excludes_imports_processor_loading_and_artifact_write",
@@ -342,15 +402,19 @@ def main(argv: list[str] | None = None) -> int:
         print("claim-tokenizer diagnostic: local tokenizer audit failed", file=sys.stderr)
         return 2
     observations = report["observations"]
+    choice_gate_pass = report["choice_label_boundary"]["gate_pass"]
     print(
         "Claim tokenizer boundary CPU check: "
         f"cases={observations['fixed_case_count']} | "
         f"literal-concat matches={observations['literal_concat_match_count']}/"
         f"{observations['fixed_case_count']} | "
         f"completed-chat prefix stable={observations['completed_chat_prefix_stable_count']}/"
-        f"{observations['fixed_case_count']} | artifact=results/{output.name}"
+        f"{observations['fixed_case_count']} | "
+        f"chat-boundary A-E={report['choice_label_boundary']['contextual_label_match_count']}/5 "
+        f"gate={'pass' if choice_gate_pass else 'fail'} | "
+        f"artifact=results/{output.name}"
     )
-    return 0
+    return 0 if choice_gate_pass else 2
 
 
 if __name__ == "__main__":
