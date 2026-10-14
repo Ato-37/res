@@ -763,3 +763,12 @@ fixed SESOI, or authorization. Direct faithfulness remains 0 new samples / 0
 new estimates. The small update is not yet published.
 
 At 19:11:33 JST, 1h48m21s had elapsed and 1h11m39s remained.
+
+After that checkpoint, the estimator field-name alignment and test were pushed
+in `2002e1a`, then the official NExT-GQA LICENSE scope citation was added in
+`77820cd`. Both were live-fetched; `HEAD` and `origin/main` agree at
+`77820cdc93a1777f0ccc4d622c0dfd182750669e`. The estimator still passes 10/10
+focused checks, and the complete suite passed 552/552 after the final code
+change. No direct evaluation samples or effects have been added.
+
+At 19:12:30 JST, 1h49m18s had elapsed and 1h10m42s remained.
