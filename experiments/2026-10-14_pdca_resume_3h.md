@@ -889,3 +889,15 @@ passes. Current user-local untracked dataset/metadata entries remain untracked;
 they were not opened, staged, or modified. This is a scoped path/content audit,
 not a claim that all upstream rights are cleared. At 19:21:21 JST, 1h58m09s
 had elapsed and 1h01m51s remained.
+
+## Valid-range output reproducibility after numerical guard
+
+Regenerated the existing hypothetical 16-cell normal noncentral-t grid and
+80%-target minimum-n sensitivity with the original command, writing only to a
+unique `/tmp` path. `cmp` confirms byte-for-byte equality with
+`results/claim_mask_power_sensitivity_20261014_03.json`; both SHA-256 values
+are `b431d6e465a684259fe3c1370a81f24225d69baabd3ed8b968b50933b06174e0`.
+Thus the extreme-input fail-closed repair did not alter this valid-range
+artifact. These are unchanged hypothetical design values, not new empirical
+evidence. At 19:22:24 JST, 1h59m12s had elapsed and 1h00m48s remained; direct
+faithfulness progress remains 0 new samples / 0 effects.
