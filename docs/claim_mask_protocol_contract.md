@@ -231,7 +231,17 @@ score call. This shared helper does not by itself establish timestamp precision
 or contract compatibility. Preflight also requires a finite, positive source FPS from the
 video metadata; it does not substitute a conventional FPS when metadata is zero,
 missing, or non-finite, because that would silently change the time-to-frame
-mapping used for evidence intervals.
+mapping used for evidence intervals. A finite nominal FPS alone does not prove
+that decoded frame index divided by FPS equals media presentation time. Before
+any schema-v12 scoring run, the runner must either validate constant-frame-rate
+presentation timestamps for every eligible video or use a validated per-frame
+presentation-time map for both interval assignment and the exact frames passed
+to the model. Bind the timestamp source, conversion, and mapping code in the
+private mapping provenance; if timestamps are missing or cannot be reconciled
+to the decoded frame sequence, stop before scoring. The current OpenCV
+index/FPS helper has not passed this validation and remains geometry only. The
+structural protocol validator does not inspect media timestamps or enforce this
+gate.
 
 `necessity_choice_margin_utils.assign_evidence_control_frames` now composes
 the sampler, distinct-frame check, inclusive interval overlap, and equal-count
