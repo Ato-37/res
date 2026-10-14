@@ -928,3 +928,87 @@ opened, counted locally, or used for inference; the primary NExT-GQA plan is
 unchanged. It does not add faithfulness evidence. At 19:26:34 JST, 2h03m22s
 had elapsed and 56m38s remained; direct faithfulness progress is 0 new samples
 / 0 effects.
+
+## QIVD alternative: source-contract fit audit
+
+I checked the current official QIVD description and its linked 2025-03-24
+Research Use Data License Agreement, without downloading the dataset. The page
+describes 2,900 audio-video items with a human question/answer and a timestamp
+marking when an answer is appropriate; this is structurally closer to temporal
+evidence review than Perception Test action segments. The license defines
+Research Use as internal processing and internal use of Results solely for
+non-profit research; prohibits disclosure of the dataset, combining it with
+third-party-owned data, and commercial use; and treats the dataset as
+confidential, with access language limited to qualifying employees. It also
+requires deletion of data and Results when the agreement terminates, and
+imposes, where applicable, de-identification/security and retention
+requirements. Section 15 explicitly contemplates publication of Results or a
+publication based on them, with citation suggested but not required. The
+defined term Results is limited to AI-produced algorithms or models, so
+whether aggregate scores/analyses fall within it is unclear from the text.
+Sources:
+[official QIVD page](https://www.qualcomm.com/developer/software/qualcomm-interactive-video-dataset-qivd)
+and [linked research-use agreement](https://www.qualcomm.com/content/dam/qcomm-martech/dm-assets/documents/qvid-dataset-research-license-mar-27-2025.pdf).
+
+Assessment (inference, not a legal opinion): the timestamp could support
+claim-to-time review, but it is not necessarily a claim-specific evidence
+interval. The dataset itself cannot be redistributed; the agreement's
+publication language contemplates publication based on defined Results, but
+the status of aggregate scores/analyses and their retention after termination
+is not clear from the text. Written clarification from the institution and
+QTI would be needed before relying on public derived summaries or long-term
+reproducibility. Therefore QIVD is not selected as a replacement cohort and
+does not change the NExT-GQA primary plan or unlock inference. No
+video/question/answer content was accessed; this was a terms/schema review
+only. Direct faithfulness progress remains 0 new samples / 0 effects. At
+19:27:57 JST, 2h04m45s elapsed and 55m15s remained. Independent audit found
+the original publication-fit statement too strong; the wording above now
+reflects §15 and the ambiguity around whether aggregate analyses are Results.
+
+## Claim-mask estimand/control wording audit and schema v8
+
+Following the validator-hardening log's next action, I compared the proposed
+estimand with `scripts/claim_selective_dependence_utils.py`, the v7 validator,
+and the frozen protocol wording. The contrast direction is internally
+consistent: `d=(S_full-S_selected)-(S_full-S_control)` equals
+`S_control-S_selected`, and the helper calculates that reduced form directly.
+The full-condition margin is still needed for the pre-mask greedy-correctness
+secondary grouping, but does not numerically enter the primary contrast. The
+contract now states this explicitly to prevent confusing a two-drop contrast
+with an independent contribution from the shared full score.
+
+I found one reproducibility omission: the intervention contract said all
+conditions share fill/preprocessing, but neither the required fields nor the
+primary-estimand hash had an explicit reference to the actual masked-frame
+transform. The current draft therefore did not force a future protocol to bind
+black versus blur, blur parameters, color space, operation order around resize/
+normalization, or whole-frame replacement. Schema v8 adds required
+`intervention.mask_transform_sha256` and includes it in recomputation of the
+primary-estimand hash. The contract states what the private versioned transform
+specification must define and that selected/control masks use the same
+transform; it deliberately picks no fill. Schema v7 inputs are rejected.
+This is a structural provenance repair, not a human semantic review, execution
+authorization, inference, or faithfulness result. The validator and contract
+still report `execution_authorization: not_granted`.
+
+Focused verification: claim-mask validator tests pass 34/34, including missing
+transform-hash rejection and a check that changing that hash invalidates the
+primary-estimand digest; Python compilation and `git diff --check` pass. An
+independent code audit confirmed required-field validation, digest inclusion,
+schema-v7 rejection, and all 34 focused tests. It caught two stale schema-v7
+references in the SESOI worksheet; these are now updated to v8, and the
+worksheet calls out the exact transform details to bind. At 19:30:22 JST,
+2h07m10s elapsed and 52m50s remained. Faithfulness progress: no additional
+samples or effect estimates; engineering/protocol diagnostics only.
+
+The independent follow-up confirmed the worksheet has no current-facing v7
+references; it suggested matching the contract's private/versioned and same
+transform-for-both-masks wording, which is now included. Full repository script
+suite passed 556/556; the emitted CLI/model failure summaries are deliberate
+negative-path test fixtures, not suite failures. `git diff --check` passes.
+Only the protocol contract, SESOI worksheet, this experiment log, and the
+validator/test are modified. User-local untracked data remain uninspected and
+unstaged. At 19:30:48 JST, 2h07m36s elapsed and 52m24s remained. Direct
+faithfulness evidence remains 0 new samples / 0 effects; the historical 79/79
+head confirmation remains closed with −0.0756 nat (95% t CI
+[−0.1578,+0.0065]), below +0.25 nat.

@@ -12,7 +12,11 @@ eventual protocol.
 ## Frozen target
 
 - Protocol revision/hash:
-- Primary-estimand hash (schema v7 canonical hash):
+- Primary-estimand hash (schema v8 canonical hash):
+- Mask-transform specification/hash: specify exact replacement, parameters,
+  color space, operation order, and whether the whole sampled frame is replaced.
+  Keep the specification private and versioned; use the identical transform
+  for selected and control masks:
 - Outcome-score access started? `no / yes / unknown`
 - If yes or unknown, date and scope (do not call a later choice pre-outcome):
 - Primary unit: one eligible video, one fixed gold choice, all eligible videos:
@@ -84,7 +88,7 @@ not determine it.
 Choose one and complete only its fields:
 
 - `unresolved`: no threshold is defensible yet; leave SESOI value/rationale,
-  fixed time, and review/access fields null in schema v7. Do not label the protocol
+  fixed time, and review/access fields null in schema v8. Do not label the protocol
   confirmatory.
 - `preoutcome_fixed`: set `δ > 0`; bind the exact canonical primary-estimand
   hash and rationale evidence; record a UTC freeze time and a separate

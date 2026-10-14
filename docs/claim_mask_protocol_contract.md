@@ -1,4 +1,4 @@
-# Claim-linked evidence-frame mask protocol contract (schema v7)
+# Claim-linked evidence-frame mask protocol contract (schema v8)
 
 `scripts/validate_claim_mask_protocol.py` is a CPU-only, fail-closed structural
 validator for the exploratory design stage. The secondary-family multiplicity
@@ -9,7 +9,7 @@ Student-t interval over one contrast per video, assuming independent
 video-level contrasts, with sample SD and `df=n-1`; the primary decision rule
 compares the lower bound with the separately fixed SESOI. Family membership
 must be frozen before scoring. The SESOI is still
-not fixed, so schema v7 rejects a `confirmatory` stage.
+not fixed, so schema v8 rejects a `confirmatory` stage.
 Structural validity neither authenticates evidence nor authorizes inference.
 
 The `analysis` object must declare one unadjusted primary contrast and
@@ -33,7 +33,8 @@ sorted-key UTF-8 JSON (`ensure_ascii=false`) containing the model identity,
 eligible-manifest hash and primary population, sampling-config hash, claim,
 mapping and human-review record hashes, answer-candidate, gold-choice, and
 full/selected/control triplet hashes, score/baseline/target/margin definitions,
-and all intervention/control definition fields and hashes. This
+and all intervention/control definition fields and hashes, including the
+`mask_transform_sha256`. This
 stops a threshold for another estimand from being structurally substituted by
 unit alone and catches changes to those declared inputs if the hash is stale.
 The validator cannot authenticate referenced artifacts, reviewer independence,
@@ -57,6 +58,10 @@ and processor settings. This is a gold-answer choice margin, not claim-text
 likelihood. Baseline prediction correctness is a secondary grouping variable.
 
 `d_i = [S_i(full) - S_i(claim-linked-frame-mask)] - [S_i(full) - S_i(control-frame-mask)]`.
+Algebraically, the shared full condition cancels, so the primary contrast is
+exactly `d_i = S_i(control-frame-mask) - S_i(claim-linked-frame-mask)`.
+`S_i(full)` is still collected to determine the pre-mask greedy-correctness
+secondary stratum; it does not contribute numerically to the primary contrast.
 
 The primary mean includes every predeclared eligible video, regardless of
 baseline correctness. Correctness is determined before masking as whether the
@@ -95,7 +100,15 @@ ordered control-rank tuple. If fewer than `k` control frames exist, mark the
 item ineligible before scoring; do not substitute after observing outcomes.
 Full, selected, and control conditions share frame
 sampling, fill, preprocessing, model, precision, prompt, gold target, and
-execution settings. Masking can create out-of-distribution input.
+execution settings. The required `mask_transform_sha256` must bind a private,
+versioned specification of the exact transform used on every selected/control
+frame, including replacement (for example black or a precisely parameterized
+blur), color space, operation order relative to resize/normalization, and
+whether the entire sampled frame is replaced. The same transform is applied
+to both masks. This field binds the transform choice to the primary estimand;
+the validator checks only hash syntax and consistency, not the specification
+or implementation. No transform choice is made by this schema. Masking can
+create out-of-distribution input.
 
 ## Gates and limits
 
