@@ -1,4 +1,4 @@
-# Claim-linked evidence-frame mask protocol contract (schema v9)
+# Claim-linked evidence-frame mask protocol contract (schema v10)
 
 `scripts/validate_claim_mask_protocol.py` is a CPU-only, fail-closed structural
 validator for the exploratory design stage. The secondary-family multiplicity
@@ -9,8 +9,58 @@ Student-t interval over one contrast per video, assuming independent
 video-level contrasts, with sample SD and `df=n-1`; the primary decision rule
 compares the lower bound with the separately fixed SESOI. Family membership
 must be frozen before scoring. The SESOI is still
-not fixed, so schema v9 rejects a `confirmatory` stage.
+not fixed, so schema v10 rejects a `confirmatory` stage.
 Structural validity neither authenticates evidence nor authorizes inference.
+
+The target population and sampling mechanism for these eligible videos are not
+yet established. “All eligible videos” defines the finite cohort mean only
+after the eligibility manifest is frozen; it does not by itself make that
+cohort a probability sample from a broader video population. A Student-t
+interval is therefore not a design-based generalization to videos in general.
+Such a generalization needs an explicit sampling/model target and assumptions
+about how videos were selected. If the frozen eligible cohort itself is the
+target, its observed mean is the cohort description; any interval must state
+the additional stochastic population or measurement interpretation it uses.
+Unless probability sampling and its design are documented, do not call the
+interval design-based sampling error or use it alone to claim population
+representativeness; probability sampling is needed for design-based sampling
+error estimation ([Statistics Canada](https://www150.statcan.gc.ca/n1/edu/power-pouvoir/ch6/sampling-echantillonage/5214807-eng.htm)).
+The usual one-sample t interval is motivated by independent observations from
+a population model (see [NIST's confidence-limit discussion](https://www.itl.nist.gov/div898/handbook/eda/section3/eda352.htm)).
+
+One row per unique `video_id` prevents counting multiple questions from the
+same video as independent units, but does not establish independence across
+different videos. Videos may share a creator, recording event, series, or
+source lineage; whether such clusters occur in this cohort is unknown until
+appropriate metadata are audited. Schema v10 requires explicit
+`inference_design` and `dependence_plan` objects, including unresolved states,
+and binds target/cohort-selection into the primary-estimand hash and
+uncertainty/method declarations into a separate
+`analysis.inference_plan_sha256`. Unresolved values do not clear the gate.
+`inference_design` records the target kind and definition reference, selection
+design, sampling-frame reference, and selection-provenance reference.
+`dependence_plan` separately records the uncertainty target, independent unit,
+cluster-audit status/unit/count/reference, and whether the fixed video-level t
+method is still unresolved. A finite-cohort descriptive target is paired with
+that same uncertainty scope; a video-superpopulation target requires a
+model-based or probability-design-based uncertainty target. A resolved t method
+requires an identified target/sampling design, a model-based video
+superpopulation target, and a completed review with no known cluster fields.
+That review is not proof that contrasts are independent. If a pre-score audit
+identifies clusters, this version fails closed and a new cluster-aware
+method/version is required before scoring. All hashes are caller-provided
+references and do not authenticate the underlying documents.
+Before any claim-mask outcome access, record
+the target population, cohort construction/sampling provenance, available
+cluster fields, and whether any cluster structure is material. Keep the
+current t method only with its independence/model assumptions stated; if
+pre-outcome review finds material clustering, version and freeze an appropriate
+cluster-aware method or narrow the inferential claim before scoring. Cluster
+methods also require enough independent clusters to support their approximation
+(see [Cameron and Miller's review](https://cameron.econ.ucdavis.edu/research/cluster_10-6.pdf)).
+After outcome access, a changed method is exploratory for these data; a
+confirmatory claim requires a fresh sample under the revised protocol. No
+cross-video dependence has been observed or established by this note.
 
 The `analysis` object must declare one unadjusted primary contrast and
 `primary_ci_method=two_sided_student_t_df_n_minus_1`, the two
@@ -22,7 +72,8 @@ size; the validator checks only the hash shape, not the file contents or when it
 was frozen. The current design records SESOI as unresolved, with the value and
 supporting fields null. A future `preoutcome_fixed` declaration must supply a
 positive threshold in nat, the primary CI decision rule, a rationale category
-and hash, a UTC fixed time, and a separate independent review record hash with
+the primary-estimand hash and inference-plan hash, a rationale category and
+hash, a UTC fixed time, and a separate independent review record hash with
 completed/before-scoring declarations and review timestamp no later than the
 fixed time. It also requires an explicit `not_accessed_at_freeze` outcome-score
 access declaration and a hash for its private access-audit record. These remain
@@ -30,13 +81,19 @@ caller declarations; schema validity does not prove access history, reviewer
 independence, or that referenced records are authentic. The primary-estimand
 SHA-256 is recomputed from compact,
 sorted-key UTF-8 JSON (`ensure_ascii=false`) containing the model identity,
-eligible-manifest hash and primary population, sampling-config hash, claim,
+eligible-manifest hash and primary population, the explicit target/sampling
+design declaration, sampling-config hash, claim,
 mapping and human-review record hashes, answer-candidate, gold-choice, and
 full/selected/control triplet hashes, score/baseline/target/margin definitions,
 and all intervention/control definition fields and hashes, including the
 `mask_transform_sha256` and `minimum_selected_frame_count`. This
 stops a threshold for another estimand from being structurally substituted by
 unit alone and catches changes to those declared inputs if the hash is stale.
+The separate inference-plan hash binds the uncertainty target, independence
+unit, cluster-audit declaration, selected CI method, and multiplicity plan;
+the SESOI record must bind both hashes. These hashes distinguish a changed
+estimand from changed uncertainty assumptions but do not validate the truth of
+either declaration.
 The validator cannot authenticate referenced artifacts, reviewer independence,
 or that the declaration predates outcome access. A pass remains exploratory
 and does not authorize inference.
@@ -110,7 +167,7 @@ margin-drop values without a separately justified estimand.
 ## Existing-runner compatibility
 
 [`necessity_choice_margin_test.py`](../scripts/necessity_choice_margin_test.py)
-is a legacy exploratory runner, not an implementation of schema v9. It shares
+is a legacy exploratory runner, not an implementation of schema v10. It shares
 the gold-versus-best-foil next-token margin, per-condition best-foil selection,
 pre-mask restricted-choice correctness, inclusive timestamp membership, and
 equal-count nearest temporal-rank control. It uses the existing grounding
@@ -183,7 +240,7 @@ grounding criterion accepts any moment sufficient to reveal the answer; its
 appendix asks annotators to label all relevant moments when the same evidence
 recurs. A future claim-level protocol must state whether it maps one sufficient
 occurrence or all relevant occurrences, and reviewers must follow that rule.
-The schema-v9 hash declarations do not enforce these semantic requirements;
+The schema-v10 hash declarations do not enforce these semantic requirements;
 the independent human inspection of claim and video remains necessary, and a
 structural pass alone cannot establish the mapping or authorize inference.
 

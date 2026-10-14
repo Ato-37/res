@@ -1,24 +1,27 @@
 import contextlib, copy, hashlib, io, json, tempfile, unittest
 from pathlib import Path
-from validate_claim_mask_protocol import compute_primary_estimand_sha256, main, validate
+from validate_claim_mask_protocol import compute_inference_plan_sha256, compute_primary_estimand_sha256, main, validate
 
 H = "0" * 64
 G = "0" * 40
 def fixture():
     value = {
-        "schema_version": 9,
+        "schema_version": 10,
         "protocol_stage": "exploratory",
         "model": {"revision": G, "tokenizer_revision": G, "quant": "4bit", "dtype": "bfloat16", "attention_implementation": "sdpa"},
         "cohort": {"candidate_manifest_sha256": H, "eligible_manifest_sha256": H, "exclusion_manifest_sha256": H, "overlap_audit_sha256": H, "candidate_video_count": 2, "eligible_video_count": 2, "prerun_exclusion_count": 0, "analysis_unit_count": 2, "split_overlap_count": 0, "primary_population": "all_eligible_videos", "secondary_population": "baseline_correctness_strata"},
+        "inference_design": {"target_kind": "unresolved", "target_definition_sha256": H, "selection_design": "unknown", "sampling_frame_sha256": H, "selection_record_sha256": H},
+        "dependence_plan": {"uncertainty_target": "unresolved", "independence_unit": "video", "cluster_audit_status": "unresolved", "cluster_unit": "unresolved", "independent_cluster_count": None, "cluster_audit_sha256": H, "method_status": "unresolved", "method": "two_sided_student_t_df_n_minus_1"},
         "claim_review": {"claim_manifest_sha256": H, "mapping_sha256": H, "review_record_sha256": H, "review_status": "completed", "review_timing": "before_scoring", "mapping_unit": "claim_to_evidence_frames"},
         "data_rights": {"scope": "future chosen dataset split", "status": "unresolved", "evidence_sha256": H, "item_rights_manifest_sha256": H, "covered_eligible_video_count": 0, "unresolved_eligible_video_count": 2},
         "sampling": {"policy": "whole_video_fixed", "config_sha256": H, "uses_claim_for_selection": False, "num_frames": 16, "frame_size": 1024, "max_pixels": 200704, "cap_pixels_per_frame": True},
         "estimand": {"answer_candidate_protocol_sha256": H, "gold_choice_manifest_sha256": H, "primary_estimand_sha256": H, "score_kind": "teacher_forced_gold_vs_best_foil_logprob_margin", "baseline_correction": "selected_minus_control_margin_drop", "triplet_manifest_sha256": H, "target_definition": "fixed_gold_choice_from_annotation", "margin_definition": "gold_label_logprob_minus_max_foil_label_logprob_same_prompt"},
         "intervention": {"kind": "claim_linked_evidence_frame_mask", "selector_sha256": H, "control_sha256": H, "mask_transform_sha256": H, "minimum_selected_frame_count": 1, "selected_condition": "claim-linked evidence frames masked", "control_condition": "matched temporal control frames masked", "selected_unit": "sampled_frames_overlapping_reviewed_claim_evidence_interval", "control_matching": "equal_count_minimum_total_temporal_rank_distance_lexicographic_tie_break"},
-        "analysis": {"primary_contrast_count": 1, "primary_multiplicity": "none_single_primary_contrast", "primary_ci_method": "two_sided_student_t_df_n_minus_1", "secondary_families": ["baseline_correctness_strata", "question_type_strata"], "secondary_adjustment": "holm_within_each_predeclared_family", "secondary_hypothesis_manifest_sha256": H, "sesoi": {"status": "unresolved", "value_nat": None, "decision_rule": None, "estimand_sha256": None, "rationale_category": None, "rationale_sha256": None, "fixed_at_utc": None, "review_status": None, "review_timing": None, "independent_review_sha256": None, "independent_reviewed_at_utc": None, "outcome_access_status": None, "outcome_access_record_sha256": None}},
+        "analysis": {"primary_contrast_count": 1, "primary_multiplicity": "none_single_primary_contrast", "primary_ci_method": "two_sided_student_t_df_n_minus_1", "secondary_families": ["baseline_correctness_strata", "question_type_strata"], "secondary_adjustment": "holm_within_each_predeclared_family", "secondary_hypothesis_manifest_sha256": H, "inference_plan_sha256": H, "sesoi": {"status": "unresolved", "value_nat": None, "decision_rule": None, "estimand_sha256": None, "inference_plan_sha256": None, "rationale_category": None, "rationale_sha256": None, "fixed_at_utc": None, "review_status": None, "review_timing": None, "independent_review_sha256": None, "independent_reviewed_at_utc": None, "outcome_access_status": None, "outcome_access_record_sha256": None}},
         "runtime": {"seed": 1, "source_commit": "0123456789abcdef0123456789abcdef01234567", "execution_authorization": False},
     }
     value["estimand"]["primary_estimand_sha256"] = compute_primary_estimand_sha256(value)
+    value["analysis"]["inference_plan_sha256"] = compute_inference_plan_sha256(value)
     return value
 
 class TestClaimMaskProtocol(unittest.TestCase):
@@ -75,9 +78,44 @@ class TestClaimMaskProtocol(unittest.TestCase):
         x=fixture(); x["protocol_stage"]="confirmatory"
         self.assertIn("protocol_stage_invalid",validate(x)["failure_codes"])
 
-    def test_schema_v8_is_rejected_after_v9_change(self):
-        x=fixture(); x["schema_version"]=8
+    def test_schema_v9_is_rejected_after_v10_change(self):
+        x=fixture(); x["schema_version"]=9
         self.assertIn("schema_version_invalid",validate(x)["failure_codes"])
+
+    def test_inference_design_is_required_and_fail_closed(self):
+        x=fixture(); x.pop("inference_design")
+        self.assertIn("inference_design_schema_invalid",validate(x)["failure_codes"])
+        for field, bad in (("selection_design", "mystery"), ("target_kind", "broad"), ("target_kind", [])):
+            with self.subTest(field=field):
+                x=fixture(); x["inference_design"][field]=bad
+                self.assertIn("inference_design_fields_invalid",validate(x)["failure_codes"])
+
+    def test_unresolved_cluster_audit_cannot_claim_a_resolved_method_or_cluster_count(self):
+        x=fixture(); x["dependence_plan"].update(method_status="resolved")
+        x["analysis"]["inference_plan_sha256"] = compute_inference_plan_sha256(x)
+        self.assertIn("dependence_plan_inconsistent",validate(x)["failure_codes"])
+
+    def test_dependence_plan_rejects_unhashable_enum_without_crashing(self):
+        for field in ("uncertainty_target", "cluster_audit_status", "cluster_unit", "method_status", "method"):
+            with self.subTest(field=field):
+                x=fixture(); x["dependence_plan"][field]=[]
+                self.assertIn("dependence_plan_fields_invalid",validate(x)["failure_codes"])
+        x=fixture(); x["dependence_plan"]["independent_cluster_count"]=2
+        x["analysis"]["inference_plan_sha256"] = compute_inference_plan_sha256(x)
+        self.assertIn("dependence_plan_inconsistent",validate(x)["failure_codes"])
+
+    def test_no_known_cluster_fields_cannot_smuggle_a_cluster_unit_or_count(self):
+        x=fixture(); x["dependence_plan"].update(cluster_audit_status="reviewed_no_known_cluster_fields", cluster_unit="creator", independent_cluster_count=1)
+        x["analysis"]["inference_plan_sha256"] = compute_inference_plan_sha256(x)
+        self.assertIn("dependence_plan_inconsistent",validate(x)["failure_codes"])
+
+    def test_identified_clusters_cannot_keep_independent_video_t_method(self):
+        x=fixture(); x["dependence_plan"].update(cluster_audit_status="clusters_identified", cluster_unit="video_source", independent_cluster_count=2, method_status="resolved", method="two_sided_student_t_df_n_minus_1")
+        x["analysis"]["inference_plan_sha256"] = compute_inference_plan_sha256(x)
+        self.assertIn("dependence_plan_inconsistent",validate(x)["failure_codes"])
+        x["dependence_plan"]["method"]="unresolved"
+        x["analysis"]["inference_plan_sha256"] = compute_inference_plan_sha256(x)
+        self.assertIn("dependence_plan_inconsistent",validate(x)["failure_codes"])
 
     def test_mask_transform_hash_is_required_and_part_of_primary_estimand(self):
         x=fixture(); x["intervention"].pop("mask_transform_sha256")
@@ -96,6 +134,34 @@ class TestClaimMaskProtocol(unittest.TestCase):
     def test_primary_ci_method_is_frozen(self):
         x=fixture(); x["analysis"]["primary_ci_method"]="bootstrap"
         self.assertIn("analysis_fields_invalid",validate(x)["failure_codes"])
+
+    def test_resolved_method_requires_scoped_model_target(self):
+        x=fixture(); x["inference_design"].update(target_kind="eligible_video_superpopulation", selection_design="nonprobability_sample")
+        x["dependence_plan"].update(cluster_audit_status="reviewed_no_known_cluster_fields", method_status="resolved", method="two_sided_student_t_df_n_minus_1", uncertainty_target="model_based_video_superpopulation")
+        x["estimand"]["primary_estimand_sha256"] = compute_primary_estimand_sha256(x)
+        x["analysis"]["inference_plan_sha256"] = compute_inference_plan_sha256(x)
+        self.assertTrue(validate(x)["structurally_valid"])
+        x["inference_design"]["selection_design"]="unknown"
+        x["estimand"]["primary_estimand_sha256"] = compute_primary_estimand_sha256(x)
+        x["analysis"]["inference_plan_sha256"] = compute_inference_plan_sha256(x)
+        self.assertIn("dependence_plan_inconsistent",validate(x)["failure_codes"])
+        x=fixture(); x["inference_design"].update(target_kind="eligible_video_superpopulation", selection_design="nonprobability_sample")
+        x["dependence_plan"].update(cluster_audit_status="reviewed_no_known_cluster_fields", method_status="resolved", method="two_sided_student_t_df_n_minus_1", uncertainty_target="model_based_video_superpopulation")
+        x["estimand"]["primary_estimand_sha256"] = compute_primary_estimand_sha256(x)
+        x["analysis"]["inference_plan_sha256"] = compute_inference_plan_sha256(x)
+        x["dependence_plan"]["uncertainty_target"]="finite_cohort_description"
+        x["analysis"]["inference_plan_sha256"] = compute_inference_plan_sha256(x)
+        self.assertIn("dependence_plan_inconsistent",validate(x)["failure_codes"])
+
+    def test_inference_target_and_uncertainty_scope_must_agree(self):
+        x=fixture(); x["inference_design"]["target_kind"]="eligible_video_superpopulation"
+        x["estimand"]["primary_estimand_sha256"] = compute_primary_estimand_sha256(x)
+        self.assertIn("dependence_plan_inconsistent",validate(x)["failure_codes"])
+        x=fixture(); x["inference_design"]["target_kind"]="frozen_eligible_video_cohort"
+        x["dependence_plan"]["uncertainty_target"]="model_based_video_superpopulation"
+        x["estimand"]["primary_estimand_sha256"] = compute_primary_estimand_sha256(x)
+        x["analysis"]["inference_plan_sha256"] = compute_inference_plan_sha256(x)
+        self.assertIn("dependence_plan_inconsistent",validate(x)["failure_codes"])
 
     def test_eligible_denominator_must_equal_video_level_analysis_units(self):
         x=fixture(); x["cohort"]["analysis_unit_count"]=1
@@ -155,6 +221,7 @@ class TestClaimMaskProtocol(unittest.TestCase):
         x=fixture(); x["analysis"]["sesoi"].update(
             status="preoutcome_fixed", value_nat=0.2,
             decision_rule="primary_95pct_ci_lower_gt_sesoi", estimand_sha256=bound_hash,
+            inference_plan_sha256=x["analysis"]["inference_plan_sha256"],
             rationale_category="measurement_interpretability", rationale_sha256=H,
             fixed_at_utc="2026-10-14T13:00:00Z", review_status="completed",
             review_timing="before_scoring", independent_review_sha256=H,
@@ -173,6 +240,10 @@ class TestClaimMaskProtocol(unittest.TestCase):
         self.assertIn("primary_estimand_hash_mismatch",validate(x)["failure_codes"])
         x=fixture(); x["cohort"]["eligible_manifest_sha256"]="1"*64
         self.assertIn("primary_estimand_hash_mismatch",validate(x)["failure_codes"])
+        x=fixture(); x["inference_design"]["target_kind"]="frozen_eligible_video_cohort"
+        self.assertIn("primary_estimand_hash_mismatch",validate(x)["failure_codes"])
+        x=fixture(); x["dependence_plan"]["cluster_audit_sha256"]="1"*64
+        self.assertIn("inference_plan_hash_mismatch",validate(x)["failure_codes"])
         for field in ("claim_manifest_sha256", "mapping_sha256", "review_record_sha256"):
             with self.subTest(claim_review_hash=field):
                 x=fixture(); x["claim_review"][field]="1"*64
@@ -187,6 +258,7 @@ class TestClaimMaskProtocol(unittest.TestCase):
     def test_fixed_sesoi_rejects_nonfinite_boolean_nonpositive_and_bad_time(self):
         base={"status":"preoutcome_fixed", "value_nat":0.2,
               "decision_rule":"primary_95pct_ci_lower_gt_sesoi", "estimand_sha256":H,
+              "inference_plan_sha256":fixture()["analysis"]["inference_plan_sha256"],
               "rationale_category":"measurement_interpretability", "rationale_sha256":H,
               "fixed_at_utc":"2026-10-14T13:00:00Z", "review_status":"completed",
               "review_timing":"before_scoring", "independent_review_sha256":H,
@@ -213,7 +285,7 @@ class TestClaimMaskProtocol(unittest.TestCase):
         self.assertIn("runtime_fields_invalid",r["failure_codes"])
 
     def test_duplicate_json_key_is_rejected_without_echoing_input(self):
-        raw=json.dumps(fixture()).replace('"schema_version": 9', '"schema_version": 9, "schema_version": 9', 1)
+        raw=json.dumps(fixture()).replace('"schema_version": 10', '"schema_version": 10, "schema_version": 10', 1)
         with tempfile.TemporaryDirectory() as directory:
             path=Path(directory)/"duplicate.json"; path.write_text(raw, encoding="utf-8")
             stdout=io.StringIO()

@@ -12,7 +12,8 @@ eventual protocol.
 ## Frozen target
 
 - Protocol revision/hash:
-- Primary-estimand hash (schema v9 canonical hash):
+- Primary-estimand hash (schema v10 canonical hash):
+- Inference-plan hash (schema v10 canonical hash):
 - Mask-transform specification/hash: specify exact replacement, parameters,
   color space, operation order, and whether the whole sampled frame is replaced.
   Keep the specification private and versioned; use the identical transform
@@ -20,6 +21,13 @@ eventual protocol.
 - Outcome-score access started? `no / yes / unknown`
 - If yes or unknown, date and scope (do not call a later choice pre-outcome):
 - Primary unit: one eligible video, one fixed gold choice, all eligible videos:
+- Target population and relation to the finite eligible cohort (census target,
+  probability sample, or explicitly model-based superpopulation):
+- Cohort construction/sampling provenance and frame of reference:
+- Available creator/event/series/source-lineage cluster fields and pre-outcome
+  dependence assessment:
+- Inference method justified for that target and cluster count; if a cluster-aware
+  method is proposed, state the number of independent clusters and its limits:
 - Primary contrast: fixed-answer log-margin drop under claim-linked evidence-frame
   mask minus the matched temporal-control margin drop:
 - Score unit: natural-log units (nat):
@@ -88,11 +96,11 @@ not determine it.
 Choose one and complete only its fields:
 
 - `unresolved`: no threshold is defensible yet; leave SESOI value/rationale,
-  fixed time, and review/access fields null in schema v9. Do not label the protocol
-  confirmatory.
+  fixed time, review/access fields, and inference-plan hash null in schema v10.
+  Do not label the protocol confirmatory.
 - `preoutcome_fixed`: set `δ > 0`; bind the exact canonical primary-estimand
-  hash and rationale evidence; record a UTC freeze time and a separate
-  completed, independent review record made before scoring. Record the review
+  and inference-plan hashes and rationale evidence; record a UTC freeze time
+  and a separate completed, independent review record made before scoring. Record the review
   timestamp no later than the freeze and provide a private access-audit record
   supporting the declaration that outcome scores had not been accessed.
   Schema validity

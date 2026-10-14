@@ -27,6 +27,7 @@ def _finite(x):
 
 def _sha(x): return isinstance(x, str) and SHA.fullmatch(x) is not None
 def _text(x): return isinstance(x, str) and bool(x.strip())
+def _enum(x, choices): return isinstance(x, str) and x in choices
 def _keys(x, required): return isinstance(x, dict) and set(x) == set(required)
 
 def compute_primary_estimand_sha256(value: dict) -> str | None:
@@ -37,6 +38,7 @@ def compute_primary_estimand_sha256(value: dict) -> str | None:
             "model": {k: m[k] for k in ("revision", "tokenizer_revision", "quant", "dtype", "attention_implementation")},
             "eligible_manifest_sha256": c["eligible_manifest_sha256"],
             "primary_population": c["primary_population"],
+            "inference_design": value["inference_design"],
             "sampling_config_sha256": s["config_sha256"],
             "claim_review": {k: value["claim_review"][k] for k in ("claim_manifest_sha256", "mapping_sha256", "review_record_sha256", "mapping_unit")},
             "answer_candidate_protocol_sha256": e["answer_candidate_protocol_sha256"],
@@ -55,20 +57,43 @@ def compute_primary_estimand_sha256(value: dict) -> str | None:
     except (KeyError, TypeError, UnicodeError):
         return None
 
+def compute_inference_plan_sha256(value: dict) -> str | None:
+    """Hash uncertainty assumptions and analysis choices separately from the point estimand."""
+    try:
+        analysis = value["analysis"]
+        payload = {
+            "dependence_plan": value["dependence_plan"],
+            "primary_ci_method": analysis["primary_ci_method"],
+            "primary_contrast_count": analysis["primary_contrast_count"],
+            "primary_multiplicity": analysis["primary_multiplicity"],
+            "secondary_families": analysis["secondary_families"],
+            "secondary_adjustment": analysis["secondary_adjustment"],
+            "secondary_hypothesis_manifest_sha256": analysis["secondary_hypothesis_manifest_sha256"],
+        }
+        if not _valid_hash_payload(payload): return None
+        raw = json.dumps(payload, sort_keys=True, separators=(",", ":"), ensure_ascii=False).encode("utf-8")
+        return hashlib.sha256(raw).hexdigest()
+    except (KeyError, TypeError, UnicodeError):
+        return None
+
 def _valid_hash_payload(value):
     if isinstance(value, dict):
         return all(_text(key) and _valid_hash_payload(item) for key, item in value.items())
+    elif isinstance(value, list):
+        return all(_valid_hash_payload(item) for item in value)
+    elif value is None:
+        return True
     elif isinstance(value, str):
         return _text(value)
     return type(value) is int and value >= 0
 
 def validate(value: Any, input_sha256: str | None = None) -> dict:
     f = set()
-    req = {"schema_version", "protocol_stage", "model", "cohort", "claim_review",
+    req = {"schema_version", "protocol_stage", "model", "cohort", "inference_design", "dependence_plan", "claim_review",
            "data_rights", "sampling", "estimand", "intervention", "analysis", "runtime"}
     if not isinstance(value, dict): return _summary({"protocol_not_object"}, input_sha256)
     if set(value) != req: f.add("protocol_schema_keys_invalid")
-    if type(value.get("schema_version")) is not int or value.get("schema_version") != 9: f.add("schema_version_invalid")
+    if type(value.get("schema_version")) is not int or value.get("schema_version") != 10: f.add("schema_version_invalid")
     stage = value.get("protocol_stage")
     # The estimand direction and secondary Holm families are selected, but the
     # SESOI is not fixed. This schema must not label a run confirmatory yet.
@@ -86,6 +111,36 @@ def validate(value: Any, input_sha256: str | None = None) -> dict:
           or cohort.get("secondary_population") != "baseline_correctness_strata"):
         f.add("cohort_fields_invalid")
     elif cohort["eligible_video_count"] == 0 or cohort["analysis_unit_count"] != cohort["eligible_video_count"]: f.add("analysis_unit_not_video_level")
+    inference = value.get("inference_design")
+    infk = {"target_kind", "target_definition_sha256", "selection_design", "sampling_frame_sha256", "selection_record_sha256"}
+    if not _keys(inference, infk): f.add("inference_design_schema_invalid")
+    elif (not _enum(inference.get("target_kind"), {"unresolved", "frozen_eligible_video_cohort", "eligible_video_superpopulation"})
+          or not _sha(inference.get("target_definition_sha256"))
+          or not _enum(inference.get("selection_design"), {"unknown", "census_of_frame", "probability_sample", "nonprobability_sample"})
+          or not _sha(inference.get("sampling_frame_sha256")) or not _sha(inference.get("selection_record_sha256"))):
+        f.add("inference_design_fields_invalid")
+    dep = value.get("dependence_plan")
+    dpk = {"uncertainty_target", "independence_unit", "cluster_audit_status", "cluster_unit", "independent_cluster_count", "cluster_audit_sha256", "method_status", "method"}
+    if not _keys(dep, dpk): f.add("dependence_plan_schema_invalid")
+    elif (not _enum(dep.get("uncertainty_target"), {"unresolved", "finite_cohort_description", "model_based_video_superpopulation", "design_based_population"})
+          or dep.get("independence_unit") != "video"
+          or not _enum(dep.get("cluster_audit_status"), {"unresolved", "reviewed_no_known_cluster_fields", "clusters_identified"})
+          or not _enum(dep.get("cluster_unit"), {"unresolved", "video_source", "creator", "recording_event", "series", "multiway"})
+          or (dep.get("independent_cluster_count") is not None and (type(dep.get("independent_cluster_count")) is not int or dep["independent_cluster_count"] < 1))
+          or not _sha(dep.get("cluster_audit_sha256"))
+          or not _enum(dep.get("method_status"), {"unresolved", "resolved"})
+          or not _enum(dep.get("method"), {"unresolved", "two_sided_student_t_df_n_minus_1"})):
+        f.add("dependence_plan_fields_invalid")
+    elif ((dep["cluster_audit_status"] in {"unresolved", "reviewed_no_known_cluster_fields"} and (dep["cluster_unit"] != "unresolved" or dep["independent_cluster_count"] is not None))
+          or (dep["cluster_audit_status"] == "unresolved" and dep["method_status"] != "unresolved")
+          or dep["cluster_audit_status"] == "clusters_identified"
+          or (dep["method_status"] == "resolved" and (dep["uncertainty_target"] != "model_based_video_superpopulation" or dep["method"] == "unresolved" or dep["cluster_audit_status"] != "reviewed_no_known_cluster_fields"))
+          or (dep["method_status"] == "resolved" and isinstance(inference, dict) and inference.get("selection_design") == "unknown")
+          or (dep["uncertainty_target"] == "design_based_population" and isinstance(inference, dict) and inference.get("selection_design") != "probability_sample")
+          or (isinstance(inference, dict) and ((inference.get("target_kind") == "unresolved") != (dep["uncertainty_target"] == "unresolved")))
+          or (isinstance(inference, dict) and inference.get("target_kind") == "frozen_eligible_video_cohort" and dep["uncertainty_target"] != "finite_cohort_description")
+          or (isinstance(inference, dict) and inference.get("target_kind") == "eligible_video_superpopulation" and dep["uncertainty_target"] not in {"model_based_video_superpopulation", "design_based_population"})):
+        f.add("dependence_plan_inconsistent")
     if isinstance(cohort, dict) and all(type(cohort.get(k)) is int for k in ("eligible_video_count", "split_overlap_count")) and cohort["split_overlap_count"] > cohort["eligible_video_count"]: f.add("split_overlap_exceeds_video_count")
     if isinstance(cohort, dict) and stage == "confirmatory" and cohort.get("split_overlap_count") != 0: f.add("confirmatory_split_overlap")
     cr = value.get("claim_review"); rk = {"claim_manifest_sha256", "mapping_sha256", "review_record_sha256", "review_status", "review_timing", "mapping_unit"}
@@ -130,18 +185,25 @@ def validate(value: Any, input_sha256: str | None = None) -> dict:
           or iv.get("selected_condition") == iv.get("control_condition")
           or iv.get("selected_unit") != "sampled_frames_overlapping_reviewed_claim_evidence_interval"
           or iv.get("control_matching") != "equal_count_minimum_total_temporal_rank_distance_lexicographic_tie_break"): f.add("intervention_fields_invalid")
-    an = value.get("analysis"); ak = {"primary_contrast_count", "primary_multiplicity", "primary_ci_method", "secondary_families", "secondary_adjustment", "secondary_hypothesis_manifest_sha256", "sesoi"}
+    an = value.get("analysis"); ak = {"primary_contrast_count", "primary_multiplicity", "primary_ci_method", "secondary_families", "secondary_adjustment", "secondary_hypothesis_manifest_sha256", "inference_plan_sha256", "sesoi"}
     if not _keys(an, ak): f.add("analysis_schema_invalid")
     elif (type(an.get("primary_contrast_count")) is not int or an.get("primary_contrast_count") != 1
           or an.get("primary_multiplicity") != "none_single_primary_contrast"
           or an.get("primary_ci_method") != "two_sided_student_t_df_n_minus_1"
           or an.get("secondary_families") != ["baseline_correctness_strata", "question_type_strata"]
           or an.get("secondary_adjustment") != "holm_within_each_predeclared_family"
-          or not _sha(an.get("secondary_hypothesis_manifest_sha256"))):
+          or not _sha(an.get("secondary_hypothesis_manifest_sha256"))
+          or not _sha(an.get("inference_plan_sha256"))):
         f.add("analysis_fields_invalid")
     else:
+        computed_inference_sha = compute_inference_plan_sha256(value)
+        if computed_inference_sha is None or an.get("inference_plan_sha256") != computed_inference_sha:
+            f.add("inference_plan_hash_mismatch")
+        if isinstance(dep, dict) and dep.get("method_status") == "resolved" and dep.get("method") != an.get("primary_ci_method"):
+            f.add("dependence_plan_method_mismatch")
         sesoi = an.get("sesoi")
         sk = {"status", "value_nat", "decision_rule", "estimand_sha256", "rationale_category",
+              "inference_plan_sha256",
               "rationale_sha256", "fixed_at_utc", "review_status", "review_timing",
               "independent_review_sha256", "independent_reviewed_at_utc",
               "outcome_access_status", "outcome_access_record_sha256"}
@@ -153,6 +215,7 @@ def validate(value: Any, input_sha256: str | None = None) -> dict:
                     or sesoi.get("decision_rule") != "primary_95pct_ci_lower_gt_sesoi"
                     or not _sha(sesoi.get("estimand_sha256"))
                     or not isinstance(es, dict) or sesoi.get("estimand_sha256") != es.get("primary_estimand_sha256")
+                    or sesoi.get("inference_plan_sha256") != an.get("inference_plan_sha256")
                     or not isinstance(sesoi.get("rationale_category"), str)
                     or sesoi.get("rationale_category") not in {"annotation_granularity", "output_reproducibility", "measurement_interpretability", "other"}
                     or not _sha(sesoi.get("rationale_sha256"))
@@ -180,7 +243,7 @@ def _summary(f, digest):
     if digest is not None and not _sha(digest):
         failures.add("input_sha256_invalid")
         digest = None
-    return {"schema_version": 9, "structurally_valid": not failures, "failure_codes": sorted(failures),
+    return {"schema_version": 10, "structurally_valid": not failures, "failure_codes": sorted(failures),
             "semantic_validation": "not_machine_verifiable", "execution_authorization": "not_granted",
             **({"input_sha256": digest} if digest else {})}
 
