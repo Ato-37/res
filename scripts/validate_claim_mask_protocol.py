@@ -28,10 +28,10 @@ def _keys(x, required): return isinstance(x, dict) and set(x) == set(required)
 def validate(value: Any, input_sha256: str | None = None) -> dict:
     f = set()
     req = {"schema_version", "protocol_stage", "model", "cohort", "claim_review",
-           "data_rights", "sampling", "estimand", "intervention", "runtime"}
+           "data_rights", "sampling", "estimand", "intervention", "analysis", "runtime"}
     if not isinstance(value, dict): return _summary({"protocol_not_object"}, input_sha256)
     if set(value) != req: f.add("protocol_schema_keys_invalid")
-    if type(value.get("schema_version")) is not int or value.get("schema_version") != 2: f.add("schema_version_invalid")
+    if type(value.get("schema_version")) is not int or value.get("schema_version") != 3: f.add("schema_version_invalid")
     stage = value.get("protocol_stage")
     # The estimand direction and secondary Holm families are selected, but the
     # SESOI is not fixed. This schema must not label a run confirmatory yet.
@@ -80,6 +80,15 @@ def validate(value: Any, input_sha256: str | None = None) -> dict:
           or iv.get("selected_condition") == iv.get("control_condition")
           or iv.get("selected_unit") != "sampled_frames_overlapping_reviewed_claim_evidence_interval"
           or iv.get("control_matching") != "equal_count_minimum_total_temporal_rank_distance_lexicographic_tie_break"): f.add("intervention_fields_invalid")
+    an = value.get("analysis"); ak = {"primary_contrast_count", "primary_multiplicity", "secondary_families", "secondary_adjustment", "sesoi_status"}
+    if not _keys(an, ak): f.add("analysis_schema_invalid")
+    elif (type(an.get("primary_contrast_count")) is not int or an.get("primary_contrast_count") != 1
+          or an.get("primary_multiplicity") != "none_single_primary_contrast"
+          or an.get("secondary_families") != ["baseline_correctness_strata", "question_type_strata"]
+          or an.get("secondary_adjustment") != "holm_within_each_predeclared_family"
+          or not isinstance(an.get("sesoi_status"), str)
+          or an.get("sesoi_status") not in {"unresolved", "preoutcome_fixed"}):
+        f.add("analysis_fields_invalid")
     rt = value.get("runtime"); tk = {"seed", "source_commit", "execution_authorization"}
     if not _keys(rt, tk): f.add("runtime_schema_invalid")
     elif type(rt.get("seed")) is not int or not isinstance(rt.get("source_commit"), str) or GIT_COMMIT.fullmatch(rt["source_commit"]) is None or rt.get("execution_authorization") is not False: f.add("runtime_fields_invalid")
@@ -90,7 +99,7 @@ def _summary(f, digest):
     if digest is not None and not _sha(digest):
         failures.add("input_sha256_invalid")
         digest = None
-    return {"schema_version": 2, "structurally_valid": not failures, "failure_codes": sorted(failures),
+    return {"schema_version": 3, "structurally_valid": not failures, "failure_codes": sorted(failures),
             "semantic_validation": "not_machine_verifiable", "execution_authorization": "not_granted",
             **({"input_sha256": digest} if digest else {})}
 

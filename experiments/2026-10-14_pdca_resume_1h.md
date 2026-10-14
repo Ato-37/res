@@ -55,7 +55,7 @@ estimand/population labels. Candidate count reconciles with eligible plus
 pre-scoring exclusions. The timestamp mapping now states inclusive
 `frame_index / decoded_fps` interval membership, and the control cost is the
 one-to-one sorted-rank sum used by the existing temporal helper. The structural
-validator only accepts the exploratory stage because SESOI remains unfixed.
+schema v3 validator only accepts the exploratory stage because SESOI remains unfixed. It now checks the single-primary/Holm declarations and rejects malformed SESOI status values.
 Secondary multiplicity now follows the existing plan: Holm within predeclared
 baseline-correctness and question-type families, with one primary contrast. It
 always returns
@@ -101,7 +101,25 @@ the published derived summary removes only `clips_per_second` and
 `seconds_per_clip` from warm-up rows. Its SHA-256 is
 `6e14bad29baf087bda6051b6e13d76015c92380d049c3cb6e5cdca0638be2f06`; the
 runner-native source result remains unchanged locally under the hash above.
-A follow-up 51-test CPU suite, byte-compilation, and `git diff --check` passed.
+The then-current 51-test CPU suite, byte-compilation, and `git diff --check` passed.
+
+After publication, one independently launched repeat tested stability of this
+fixed-clip observation. It completed 38/38 calls and reproduced exactly the
+same scalar diagnostics: all 17 context prefixes and forced sequences matched;
+raw top-1 mismatches again occurred only at steps 7–8, with margins 0.125 vs
+0.000 and 0.000 vs 0.125. B=2 duplicate rows matched exactly. An independent
+artifact auditor verified provenance, configuration, geometry, hashes, and
+privacy directly. This repeat uses the same clip, checkpoint, GPU, seed, and
+configuration; it is not an independent video sample or population estimate.
+The runner-native repeat is
+`results/qwen_video_batch_throughput_gpu_smoke_20261014_b1_b2_32f_16decode_sharedctx_rep02.json`
+(SHA-256 `02e652cc19b0a4bfd80793ac92888fd126ea8c550e2badb62a318b444c985df3`);
+the warm-up-rate-free summary is
+`results/qwen_video_batch_throughput_gpu_smoke_20261014_b1_b2_32f_16decode_sharedctx_rep02_summary_01.json`
+(SHA-256 `464b326058a3a7c2df486a97beee9e69db0493efba46913d43bfdf5f28a39b54`).
+The repeat's logged diagnostic time was 25.739 s; B=1/B=2 generation took
+1.985/3.467 s, with peak reserved VRAM 7.633/9.287 GiB. These are diagnostic
+timings, not comparable throughput because B=2 is constrained.
 
 ## Faithfulness status and gates
 
@@ -123,3 +141,8 @@ explanation faithfulness.
    human-review attestation, and item-level rights are resolved.
 3. The same-context diagnostic is engineering-only; do not add artificial load,
    claim throughput improvement, or count it as faithfulness progress.
+
+
+## Validator hardening follow-up
+
+The existing plan already fixed Holm adjustment within each predeclared secondary family. The claim-mask validator previously documented this as unresolved without enforcing it. Schema v3 now requires one primary contrast with no within-study adjustment, the two declared secondary families (`baseline_correctness_strata`, `question_type_strata`) with Holm adjustment within each, and an explicit SESOI status (`unresolved` or `preoutcome_fixed`). Confirmatory stage remains rejected; a structural pass cannot authenticate review, rights, or authorize inference. Added tests reject alternate multiplicity, multiple primary contrasts, post-result SESOI labels, unhashable malformed status, and schema-v2 input. The targeted suite passes 25 tests. Independent audit found no authorization bypass or remaining malformed-input crash path; it noted that `preoutcome_fixed` is only a caller declaration because the schema lacks SESOI value/rationale/timing evidence. The contract now says this explicitly. Syntax and diff checks pass. This documentation/schema update resolves the multiplicity-declaration gap only; SESOI and external gates remain open.
