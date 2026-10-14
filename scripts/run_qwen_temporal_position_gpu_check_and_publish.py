@@ -11,6 +11,7 @@ import argparse
 from datetime import datetime, timezone
 import hashlib
 import json
+import math
 from pathlib import Path
 import subprocess
 import sys
@@ -53,6 +54,35 @@ def derive_public_summary(raw: dict, raw_sha256: str) -> dict:
     sensitivity = raw.get("fixed_vs_legacy_v517_sensitivity")
     if not isinstance(sensitivity, dict):
         raise ValueError("missing derived position-ID sensitivity summary")
+    conditions = raw.get("conditions")
+    expected_conditions = ("native_auto", "explicit_native_noop", "legacy_v517_reference")
+    if not isinstance(conditions, list) or tuple(
+        row.get("condition") for row in conditions if isinstance(row, dict)
+    ) != expected_conditions:
+        raise ValueError("missing or unexpected per-forward resource diagnostics")
+    forward_diagnostics = []
+    for row in conditions:
+        seconds = row.get("forward_seconds")
+        peak = row.get("peak_allocated_gib")
+        if (row.get("finite_logits") is not True or type(seconds) not in (int, float)
+                or not math.isfinite(seconds) or seconds <= 0
+                or type(peak) not in (int, float) or not math.isfinite(peak) or peak <= 0):
+            raise ValueError("invalid per-forward timing/VRAM diagnostic")
+        forward_diagnostics.append({
+            "condition": row["condition"],
+            "forward_seconds": seconds,
+            "peak_allocated_gib": peak,
+        })
+    gpu_total = raw.get("gpu_total_gib")
+    gpu_free = raw.get("gpu_free_before_gib")
+    gpu_name = raw.get("gpu")
+    if (not isinstance(gpu_name, str) or not gpu_name.startswith("NVIDIA ")
+            or type(gpu_total) not in (int, float) or not math.isfinite(gpu_total)
+            or type(gpu_free) not in (int, float) or not math.isfinite(gpu_free)
+            or gpu_free <= 0 or gpu_total < gpu_free):
+        raise ValueError("invalid GPU preflight diagnostics")
+    if any(row["peak_allocated_gib"] > gpu_total for row in forward_diagnostics):
+        raise ValueError("per-forward allocated VRAM exceeds GPU total memory")
     return {
         "schema_version": 1,
         "purpose": "synthetic_subsecond_temporal_position_regression_check",
@@ -67,6 +97,12 @@ def derive_public_summary(raw: dict, raw_sha256: str) -> dict:
         "seed": raw["seed"],
         "quantization": raw["quantization"],
         "compute_dtype": raw["compute_dtype"],
+        "gpu_resources": {
+            "device": gpu_name,
+            "free_before_gib": gpu_free,
+            "total_gib": gpu_total,
+            "forwards": forward_diagnostics,
+        },
         "sample_counts": {
             "requested": raw["requested_samples"],
             "effective": raw["effective_samples"],

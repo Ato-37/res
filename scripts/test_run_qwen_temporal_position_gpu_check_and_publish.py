@@ -24,6 +24,14 @@ def valid_raw():
         },
         "actual_forward_position_ids_verified": True,
         "fixed_vs_legacy_v517_sensitivity": {"top1_equal": True},
+        "conditions": [
+            {"condition": name, "finite_logits": True, "forward_seconds": 2.0,
+             "peak_allocated_gib": 8.0}
+            for name in ("native_auto", "explicit_native_noop", "legacy_v517_reference")
+        ],
+        "gpu": "NVIDIA GeForce RTX 5070 Ti",
+        "gpu_free_before_gib": 14.0,
+        "gpu_total_gib": 16.0,
         "source_commit": "a" * 40,
         "model": "Qwen/Qwen2.5-VL-7B-Instruct",
         "model_revision": "b" * 40,
@@ -56,6 +64,8 @@ class PublishSummaryTests(unittest.TestCase):
         self.assertEqual(result["sample_counts"], {"requested": 1, "effective": 1, "failures": 0})
         self.assertNotIn("prompt", result)
         self.assertNotIn("conditions", result)
+        self.assertEqual(result["gpu_resources"]["device"], "NVIDIA GeForce RTX 5070 Ti")
+        self.assertEqual(len(result["gpu_resources"]["forwards"]), 3)
 
     def test_refuses_real_media_fixture(self):
         raw = valid_raw()
@@ -77,6 +87,24 @@ class PublishSummaryTests(unittest.TestCase):
         raw = valid_raw()
         raw["failures"] = 1
         with self.assertRaisesRegex(ValueError, "did not complete"):
+            derive_public_summary(raw, "1" * 64)
+
+    def test_refuses_invalid_resource_diagnostics(self):
+        raw = valid_raw()
+        raw["conditions"][1]["peak_allocated_gib"] = float("nan")
+        with self.assertRaisesRegex(ValueError, "invalid per-forward"):
+            derive_public_summary(raw, "1" * 64)
+        raw = valid_raw()
+        raw["gpu_free_before_gib"] = 17
+        with self.assertRaisesRegex(ValueError, "invalid GPU preflight"):
+            derive_public_summary(raw, "1" * 64)
+        raw = valid_raw()
+        raw["conditions"][0]["forward_seconds"] = True
+        with self.assertRaisesRegex(ValueError, "invalid per-forward"):
+            derive_public_summary(raw, "1" * 64)
+        raw = valid_raw()
+        raw["conditions"][0]["peak_allocated_gib"] = 17
+        with self.assertRaisesRegex(ValueError, "exceeds GPU total"):
             derive_public_summary(raw, "1" * 64)
         raw = valid_raw()
         raw["effective_forwards"] = 2
