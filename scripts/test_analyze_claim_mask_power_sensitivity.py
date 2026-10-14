@@ -1,7 +1,10 @@
+from pathlib import Path
+import tempfile
 import unittest
 
 from analyze_claim_mask_power_sensitivity import (
     build_grid,
+    main,
     minimum_n_for_target_power,
     paired_t_lower_ci_power,
 )
@@ -46,6 +49,14 @@ class TestClaimMaskPowerSensitivity(unittest.TestCase):
             paired_t_lower_ci_power(10000, 1e100)
         with self.assertRaisesRegex(ValueError, "numerically unstable"):
             build_grid([10000], [1e100])
+
+    def test_cli_does_not_leave_partial_output_for_invalid_power(self):
+        with tempfile.TemporaryDirectory() as directory:
+            output = Path(directory) / "invalid.json"
+            with self.assertRaisesRegex(ValueError, "numerically unstable"):
+                main(["--sample-sizes", "10000", "--excesses", "1e100",
+                      "--output", str(output)])
+            self.assertFalse(output.exists())
 
 
 if __name__ == "__main__":

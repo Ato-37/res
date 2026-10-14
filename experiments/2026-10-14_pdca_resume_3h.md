@@ -866,3 +866,13 @@ remains 0 new samples / 0 effects.
 
 At 19:19:17 JST, 1h56m05s had elapsed and 1h03m55s remained. Resource snapshot
 and gate assessment are recorded; no raw or private data were accessed.
+
+The numerical guard is also covered at the CLI boundary: an invalid extreme
+grid must raise before the output path is opened, leaving no empty/partial JSON
+artifact. The temporary-directory regression passes; independent audit
+confirmed `main()` calculates the grid before opening with exclusive-create
+mode and reran focused tests 7/7. The full scripts suite passes 555/555 after
+this test addition. No result file was published from the invalid input. At
+19:20:37 JST, 1h57m25s had elapsed and 1h02m35s remained. This protects
+planning artifact integrity; direct faithfulness remains 0 new samples / 0
+effects.
