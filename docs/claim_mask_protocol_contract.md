@@ -253,8 +253,18 @@ The helper also cannot authenticate source FPS or referenced review records.
 `candidate_manifest_sha256` binds the pre-screen universe;
 `eligible_manifest_sha256` binds the frozen one-video/one-QA eligibility set;
 `exclusion_manifest_sha256` binds pre-scoring exclusions and reason codes. The
-candidate count must reconcile with eligible count plus pre-run exclusions;
-the eligible count is the analysis denominator. The primary-estimand hash
+candidate count must reconcile with eligible count plus pre-run exclusions.
+The freeze order is: freeze the candidate manifest, complete the prespecified,
+outcome-blind eligibility and geometry screen, record every exclusion and
+reason, then freeze the eligible and exclusion manifests before scoring.
+The eligible count is the analysis denominator. Never remove a row from an
+already-frozen eligible manifest to repair coverage or geometry; such a case
+blocks that run. The structural validator checks count reconciliation and hash
+syntax, not whether the exclusions were justified or whether the review really
+preceded scoring. This screening order does not permit removing an unsupported
+or unreviewed claim from an already-defined eligible cohort; the full-cohort
+no-go above applies. A supportable-claim-only cohort requires the separately
+defined restricted estimand described above. The primary-estimand hash
 binds the final eligible set, while the candidate,
 exclusion, and overlap-audit hashes remain separately required provenance for
 the screening and selection process; changes to that process are not encoded in
