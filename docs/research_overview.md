@@ -96,6 +96,8 @@ token列対応の[修正監査](../results/clevrer_program_operator_trace_correc
 
 2026-10-15時点では、事前基準未達のhead-faithfulness確認枝は停止しており、head/layer/alpha探索を再開しない。主な次候補のclaim-linked evidence-frame maskは、対象母集団・分布仮定・SESOIの決定、動画ごとの権利確認、人手claim-to-frameレビュー、runner統合が未完了のため、confirmatory scoringとGPU推論は`no_go`である。schema v12 validatorと合成テストはプロトコル整備であり、実データfaithfulness測定ではない。この研究作業窓での新規faithfulness標本・効果推定は0件。ゲートの根拠と次の作業は[2026-10-15 PDCAログ](../experiments/2026-10-15_pdca_5h.md)を参照。
 
+公開一次資料から、NExT-QA動画はVidOR由来、VidOR動画はYFCC100M由来で、YFCC元メディアのCC条件は投稿者ごとに異なり各item metadataに記録されることを確認した。これは個別動画の利用許可を確定しない。対象動画からYFCC recordへの対応、条件、取得経路に適用されるagreementは未確認であり、権利ゲートを維持する。
+
 ### 2026-10-06時点の履歴
 
 - 診断パイプライン(head ablation、attention抽出)は複数マシンで動作確認済み
