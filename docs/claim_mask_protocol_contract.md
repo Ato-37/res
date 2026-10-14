@@ -1,21 +1,29 @@
-# Claim-linked evidence-frame mask protocol contract (schema v5)
+# Claim-linked evidence-frame mask protocol contract (schema v6)
 
 `scripts/validate_claim_mask_protocol.py` is a CPU-only, fail-closed structural
 validator for the exploratory design stage. The secondary-family multiplicity
 policy is inherited from the research plan: Holm correction within each
 predeclared family (baseline-correctness strata and question-type strata), with
 one unadjusted primary contrast. Family membership must be frozen before
-scoring. The SESOI is still not fixed, so schema v5 rejects a `confirmatory` stage.
+scoring. The SESOI is still not fixed, so schema v6 rejects a `confirmatory` stage.
 Structural validity neither authenticates evidence nor authorizes inference.
 
 The `analysis` object must declare one unadjusted primary contrast, the two
 secondary families (`baseline_correctness_strata` and `question_type_strata`),
-Holm adjustment within each family, and a nested SESOI declaration. The current
-design records it as unresolved, with the value and supporting fields null. A
-future `preoutcome_fixed` declaration must supply a positive threshold in nat,
-the primary CI decision rule, a rationale category and hash, a UTC fixed time,
-and a separate independent review record hash with completed/before-scoring
-declarations. The primary-estimand SHA-256 is recomputed from compact,
+Holm adjustment within each family, and a SHA-256 reference to a frozen manifest
+listing each secondary hypothesis/test and its family membership. That manifest
+must bind grouping definitions, contrast directions, test/statistic, and family
+size; the validator checks only the hash shape, not the file contents or when it
+was frozen. The current design records SESOI as unresolved, with the value and
+supporting fields null. A future `preoutcome_fixed` declaration must supply a
+positive threshold in nat, the primary CI decision rule, a rationale category
+and hash, a UTC fixed time, and a separate independent review record hash with
+completed/before-scoring declarations and review timestamp no later than the
+fixed time. It also requires an explicit `not_accessed_at_freeze` outcome-score
+access declaration and a hash for its private access-audit record. These remain
+caller declarations; schema validity does not prove access history, reviewer
+independence, or that referenced records are authentic. The primary-estimand
+SHA-256 is recomputed from compact,
 sorted-key UTF-8 JSON (`ensure_ascii=false`) containing the model identity,
 eligible-manifest hash and primary population, sampling-config hash, claim,
 mapping and human-review record hashes, answer-candidate, gold-choice, and

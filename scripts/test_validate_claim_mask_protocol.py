@@ -6,7 +6,7 @@ H = "0" * 64
 G = "0" * 40
 def fixture():
     value = {
-        "schema_version": 5,
+        "schema_version": 6,
         "protocol_stage": "exploratory",
         "model": {"revision": G, "tokenizer_revision": G, "quant": "4bit", "dtype": "bfloat16", "attention_implementation": "sdpa"},
         "cohort": {"candidate_manifest_sha256": H, "eligible_manifest_sha256": H, "exclusion_manifest_sha256": H, "overlap_audit_sha256": H, "candidate_video_count": 2, "eligible_video_count": 2, "prerun_exclusion_count": 0, "analysis_unit_count": 2, "split_overlap_count": 0, "primary_population": "all_eligible_videos", "secondary_population": "baseline_correctness_strata"},
@@ -15,7 +15,7 @@ def fixture():
         "sampling": {"policy": "whole_video_fixed", "config_sha256": H, "uses_claim_for_selection": False, "num_frames": 16, "frame_size": 1024, "max_pixels": 200704, "cap_pixels_per_frame": True},
         "estimand": {"answer_candidate_protocol_sha256": H, "gold_choice_manifest_sha256": H, "primary_estimand_sha256": H, "score_kind": "teacher_forced_gold_vs_best_foil_logprob_margin", "baseline_correction": "selected_minus_control_margin_drop", "triplet_manifest_sha256": H, "target_definition": "fixed_gold_choice_from_annotation", "margin_definition": "gold_label_logprob_minus_max_foil_label_logprob_same_prompt"},
         "intervention": {"kind": "claim_linked_evidence_frame_mask", "selector_sha256": H, "control_sha256": H, "selected_condition": "claim-linked evidence frames masked", "control_condition": "matched temporal control frames masked", "selected_unit": "sampled_frames_overlapping_reviewed_claim_evidence_interval", "control_matching": "equal_count_minimum_total_temporal_rank_distance_lexicographic_tie_break"},
-        "analysis": {"primary_contrast_count": 1, "primary_multiplicity": "none_single_primary_contrast", "secondary_families": ["baseline_correctness_strata", "question_type_strata"], "secondary_adjustment": "holm_within_each_predeclared_family", "sesoi": {"status": "unresolved", "value_nat": None, "decision_rule": None, "estimand_sha256": None, "rationale_category": None, "rationale_sha256": None, "fixed_at_utc": None, "review_status": None, "review_timing": None, "independent_review_sha256": None}},
+        "analysis": {"primary_contrast_count": 1, "primary_multiplicity": "none_single_primary_contrast", "secondary_families": ["baseline_correctness_strata", "question_type_strata"], "secondary_adjustment": "holm_within_each_predeclared_family", "secondary_hypothesis_manifest_sha256": H, "sesoi": {"status": "unresolved", "value_nat": None, "decision_rule": None, "estimand_sha256": None, "rationale_category": None, "rationale_sha256": None, "fixed_at_utc": None, "review_status": None, "review_timing": None, "independent_review_sha256": None, "independent_reviewed_at_utc": None, "outcome_access_status": None, "outcome_access_record_sha256": None}},
         "runtime": {"seed": 1, "source_commit": "0123456789abcdef0123456789abcdef01234567", "execution_authorization": False},
     }
     value["estimand"]["primary_estimand_sha256"] = compute_primary_estimand_sha256(value)
@@ -75,8 +75,8 @@ class TestClaimMaskProtocol(unittest.TestCase):
         x=fixture(); x["protocol_stage"]="confirmatory"
         self.assertIn("protocol_stage_invalid",validate(x)["failure_codes"])
 
-    def test_schema_v4_is_rejected_after_v5_change(self):
-        x=fixture(); x["schema_version"]=4
+    def test_schema_v5_is_rejected_after_v6_change(self):
+        x=fixture(); x["schema_version"]=5
         self.assertIn("schema_version_invalid",validate(x)["failure_codes"])
 
     def test_eligible_denominator_must_equal_video_level_analysis_units(self):
@@ -118,6 +118,10 @@ class TestClaimMaskProtocol(unittest.TestCase):
         x=fixture(); x["analysis"]["secondary_adjustment"]="none"
         self.assertIn("analysis_fields_invalid",validate(x)["failure_codes"])
 
+    def test_secondary_hypotheses_require_a_frozen_manifest_hash(self):
+        x=fixture(); x["analysis"]["secondary_hypothesis_manifest_sha256"]="not-a-hash"
+        self.assertIn("analysis_fields_invalid",validate(x)["failure_codes"])
+
     def test_primary_is_one_unadjusted_contrast_and_sesoi_status_is_explicit(self):
         x=fixture(); x["analysis"]["primary_contrast_count"]=2
         self.assertIn("analysis_fields_invalid",validate(x)["failure_codes"])
@@ -135,7 +139,9 @@ class TestClaimMaskProtocol(unittest.TestCase):
             decision_rule="primary_95pct_ci_lower_gt_sesoi", estimand_sha256=bound_hash,
             rationale_category="measurement_interpretability", rationale_sha256=H,
             fixed_at_utc="2026-10-14T13:00:00Z", review_status="completed",
-            review_timing="before_scoring", independent_review_sha256=H)
+            review_timing="before_scoring", independent_review_sha256=H,
+            independent_reviewed_at_utc="2026-10-14T12:00:00Z",
+            outcome_access_status="not_accessed_at_freeze", outcome_access_record_sha256=H)
         self.assertTrue(validate(x)["structurally_valid"])
         x["analysis"]["sesoi"]["estimand_sha256"]="1"*64
         self.assertIn("sesoi_fixed_fields_invalid",validate(x)["failure_codes"])
@@ -165,9 +171,15 @@ class TestClaimMaskProtocol(unittest.TestCase):
               "decision_rule":"primary_95pct_ci_lower_gt_sesoi", "estimand_sha256":H,
               "rationale_category":"measurement_interpretability", "rationale_sha256":H,
               "fixed_at_utc":"2026-10-14T13:00:00Z", "review_status":"completed",
-              "review_timing":"before_scoring", "independent_review_sha256":H}
+              "review_timing":"before_scoring", "independent_review_sha256":H,
+              "independent_reviewed_at_utc":"2026-10-14T12:00:00Z",
+              "outcome_access_status":"not_accessed_at_freeze", "outcome_access_record_sha256":H}
         for key,bad in (("value_nat",True),("value_nat",float("nan")),("value_nat",10**1000),("value_nat",0.0),
                         ("fixed_at_utc","2026-13-45T13:00:00Z"),
+                        ("independent_reviewed_at_utc","2026-13-45T12:00:00Z"),
+                        ("independent_reviewed_at_utc","2026-10-14T14:00:00Z"),
+                        ("outcome_access_status","accessed_before_freeze"),
+                        ("outcome_access_record_sha256","bad-hash"),
                         ("review_timing","after_scoring"),
                         ("rationale_category",[])):
             with self.subTest(key=key,bad=bad):
@@ -183,7 +195,7 @@ class TestClaimMaskProtocol(unittest.TestCase):
         self.assertIn("runtime_fields_invalid",r["failure_codes"])
 
     def test_duplicate_json_key_is_rejected_without_echoing_input(self):
-        raw=json.dumps(fixture()).replace('"schema_version": 5', '"schema_version": 5, "schema_version": 5', 1)
+        raw=json.dumps(fixture()).replace('"schema_version": 6', '"schema_version": 6, "schema_version": 6', 1)
         with tempfile.TemporaryDirectory() as directory:
             path=Path(directory)/"duplicate.json"; path.write_text(raw, encoding="utf-8")
             stdout=io.StringIO()

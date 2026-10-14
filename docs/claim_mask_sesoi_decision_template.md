@@ -12,7 +12,7 @@ eventual protocol.
 ## Frozen target
 
 - Protocol revision/hash:
-- Primary-estimand hash (schema v5 canonical hash):
+- Primary-estimand hash (schema v6 canonical hash):
 - Outcome-score access started? `no / yes / unknown`
 - If yes or unknown, date and scope (do not call a later choice pre-outcome):
 - Primary unit: one eligible video, one fixed gold choice, all eligible videos:
@@ -73,6 +73,7 @@ not determine it.
 - Reviewed artifacts and hashes:
 - Review timestamp (UTC):
 - Confirmed no claim-mask outcome scores were accessed before this decision?
+- Outcome-score access audit record/hash and coverage period:
 - Reviewer agrees the proposed value follows from the practical interpretation
   above, not the observed pilot effect or a desired power/result?
 - Reviewer confirms the selected value and decision rule are unambiguous?
@@ -83,11 +84,14 @@ not determine it.
 Choose one and complete only its fields:
 
 - `unresolved`: no threshold is defensible yet; leave SESOI value/rationale,
-  fixed time, and review fields null in schema v5. Do not label the protocol
+  fixed time, and review/access fields null in schema v6. Do not label the protocol
   confirmatory.
 - `preoutcome_fixed`: set `δ > 0`; bind the exact canonical primary-estimand
   hash and rationale evidence; record a UTC freeze time and a separate
-  completed, independent review record made before scoring. Schema validity
+  completed, independent review record made before scoring. Record the review
+  timestamp no later than the freeze and provide a private access-audit record
+  supporting the declaration that outcome scores had not been accessed.
+  Schema validity
   checks only structure and declarations, not evidence authenticity or truth.
 
 Decision date (UTC):

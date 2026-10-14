@@ -186,3 +186,29 @@ resolved without exposing private identifiers or making unsupported legal
 claims. Keep closed head/batch branches closed. Run a GPU experiment only if a
 distinct, pre-specified, cleared and smoke-validated experiment becomes
 available; do not generate GPU load to fill the window.
+
+## Schema-v6 protocol reproducibility hardening (in progress)
+
+Reviewing the protocol against the existing design found that schema v5 fixed
+the names of the two Holm families but had no hash reference for their exact
+member hypotheses/tests. It also represented a future SESOI's review timing as
+a label only, with no independent review timestamp or outcome-score-access
+record. Schema v6 now requires a SHA-256 reference for the frozen
+secondary-hypothesis manifest. A future `preoutcome_fixed` SESOI additionally
+requires the independent-review timestamp at or before freeze time, an explicit
+`not_accessed_at_freeze` declaration, and a hash of the private access-audit
+record. Missing/malformed declarations fail the structural check. The contract,
+decision template, and protocol design were updated together.
+
+The focused validator suite passes 32 tests, including old-schema rejection,
+manifest hash shape, review timestamp ordering and invalid times, access status,
+and preservation of `execution_authorization=not_granted`. The combined claim-mask
+validator/power suites pass 41 tests, and the full scripts suite passes 490 tests.
+Byte-compilation and `git diff --check` pass. An independent auditor directly
+inspected the schema, docs, and malformed-value paths and found no defect; it
+confirmed bad JSON-shaped values fail closed and execution authorization stays
+ungranted. These are structural checks only: hashes are not resolved, timeline
+declarations are not authenticated, and neither schema validity nor these tests
+authorize scoring. Direct faithfulness progress at this checkpoint is still 0
+new samples / 0 new effect estimates; the gates above remain unresolved and no
+GPU job ran.
