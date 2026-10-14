@@ -1,0 +1,71 @@
+{
+  "compute_dtype": "bfloat16",
+  "cuda_version": "12.8",
+  "fixture": "deterministic synthetic pixels; no project media or annotations",
+  "forward_counts": {
+    "effective": 3,
+    "requested": 3
+  },
+  "installed_model_source_sha256": "1b7a2a6403d309cdfe1ba31184708ed1a9f14b0ffd8e5bd4992f05a699e4f630",
+  "installed_processor_source_sha256": "dcecc3dff4ebb07c58e66923f1d62c73edee1edf572d27947c27ee5f5f2e654f",
+  "installed_vision_utils_source_sha256": "f3710ced8ffe735da57d08cf5236cf9d326ff646ed1bdad2e62593a7801adc33",
+  "limitations": [
+    "Synthetic engineering regression only; no faithfulness, QA, or semantic-validity evidence.",
+    "One deterministic sample has no uncertainty interval or inferential test.",
+    "No raw frames, model outputs, dataset labels, or per-item information are published."
+  ],
+  "model": "Qwen/Qwen2.5-VL-7B-Instruct",
+  "model_config_sha256": "77d9ec7321cc572e3579e2c84799c9cadaded63c49ce93b101733349fc330c43",
+  "model_revision": "cc594898137f460bfe9f0759e9844b3ce807cfb5",
+  "purpose": "synthetic_subsecond_temporal_position_regression_check",
+  "quantization": "4bit",
+  "raw_run_sha256": "82426c6e329cde9079534c73d6b873016a1a7e32d340a18e6fa3908b05c937d0",
+  "sample_counts": {
+    "effective": 1,
+    "failures": 0,
+    "requested": 1
+  },
+  "schema_version": 1,
+  "seed": 20261012,
+  "sensitivity": {
+    "bitwise_equal": true,
+    "jensen_shannon_divergence_nats": 0.0,
+    "maximum_absolute_logit_difference": 0.0,
+    "mean_absolute_logit_difference": 0.0,
+    "top1_equal": true
+  },
+  "source_commit": "3e9d8982b1f5dcb6aea4ea05ff4677258a5c55b9",
+  "source_sha256": {
+    "qwen_temporal_geometry.py": "a0d455fd43f1ccdd5335676abedc2c85df8096ae962bbedff3b4b952ee3fd118",
+    "run_dataset_video_gpu_smoke.py": "a9801b139e4a9a8c590193a3c9fb4b14242463f3728eabf6555652c409464539",
+    "run_qwen_temporal_position_gpu_check.py": "eb7f2e2833aaba3aa5f992660f2fe6e8842d206be8a2c3fc87eceee3ee211b87",
+    "video_time_mapping.py": "01711ac0f20770530239cf98ffb719c7f9e6f416f8c416aaf48da9543b091089"
+  },
+  "synthetic_video": {
+    "changed_position_id_entries": 0,
+    "fractional_temporal_anchors": [
+      15,
+      16
+    ],
+    "frames": 4,
+    "grid_thw": [
+      2,
+      32,
+      32
+    ],
+    "native_matches_fractional_reference": true,
+    "native_temporal_anchors": [
+      15,
+      16
+    ],
+    "sampled_fps": 2.6666666666666665,
+    "seconds_per_grid": 0.75
+  },
+  "versions": {
+    "bitsandbytes": "0.50.2",
+    "opencv-python-headless": "5.0.0.93",
+    "qwen-vl-utils": "0.0.14",
+    "torch": "2.11.0+cu128",
+    "transformers": "5.18.0"
+  }
+}

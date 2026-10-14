@@ -1,0 +1,13 @@
+{
+  "artifact": "results/qwen_temporal_position_synthetic_20261015_01.json",
+  "artifact_sha256": "3804f1e3de9aff01e0198137864854f361798b2ca56a5035d13c28adf0f2d266",
+  "effective_samples": 1,
+  "failures": 0,
+  "fixture": "synthetic_subsecond",
+  "model_config_sha256": "77d9ec7321cc572e3579e2c84799c9cadaded63c49ce93b101733349fc330c43",
+  "model_revision": "cc594898137f460bfe9f0759e9844b3ce807cfb5",
+  "raw_run_sha256": "82426c6e329cde9079534c73d6b873016a1a7e32d340a18e6fa3908b05c937d0",
+  "requested_samples": 1,
+  "schema_version": 1,
+  "source_commit": "3e9d8982b1f5dcb6aea4ea05ff4677258a5c55b9"
+}
