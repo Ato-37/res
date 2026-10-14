@@ -9,6 +9,8 @@ from __future__ import annotations
 import argparse
 import json
 import math
+import platform
+import scipy
 from scipy.stats import nct, t
 
 
@@ -34,7 +36,20 @@ def paired_t_lower_ci_power(n: int, excess_over_sesoi_sd: float, confidence: flo
     return float(nct.sf(critical, n - 1, noncentrality))
 
 
-def build_grid(sample_sizes: list[int], excesses: list[float], confidence: float = 0.95) -> dict:
+def minimum_n_for_target_power(excess_over_sesoi_sd: float, target_power: float = 0.8,
+                               confidence: float = 0.95, max_n: int = 10000) -> int | None:
+    if not _finite_real(target_power) or not 0 < target_power < 1:
+        raise ValueError("target_power must be strictly between 0 and 1")
+    if type(max_n) is not int or max_n < 2:
+        raise ValueError("max_n must be an integer >= 2")
+    for n in range(2, max_n + 1):
+        if paired_t_lower_ci_power(n, excess_over_sesoi_sd, confidence) >= target_power:
+            return n
+    return None
+
+
+def build_grid(sample_sizes: list[int], excesses: list[float], confidence: float = 0.95,
+               target_power: float = 0.8) -> dict:
     if not sample_sizes or not excesses:
         raise ValueError("sample_sizes and excesses must be non-empty")
     rows = []
@@ -53,7 +68,14 @@ def build_grid(sample_sizes: list[int], excesses: list[float], confidence: float
         "power_inputs_are_hypothetical": True,
         "sesoi_selected": False,
         "empirical_data_used": False,
+        "software": {"python": platform.python_version(), "scipy": scipy.__version__},
+        "target_power": target_power,
         "rows": rows,
+        "minimum_n_by_hypothetical_excess": [
+            {"true_mean_minus_sesoi_in_paired_sd": excess,
+             "minimum_effective_video_n": minimum_n_for_target_power(excess, target_power, confidence)}
+            for excess in excesses
+        ],
     }
 
 
@@ -62,9 +84,10 @@ def main(argv=None):
     parser.add_argument("--sample-sizes", type=int, nargs="+", default=[20, 40, 60, 80])
     parser.add_argument("--excesses", type=float, nargs="+", default=[0.1, 0.2, 0.3, 0.5])
     parser.add_argument("--confidence", type=float, default=0.95)
+    parser.add_argument("--target-power", type=float, default=0.8)
     parser.add_argument("--output", required=True)
     args = parser.parse_args(argv)
-    result = build_grid(args.sample_sizes, args.excesses, args.confidence)
+    result = build_grid(args.sample_sizes, args.excesses, args.confidence, args.target_power)
     with open(args.output, "x", encoding="utf-8") as stream:
         json.dump(result, stream, indent=2, sort_keys=True, allow_nan=False)
         stream.write("\n")
