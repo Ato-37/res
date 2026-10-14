@@ -1299,3 +1299,20 @@ path; rerunning with `PYTHONPATH=scripts` passed. This is a documentation and
 reproducibility repair only; no model forward, GPU, or real data was used.
 Direct faithfulness progress remains 0 new samples / 0 new effect estimates.
 At 19:58:10 JST, 2h34m58s elapsed and 25m02s remained.
+
+## Claim-mask validator CLI authorization-boundary smoke
+
+To ensure a structurally clean protocol cannot be mistaken for permission to
+score, I generated the test suite's synthetic schema-v9 fixture in a temporary
+directory and ran the validator CLI on it. The command exited 0 for structural
+validity, while its JSON explicitly returned
+`execution_authorization=not_granted` and
+`semantic_validation=not_machine_verifiable`; the CLI does not authenticate
+the fake review/rights hashes or grant inference. This distinction is
+intentional per the validator contract. The focused validator suite passes
+35/35, including tests that rights status and a caller-supplied true runtime
+flag cannot authorize execution. A source search found no v9 scoring runner
+integrated with this validator; the legacy runner remains explicitly outside
+the v9 path. No private records, data, videos, or model were accessed. Direct
+faithfulness progress remains 0 new samples / 0 effects. At 20:00:10 JST,
+2h36m58s elapsed and 22m02s remained.
