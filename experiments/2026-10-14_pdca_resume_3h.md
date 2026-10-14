@@ -181,8 +181,55 @@ each with private evidence locator/hash. The checker validates the start at the
 eligible ID, continuity between transitions, and the final source-media ID.
 This remains a structural declaration check; it neither fetches nor
 authenticates mapping evidence. Ten focused tests pass, and an independent audit
-found no fail-open path or privacy leak in the chain check; full-suite rerun and
-publication remain pending at this checkpoint.
+found no fail-open path or privacy leak in the chain check. The full 502-test
+suite passes; the change was published as `f75397ca91a6218683bb8d6b1b1165aaed478e2e`,
+live-fetched, and its validator SHA-256 matched the local file.
+
+### Held-out video-name mapping check
+
+The confirmation manifest stores a `video` field that is not itself keyed the
+same way as `map_vid_vidorID.json`. The official NExT-GQA README describes that
+file as mapping QA annotation video IDs to video paths, so an exact raw-string
+join is the wrong check. Added a privacy-safe CLI that joins only by the
+filename stem, rejects duplicate JSON keys and sample stems, validates file-like
+inputs and nonempty map values, normalizes path separators and dot segments when
+detecting duplicate mapped paths, and emits counts/hashes without IDs or paths.
+Against the local 25-row held-out manifest
+(SHA-256 `7bf254a944ec1f05017b01e365a0145dac762fb6d08b69ea736a06864b02cb32`)
+and local map (SHA-256
+`1955d89e7a175346faf8d4a582297ff349619231394f59fd7872f459ac8a8685`), the
+reproducible audit found 25/25 distinct stems mapped to 25 distinct normalized
+path values, with zero unmapped rows. Six synthetic tests pass, including
+privacy and malformed-input cases. The independent audit caught duplicate-key,
+directory-like input, whitespace-target, and path-normalization issues before
+publication; these are now addressed. This verifies only a local
+annotation-ID-to-video-path join; it does not verify path availability, the
+earlier dataset transfer history, a YFCC source record, a per-video license, or
+permission for inference. The result artifact is
+`results/nextgqa_heldout_video_mapping_20261014_03.json`; it contains only
+aggregate counts, input hashes, and fixed status fields. Unsalted input hashes
+can still link identical known inputs, so the artifact is derived/minimal rather
+than fully anonymous.
+Its SHA-256 is `c517255124e952b35c98910b302d7b0a9d8a1dd3223147af188e20d1968b5038`.
+
+The same audited join was run on the separate 80-row necessity-choice candidate
+manifest (SHA-256
+`adbda59dbe8886e1f1eddde08a1a28ea976a0499f04b446eb45a6147e9b06dc6`):
+80/80 distinct stems mapped to 80 distinct normalized path values, with zero
+unmapped rows. Its derived summary is
+`results/nextgqa_necessity_candidates_video_mapping_20261014_01.json`. This
+cohort-level path mapping does not establish candidate eligibility or rights.
+Its SHA-256 is `b65c1a8b104f4dd5254bd2c5f8addc7cf153e70fe85fe65c8a254684979f20dc`.
+
+After the fixes, the independent auditor found no remaining issue in the
+implementation, synthetic tests, summaries, or claims, and confirmed that both
+summaries contain no IDs or paths. The auditor did not reopen the private input
+manifest/map; the primary agent independently ran both commands and reproduced
+the 25/25 and 80/80 aggregate counts. The full CPU suite passes 508 tests,
+`py_compile` passes, and `git diff --check` is clean. The old local artifacts
+`nextgqa_heldout_video_mapping_20261014_01.json` and `_02.json` predate the final
+schema and are excluded from publication; only the `_03` held-out result and
+the 80-row candidate result are in scope.
 
 ## Faithfulness progress at this checkpoint
 
@@ -198,6 +245,13 @@ publication remain pending at this checkpoint.
 - Remaining gates: NOAA human review is incomplete; NExT-GQA per-item video
   rights are unresolved; claim-mask SESOI is unresolved; the historical local
   sample manifest does not reproduce the recorded input hash.
+- Current window checkpoint (17:59:19 JST; 36m07s elapsed, 2h23m53s remain):
+  direct faithfulness is `未実施` (0 new samples / 0 new effect estimates);
+  local video-name mapping is `補助診断のみ` (105/105 rows mapped to distinct
+  normalized path strings); per-video rights and the human/SESOI gates remain
+  `no_go`. The full CPU suite passes 508 tests after fixing issues found by the
+  independent audit. No GPU run occurred because no cleared direct-evaluation
+  branch is available.
 
 ## Next action
 

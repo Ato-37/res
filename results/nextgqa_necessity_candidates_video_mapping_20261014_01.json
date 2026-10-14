@@ -1,0 +1,14 @@
+{
+  "failure_codes": [],
+  "mapped_rows": 80,
+  "mapping_sha256": "1955d89e7a175346faf8d4a582297ff349619231394f59fd7872f459ac8a8685",
+  "requested_rows": 80,
+  "rights_or_inference_authorization": "not_granted",
+  "sample_manifest_sha256": "adbda59dbe8886e1f1eddde08a1a28ea976a0499f04b446eb45a6147e9b06dc6",
+  "schema_version": 1,
+  "semantic_validation": "not_machine_verifiable",
+  "status": "mapped",
+  "unique_mapped_video_paths": 80,
+  "unmapped_rows": 0,
+  "valid_video_stems": 80
+}
