@@ -92,6 +92,18 @@ whitespace normalization; the checker recomputes this digest from the frozen
 text. The reviewer must inspect that same frozen text. This proves byte/hash
 consistency within the supplied artifacts, not when those artifacts were
 created or which bytes a human actually saw.
+To build the frozen input manifest from already-generated claims, use
+`scripts/build_claim_input_manifest.py`. Its private generation-export input
+is v1 JSON with exactly `schema_version` and `claims`; each claim row has
+exactly `video_id`, `claim_id`, `claim_text`, `model_revision`, and
+`generation_run_sha256`. The builder rejects missing/extra cohort rows,
+duplicate video IDs, mixed model revisions, malformed hashes, and invalid
+Unicode. Pass the frozen eligible manifest, dataset ID, policy hash, and
+protocol occurrence policy, and choose a new output path. It writes only the
+private manifest and reports counts/hash, never claims or IDs; it performs no
+model/video processing and grants no execution authorization. The builder
+creates the new output exclusively with filesystem mode `0600`; keep its parent
+directory private as well.
 The v1 review-evidence index has `schema_version`, `mapping_ledger_sha256`,
 and `records`; each record has exactly `video_id`, `claim_id`,
 `review_record_sha256`, and `private_locator`, with one row for each reviewed
