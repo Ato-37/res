@@ -8,12 +8,10 @@ legally usable; it never authorizes inference and emits no IDs or locators.
 from __future__ import annotations
 
 import argparse
-from datetime import datetime
 import hashlib
 import json
 import math
 import re
-import sys
 from pathlib import Path
 from typing import Any
 
