@@ -133,6 +133,8 @@ remain unresolved. Claim-mask efficacy execution is therefore still `no_go`.
 The batch test is an engine-compatibility diagnostic only and is not evidence of
 explanation faithfulness.
 
+At 14:25 JST, an individually elevated read-only check confirmed the RTX 5070 Ti, 14,813 MiB free of 16,303 MiB VRAM, CUDA-visible `.venv` (`torch 2.11.0+cu128`, CUDA 12.8, BF16 supported), and instantaneous GPU utilization 0% / memory-busy 15%. Linux `free` reported 15 GiB total, 13 GiB available and 4 GiB swap almost entirely free; cgroup `memory.max` was `max` at this check. These are point-in-time availability readings, not sustained GPU or bandwidth measurements. No GPU job was launched because the remaining GPU branches either lack a fixed cleared independent input or have reached a stop; the claim-mask inference gates remain closed. This is an experimental/protocol gate, not a CUDA/PyTorch availability blocker.
+
 ## Next actions
 
 1. Keep claim-mask execution at `no_go` until the independent pre-outcome SESOI,
