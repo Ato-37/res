@@ -174,12 +174,17 @@ class NecessityChoiceMarginUtilsTests(unittest.TestCase):
                 assign_evidence_control_frames(16, 16, 1.0, intervals)
 
     def test_assignment_is_invariant_to_interval_order_and_duplication(self):
-        ordered = assign_evidence_control_frames(
-            16, 16, 1.0, [[1.0, 3.0], [6.0, 6.0]])
+        intervals = [[6.0, 6.0], [1.0, 3.0], [1.0, 3.0]]
         unordered_with_duplicate = assign_evidence_control_frames(
-            16, 16, 1.0, [[6.0, 6.0], [1.0, 3.0], [1.0, 3.0]])
+            16, 16, 1.0, intervals)
 
-        self.assertEqual(unordered_with_duplicate, ordered)
+        expected_evidence = [index for index in range(16)
+                             if any(start <= index / 1.0 <= end
+                                    for start, end in intervals)]
+        self.assertEqual(unordered_with_duplicate['status'], 'ok')
+        self.assertEqual(unordered_with_duplicate['evidence_indices'], expected_evidence)
+        self.assertEqual(unordered_with_duplicate['control_indices'], [0, 4, 5, 7])
+        self.assertEqual(unordered_with_duplicate['matched_rank_distance'], 6)
 
     def test_integrated_interval_membership_matches_independent_inclusive_time_oracle(self):
         for total_frames in range(3, 15):
