@@ -1278,3 +1278,24 @@ The reviewer independently reran the synthetic audit with the same counts and
 gates, confirmed the output contains no prompt, option text, or local paths,
 and found no check-logic issue. Direct faithfulness progress remains 0 samples
 / 0 effects. At 19:57:04 JST, 2h33m52s elapsed and 26m08s remained.
+
+## Diagnostic scope documentation correction and rerun
+
+Reviewing the committed runner against its execution showed that its module
+docstring still described an older three-frame fixture, while the current
+diagnostic uses 16 synthetic 224×224 frames and black-masks four selected and
+four control frames. I corrected that scope description and reran the audit;
+all reported counts and gates reproduce (base 1,217 tokens; chat A–E 5/5;
+video A–E 5/5; both mask input-stability gates pass). The regenerated artifact
+is `results/qwen_claim_tokenization_cpu_20261014T110000Z.json`, SHA-256
+`c0c53faae4b6f6bf1c1c3de913314baeb7c11d07f83f26ca66bd5e5eac049eb6`; the
+corrected runner SHA-256 is
+`83583ac94cbf051edc30f7e1738cbdc1a9f14263510c7809b62ddedc750bceff`.
+An independent reviewer verified the runner, fixture, production builder,
+mask-helper, and artifact hashes, reproduced the reported checks, and found no
+private prompt or path leakage. Focused tests pass 7/7 and the full scripts
+suite passes 559/559. The first test command used an invalid unittest import
+path; rerunning with `PYTHONPATH=scripts` passed. This is a documentation and
+reproducibility repair only; no model forward, GPU, or real data was used.
+Direct faithfulness progress remains 0 new samples / 0 new effect estimates.
+At 19:58:10 JST, 2h34m58s elapsed and 25m02s remained.

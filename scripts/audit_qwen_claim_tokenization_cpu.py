@@ -1,11 +1,13 @@
-"""Audit Qwen chat-prefix/claim token boundaries on fixed synthetic text only.
+"""Audit Qwen chat-choice boundaries on fixed synthetic text and video.
 
 CPU/tokenizer-and-preprocessor diagnostic. It loads the pinned processor from
-the local Hugging Face cache and generates three tiny synthetic video frames;
-downloads, model weights, real/private videos, QA data, and model generation
-are disabled. The fixed prompt and targets are prospective fixtures, not
-selected from model outcomes. Output contains case indices, lengths, equality
-flags and hashes only; it never emits fixture text, frame paths, or token IDs.
+the local Hugging Face cache and generates 16 synthetic 224x224 video frames,
+then checks the production preprocessing path with four selected and four
+control frames black-masked. Downloads, model weights, real/private videos,
+QA data, GPU inference, and model generation are disabled. The fixed prompt,
+targets, and masks are prospective fixtures, not selected from model
+outcomes. Output contains counts, equality flags, and hashes only; it never
+emits fixture text, frame paths, or token IDs.
 
 Usage::
 
