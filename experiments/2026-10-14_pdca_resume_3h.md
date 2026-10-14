@@ -634,3 +634,21 @@ script/test SHA-256 values match local bytes. Untracked data/sample files were
 preserved. Faithfulness progress remains 0 samples / 0 effect estimates.
 
 At 18:59:03 JST, 1h35m51s had elapsed and 1h24m09s remained.
+
+## Selection parity with provenance sidecar enabled
+
+A synthetic regression test now invokes the sample builder twice on the same
+four-row fixture, with fixed seed 29 and n=2, once with and once without
+`--audit-out`. The complete selected manifests match and contain two unique
+IDs. Readability is stubbed and media bytes are synthetic, so this establishes
+that enabling the audit output does not alter seeded selection on this fixture;
+it does not establish real-media readability, cohort representativeness, or
+rights. Independent review confirmed the assertion scope. The provenance-focused
+suite passes 14 tests and the full scripts suite passes 546 tests. Direct
+faithfulness progress remains 0 new samples / 0 new effect estimates.
+
+At 19:02:14 JST, 1h39m02s had elapsed and 1h20m58s remained. After this
+checkpoint, the focused provenance suite passed 14/14, the full scripts suite
+passed 546/546, `py_compile` passed for the builder and focused tests, and
+`git diff --check` passed. Negative-path tests printed their expected error
+and diagnostic JSON fixtures. Publication is still pending at this checkpoint.

@@ -289,6 +289,56 @@ class BuildSamplesProvenanceTests(unittest.TestCase):
             self.assertTrue(all(os.stat(path).st_mode & 0o777 == 0o600
                                 for path in (output, audit)))
 
+    def test_audit_flag_preserves_seeded_selection(self):
+        with tempfile.TemporaryDirectory(prefix="selection_parity_") as tmp:
+            root = Path(tmp)
+            video_root = root / "videos"
+            video_root.mkdir()
+            csv_path = root / "test.csv"
+            gsub_path = root / "gsub.json"
+            map_path = root / "map.json"
+            rows, gsub, video_map = [], {}, {}
+            for index in range(4):
+                video_id = f"synthetic-video-{index}"
+                vidor_id = f"folder{index}/clip{index}"
+                video_path = video_root / f"{vidor_id}.mp4"
+                video_path.parent.mkdir(parents=True, exist_ok=True)
+                video_path.write_bytes(b"synthetic only")
+                rows.append({"video_id": video_id, "question": f"q{index}?",
+                             "answer": "yes", "qid": "q1", "type": "what",
+                             "a0": "yes", "a1": "no", "a2": "maybe",
+                             "a3": "none", "a4": "other"})
+                gsub[video_id] = {"duration": 1, "location": {"q1": [[0, .5]]}}
+                video_map[video_id] = vidor_id
+            with csv_path.open("w", newline="", encoding="utf-8") as stream:
+                writer = csv.DictWriter(
+                    stream, fieldnames=["video_id", "question", "answer", "qid", "type"]
+                    + [f"a{i}" for i in range(5)],
+                )
+                writer.writeheader()
+                writer.writerows(rows)
+            gsub_path.write_text(json.dumps(gsub), encoding="utf-8")
+            map_path.write_text(json.dumps(video_map), encoding="utf-8")
+
+            outputs = []
+            for with_audit in (False, True):
+                output = root / f"samples_{with_audit}.json"
+                argv = ["build_samples.py", "--test-csv", str(csv_path),
+                        "--gsub-json", str(gsub_path), "--map-json", str(map_path),
+                        "--video-root", str(video_root), "--n", "2", "--seed", "29",
+                        "--out", str(output)]
+                if with_audit:
+                    argv.extend(["--audit-out", str(root / "audit.json")])
+                with patch("sys.argv", argv), patch(
+                        "scripts.build_samples.is_video_readable", return_value=True), \
+                        contextlib.redirect_stdout(io.StringIO()):
+                    main()
+                outputs.append(json.loads(output.read_text(encoding="utf-8")))
+            self.assertEqual(outputs[0], outputs[1])
+            selected_ids = [record["video_id"] for record in outputs[0]]
+            self.assertEqual(len(selected_ids), 2)
+            self.assertEqual(len(set(selected_ids)), 2)
+
     def test_underfilled_status_and_private_exclusive_writer(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
