@@ -1179,3 +1179,32 @@ remote artifact SHA-256 equals
 Untracked private NExT-GQA data/sample files remain untouched and unstaged. At
 19:50:11 JST, 2h26m59s elapsed and 33m01s remained. No new faithfulness sample
 or effect estimate was obtained.
+
+## Independent v9 no-go and legacy CLI bypass audit
+
+An independent source audit confirmed that the schema-v9 validator is
+declaration-only, rejects a confirmatory stage while SESOI is unresolved, and
+always returns `execution_authorization=not_granted`. It does not authenticate
+the referenced review, rights, mapping, or outcome-access evidence. The legacy
+`necessity_choice_margin_test.py` CLI remains technically invokable without
+calling this validator. This is a bypass-shaped implementation path, not a
+v9-compliant or authorized scoring route; the contract now marks the script
+legacy and forbids using it unchanged for v9. No invocation was made. Do not
+run it on real data until the rights, human review, mapping, cohort, SESOI, and
+runner gates are closed. Its historical results remain legacy exploratory.
+
+I rechecked current public primary pages. The NExT-QA repository asks users
+to cite its paper and attach the source for use/distribution, while its MIT
+file is written as a license for software and associated documentation; the
+NExT-GQA README calls its QA files identical to/subsets of NExT-QA and
+describes the video-path map. YFCC's source page says original-media licenses
+are creator-selected and per item in metadata, but the exact local cohort is
+not linked to source metadata. These facts do not establish exact-cohort
+annotation terms or media permissions. No IDs, private maps, video, or local
+rights evidence were inspected. Sources: [NExT-QA README](https://github.com/doc-doc/NExT-QA/blob/main/README.md),
+[NExT-QA LICENSE](https://github.com/doc-doc/NExT-QA/blob/main/LICENSE),
+[NExT-GQA data README](https://github.com/doc-doc/NExT-GQA/blob/main/datasets/nextgqa/README.md),
+and [YFCC100M Core Dataset](https://multimediacommons.wordpress.com/yfcc100m-core-dataset/).
+The independent audit verified validator no-go behavior and the direct CLI
+path; it did not read local data. Faithfulness remains at 0 new samples / 0
+new effects. At 19:52:02 JST, 2h28m50s elapsed and 31m10s remained.
