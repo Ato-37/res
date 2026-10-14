@@ -104,11 +104,47 @@ def _audit_annotation_rights(value: Any, intended_uses: list[str], failures: set
     return valid
 
 
-def _audit_item(row: Any, intended_uses: list[str], failures: set[str]) -> tuple[str | None, bool]:
+def _audit_source_lineage(row: dict, eligible_dataset_id: Any, failures: set[str]) -> bool:
+    steps = row.get("source_lineage")
+    required = {"from_dataset_id", "from_record_id", "to_dataset_id", "to_record_id",
+                "mapping_evidence_locator", "mapping_evidence_sha256"}
+    if not isinstance(steps, list) or not steps:
+        failures.add("item_source_lineage_missing")
+        return False
+    valid = True
+    normalized = []
+    for step in steps:
+        if not isinstance(step, dict) or set(step) != required:
+            failures.add("item_source_lineage_schema_invalid")
+            valid = False
+            continue
+        if (not all(_nonempty_text(step.get(key)) for key in (
+                "from_dataset_id", "from_record_id", "to_dataset_id", "to_record_id",
+                "mapping_evidence_locator"))
+                or not _is_sha(step.get("mapping_evidence_sha256"))):
+            failures.add("item_source_lineage_evidence_invalid")
+            valid = False
+        normalized.append(step)
+    for previous, current in zip(normalized, normalized[1:]):
+        if (previous.get("to_dataset_id") != current.get("from_dataset_id")
+                or previous.get("to_record_id") != current.get("from_record_id")):
+            failures.add("item_source_lineage_disconnected")
+            valid = False
+    if normalized:
+        if (normalized[0].get("from_dataset_id") != eligible_dataset_id
+                or normalized[0].get("from_record_id") != row.get("video_id")
+                or normalized[-1].get("to_dataset_id") != row.get("source_dataset_id")
+                or normalized[-1].get("to_record_id") != row.get("source_video_id")):
+            failures.add("item_source_lineage_endpoint_mismatch")
+            valid = False
+    return valid
+
+
+def _audit_item(row: Any, eligible_dataset_id: Any, intended_uses: list[str], failures: set[str]) -> tuple[str | None, bool]:
     required = {"video_id", "source_dataset_id", "source_video_id", "media_license_id", "media_evidence_locator",
                 "media_evidence_sha256", "media_review_record_sha256", "media_reviewer_role",
                 "media_review_status", "media_reviewed_at_utc", "conditions_record_sha256",
-                "conditions_status", "decisions"}
+                "conditions_status", "source_lineage", "decisions"}
     if not isinstance(row, dict) or set(row) != required:
         failures.add("item_rights_schema_invalid")
         return None, False
@@ -120,6 +156,8 @@ def _audit_item(row: Any, intended_uses: list[str], failures: set[str]) -> tuple
             "source_dataset_id", "source_video_id", "media_license_id",
             "media_evidence_locator", "media_reviewer_role")):
         failures.add("item_rights_source_evidence_invalid")
+    if not _audit_source_lineage(row, eligible_dataset_id, failures):
+        failures.add("item_rights_source_lineage_invalid")
     if (not _is_sha(row.get("media_evidence_sha256"))
             or not _is_sha(row.get("media_review_record_sha256"))
             or row.get("media_review_status") != "completed"
@@ -152,13 +190,15 @@ def audit(eligible: Any, eligible_raw: bytes, ledger: Any, ledger_raw: bytes) ->
         failures.add("eligible_manifest_invalid")
 
     if not isinstance(ledger, dict) or set(ledger) != {
-        "schema_version", "eligible_manifest_sha256", "intended_use_scope", "intended_uses",
+        "schema_version", "eligible_dataset_id", "eligible_manifest_sha256", "intended_use_scope", "intended_uses",
         "annotation_rights", "items",
     }:
         failures.add("rights_ledger_schema_invalid")
         return _summary(failures, eligible_raw, ledger_raw, len(ids), 0, 0, 0)
-    if type(ledger.get("schema_version")) is not int or ledger["schema_version"] != 1:
+    if type(ledger.get("schema_version")) is not int or ledger["schema_version"] != 2:
         failures.add("rights_ledger_version_invalid")
+    if not _nonempty_text(ledger.get("eligible_dataset_id")):
+        failures.add("eligible_dataset_id_missing")
     if not _is_sha(ledger.get("eligible_manifest_sha256")) or ledger.get("eligible_manifest_sha256") != hashlib.sha256(eligible_raw).hexdigest():
         failures.add("eligible_manifest_hash_mismatch")
     if not _nonempty_text(ledger.get("intended_use_scope")):
@@ -181,7 +221,7 @@ def audit(eligible: Any, eligible_raw: bytes, ledger: Any, ledger_raw: bytes) ->
     item_covered = 0
     for row in rows:
         row_failures: set[str] = set()
-        row_id, covered = _audit_item(row, uses, row_failures)
+        row_id, covered = _audit_item(row, ledger.get("eligible_dataset_id"), uses, row_failures)
         failures.update(row_failures)
         if row_id is not None:
             row_ids.append(row_id)

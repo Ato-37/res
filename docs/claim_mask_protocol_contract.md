@@ -117,10 +117,12 @@ human must assess evidence authenticity, reviewer authority, and license scope.
 
 For a private draft ledger, `scripts/audit_item_rights_manifest.py` checks the
 eligible-manifest byte hash, one-to-one video-ID row coverage, separate
-annotation and per-video media evidence references, review declarations,
+annotation and per-video media evidence references, every source-lineage mapping
+transition, review declarations,
 resolved-conditions declarations, and explicit decisions for each declared use.
 The eligible manifest is a nonempty JSON array of objects with a unique
-`video_id` string. The ledger's top-level `intended_uses` must include
+`video_id` string. Schema version 2 adds a top-level `eligible_dataset_id` for
+that identifier namespace. The ledger's top-level `intended_uses` must include
 `local_inference` and may also include `local_retention`,
 `aggregate_publication`, and `redistribution`. An `intended_use_scope` string
 records the human-declared purpose and constraints for those use categories.
@@ -131,6 +133,12 @@ contains `video_id`, `source_dataset_id`, `source_video_id`, `media_license_id`,
 `media_evidence_locator`, media-evidence, review-record, and conditions-record
 SHA-256 values, `media_reviewer_role`, media review status/time,
 `conditions_status`, and decisions keyed by every intended use.
+Each item also carries a nonempty ordered `source_lineage` list. Every
+transition records its from/to dataset IDs and record IDs plus a private mapping
+evidence locator and SHA-256. The first transition must start at the eligible
+item ID, adjacent transitions must join exactly, and the final transition must
+end at the media-license source dataset/video ID. This records cross-dataset
+mapping provenance separately from the source-media license evidence.
 Locators, roles, and notes stay in the private ledger. Decisions are exactly
 `permitted`, `not_permitted`, or `unresolved`; review statuses must be completed
 and conditions must be declared `reviewed_resolved` for every eligible item.

@@ -42,6 +42,16 @@ def fixture():
             "video_id": video_id,
             "source_dataset_id": "synthetic source collection",
             "source_video_id": source_id,
+            "source_lineage": [
+                {"from_dataset_id": "synthetic annotations", "from_record_id": video_id,
+                 "to_dataset_id": "synthetic video QA", "to_record_id": source_id,
+                 "mapping_evidence_locator": "private://synthetic/qa-map",
+                 "mapping_evidence_sha256": H},
+                {"from_dataset_id": "synthetic video QA", "from_record_id": source_id,
+                 "to_dataset_id": "synthetic source collection", "to_record_id": source_id,
+                 "mapping_evidence_locator": "private://synthetic/source-map",
+                 "mapping_evidence_sha256": H},
+            ],
             "media_license_id": "CC-BY-2.0",
             "media_evidence_locator": "private://synthetic/source-license",
             "media_evidence_sha256": H,
@@ -54,7 +64,8 @@ def fixture():
             "decisions": decisions.copy(),
         })
     ledger = {
-        "schema_version": 1,
+        "schema_version": 2,
+        "eligible_dataset_id": "synthetic annotations",
         "eligible_manifest_sha256": hashlib.sha256(eligible_raw).hexdigest(),
         "intended_use_scope": "synthetic noncommercial local inference and aggregate results",
         "intended_uses": USES.copy(),
@@ -117,6 +128,30 @@ class ItemRightsManifestAuditTests(unittest.TestCase):
         eligible = [{"video_id": "private-a"}, {"video_id": "private-a"}]
         result = audit(eligible, raw(eligible), ledger, raw(ledger))
         self.assertIn("eligible_manifest_invalid", result["failure_codes"])
+
+    def test_source_lineage_must_be_connected_and_match_endpoints(self):
+        eligible, eligible_raw, ledger, _ = fixture()
+        ledger["items"][0]["source_lineage"][1]["from_record_id"] = "wrong-middle-record"
+        result = audit(eligible, eligible_raw, ledger, raw(ledger))
+        self.assertIn("item_source_lineage_disconnected", result["failure_codes"])
+        self.assertIn("item_rights_source_lineage_invalid", result["failure_codes"])
+
+        eligible, eligible_raw, ledger, _ = fixture()
+        ledger["items"][0]["source_lineage"][0]["from_record_id"] = "other-video"
+        result = audit(eligible, eligible_raw, ledger, raw(ledger))
+        self.assertIn("item_source_lineage_endpoint_mismatch", result["failure_codes"])
+
+    def test_source_lineage_requires_mapping_evidence_per_transition(self):
+        eligible, eligible_raw, ledger, _ = fixture()
+        ledger["items"][0]["source_lineage"][1]["mapping_evidence_sha256"] = "invalid"
+        result = audit(eligible, eligible_raw, ledger, raw(ledger))
+        self.assertIn("item_source_lineage_evidence_invalid", result["failure_codes"])
+
+    def test_empty_or_missing_source_lineage_keeps_gate_closed(self):
+        eligible, eligible_raw, ledger, _ = fixture()
+        ledger["items"][0]["source_lineage"] = []
+        result = audit(eligible, eligible_raw, ledger, raw(ledger))
+        self.assertIn("item_source_lineage_missing", result["failure_codes"])
 
     def test_cli_output_contains_no_private_ids_or_evidence_locators(self):
         _, eligible_raw, ledger, _ = fixture()

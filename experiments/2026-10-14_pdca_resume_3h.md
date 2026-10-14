@@ -157,6 +157,33 @@ tests, contract, and log were committed as
 then live-fetched. The latest `origin/main` resolves to the same second commit;
 the published audit-script and log SHA-256 values match their local files.
 
+### Source-lineage follow-up
+
+Primary dataset documentation confirms a plausible multi-step lineage:
+NExT-GQA's dataset README says its training annotations match NExT-QA and that
+its `map_vid_vidorID` maps QA video IDs to video paths; NExT-QA states that its
+videos come from VidOR. VidOR describes its videos as unprocessed YFCC100M items
+and exposes a YFCC video identifier/hash in its annotation format. The
+Multimedia Commons page
+says YFCC metadata contains the per-media creator-selected license, while its
+current access instructions say Webscope is not offering the metadata download
+and that dataset access is subject to the Webscope agreement. NExT-GQA's README
+separately instructs users to download raw videos. These sources identify a
+possible mapping path; they do not verify any private sample's links or license.
+No item identifiers were queried externally, no source metadata was downloaded,
+and no rights conclusion was made. Sources: [NExT-GQA dataset README](https://github.com/doc-doc/NExT-GQA/blob/main/datasets/nextgqa/README.md), [NExT-QA README](https://github.com/doc-doc/NExT-QA/blob/main/README.md), [VidOR dataset documentation](https://xdshang.github.io/docs/vidor.html), [YFCC100M Core Dataset](https://multimediacommons.wordpress.com/yfcc100m-core-dataset/), and [NExT-GQA preparation README](https://github.com/doc-doc/NExT-GQA/blob/main/README.md).
+
+This review showed that a final `source_dataset_id` and `source_video_id` alone
+cannot preserve evidence for each intermediate mapping. The private rights-ledger
+schema has been advanced to v2: it binds an `eligible_dataset_id` namespace and
+requires each video row to contain an ordered chain of mapping transitions,
+each with private evidence locator/hash. The checker validates the start at the
+eligible ID, continuity between transitions, and the final source-media ID.
+This remains a structural declaration check; it neither fetches nor
+authenticates mapping evidence. Ten focused tests pass, and an independent audit
+found no fail-open path or privacy leak in the chain check; full-suite rerun and
+publication remain pending at this checkpoint.
+
 ## Faithfulness progress at this checkpoint
 
 - New direct faithfulness samples this window: 0.
