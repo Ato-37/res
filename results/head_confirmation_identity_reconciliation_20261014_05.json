@@ -1,0 +1,23 @@
+{
+  "duplicate_content_excess_files": 0,
+  "duplicate_video_id_excess_records": 0,
+  "failure_codes": [],
+  "identity_audit_runner_sha256": "593bb975f5312f898269d86201adf239f39746cc19ef5dd658d4c52c25d40f27",
+  "identity_audit_runner_source_match": true,
+  "identity_audit_sha256": "f23e15be3f1b8ec52c4e24f25ad4739deb34021ed89e6b158dbc3ee9ec377e14",
+  "identity_audit_source_commit": "a8f34c3f7bfcc4a723d93639ea087e1a2a05e597",
+  "independence_established": false,
+  "manifest_hash_matches_identity_audit": true,
+  "n_effective": 79,
+  "n_failures": 0,
+  "n_files_hashed": 79,
+  "n_requested": 79,
+  "n_unique_video_ids": 79,
+  "result_run_manifest_crosshash_binding": false,
+  "result_sample_ordinals_complete": true,
+  "result_sha256": "993acd16e62c1e8cf8aafe075674cc1e649761f2e1ca5bb05be83814a2e6ac36",
+  "run_manifest_sha256": "d3c59d49c3609a03d868592d188507f3df5fc1cd1408612bfb98c315d63e1b16",
+  "sample_manifest_sha256": "2fa141ee9a9c00e86db380b2ee2dbb3161080224c6b0eaf86ddc401cd1341e10",
+  "schema_version": 1,
+  "status": "cohort_identity_verified"
+}

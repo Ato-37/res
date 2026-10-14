@@ -81,14 +81,8 @@ estimate. The result JSON SHA-256 is
 manifest SHA-256 is
 `d3c59d49c3609a03d868592d188507f3df5fc1cd1408612bfb98c315d63e1b16`.
 
-The current local held-out sample JSON does not match the historical sample
-manifest hash in that run manifest (`2fa141ee9a9c00e86db380b2ee2dbb3161080224c6b0eaf86ddc401cd1341e10`). Therefore the analyzer rejects the current local file and
-cannot reproduce the result-to-video identity/uniqueness join from this tree.
-Without that optional private manifest, the published result/manifest summary
-checks pass, but unique video identities are correctly reported as
-`unverified`. This is a bounded historical-provenance limitation; it does not
-change the recomputed effect summary or authorize reopening the closed branch.
-The private manifest was not printed, changed, staged, or published.
+The current local held-out sample JSON still does not match the historical
+manifest hash in the run manifest (`2fa141ee9a9c00e86db380b2ee2dbb3161080224c6b0eaf86ddc401cd1341e10`), so the original analyzer cannot directly join the local file to the old result. A separate tracked video-identity audit already records this exact manifest hash and reports 79/79 unique normalized IDs, 79 successfully hashed files, zero duplicate IDs, zero repeated paths, and zero exact-content duplicates. Its recorded runner hash matches both the local script and the source-commit Git blob. The head-result has all 79 requested ordinal keys, with no missing or duplicated key. Added `scripts/reconcile_head_confirmation_identity.py` to check these relations without reading or emitting private IDs; its privacy-safe output is `results/head_confirmation_identity_reconciliation_20261014_05.json` (SHA-256 `a6ee6dae985678a51b2e6bcc52eceef12be80293ae90b54087e66829992f6067`). It marks `cohort_identity_verified` and explicitly sets `result_run_manifest_crosshash_binding=false` and `independence_established=false`. The original private manifest remains mismatched locally, but the existing hash-linked audit now supports the 79-record uniqueness/content summary; shared scenes, campaigns, transcodes not byte-identical, and dependence remain untested. The private manifest was not printed, changed, staged, or published.
 
 ## Potential per-item license metadata lead
 
@@ -187,7 +181,7 @@ claims. Keep closed head/batch branches closed. Run a GPU experiment only if a
 distinct, pre-specified, cleared and smoke-validated experiment becomes
 available; do not generate GPU load to fill the window.
 
-## Schema-v6 protocol reproducibility hardening (in progress)
+## Schema-v6 protocol reproducibility hardening
 
 Reviewing the protocol against the existing design found that schema v5 fixed
 the names of the two Holm families but had no hash reference for their exact
@@ -211,4 +205,30 @@ ungranted. These are structural checks only: hashes are not resolved, timeline
 declarations are not authenticated, and neither schema validity nor these tests
 authorize scoring. Direct faithfulness progress at this checkpoint is still 0
 new samples / 0 new effect estimates; the gates above remain unresolved and no
-GPU job ran.
+GPU job ran. The implementation and tests are published in commit
+`61cc6aad3340673161c4bd35a412ebf9464200ce`, live-fetched and verified.
+
+## Historical head-result identity reconciliation
+
+The local sample JSON hash mismatch looked like an identity-provenance gap, so
+the published result, run manifest, and existing privacy-safe video audit were
+reconciled independently. The new tool requires result ordinals to cover the
+entire requested prefix, the run-manifest sample hash to equal the audit's
+input hash, a complete per-video identity/content audit with no ID/path/exact
+content duplicates, and the historical runner source hash to match the recorded
+Git source commit. It prints only aggregate counts, hashes, and status. An
+independent audit caught that the legacy run manifest lacks a result-file hash
+and source commit, so a broad `verified` status would overstate result-to-run
+linkage. The output now says `cohort_identity_verified` and separately reports
+`result_run_manifest_crosshash_binding=false`; detailed boolean fields default
+false on malformed inputs. The audit also caught bool/int count equivalence and
+misleading detail flags on malformed records; strict integer checks and
+regression tests were added. The historical artifacts pass the cohort identity
+reconciliation: 79/79 results and hashed files, 79 unique IDs, zero duplicate
+IDs or exact-content files. Nine focused tests and the full 499-test suite pass.
+A CLI output artifact was generated without private inputs and contains no
+ID/path/question/answer fields. This supports aggregate video uniqueness for
+this historical cohort, but does not establish statistical independence,
+result-to-manifest crosshash linkage, or identify visually shared
+scenes/campaigns. It does not change the closed head result or its effect
+estimate.
