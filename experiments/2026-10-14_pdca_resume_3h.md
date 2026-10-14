@@ -1378,3 +1378,15 @@ target is an annotated explanation claim, validate real generations, or
 measure faithfulness, and it does not alter the current A–E choice-margin
 protocol. No model, data, or GPU was used. At 20:06:06 JST, 2h42m54s elapsed
 and 17m06s remained; direct faithfulness remains 0 new samples / 0 new effects.
+
+## Legacy mask/control helper regression check
+
+The independent source review reaffirmed that the legacy runner's margin
+formula is compatible with the proposed A–E estimand, while its input-boundary,
+cohort, claim-review, and inference procedures keep it outside v9. I reran its
+CPU utility and failure suites: 14/14 passed, covering inclusive timestamp
+membership, equal-size/disjoint nearest controls and lexicographic ties,
+black/blur fill behavior, and fail-closed empty-evidence/control cases. These
+synthetic unit checks do not upgrade legacy outputs, clear gates, or authorize
+scoring. No inference/data access. At 20:07:40 JST, 2h44m28s elapsed and
+15m32s remained; 0 new faithfulness samples / 0 effects.
