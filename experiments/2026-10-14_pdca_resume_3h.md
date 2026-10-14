@@ -849,3 +849,20 @@ checks pass. This protects the planning CLI from an internal library exception
 on infeasible inputs; no valid-sample design or scientific conclusion changes.
 At 19:18:13 JST, 1h55m01s had elapsed and 1h04m59s remained. The addition and
 log await scoped publication.
+
+## Current execution-resource check
+
+At 19:19 JST, an individually elevated read-only check saw the RTX 5070 Ti
+with 14,624/16,303 MiB free, instantaneous GPU utilization 0% and memory-busy
+14%; `.venv` reports torch `2.11.0+cu128`, CUDA build 12.8, CUDA available,
+and BF16 supported. Linux reports 15 GiB RAM, 13 GiB available, 4 GiB swap
+almost free, and cgroup `memory.max=max`. These are point-in-time readings, not
+sustained bandwidth or utilization measurements. No model job ran: the GPU is
+available, but the only efficacy candidate remains blocked by human review,
+item-level rights, claim mapping review, and unresolved pre-outcome SESOI; the
+closed head and batch-diagnostic branches are not reopened. This separates a
+research-protocol no-go from a hardware/runtime blocker. Faithfulness progress
+remains 0 new samples / 0 effects.
+
+At 19:19:17 JST, 1h56m05s had elapsed and 1h03m55s remained. Resource snapshot
+and gate assessment are recorded; no raw or private data were accessed.
