@@ -41,6 +41,29 @@ def failure_code(exc: Exception) -> str:
     return 'runtime_error'
 
 
+def score_conditions_with_accounting(sample_index, score, paths, question, choices):
+    """Score all three conditions as one per-sample transaction.
+
+    A failure in any condition discards the partial triplet and returns one
+    privacy-safe failure record, matching the runner's sample-level accounting.
+    """
+    try:
+        scored = {}
+        for condition, frame_paths in paths.items():
+            values, metadata = score(frame_paths, question, choices)
+            scored[condition] = (validate_choice_logprobs(values), metadata)
+        scores = {condition: value[0] for condition, value in scored.items()}
+        input_metadata = {condition: value[1] for condition, value in scored.items()}
+        return {'scores': scores, 'input_metadata': input_metadata}, None
+    except Exception as exc:
+        return None, {'sample_index': sample_index, 'failure_code': failure_code(exc)}
+
+
+def sample_accounting_fields(n_requested, rows, failures):
+    """Build the runner's requested/effective/failure accounting fields."""
+    return {'n_requested': n_requested, 'n_effective': len(rows), 'failures': failures}
+
+
 def provenance(path: Path) -> dict:
     """Record reproducibility hashes without publishing the input contents."""
     digest = hashlib.sha256(path.read_bytes()).hexdigest()
@@ -130,7 +153,7 @@ def main():
             logits = model(**inputs).logits[0, position].float()
             logprobs = torch.log_softmax(logits, dim=-1)
             values = logprobs[torch.tensor(label_ids, device=logprobs.device)].cpu().tolist()
-            return validate_choice_logprobs(values), input_meta
+            return values, input_meta
 
     rows, failures = [], []
     for sample_idx, sample in enumerate(samples):
@@ -160,10 +183,14 @@ def main():
                                              args.mask_fill, args.blur_radius),
             }
             choices, gold = sample['choices'], int(sample['answer_choice_index'])
-            scored = {condition: score(frame_paths, sample['question'], choices)
-                      for condition, frame_paths in paths.items()}
-            scores = {condition: value[0] for condition, value in scored.items()}
-            input_metadata = {condition: value[1] for condition, value in scored.items()}
+            scored, scoring_failure = score_conditions_with_accounting(
+                sample_idx, score, paths, sample['question'], choices)
+            if scoring_failure is not None:
+                failures.append(scoring_failure)
+                print(f"WARNING: skipping sample_index={sample_idx} "
+                      f"failure_code={scoring_failure['failure_code']}", flush=True)
+                continue
+            scores, input_metadata = scored['scores'], scored['input_metadata']
             margin = lambda condition: scores[condition][gold] - max(
                 value for option, value in enumerate(scores[condition]) if option != gold)
             full_margin, evidence_margin, control_margin = (
@@ -217,7 +244,7 @@ def main():
                                   '(full margin - matched-control-mask margin)] among baseline-correct samples',
               'control_protocol': 'same number of black-masked frames; non-grounding indices chosen '
                                  'to minimize temporal rank-distance from evidence indices',
-              'n_requested': len(samples), 'n_effective': len(rows), 'failures': failures,
+              **sample_accounting_fields(len(samples), rows, failures),
               'summary': ({'all': None, 'baseline_correct_primary': None,
                            'baseline_incorrect_secondary': None,
                            'correct_minus_incorrect_interaction': None}
