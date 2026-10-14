@@ -1237,3 +1237,11 @@ source hashes and output privacy. Focused tests pass 7/7; the full scripts
 suite passes 559/559, `py_compile` and `git diff --check` pass. Direct
 faithfulness remains 0 new samples / 0 effects. At 19:53:13 JST, 2h30m01s
 elapsed and 29m59s remained.
+
+The default-scale diagnostic, runner/config fixture, tests, and this log update
+were published in `fda632018bd1ada0fad3524609c4b4599e07f990`. Push and live
+fetch succeeded; `HEAD == origin/main`, and the remote result artifact hash
+matches the logged SHA-256. The earlier 3-frame artifact remains a separate
+published diagnostic; the 16-frame default-scale result is the current
+stronger boundary check, not a faithfulness result. At 19:54:18 JST, 2h31m06s
+elapsed and 28m54s remained. No model/GPU/data scoring occurred.
