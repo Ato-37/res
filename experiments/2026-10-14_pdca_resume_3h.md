@@ -584,5 +584,9 @@ unrelated interpreter or operating-system diagnostics. Direct faithfulness
 progress remains 0 new samples / 0 effects; no real video was read in these
 privacy tests and no GPU run occurred.
 
-At 18:54:08 JST, 1h30m56s had elapsed and 1h29m04s remained. These changes are
-not yet committed; the next step is scoped publication after final diff review.
+At 18:54:08 JST, 1h30m56s had elapsed and 1h29m04s remained. Commit
+`63eb2c510612a007364dbc2d48b9f3fff2ede472` was pushed and live-fetched; the
+remote script and focused-test SHA-256 values match local bytes. The unrelated
+untracked dataset/sample files remain untouched. The logged time is the
+checkpoint immediately before that commit/push, not time spent by those later
+commands.
