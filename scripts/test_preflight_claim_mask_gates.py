@@ -1,4 +1,5 @@
 import contextlib
+import hashlib
 import io
 import json
 import tempfile
@@ -7,7 +8,11 @@ from pathlib import Path
 from unittest.mock import patch
 
 from preflight_claim_mask_gates import main, preflight
-from test_validate_claim_mask_protocol import fixture as protocol_fixture
+from test_audit_claim_review_evidence_index import fixture as claim_review_fixture, REVISION
+from test_audit_item_rights_manifest import fixture as item_rights_fixture
+from test_validate_claim_mask_protocol import (fixture as protocol_fixture,
+                                               compute_primary_estimand_sha256,
+                                               compute_inference_plan_sha256)
 
 
 def write_json(path, value):
@@ -34,17 +39,79 @@ class ClaimMaskGatePreflightTests(unittest.TestCase):
             paths[key] = path
         return paths, protocol
 
-    @patch("preflight_claim_mask_gates.audit_data_rights")
-    @patch("preflight_claim_mask_gates.audit_item_rights")
-    @patch("preflight_claim_mask_gates.audit_claim_review")
-    def test_all_structural_components_pass_but_preflight_remains_blocked(
-        self, claim, rights, data_rights
-    ):
-        claim.return_value = {"schema_version": 1, "structural_status": "passed", "failure_codes": [], "execution_authorization": "not_granted"}
-        rights.return_value = {"schema_version": 1, "structurally_valid": True, "failure_codes": [], "execution_authorization": "not_granted"}
-        data_rights.return_value = {"schema_version": 1, "structural_status": "passed", "failure_codes": [], "execution_authorization": "not_granted"}
+    def fully_bound_synthetic_paths(self, root):
+        claim_parts = list(claim_review_fixture())
+        protocol = protocol_fixture()
+        eligible, _eligible_raw, rights, _rights_raw = item_rights_fixture()
+        eligible_raw = write_json(Path(root) / "eligible-work.json", eligible)
+        rights["eligible_manifest_sha256"] = hashlib.sha256(eligible_raw).hexdigest()
+        rights_raw = write_json(Path(root) / "rights-work.json", rights)
+        for index, row in enumerate(eligible):
+            video_id = row["video_id"]
+            claim_parts[1][index]["video_id"] = video_id
+            claim_parts[3]["claims"][index]["video_id"] = video_id
+            claim_parts[5]["claims"][index]["video_id"] = video_id
+            claim_parts[7]["records"][index]["video_id"] = video_id
+        eligible_sha = hashlib.sha256(eligible_raw).hexdigest()
+        claim_parts[3]["eligible_manifest_sha256"] = eligible_sha
+        claim_parts[5]["eligible_manifest_sha256"] = eligible_sha
+        claim_input_raw = write_json(Path(root) / "claim-input-work.json", claim_parts[3])
+        claim_ledger_raw = write_json(Path(root) / "claim-ledger-work.json", claim_parts[5])
+        claim_parts[7]["mapping_ledger_sha256"] = hashlib.sha256(claim_ledger_raw).hexdigest()
+        claim_review_raw = write_json(Path(root) / "claim-review-work.json", claim_parts[7])
+        protocol["model"]["revision"] = REVISION
+        protocol["cohort"]["eligible_manifest_sha256"] = eligible_sha
+        protocol["claim_review"].update(
+            claim_manifest_sha256=hashlib.sha256(claim_input_raw).hexdigest(),
+            mapping_sha256=hashlib.sha256(claim_ledger_raw).hexdigest(),
+            review_record_sha256=hashlib.sha256(claim_review_raw).hexdigest(),
+        )
+        agreement = {
+            "applicability": "applicable", "sha256": "a" * 64,
+            "private_locator": "private://synthetic/agreement",
+            "review_record_sha256": "a" * 64, "reviewer_role": "synthetic reviewer",
+            "reviewed_at_utc": "2026-10-15T00:00:00Z",
+            "planned_use_scope": rights["intended_use_scope"],
+            "decisions": {use: "permitted" for use in rights["intended_uses"]},
+            "non_applicability_basis_sha256": None,
+        }
+        evidence_index = {
+            "schema_version": 1,
+            "eligible_manifest": {"sha256": eligible_sha, "private_locator": "private://synthetic/eligible",
+                                  "eligible_video_count": len(eligible)},
+            "item_rights_manifest": {"sha256": hashlib.sha256(rights_raw).hexdigest(),
+                                     "private_locator": "private://synthetic/rights"},
+            "annotation_terms": {"sha256": rights["annotation_rights"]["evidence_sha256"],
+                                  "private_locator": "private://synthetic/annotation"},
+            "item_media_conditions": {"sha256": "a" * 64, "private_locator": "private://synthetic/media",
+                                      "covered_video_count": len(eligible)},
+            "dataset_access_agreement": agreement,
+        }
+        evidence_raw = write_json(Path(root) / "data-rights-work.json", evidence_index)
+        protocol["data_rights"] = {
+            "scope": rights["intended_use_scope"], "status": "verified",
+            "evidence_sha256": hashlib.sha256(evidence_raw).hexdigest(),
+            "item_rights_manifest_sha256": hashlib.sha256(rights_raw).hexdigest(),
+            "covered_eligible_video_count": len(eligible), "unresolved_eligible_video_count": 0,
+        }
+        protocol["estimand"]["primary_estimand_sha256"] = compute_primary_estimand_sha256(protocol)
+        protocol["analysis"]["inference_plan_sha256"] = compute_inference_plan_sha256(protocol)
+        values = {
+            "protocol": protocol, "eligible_manifest": eligible,
+            "claim_input_manifest": claim_parts[3], "claim_mapping_ledger": claim_parts[5],
+            "claim_review_index": claim_parts[7], "item_rights_ledger": rights,
+            "data_rights_index": evidence_index,
+        }
+        paths = {}
+        for key, value in values.items():
+            path = Path(root) / f"{key}.json"
+            write_json(path, value)
+            paths[key] = path
+        return paths
+
+    def test_all_structural_components_pass_but_preflight_remains_blocked(self):
         with tempfile.TemporaryDirectory() as tmp:
-            paths, protocol = self.paths_and_protocol(tmp)
+            paths = self.fully_bound_synthetic_paths(tmp)
             report = preflight(paths)
         self.assertEqual(report["overall_status"], "blocked")
         self.assertEqual(report["structural_checks_status"], "passed")
@@ -53,9 +120,6 @@ class ClaimMaskGatePreflightTests(unittest.TestCase):
         self.assertIn("protocol_stage_not_confirmatory", report["blocker_codes"])
         self.assertIn("sesoi_not_frozen", report["blocker_codes"])
         self.assertIn("execution_authorization_not_granted", report["blocker_codes"])
-        claim.assert_called_once()
-        rights.assert_called_once()
-        data_rights.assert_called_once()
 
     @patch("preflight_claim_mask_gates.audit_data_rights", side_effect=RuntimeError("private detail"))
     @patch("preflight_claim_mask_gates.audit_item_rights")
