@@ -148,6 +148,17 @@ The schema-v9 hash declarations do not enforce these semantic requirements;
 the independent human inspection of claim and video remains necessary, and a
 structural pass alone cannot establish the mapping or authorize inference.
 
+For independence from QA-span anchoring, the primary mapper sees the video,
+question, and frozen generated claim, but not the QA interval seed, gold answer,
+or outcome scores. The mapper records and freezes claim support and intervals
+before any seed exposure. Only after that freeze may an auditor compare the QA
+seed with the mapping; that comparison is descriptive and must never edit or
+expand the primary intervals. `qa_seed_hidden_until_mapping_frozen` must be
+declared `true` in the private review record. This is a self-declaration: the
+structural checker cannot prove what the reviewer saw, when the freeze occurred,
+or whether the referenced record is authentic. A seed-derived review that
+cannot establish this ordering does not pass the independent-mapping gate.
+
 [`scripts/audit_claim_mapping_manifest.py`](../scripts/audit_claim_mapping_manifest.py)
 provides a separate private, CPU-only consistency check for this record. Its
 ledger binds one frozen model-generated claim per eligible video to one or more
@@ -167,9 +178,10 @@ interval values, locators, and per-item hashes.
 
 Identical QA-seed and reviewed interval coordinates are not automatically
 rejected: a human may independently confirm that the same interval supports
-the specific claim. The ledger's `seed_only` and `independent_claim_review`
-fields remain self-declarations, so a dishonest ledger can still label a
-copied span as independently reviewed. Structural acceptance is only a
+the specific claim. The ledger's `seed_only`, `independent_claim_review`, and
+`qa_seed_hidden_until_mapping_frozen` fields remain self-declarations, so a
+dishonest ledger can still label a copied span as independently reviewed.
+Structural acceptance is only a
 precondition to human audit, never proof that the review occurred.
 If a `claim_support_decision` field is present and is not `supports_claim`,
 the checker emits the generic `claim_support_not_established` failure code,
@@ -190,8 +202,9 @@ hash, occurrence policy, and optional scoring-start timestamp. Each claim row
 contains the video and claim IDs, claim-text hash, frozen model origin/revision
 and generation-run hash, mapping method, QA-seed usage and source intervals,
 the reviewed evidence intervals, and a review declaration binding the seen
-claim/interval hashes, independent-human role, record hash/time, video-only
-review conditions, support decision, and applied occurrence policy. Keep this
+claim/interval hashes, independent-human role, record hash/time, video-review
+conditions, answer/gold blindness, seed-hidden-until-freeze declaration,
+support decision, and applied occurrence policy. Keep this
 ledger private; its row-level identifiers, timestamps, and hashes can reveal
 or link sensitive research records.
 

@@ -35,6 +35,7 @@ def make_row(**changes):
             "evidence_intervals_sha256_seen": gate._intervals_sha256(INTERVALS),
             "video_reviewed": True,
             "answer_and_gold_hidden": True,
+            "qa_seed_hidden_until_mapping_frozen": True,
             "outcome_scores_seen": False,
             "claim_support_decision": "supports_claim",
             "occurrence_policy_applied": "one_sufficient_occurrence",
@@ -72,6 +73,16 @@ class ClaimMappingManifestAuditTests(unittest.TestCase):
         self.assertTrue(result["structurally_valid"])
         self.assertEqual(result["semantic_validation"], "not_machine_verifiable")
         self.assertEqual(result["execution_authorization"], "not_granted")
+
+    def test_seed_must_be_hidden_until_claim_mapping_is_frozen(self):
+        row = make_row()
+        row["review"]["qa_seed_hidden_until_mapping_frozen"] = False
+        result = self.run_audit(make_ledger(self.eligible_raw, rows=[row]))
+        self.assertFalse(result["structurally_valid"])
+        self.assertIn("independent_human_review_incomplete", result["failure_codes"])
+        row["review"].pop("qa_seed_hidden_until_mapping_frozen")
+        result = self.run_audit(make_ledger(self.eligible_raw, rows=[row]))
+        self.assertIn("independent_human_review_incomplete", result["failure_codes"])
 
     def test_qa_span_copy_is_rejected(self):
         row = make_row(mapping_method="qa_span_copy")

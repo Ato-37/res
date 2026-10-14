@@ -171,7 +171,7 @@ def _review_row(row: Any, policy: str, scoring_started: Any, failures: set[str])
     review_required = {
         "status", "reviewer_role", "review_record_sha256", "reviewed_at_utc",
         "claim_text_sha256_seen", "evidence_intervals_sha256_seen", "video_reviewed", "answer_and_gold_hidden",
-        "outcome_scores_seen", "claim_support_decision", "occurrence_policy_applied",
+        "qa_seed_hidden_until_mapping_frozen", "outcome_scores_seen", "claim_support_decision", "occurrence_policy_applied",
     }
     if not isinstance(review, dict) or set(review) != review_required:
         failures.add("independent_human_review_incomplete")
@@ -184,6 +184,7 @@ def _review_row(row: Any, policy: str, scoring_started: Any, failures: set[str])
                 or review.get("evidence_intervals_sha256_seen") != interval_digest
                 or review.get("video_reviewed") is not True
                 or review.get("answer_and_gold_hidden") is not True
+                or review.get("qa_seed_hidden_until_mapping_frozen") is not True
                 or review.get("outcome_scores_seen") is not False
                 or review.get("occurrence_policy_applied") != policy):
             failures.add("independent_human_review_incomplete")
