@@ -74,6 +74,19 @@ reviewed and recorded; a video-ID mapping alone does not count. Declaring
 validator checks only the declared counts and hash shape, not the evidence or
 whether a video license permits the intended use.
 
+The private item-rights manifest should contain exactly one row per eligible
+video and a local-only crosswalk to the eligible manifest. Record the
+NExT-GQA-to-source-video lineage, item-specific source license identifier and
+evidence locator/hash/date, reviewer and review date, conditions, and distinct
+decisions for local decoding/inference, retention/cache, derived aggregate
+publication, and redistribution if proposed. Assess annotation terms separately
+from original video-media terms. Missing, duplicate, ambiguous, or unresolved
+rows count as unresolved for the declared intended-use scope. Conditional terms
+remain unresolved until their applicability and fulfillment for that use are
+reviewed and recorded. Keep item identifiers, source URLs, and evidence
+private. A matching validator could check row/key/count reconciliation, but a
+human must assess evidence authenticity, reviewer authority, and license scope.
+
 `execution_authorization` must remain false. Review timing and data-rights status
 are separate declarations, but a structural pass does not make either gate
 true. The validator does not authenticate signatures, validate hash targets,
