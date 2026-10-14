@@ -1,3 +1,4 @@
+import math
 import unittest
 
 from simulate_claim_mask_power_distribution_sensitivity import (
@@ -22,6 +23,19 @@ class TestDistributionalPowerSensitivity(unittest.TestCase):
         for df in (2.0, 1.5, float("nan")):
             with self.subTest(df=df), self.assertRaises(ValueError):
                 simulate_condition(20, 0.2, df, 100, 1)
+
+    def test_zero_excess_null_calibration_and_reported_monte_carlo_errors(self):
+        result = simulate_condition(20, 0.0, 3.0, 50_000, 20261014, batch_size=5000)
+        self.assertLess(abs(result["upper_tail_probability"] - 0.025), 0.005)
+        self.assertLess(abs(result["two_sided_rejection_probability"] - 0.05), 0.01)
+        self.assertAlmostEqual(
+            result["upper_tail_monte_carlo_se"],
+            math.sqrt(result["upper_tail_probability"] * (1 - result["upper_tail_probability"]) / 50_000),
+        )
+        self.assertAlmostEqual(
+            result["two_sided_monte_carlo_se"],
+            math.sqrt(result["two_sided_rejection_probability"] * (1 - result["two_sided_rejection_probability"]) / 50_000),
+        )
 
     def test_bad_repetition_and_sample_sizes_fail(self):
         for kwargs in (
