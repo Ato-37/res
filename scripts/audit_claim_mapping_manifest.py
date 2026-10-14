@@ -218,7 +218,7 @@ def audit(eligible: Any, eligible_raw: bytes, ledger: Any, ledger_raw: bytes) ->
     if not isinstance(ledger, dict) or set(ledger) != required:
         failures.add("claim_ledger_schema_invalid")
         return _summary(failures, len(ids), 0)
-    if type(ledger.get("schema_version")) is not int or ledger["schema_version"] != 1:
+    if type(ledger.get("schema_version")) is not int or ledger["schema_version"] != 2:
         failures.add("claim_ledger_version_invalid")
     if not isinstance(ledger.get("eligible_dataset_id"), str) or not ledger["eligible_dataset_id"].strip():
         failures.add("eligible_dataset_id_missing")

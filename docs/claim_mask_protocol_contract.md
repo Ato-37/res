@@ -197,7 +197,7 @@ example:
   --claim-ledger /private/path/claim_mapping_ledger.json
 ```
 
-The version-1 ledger binds the eligible-manifest hash, claim-review policy
+The version-2 ledger binds the eligible-manifest hash, claim-review policy
 hash, occurrence policy, and optional scoring-start timestamp. Each claim row
 contains the video and claim IDs, claim-text hash, frozen model origin/revision
 and generation-run hash, mapping method, QA-seed usage and source intervals,

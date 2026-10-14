@@ -47,7 +47,7 @@ def make_row(**changes):
 
 def make_ledger(eligible_raw: bytes, rows=None, **changes):
     ledger = {
-        "schema_version": 1,
+        "schema_version": 2,
         "eligible_dataset_id": "synthetic-dataset",
         "eligible_manifest_sha256": hashlib.sha256(eligible_raw).hexdigest(),
         "claim_policy_sha256": H,
@@ -83,6 +83,12 @@ class ClaimMappingManifestAuditTests(unittest.TestCase):
         row["review"].pop("qa_seed_hidden_until_mapping_frozen")
         result = self.run_audit(make_ledger(self.eligible_raw, rows=[row]))
         self.assertIn("independent_human_review_incomplete", result["failure_codes"])
+
+    def test_previous_schema_version_is_rejected(self):
+        ledger = make_ledger(self.eligible_raw, schema_version=1)
+        result = self.run_audit(ledger)
+        self.assertFalse(result["structurally_valid"])
+        self.assertIn("claim_ledger_version_invalid", result["failure_codes"])
 
     def test_qa_span_copy_is_rejected(self):
         row = make_row(mapping_method="qa_span_copy")
