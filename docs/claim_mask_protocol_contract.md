@@ -466,6 +466,12 @@ record, a hash, a resolved-conditions label, or a structurally valid result
 does not establish truth or legal scope. Any missing, extra, duplicate, or
 unresolved item/use keeps the rights gate closed, and execution authorization
 is always `not_granted`.
+The summary field `declared_item_and_annotation_use_gates_structurally_complete`
+is limited to the ledger's per-item media and annotation declarations; it does
+not cover any dataset-level access or metadata agreement. The summary marks
+`dataset_access_agreement_gate` as `not_machine_verified`; assess any applicable
+agreement from its separate private record before treating planned use as
+eligible. Neither field grants permission.
 
 The protocol input's `runtime.execution_authorization` must remain boolean
 `false`; the item-rights audit summary reports the string `not_granted`.

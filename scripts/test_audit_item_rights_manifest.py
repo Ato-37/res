@@ -79,7 +79,8 @@ class ItemRightsManifestAuditTests(unittest.TestCase):
     def test_complete_synthetic_ledger_reconciles_but_never_authorizes(self):
         result = audit(*fixture())
         self.assertTrue(result["structurally_valid"])
-        self.assertTrue(result["declared_use_gates_structurally_complete"])
+        self.assertTrue(result["declared_item_and_annotation_use_gates_structurally_complete"])
+        self.assertEqual(result["dataset_access_agreement_gate"], "not_machine_verified")
         self.assertEqual(result["eligible_video_count"], 2)
         self.assertEqual(result["rights_row_count"], 2)
         self.assertEqual(result["eligible_rows_with_complete_permitted_declarations"], 2)
@@ -91,7 +92,7 @@ class ItemRightsManifestAuditTests(unittest.TestCase):
         ledger["eligible_manifest_sha256"] = H
         result = audit(eligible, eligible_raw, ledger, raw(ledger))
         self.assertIn("eligible_manifest_hash_mismatch", result["failure_codes"])
-        self.assertFalse(result["declared_use_gates_structurally_complete"])
+        self.assertFalse(result["declared_item_and_annotation_use_gates_structurally_complete"])
         self.assertEqual(result["eligible_rows_with_complete_permitted_declarations"], 0)
 
     def test_parsed_objects_must_match_hash_bound_raw_bytes(self):
@@ -99,14 +100,14 @@ class ItemRightsManifestAuditTests(unittest.TestCase):
         mismatched_eligible = [{"video_id": "private-other-a"}, {"video_id": "private-other-b"}]
         result = audit(mismatched_eligible, eligible_raw, ledger, ledger_raw)
         self.assertIn("parsed_input_raw_bytes_mismatch", result["failure_codes"])
-        self.assertFalse(result["declared_use_gates_structurally_complete"])
+        self.assertFalse(result["declared_item_and_annotation_use_gates_structurally_complete"])
         self.assertEqual(result["execution_authorization"], "not_granted")
 
         mismatched_ledger = json.loads(ledger_raw)
         mismatched_ledger["items"][0]["decisions"]["local_inference"] = "unresolved"
         result = audit(eligible, eligible_raw, mismatched_ledger, ledger_raw)
         self.assertIn("parsed_input_raw_bytes_mismatch", result["failure_codes"])
-        self.assertFalse(result["declared_use_gates_structurally_complete"])
+        self.assertFalse(result["declared_item_and_annotation_use_gates_structurally_complete"])
         self.assertEqual(result["execution_authorization"], "not_granted")
 
     def test_nonfinite_or_duplicate_key_inputs_are_rejected(self):
@@ -142,7 +143,7 @@ class ItemRightsManifestAuditTests(unittest.TestCase):
             with self.subTest(invalid_raw=invalid_raw):
                 result = audit(eligible, eligible_raw, ledger, invalid_raw)
                 self.assertIn("parsed_input_raw_bytes_mismatch", result["failure_codes"])
-                self.assertFalse(result["declared_use_gates_structurally_complete"])
+                self.assertFalse(result["declared_item_and_annotation_use_gates_structurally_complete"])
                 self.assertEqual(result["execution_authorization"], "not_granted")
 
     def test_lineage_identifiers_reject_padding_at_each_link(self):
@@ -151,7 +152,7 @@ class ItemRightsManifestAuditTests(unittest.TestCase):
                 eligible, eligible_raw, ledger, _ = fixture()
                 ledger["items"][0]["source_lineage"][0][field] += " "
                 result = audit(eligible, eligible_raw, ledger, raw(ledger))
-                self.assertFalse(result["declared_use_gates_structurally_complete"])
+                self.assertFalse(result["declared_item_and_annotation_use_gates_structurally_complete"])
                 self.assertEqual(result["execution_authorization"], "not_granted")
 
     def test_identifier_whitespace_is_rejected_instead_of_normalized(self):
@@ -166,7 +167,7 @@ class ItemRightsManifestAuditTests(unittest.TestCase):
         ledger["items"][0]["source_lineage"][0]["from_record_id"] = "private-a "
         result = audit(eligible, eligible_raw, ledger, raw(ledger))
         self.assertIn("item_rights_video_id_invalid", result["failure_codes"])
-        self.assertFalse(result["declared_use_gates_structurally_complete"])
+        self.assertFalse(result["declared_item_and_annotation_use_gates_structurally_complete"])
         self.assertEqual(result["execution_authorization"], "not_granted")
 
     def test_missing_duplicate_and_out_of_cohort_rows_fail_without_echoing_ids(self):
@@ -187,7 +188,7 @@ class ItemRightsManifestAuditTests(unittest.TestCase):
         result = audit(eligible, eligible_raw, ledger, raw(ledger))
         self.assertIn("item_use_unresolved", result["failure_codes"])
         self.assertIn("item_rights_conditions_unresolved", result["failure_codes"])
-        self.assertFalse(result["declared_use_gates_structurally_complete"])
+        self.assertFalse(result["declared_item_and_annotation_use_gates_structurally_complete"])
         self.assertEqual(result["item_rows_with_complete_permitted_decisions"], 0)
         self.assertEqual(result["execution_authorization"], "not_granted")
 
@@ -196,7 +197,7 @@ class ItemRightsManifestAuditTests(unittest.TestCase):
         ledger["annotation_rights"]["decisions"]["aggregate_publication"] = "not_permitted"
         result = audit(eligible, eligible_raw, ledger, raw(ledger))
         self.assertIn("annotation_use_not_permitted", result["failure_codes"])
-        self.assertFalse(result["declared_use_gates_structurally_complete"])
+        self.assertFalse(result["declared_item_and_annotation_use_gates_structurally_complete"])
 
     def test_duplicate_eligible_ids_are_invalid(self):
         _, eligible_raw, ledger, _ = fixture()
@@ -244,7 +245,8 @@ class ItemRightsManifestAuditTests(unittest.TestCase):
         self.assertNotIn("private://", output.getvalue())
         self.assertNotIn("source-a", output.getvalue())
         summary = json.loads(output.getvalue())
-        self.assertTrue(summary["declared_use_gates_structurally_complete"])
+        self.assertTrue(summary["declared_item_and_annotation_use_gates_structurally_complete"])
+        self.assertEqual(summary["dataset_access_agreement_gate"], "not_machine_verified")
         self.assertEqual(summary["execution_authorization"], "not_granted")
 
 

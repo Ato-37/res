@@ -3,7 +3,8 @@
 This tool compares identifiers locally and reports counts, hashes,
 structural-status fields, and failure codes. It cannot determine whether
 license evidence or a reviewer decision is legally or factually correct, and
-never authorizes inference.
+never authorizes inference. Dataset-level access or metadata agreements are
+outside the v2 ledger and are explicitly reported as not machine verified.
 """
 from __future__ import annotations
 
@@ -299,7 +300,8 @@ def _summary(failures: set[str], eligible_raw: bytes, ledger_raw: bytes, eligibl
     return {
         "schema_version": 1,
         "structurally_valid": not failures,
-        "declared_use_gates_structurally_complete": bool(complete and not failures),
+        "declared_item_and_annotation_use_gates_structurally_complete": bool(complete and not failures),
+        "dataset_access_agreement_gate": "not_machine_verified",
         "execution_authorization": "not_granted",
         "eligible_video_count": eligible_n,
         "rights_row_count": row_n,
