@@ -1333,3 +1333,19 @@ handling; it does not change the current choice-margin estimand. No code,
 model, or dataset was changed or run. Faithfulness progress is unchanged at
 0 new samples / 0 effects. At 20:00:48 JST, 2h37m36s elapsed and 22m24s
 remained.
+
+## Cross-audit and live publication verification
+
+A second independent review verified the local commit sequence through
+`fdde150`, matched the regenerated artifact, committed runner, and fixture
+hashes, and independently reproduced the synthetic boundary and mask checks.
+It found no overclaim. That reviewer could not reach GitHub because its own
+DNS lookup failed, so I performed a fresh live `git fetch origin main` after
+the review; it succeeded and confirmed `HEAD == origin/main ==
+fdde150c1cef81d0467160edc83b8baf39adbf4a`. The earlier pushes of
+`10bb438`, `1206569`, `4806cc3`, and `fdde150` each also completed and were
+followed by successful live fetches. The latest derived artifact hash remains
+`c0c53faae4b6f6bf1c1c3de913314baeb7c11d07f83f26ca66bd5e5eac049eb6`.
+Untracked local dataset/sample files remain untouched. No real faithfulness
+records or effect estimates were added. At 20:03:43 JST, 2h40m31s elapsed
+and 19m29s remained.
