@@ -76,14 +76,28 @@ continue with a reduced denominator. A supportable-claim-only population would
 require a separately frozen eligibility rule, denominator, and protocol before
 outcome access.
 
-After completion, keep the pre-review input-manifest hash in the private
-protocol record; the v2 claim-mapping ledger has no field for that whole-file
-hash. Bind each claim-text hash, generation-run reference, frozen interval
-hash, review-record hash, and review timestamp to the completed private ledger
-using its per-row fields, then record the final ledger hash in the private
-protocol record. The machine audit checks structural declarations only; the human reviewer remains
-responsible for semantic support, source identity, blinding, and the truth of
-the review record.
+Use the protocol's three claim-review hashes with distinct targets:
+`claim_manifest_sha256` is the exact-byte hash of the frozen pre-review claim
+input manifest; `mapping_sha256` is the exact-byte hash of the completed v2
+claim-mapping ledger; `review_record_sha256` is the exact-byte hash of a
+separate private review-evidence index. The claim-input manifest uses a closed
+v1 schema with `schema_version`, `eligible_dataset_id`,
+`eligible_manifest_sha256`, `claim_policy_sha256`, `occurrence_policy`, and
+`claims`. It has one row per eligible video with exactly `video_id`,
+`claim_id`, `claim_text_sha256`, `model_revision`, and
+`generation_run_sha256`; it records claims before interval mapping/review.
+The v1 review-evidence index has `schema_version`, `mapping_ledger_sha256`,
+and `records`; each record has exactly `video_id`, `claim_id`,
+`review_record_sha256`, and `private_locator`, with one row for each reviewed
+ledger row and a distinct review-record hash per row. The index's
+`mapping_ledger_sha256` is the exact completed-ledger hash. This one-way
+reference avoids a hash cycle. `scripts/audit_claim_review_evidence_index.py`
+checks these raw-byte protocol bindings, eligible coverage, frozen claim-row
+identity/model/generation correspondence, and one-to-one review-record hash
+references. Run it alongside the protocol and claim-ledger validators. A
+structural pass does not authenticate evidence or establish semantic support,
+source identity, blinding, reviewer independence, or the truth of any record;
+those remain human responsibilities.
 
 When transcribing a completed supported row into the claim-mapping ledger, use
 the exact contract keys: `claim_origin=model_generated_frozen`,

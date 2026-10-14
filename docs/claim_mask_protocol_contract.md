@@ -264,6 +264,15 @@ implementation. `gold_choice_manifest_sha256` binds per-video gold labels;
 `triplet_manifest_sha256` binds full/selected/control assignments. Claim,
 mapping, review, and rights hashes refer to separate artifacts. These are
 declared references; the validator does not resolve or authenticate them.
+For claim review, `claim_manifest_sha256` refers to the exact frozen pre-review
+claim-input manifest bytes, `mapping_sha256` to the exact completed v2
+claim-mapping ledger bytes, and `review_record_sha256` to the exact bytes of a
+private index that lists each ledger row's per-row review-record hash and
+private reference. The private worksheet specifies the two v1 record shapes;
+`scripts/audit_claim_review_evidence_index.py` checks their byte bindings and
+row joins. This checker complements, but does not replace, the protocol and
+claim-ledger validators or the human semantic review. It always returns
+`execution_authorization=not_granted`.
 
 For NExT-GQA, the supplied temporal interval is a QA-pair-level answer-evidence
 annotation. It is not, by itself, a mapping for a later Qwen-generated
