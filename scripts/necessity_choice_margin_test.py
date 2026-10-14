@@ -237,6 +237,9 @@ def main():
     summary_seeds = summary_seed_schedule(args.seed)
     result = {'schema_version': 3, 'script': 'necessity_choice_margin_test.py',
               'samples_file': args.samples_file, 'model': args.model, 'quant': args.quant,
+              'model_revision': getattr(model.config, '_commit_hash', None),
+              'tokenizer_revision': getattr(processor.tokenizer, 'init_kwargs', {}).get(
+                  '_commit_hash'),
               **provenance(Path(args.samples_file)),
               'dtype': 'bfloat16', 'attn_implementation': 'eager',
               'python_version': platform.python_version(),
