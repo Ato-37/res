@@ -262,6 +262,12 @@ timestamp origin conversion, sampled-frame pixel identity, and mapping-code
 hash; validate this correspondence on the exact path used for model inputs;
 and freeze the annotation-time calibration and endpoint precision before any
 outcome access. Until that exists, the PTS helper does not clear the timing gate.
+The NExT-GQA README represents its annotated spans in seconds and separately
+lists per-video duration/FPS and a frame-ID-to-time map, but does not specify
+how that map's clock origin is calibrated against a decoded stream's PTS
+([official NExT-GQA README](https://github.com/doc-doc/NExT-GQA/blob/main/datasets/nextgqa/README.md)).
+The README therefore establishes the annotation representation, not the
+annotation-to-decoder timing correspondence required above.
 
 `necessity_choice_margin_utils.assign_evidence_control_frames` now composes
 the sampler, distinct-frame check, inclusive interval overlap, and equal-count
