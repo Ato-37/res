@@ -590,3 +590,23 @@ remote script and focused-test SHA-256 values match local bytes. The unrelated
 untracked dataset/sample files remain untouched. The logged time is the
 checkpoint immediately before that commit/push, not time spent by those later
 commands.
+
+## Synthetic archive-path end-to-end check
+
+To verify the successful archive branch, a new synthetic ZIP CLI test creates a
+dummy `folder/clip.mp4` member, maps one fake QA row to it, and substitutes only
+the readability decision so no real media is decoded. The script indexes the
+archive, extracts/moves the member under the temporary video root, emits a
+private one-row manifest plus sidecar, hashes the exact ZIP and manifest, and
+records a source/HEAD match. The test confirms extracted bytes equal the ZIP
+member, sidecar/CLI output omit temporary paths and identifiers, and both files
+are mode 0600. Independent review suggested asserting extracted bytes and final
+manifest digest; both assertions were added. No claim about real-video decoding
+is made. The focused provenance suite passes 13 tests and the complete scripts
+suite passes 545. This closes archive-path plumbing coverage with synthetic
+content only; it does not clear data rights or justify real candidate selection.
+Independent review confirmed the test scope and that the readability stub does
+not overstate media validation.
+
+At 18:56:12 JST, 1h33m00s had elapsed and 1h27m00s remained. Direct faithfulness
+progress remains 0 new samples / 0 new effect estimates.

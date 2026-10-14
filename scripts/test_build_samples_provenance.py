@@ -234,6 +234,61 @@ class BuildSamplesProvenanceTests(unittest.TestCase):
             self.assertNotIn(tmp, stderr.getvalue())
             self.assertNotIn(tmp, stdout.getvalue())
 
+    def test_synthetic_zip_selection_writes_private_manifest_and_sidecar(self):
+        with tempfile.TemporaryDirectory(prefix="synthetic_archive_selection_") as tmp:
+            root = Path(tmp)
+            archive = root / "synthetic_NExTVideo.zip"
+            with zipfile.ZipFile(archive, "w") as zf:
+                zf.writestr("folder/clip.mp4", b"synthetic-only")
+            with (root / "test.csv").open("w", newline="", encoding="utf-8") as stream:
+                writer = csv.DictWriter(
+                    stream, fieldnames=["video_id", "question", "answer", "qid", "type"]
+                    + [f"a{i}" for i in range(5)],
+                )
+                writer.writeheader()
+                writer.writerow({"video_id": "synthetic-video", "question": "synthetic?",
+                                 "answer": "yes", "qid": "q1", "type": "what",
+                                 "a0": "yes", "a1": "no", "a2": "maybe",
+                                 "a3": "none", "a4": "other"})
+            (root / "gsub.json").write_text(json.dumps({
+                "synthetic-video": {"duration": 1, "location": {"q1": [[0, .5]]}},
+            }), encoding="utf-8")
+            (root / "map.json").write_text(
+                json.dumps({"synthetic-video": "folder/clip"}), encoding="utf-8",
+            )
+            output = root / "private" / "samples.json"
+            audit = root / "private" / "audit.json"
+            argv = ["build_samples.py", "--test-csv", str(root / "test.csv"),
+                    "--gsub-json", str(root / "gsub.json"), "--map-json",
+                    str(root / "map.json"), "--video-root", str(root / "videos"),
+                    "--zip-path", str(archive), "--n", "1", "--seed", "7",
+                    "--out", str(output), "--audit-out", str(audit)]
+            stdout, stderr = io.StringIO(), io.StringIO()
+            with patch("sys.argv", argv), patch(
+                    "scripts.build_samples.is_video_readable", return_value=True), \
+                    contextlib.redirect_stdout(stdout), contextlib.redirect_stderr(stderr):
+                main()
+            manifest = json.loads(output.read_text(encoding="utf-8"))
+            sidecar = json.loads(audit.read_text(encoding="utf-8"))
+            self.assertEqual(len(manifest), 1)
+            extracted = root / "videos" / "folder" / "clip.mp4"
+            self.assertTrue(extracted.is_file())
+            self.assertEqual(extracted.read_bytes(), b"synthetic-only")
+            self.assertEqual(sidecar["status"], "complete")
+            self.assertEqual(sidecar["configuration"]["effective_samples"], 1)
+            self.assertEqual(sidecar["input_sha256"]["video_archive_sha256"],
+                             hashlib.sha256(archive.read_bytes()).hexdigest())
+            self.assertEqual(sidecar["sample_manifest_sha256"],
+                             hashlib.sha256(output.read_bytes()).hexdigest())
+            self.assertTrue(sidecar["configuration"]["source_matches_commit"])
+            sidecar_text = audit.read_text(encoding="utf-8")
+            self.assertNotIn(str(root), sidecar_text)
+            self.assertNotIn("synthetic-video", sidecar_text)
+            self.assertIn("indexing archive synthetic_NExTVideo.zip", stdout.getvalue())
+            self.assertNotIn(str(root), stdout.getvalue() + stderr.getvalue())
+            self.assertTrue(all(os.stat(path).st_mode & 0o777 == 0o600
+                                for path in (output, audit)))
+
     def test_underfilled_status_and_private_exclusive_writer(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
