@@ -250,6 +250,19 @@ stop before scoring. The current OpenCV index/FPS helper has not passed this
 validation and remains geometry only. The structural protocol validator does
 not inspect media timestamps or enforce this gate.
 
+`scripts/presentation_time_utils.py` implements exact arithmetic for a
+decoder-provided display-order PTS sequence and rational time base, including
+inclusive interval membership and the existing sampled-rank control assignment.
+Its synthetic tests cover irregular positive PTS intervals and malformed or
+missing timing. It is not a decoder adapter and does not prove that the PTS map
+belongs to the exact pixel sequence supplied to the model or that a zero-based
+first-frame origin matches the annotation player's timeline. A production
+adapter must bind the decoder/library version, stream and frame ordering,
+timestamp origin conversion, sampled-frame pixel identity, and mapping-code
+hash; validate this correspondence on the exact path used for model inputs;
+and freeze the annotation-time calibration and endpoint precision before any
+outcome access. Until that exists, the PTS helper does not clear the timing gate.
+
 `necessity_choice_margin_utils.assign_evidence_control_frames` now composes
 the sampler, distinct-frame check, inclusive interval overlap, and equal-count
 matched-control selection into one deterministic CPU assignment with explicit
