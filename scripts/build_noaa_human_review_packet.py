@@ -534,6 +534,12 @@ def _render_gold_reference(prepared):
 <script id="gold-data" type="application/json">{_safe_json(gold_data)}</script>
 <script>
 const goldData=JSON.parse(document.getElementById('gold-data').textContent);
+function sameSourceHashes(supplied,expected){{
+ const fields=['media_sha256','samples_sha256','gold_sha256','audit_sha256','rights_sha256'];
+ return supplied&&expected&&typeof supplied==='object'&&typeof expected==='object'
+  &&Object.keys(supplied).length===fields.length&&Object.keys(expected).length===fields.length
+  &&fields.every(field=>typeof supplied[field]==='string'&&supplied[field]===expected[field]);
+}}
 document.getElementById('first-pass-file').addEventListener('change',async(event)=>{{
  const status=document.getElementById('status'),container=document.getElementById('answers');container.replaceChildren();container.hidden=true;
  try{{
@@ -541,7 +547,7 @@ document.getElementById('first-pass-file').addEventListener('change',async(event
   if(first.schema_version!==1||first.signed!==false||!first.source_sha256||!Array.isArray(first.groups))throw new Error();
   if(first.groups.length!==goldData.groups.length)throw new Error();
   for(const group of goldData.groups){{
-   const supplied=first.groups.find(x=>x.group_id===group.group_id);if(!supplied||JSON.stringify(supplied.source_sha256)!==JSON.stringify(group.source_sha256))throw new Error();
+   const supplied=first.groups.find(x=>x.group_id===group.group_id);if(!supplied||!sameSourceHashes(supplied.source_sha256,group.source_sha256))throw new Error();
    if(!Array.isArray(supplied.choices)||supplied.choices.length!==group.answers.length)throw new Error();
    const qids=new Set(supplied.choices.map(x=>String(x.qid)));
    if(qids.size!==group.answers.length||group.answers.some(x=>!qids.has(String(x.qid))||!supplied.choices.some(c=>String(c.qid)===String(x.qid)&&Number.isInteger(c.choice_index)&&c.choice_index>=0&&c.choice_index<5)))throw new Error();

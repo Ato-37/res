@@ -178,6 +178,9 @@ class BuildNoaaHumanReviewPacketTests(unittest.TestCase):
         self.assertIn("gold_reference.html", page)
         self.assertIn("first-pass JSON", gold_page)
         self.assertIn("not secure blinding", gold_page.lower())
+        self.assertIn("function sameSourceHashes(supplied,expected)", gold_page)
+        self.assertIn("fields.every(field=>typeof supplied[field]==='string'", gold_page)
+        self.assertNotIn("JSON.stringify(supplied.source_sha256)", gold_page)
         self.assertFalse(list(index.parent.glob("*attestation*.json")))
         self.assertFalse((root / "results").exists())
 
