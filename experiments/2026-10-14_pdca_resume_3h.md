@@ -772,3 +772,26 @@ focused checks, and the complete suite passed 552/552 after the final code
 change. No direct evaluation samples or effects have been added.
 
 At 19:12:30 JST, 1h49m18s had elapsed and 1h10m42s remained.
+
+## Remaining gates and next authorized research step
+
+The latest GPU-cache log and the prior one-hour resume log were cross-checked:
+the same-clip B=2 near-tie scalar replay already ran and the engineering branch
+was explicitly stopped. Do not repeat it or the closed head search. No GPU job
+is justified in this window: hardware is available, but every remaining model
+evaluation path is gated or scientifically stopped. Direct faithfulness
+progress remains 0 new samples / 0 new effect estimates.
+
+Next, the unresolved external prerequisites are (1) the actual human review
+and private attestation for NOAA's 3 videos/6 questions, (2) item-specific
+NExT-GQA annotation/media rights evidence for an exact frozen cohort, and
+(3) an estimand-bound, independently reviewed SESOI with outcome-access record
+fixed before scoring. After those declarations are supplied, run the existing
+privacy-safe validators; only a passing protocol, rights, and review audit can
+unlock a small smoke followed by the preregistered all-eligible-video primary
+GPU run. Keep all local IDs, raw media, annotation text, and rights evidence
+private. This is the gate sequence, not a claim that those inputs exist or are
+complete.
+
+At 19:13:23 JST, 1h50m11s had elapsed and 1h09m49s remained. The gate update is
+not yet committed.
