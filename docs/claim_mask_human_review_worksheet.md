@@ -145,6 +145,22 @@ media rights separately. For each item, the evidence bundle should let an
 independent reviewer reproduce the decision without exposing materials in the
 public repository.
 
+For the current NExT-GQA lineage, the public project pages describe its
+test/validation annotations as subsets of NExT-QA, NExT-QA videos as sourced
+from VidOR, and VidOR videos as drawn from YFCC100M. The NExT-QA repository's
+MIT license text grants rights for the software and associated documentation
+files; YFCC100M says each original
+media file follows its creator/uploader's CC license, recorded in item
+metadata, and describes a separate agreement for access to the metadata
+dataset. Use these sources only to trace the evidence needed: they do not
+establish the exact lineage, license, or agreement applicability for any video
+in the private cohort. Verify those records item by item and document the
+actual acquisition route. See the [NExT-GQA README](https://github.com/doc-doc/NExT-GQA/blob/main/datasets/nextgqa/README.md),
+[NExT-QA README](https://github.com/doc-doc/NExT-QA/blob/main/README.md) and
+[license](https://github.com/doc-doc/NExT-QA/blob/main/LICENSE),
+[VidOR project page](https://xdshang.github.io/docs/vidor.html), and
+[YFCC100M rights and access notes](https://multimediacommons.wordpress.com/yfcc100m-core-dataset/).
+
 | Evidence to record privately | Record |
 |---|---|
 | Eligible ID → benchmark row → source dataset/video lineage | |
