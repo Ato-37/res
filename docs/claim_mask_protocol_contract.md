@@ -1,4 +1,4 @@
-# Claim-linked evidence-frame mask protocol contract (schema v8)
+# Claim-linked evidence-frame mask protocol contract (schema v9)
 
 `scripts/validate_claim_mask_protocol.py` is a CPU-only, fail-closed structural
 validator for the exploratory design stage. The secondary-family multiplicity
@@ -9,7 +9,7 @@ Student-t interval over one contrast per video, assuming independent
 video-level contrasts, with sample SD and `df=n-1`; the primary decision rule
 compares the lower bound with the separately fixed SESOI. Family membership
 must be frozen before scoring. The SESOI is still
-not fixed, so schema v8 rejects a `confirmatory` stage.
+not fixed, so schema v9 rejects a `confirmatory` stage.
 Structural validity neither authenticates evidence nor authorizes inference.
 
 The `analysis` object must declare one unadjusted primary contrast and
@@ -34,7 +34,7 @@ eligible-manifest hash and primary population, sampling-config hash, claim,
 mapping and human-review record hashes, answer-candidate, gold-choice, and
 full/selected/control triplet hashes, score/baseline/target/margin definitions,
 and all intervention/control definition fields and hashes, including the
-`mask_transform_sha256`. This
+`mask_transform_sha256` and `minimum_selected_frame_count`. This
 stops a threshold for another estimand from being structurally substituted by
 unit alone and catches changes to those declared inputs if the hash is stale.
 The validator cannot authenticate referenced artifacts, reviewer independence,
@@ -92,12 +92,18 @@ reviewed claim-evidence interval. Under the current implementation convention,
 sampled time is original frame index divided by decoded source FPS and interval
 endpoints are inclusive (`start <= time <= end`); the mapping hash must bind
 source timestamps and mapping code. This reviewed interval determines the
-evidence mask and its size `k`; observed model scores cannot alter it. For
-control, sort evidence ranks `e_1..e_k` and candidate control ranks `c_1..c_k`,
+evidence mask and its size `k`; observed model scores cannot alter it. Require
+`k >= 1`: if no sampled frame overlaps the reviewed interval (`k=0`), record a
+pre-scoring exclusion and do not score the item. Schema v9 fixes
+`minimum_selected_frame_count=1`. For control, sort evidence ranks
+`e_1..e_k` and candidate control ranks `c_1..c_k`,
 then choose a subset of `k` non-evidence frames minimizing
 `sum_j |e_j-c_j|`. Resolve equal-cost ties with the lexicographically lower
 ordered control-rank tuple. If fewer than `k` control frames exist, mark the
 item ineligible before scoring; do not substitute after observing outcomes.
+The structural validator does not decode videos or calculate per-item overlap
+or mask cardinality. Any future scoring runner must enforce the minimum before
+scoring and record zero-overlap exclusions in the frozen exclusion manifest.
 Full, selected, and control conditions share frame
 sampling, fill, preprocessing, model, precision, prompt, gold target, and
 execution settings. The required `mask_transform_sha256` must bind a private,

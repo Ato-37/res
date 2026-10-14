@@ -46,24 +46,21 @@ def compute_primary_estimand_sha256(value: dict) -> str | None:
             "baseline_correction": e["baseline_correction"],
             "target_definition": e["target_definition"],
             "margin_definition": e["margin_definition"],
-            "intervention": {k: i[k] for k in ("kind", "selector_sha256", "control_sha256", "mask_transform_sha256", "selected_condition", "control_condition", "selected_unit", "control_matching")},
+            "intervention": {k: i[k] for k in ("kind", "selector_sha256", "control_sha256", "mask_transform_sha256", "minimum_selected_frame_count", "selected_condition", "control_condition", "selected_unit", "control_matching")},
         }
-        if not all(_text(v) for v in _flatten_strings(payload)):
+        if not _valid_hash_payload(payload):
             return None
         raw = json.dumps(payload, sort_keys=True, separators=(",", ":"), ensure_ascii=False).encode("utf-8")
         return hashlib.sha256(raw).hexdigest()
     except (KeyError, TypeError, UnicodeError):
         return None
 
-def _flatten_strings(value):
+def _valid_hash_payload(value):
     if isinstance(value, dict):
-        for key, item in value.items():
-            yield key
-            yield from _flatten_strings(item)
+        return all(_text(key) and _valid_hash_payload(item) for key, item in value.items())
     elif isinstance(value, str):
-        yield value
-    else:
-        yield value
+        return _text(value)
+    return type(value) is int and value >= 0
 
 def validate(value: Any, input_sha256: str | None = None) -> dict:
     f = set()
@@ -71,7 +68,7 @@ def validate(value: Any, input_sha256: str | None = None) -> dict:
            "data_rights", "sampling", "estimand", "intervention", "analysis", "runtime"}
     if not isinstance(value, dict): return _summary({"protocol_not_object"}, input_sha256)
     if set(value) != req: f.add("protocol_schema_keys_invalid")
-    if type(value.get("schema_version")) is not int or value.get("schema_version") != 8: f.add("schema_version_invalid")
+    if type(value.get("schema_version")) is not int or value.get("schema_version") != 9: f.add("schema_version_invalid")
     stage = value.get("protocol_stage")
     # The estimand direction and secondary Holm families are selected, but the
     # SESOI is not fixed. This schema must not label a run confirmatory yet.
@@ -125,10 +122,11 @@ def validate(value: Any, input_sha256: str | None = None) -> dict:
     computed_estimand_sha = compute_primary_estimand_sha256(value)
     if computed_estimand_sha is None or not isinstance(es, dict) or es.get("primary_estimand_sha256") != computed_estimand_sha:
         f.add("primary_estimand_hash_mismatch")
-    iv = value.get("intervention"); ik = {"kind", "selector_sha256", "control_sha256", "mask_transform_sha256", "selected_condition", "control_condition", "selected_unit", "control_matching"}
+    iv = value.get("intervention"); ik = {"kind", "selector_sha256", "control_sha256", "mask_transform_sha256", "minimum_selected_frame_count", "selected_condition", "control_condition", "selected_unit", "control_matching"}
     if not _keys(iv, ik): f.add("intervention_schema_invalid")
     elif (iv.get("kind") != "claim_linked_evidence_frame_mask" or not _sha(iv.get("selector_sha256")) or not _sha(iv.get("control_sha256")) or not _sha(iv.get("mask_transform_sha256"))
           or not _text(iv.get("selected_condition")) or not _text(iv.get("control_condition"))
+          or type(iv.get("minimum_selected_frame_count")) is not int or iv.get("minimum_selected_frame_count") != 1
           or iv.get("selected_condition") == iv.get("control_condition")
           or iv.get("selected_unit") != "sampled_frames_overlapping_reviewed_claim_evidence_interval"
           or iv.get("control_matching") != "equal_count_minimum_total_temporal_rank_distance_lexicographic_tie_break"): f.add("intervention_fields_invalid")
@@ -182,7 +180,7 @@ def _summary(f, digest):
     if digest is not None and not _sha(digest):
         failures.add("input_sha256_invalid")
         digest = None
-    return {"schema_version": 8, "structurally_valid": not failures, "failure_codes": sorted(failures),
+    return {"schema_version": 9, "structurally_valid": not failures, "failure_codes": sorted(failures),
             "semantic_validation": "not_machine_verifiable", "execution_authorization": "not_granted",
             **({"input_sha256": digest} if digest else {})}
 

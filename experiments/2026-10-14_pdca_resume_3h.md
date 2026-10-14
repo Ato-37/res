@@ -1012,3 +1012,44 @@ unstaged. At 19:30:48 JST, 2h07m36s elapsed and 52m24s remained. Direct
 faithfulness evidence remains 0 new samples / 0 effects; the historical 79/79
 head confirmation remains closed with −0.0756 nat (95% t CI
 [−0.1578,+0.0065]), below +0.25 nat.
+
+Scoped publication: commit `d10e4bfe7adbd6588946e8b7352e40d260cb4553`
+(`Bind claim mask transform in protocol schema`) was pushed to `origin/main`.
+An immediate live `git fetch origin main` verified `HEAD == origin/main ==
+d10e4bfe7adbd6588946e8b7352e40d260cb4553`. The published commit contains
+only the five reviewed contract/template/log/validator/test files. The listed
+untracked local dataset/sample files remain untouched. At 19:31:15 JST,
+2h08m03s elapsed and 51m57s remained.
+
+## Empty evidence-mask eligibility edge case
+
+The next gate audit found that a reviewed interval can overlap zero sampled
+frames. With `k=0`, the old wording allowed an empty selected mask, for which
+the purported evidence intervention would be a no-op. Schema v9 therefore
+adds `minimum_selected_frame_count=1` to the required intervention declaration
+and canonical estimand hash. The contract requires `k>=1`; zero-overlap items
+must be recorded as pre-scoring exclusions, before any outcome score is
+observed. This does not make the validator inspect item manifests or enforce
+runtime selection; it binds the declared rule while the private eligibility
+manifest and selector implementation remain separately reviewable.
+
+The first focused run exposed a real implementation defect: the canonical
+hash helper treated every payload leaf as text, so the new integer made the
+digest unavailable. I changed that helper to accept only nonempty strings and
+nonnegative exact integers in the canonical payload, keeping booleans and
+other types invalid. The corrected focused validator suite passes 35/35; Python
+compilation and `git diff --check` pass. Independent audit is pending. At
+19:32:46 JST, 2h09m34s elapsed and 50m26s remained. This is protocol
+engineering only: 0 new faithfulness samples / 0 new effect estimates.
+
+Independent gate audit confirmed the validator requires the exact integer 1
+(rejecting 0, 2, bool, and null), the field enters the primary-estimand hash,
+and schema text does not claim the validator measures actual runtime masks. A
+follow-up audit approved the explicit boundary: future scoring code must
+compute per-item overlap/cardinality, enforce the minimum before scoring, and
+record zero-overlap exclusions. Full repository suite passes 557/557,
+including the zero-mask regression; `git diff --check` and Python compilation
+pass. The first schema-v9 focused run had five failures because the hash helper
+rejected integer payload leaves; that exact cause was repaired and both
+subsequent focused runs pass 35/35. This is a fixed implementation defect, not
+a flaky test. At 19:33:41 JST, 2h10m29s elapsed and 49m31s remained.
