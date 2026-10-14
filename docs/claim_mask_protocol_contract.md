@@ -107,9 +107,48 @@ reviewed and recorded. Keep item identifiers, source URLs, and evidence
 private. A matching validator could check row/key/count reconciliation, but a
 human must assess evidence authenticity, reviewer authority, and license scope.
 
-`execution_authorization` must remain false. Review timing and data-rights status
-are separate declarations, but a structural pass does not make either gate
-true. The validator does not authenticate signatures, validate hash targets,
+For a private draft ledger, `scripts/audit_item_rights_manifest.py` checks the
+eligible-manifest byte hash, one-to-one video-ID row coverage, separate
+annotation and per-video media evidence references, review declarations,
+resolved-conditions declarations, and explicit decisions for each declared use.
+The eligible manifest is a nonempty JSON array of objects with a unique
+`video_id` string. The ledger's top-level `intended_uses` must include
+`local_inference` and may also include `local_retention`,
+`aggregate_publication`, and `redistribution`. `annotation_rights` contains
+`license_id`, an `evidence_locator`, evidence and review-record SHA-256 values,
+`reviewer_role`, `review_status`, `reviewed_at_utc`, and decisions keyed by
+every intended use. Each `items` row contains `video_id`, `source_video_id`,
+`media_license_id`, `media_evidence_locator`, media-evidence, review-record,
+and conditions-record SHA-256 values, `media_reviewer_role`, media review
+status/time, `conditions_status`, and decisions keyed by every intended use.
+Locators, roles, and notes stay in the private ledger. Decisions are exactly
+`permitted`, `not_permitted`, or `unresolved`; review statuses must be completed
+and conditions must be declared `reviewed_resolved` for every eligible item.
+Keep both inputs local and private. The output contains no item identifiers or
+evidence text; it reports hashes, counts, structural-status fields, and failure
+codes.
+Because the hashes are unsalted, they can reveal equality and may be guessable
+for predictable manifests; do not treat the output as absolutely private.
+Example:
+
+```sh
+.venv/bin/python scripts/audit_item_rights_manifest.py \
+  --eligible-manifest /private/path/eligible_videos.json \
+  --rights-ledger /private/path/item_rights_ledger.json
+```
+
+The ledger shape is defined by the validator's synthetic tests. `permitted`,
+`not_permitted`, or `unresolved` are human declarations; a completed review
+record, a hash, a resolved-conditions label, or a structurally valid result
+does not establish truth or legal scope. Any missing, extra, duplicate, or
+unresolved item/use keeps the rights gate closed, and execution authorization
+is always `not_granted`.
+
+The protocol input's `runtime.execution_authorization` must remain boolean
+`false`; the item-rights audit summary reports the string `not_granted`.
+Review timing and data-rights status are separate declarations, but a structural
+pass does not make either gate true. The claim-mask validator does not
+authenticate signatures, validate hash targets,
 establish claim/interval semantics, verify rights, or validate model behavior.
 NOAA human review remains incomplete and NExT-GQA item-level rights unresolved;
 the real-data branch remains `no_go`. No efficacy result comes from this

@@ -43,7 +43,10 @@ not prove blinding, human review, rights, or execution readiness.
 
 The primary agent independently reviewed the diff and reran the focused NOAA
 packet/contract suite: 16 tests passed. Python byte-compilation and
-`git diff --check` passed. The dated detail is in
+`git diff --check` passed. A further runtime check extracted the comparator
+from a generated synthetic gold-reference page and executed it under Node:
+reordered keys were accepted and missing, extra, or mismatched fields were
+rejected. The dated detail is in
 `experiments/2026-10-14_noaa_first_pass_hash_match.md`.
 
 ## Independent protocol audit
@@ -108,6 +111,34 @@ downloaded, no private ID intersection was attempted, and no legal conclusion
 was made. Links: [NExT-CF dataset card](https://huggingface.co/datasets/nextcf-anon-2026/nextcf),
 [NExT-CF v1.0.0 release metadata](https://huggingface.co/datasets/nextcf-anon-2026/nextcf/commit/f5975d95e8a920bd7531db12f41e3e8d7e5656d2),
 [official YFCC100M page](https://multimediacommons.wordpress.com/yfcc100m-core-dataset/).
+
+## Rights-ledger structural audit and publication checkpoint
+
+To make the unresolved rights gate easier to assess without exposing private
+crosswalks, added `scripts/audit_item_rights_manifest.py`. It checks the exact
+eligible-manifest byte hash, unique eligible IDs, one ledger row per eligible
+ID, no outside/duplicate/missing rows, separate annotation and source-media
+evidence references, review and conditions declarations, and one explicit
+human decision per declared use. Output contains counts, file hashes, and
+failure codes only; it always says `execution_authorization=not_granted` and
+does not label declaration hashes as authenticated rights. The protocol
+contract documents the private draft shape and the command. Synthetic tests
+cover complete declarations, stale cohort hash, missing/duplicate/extra rows,
+unresolved or prohibited uses, unresolved conditions, and private-ID
+non-disclosure. Focused tests pass 6/6; the full scripts test suite passed
+488 tests before the final output-label refinement, and the focused suite,
+byte-compilation, and diff check passed after it. An independent auditor found
+no fail-open path or identifier echo and prompted clearer terminology for
+declaration-completeness versus actual rights verification; that clarification
+is now applied. No real rights ledger or dataset manifest was passed to the
+new checker.
+
+Scoped workflow patch and the initial window log were committed as
+`a5033f0d208780c5b452508cdf92635a91e8a1f7`, pushed to GitHub, then live-fetched.
+The fetched `origin/main` resolved to the same commit; the published NOAA
+workflow log SHA-256 matches the local file. The current rights-ledger code,
+its synthetic tests, contract extension, and this updated PDCA log are a
+separate, not-yet-published change at this checkpoint.
 
 ## Faithfulness progress at this checkpoint
 
