@@ -1,4 +1,4 @@
-# Claim-linked evidence-frame mask protocol contract (schema v10)
+# Claim-linked evidence-frame mask protocol contract (schema v12)
 
 `scripts/validate_claim_mask_protocol.py` is a CPU-only, fail-closed structural
 validator for the exploratory design stage. The secondary-family multiplicity
@@ -9,8 +9,24 @@ Student-t interval over one contrast per video, assuming independent
 video-level contrasts, with sample SD and `df=n-1`; the primary decision rule
 compares the lower bound with the separately fixed SESOI. Family membership
 must be frozen before scoring. The SESOI is still
-not fixed, so schema v10 rejects a `confirmatory` stage.
+not fixed, so schema v12 rejects a `confirmatory` stage.
 Structural validity neither authenticates evidence nor authorizes inference.
+
+Schema v12 adds a distributional plan to the hashed inference declaration. A
+resolved Student-t method requires a reviewed declaration of either iid normal
+video-level differences or iid finite-variance differences, plus hashes for a
+pre-outcome rationale and tail-sensitivity plan. The t interval is exact under
+the normal model and an approximation under non-normal finite-variance models.
+The synthetic stress test recorded in the dated PDCA log found material
+distribution sensitivity under iid right-skewed differences; that does not
+establish the shape of project outcomes. The schema also requires a UTC review
+timestamp and an outcome-access audit record declaration, and prevents a fixed
+SESOI timestamp from preceding the distributional review. These caller-supplied
+timestamps and hashes do not authenticate chronology or the underlying records.
+The independent SESOI review must occur at or after the distributional review
+and no later than the SESOI freeze. The review and sensitivity plan must be fixed
+before outcome access. Switching methods in response to observed
+outcomes makes the analysis exploratory for those data.
 
 The target population and sampling mechanism for these eligible videos are not
 yet established. “All eligible videos” defines the finite cohort mean only
@@ -42,7 +58,7 @@ One row per unique `video_id` prevents counting multiple questions from the
 same video as independent units, but does not establish independence across
 different videos. Videos may share a creator, recording event, series, or
 source lineage; whether such clusters occur in this cohort is unknown until
-appropriate metadata are audited. Schema v10 requires explicit
+appropriate metadata are audited. Schema v12 requires explicit
 `inference_design` and `dependence_plan` objects, including unresolved states,
 and binds target/cohort-selection into the primary-estimand hash and
 uncertainty/method declarations into a separate
@@ -50,8 +66,11 @@ uncertainty/method declarations into a separate
 `inference_design` records the target kind and definition reference, selection
 design, sampling-frame reference, and selection-provenance reference.
 `dependence_plan` separately records the uncertainty target, independent unit,
-cluster-audit status/unit/count/reference, and whether the fixed video-level t
-method is still unresolved. A finite-cohort descriptive target is paired with
+cluster-audit status/unit/count/reference, distributional status/assumption,
+rationale and tail-sensitivity hashes, review timestamp and outcome-access
+record declaration, and whether the fixed video-level t
+method is still unresolved. These declarations are all bound by the inference
+plan hash. A finite-cohort descriptive target is paired with
 that same uncertainty scope; a video-superpopulation target requires a
 model-based or probability-design-based uncertainty target. A resolved t method
 requires an identified target/sampling design, a model-based video
@@ -180,7 +199,7 @@ margin-drop values without a separately justified estimand.
 ## Existing-runner compatibility
 
 [`necessity_choice_margin_test.py`](../scripts/necessity_choice_margin_test.py)
-is a legacy exploratory runner, not an implementation of schema v10. It shares
+is a legacy exploratory runner, not an implementation of schema v12. It shares
 the gold-versus-best-foil next-token margin, per-condition best-foil selection,
 pre-mask restricted-choice correctness, inclusive timestamp membership, and
 equal-count nearest temporal-rank control. It uses the existing grounding
@@ -190,12 +209,14 @@ before that sample's score calls, but are recorded as generic runtime failures
 rather than frozen pre-scoring exclusions in the cohort denominator. It
 currently declares the baseline-correct cohort as primary, reports bootstrap
 intervals and unadjusted sign-flip tests, and has no question-type secondary
-family. Preserve its historical outputs as such; do not treat them as v9
-results or use it unchanged for a future v9 run. A future runner must score all
+family. Preserve its historical outputs as pre-v12 legacy results; do not
+describe them as protocol-v12 results or use this runner unchanged for a future
+schema-v12 run. A future runner must score all
 eligible videos for the primary population, use the fixed Student-t primary
 interval and frozen Holm secondary families, establish the independent claim
 mapping, record zero-overlap exclusions before scoring, and enforce/hash the
-v9 mask-transform and nonempty-mask rules.
+current contract's mask-transform and nonempty-mask rules in a schema-v12-
+compatible runner.
 
 The legacy scorer and CPU preflight share one endpoint-inclusive rounded
 uniform sampler, `round(i * (N - 1) / max(F - 1, 1))`, where `N` is decoded
@@ -204,10 +225,10 @@ helper deliberately preserves repeated indices for legacy parity; the
 preflight deduplicates and now explicitly rejects a clip when fewer than the
 requested number of distinct frames remain, before model scoring. The old
 scoring path may still fail when it cannot materialize the requested distinct
-frames. The future v9 runner must freeze its sampling rule in the sampling-config
-hash and enforce the same requirement before any model score call. This shared
-helper does not by itself establish timestamp precision or v9 runner
-compatibility. Preflight also requires a finite, positive source FPS from the
+frames. Any future schema-v12-compatible runner must freeze its sampling rule
+in the sampling-config hash and enforce the same requirement before any model
+score call. This shared helper does not by itself establish timestamp precision
+or contract compatibility. Preflight also requires a finite, positive source FPS from the
 video metadata; it does not substitute a conventional FPS when metadata is zero,
 missing, or non-finite, because that would silently change the time-to-frame
 mapping used for evidence intervals.
@@ -253,7 +274,7 @@ grounding criterion accepts any moment sufficient to reveal the answer; its
 appendix asks annotators to label all relevant moments when the same evidence
 recurs. A future claim-level protocol must state whether it maps one sufficient
 occurrence or all relevant occurrences, and reviewers must follow that rule.
-The schema-v10 hash declarations do not enforce these semantic requirements;
+The schema-v12 hash declarations do not enforce these semantic requirements;
 the independent human inspection of claim and video remains necessary, and a
 structural pass alone cannot establish the mapping or authorize inference.
 

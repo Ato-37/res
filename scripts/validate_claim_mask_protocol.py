@@ -93,7 +93,7 @@ def validate(value: Any, input_sha256: str | None = None) -> dict:
            "data_rights", "sampling", "estimand", "intervention", "analysis", "runtime"}
     if not isinstance(value, dict): return _summary({"protocol_not_object"}, input_sha256)
     if set(value) != req: f.add("protocol_schema_keys_invalid")
-    if type(value.get("schema_version")) is not int or value.get("schema_version") != 10: f.add("schema_version_invalid")
+    if type(value.get("schema_version")) is not int or value.get("schema_version") != 12: f.add("schema_version_invalid")
     stage = value.get("protocol_stage")
     # The estimand direction and secondary Holm families are selected, but the
     # SESOI is not fixed. This schema must not label a run confirmatory yet.
@@ -120,7 +120,7 @@ def validate(value: Any, input_sha256: str | None = None) -> dict:
           or not _sha(inference.get("sampling_frame_sha256")) or not _sha(inference.get("selection_record_sha256"))):
         f.add("inference_design_fields_invalid")
     dep = value.get("dependence_plan")
-    dpk = {"uncertainty_target", "independence_unit", "cluster_audit_status", "cluster_unit", "independent_cluster_count", "cluster_audit_sha256", "method_status", "method"}
+    dpk = {"uncertainty_target", "independence_unit", "cluster_audit_status", "cluster_unit", "independent_cluster_count", "cluster_audit_sha256", "distributional_status", "distributional_assumption", "distributional_rationale_sha256", "tail_sensitivity_plan_sha256", "distributional_reviewed_at_utc", "outcome_access_status", "outcome_access_record_sha256", "method_status", "method"}
     if not _keys(dep, dpk): f.add("dependence_plan_schema_invalid")
     elif (not _enum(dep.get("uncertainty_target"), {"unresolved", "finite_cohort_description", "model_based_video_superpopulation", "design_based_population"})
           or dep.get("independence_unit") != "video"
@@ -128,11 +128,16 @@ def validate(value: Any, input_sha256: str | None = None) -> dict:
           or not _enum(dep.get("cluster_unit"), {"unresolved", "video_source", "creator", "recording_event", "series", "multiway"})
           or (dep.get("independent_cluster_count") is not None and (type(dep.get("independent_cluster_count")) is not int or dep["independent_cluster_count"] < 1))
           or not _sha(dep.get("cluster_audit_sha256"))
+          or not _enum(dep.get("distributional_status"), {"unresolved", "reviewed"})
+          or not _enum(dep.get("distributional_assumption"), {"unresolved", "normal_iid_video_differences", "iid_video_differences_finite_variance"})
+          or (dep.get("distributional_status") == "unresolved" and (dep.get("distributional_assumption") != "unresolved" or dep.get("distributional_rationale_sha256") is not None or dep.get("tail_sensitivity_plan_sha256") is not None or dep.get("distributional_reviewed_at_utc") is not None or dep.get("outcome_access_status") != "unresolved" or dep.get("outcome_access_record_sha256") is not None))
+          or (dep.get("distributional_status") == "reviewed" and (dep.get("distributional_assumption") == "unresolved" or not _sha(dep.get("distributional_rationale_sha256")) or not _sha(dep.get("tail_sensitivity_plan_sha256")) or not isinstance(dep.get("distributional_reviewed_at_utc"), str) or not UTC_TIMESTAMP.fullmatch(dep["distributional_reviewed_at_utc"]) or not _valid_utc_timestamp(dep["distributional_reviewed_at_utc"]) or dep.get("outcome_access_status") != "not_accessed_at_review" or not _sha(dep.get("outcome_access_record_sha256"))))
           or not _enum(dep.get("method_status"), {"unresolved", "resolved"})
           or not _enum(dep.get("method"), {"unresolved", "two_sided_student_t_df_n_minus_1"})):
         f.add("dependence_plan_fields_invalid")
     elif ((dep["cluster_audit_status"] in {"unresolved", "reviewed_no_known_cluster_fields"} and (dep["cluster_unit"] != "unresolved" or dep["independent_cluster_count"] is not None))
           or (dep["cluster_audit_status"] == "unresolved" and dep["method_status"] != "unresolved")
+          or (dep["method_status"] == "resolved" and dep["distributional_status"] != "reviewed")
           or dep["cluster_audit_status"] == "clusters_identified"
           or (dep["method_status"] == "resolved" and (dep["uncertainty_target"] != "model_based_video_superpopulation" or dep["method"] == "unresolved" or dep["cluster_audit_status"] != "reviewed_no_known_cluster_fields"))
           or (dep["method_status"] == "resolved" and isinstance(inference, dict) and inference.get("selection_design") == "unknown")
@@ -218,17 +223,22 @@ def validate(value: Any, input_sha256: str | None = None) -> dict:
                     or sesoi.get("inference_plan_sha256") != an.get("inference_plan_sha256")
                     or not isinstance(inference, dict) or inference.get("target_kind") == "unresolved"
                     or not isinstance(dep, dict) or dep.get("method_status") != "resolved"
-                    or not isinstance(sesoi.get("rationale_category"), str)
-                    or sesoi.get("rationale_category") not in {"annotation_granularity", "output_reproducibility", "measurement_interpretability", "other"}
-                    or not _sha(sesoi.get("rationale_sha256"))
+                    or not isinstance(dep.get("distributional_reviewed_at_utc"), str)
+                    or not UTC_TIMESTAMP.fullmatch(dep["distributional_reviewed_at_utc"])
+                    or not _valid_utc_timestamp(dep["distributional_reviewed_at_utc"])
                     or not isinstance(sesoi.get("fixed_at_utc"), str) or not UTC_TIMESTAMP.fullmatch(sesoi["fixed_at_utc"])
                     or not _valid_utc_timestamp(sesoi["fixed_at_utc"])
-                    or sesoi.get("review_status") != "completed"
-                    or sesoi.get("review_timing") != "before_scoring"
-                    or not _sha(sesoi.get("independent_review_sha256"))
                     or not isinstance(sesoi.get("independent_reviewed_at_utc"), str)
                     or not UTC_TIMESTAMP.fullmatch(sesoi["independent_reviewed_at_utc"])
                     or not _valid_utc_timestamp(sesoi["independent_reviewed_at_utc"])
+                    or datetime.strptime(dep["distributional_reviewed_at_utc"], "%Y-%m-%dT%H:%M:%SZ")
+                       > datetime.strptime(sesoi["independent_reviewed_at_utc"], "%Y-%m-%dT%H:%M:%SZ")
+                    or not isinstance(sesoi.get("rationale_category"), str)
+                    or sesoi.get("rationale_category") not in {"annotation_granularity", "output_reproducibility", "measurement_interpretability", "other"}
+                    or not _sha(sesoi.get("rationale_sha256"))
+                    or sesoi.get("review_status") != "completed"
+                    or sesoi.get("review_timing") != "before_scoring"
+                    or not _sha(sesoi.get("independent_review_sha256"))
                     or datetime.strptime(sesoi["independent_reviewed_at_utc"], "%Y-%m-%dT%H:%M:%SZ")
                        > datetime.strptime(sesoi["fixed_at_utc"], "%Y-%m-%dT%H:%M:%SZ")
                     or sesoi.get("outcome_access_status") != "not_accessed_at_freeze"
@@ -245,7 +255,7 @@ def _summary(f, digest):
     if digest is not None and not _sha(digest):
         failures.add("input_sha256_invalid")
         digest = None
-    return {"schema_version": 10, "structurally_valid": not failures, "failure_codes": sorted(failures),
+    return {"schema_version": 12, "structurally_valid": not failures, "failure_codes": sorted(failures),
             "semantic_validation": "not_machine_verifiable", "execution_authorization": "not_granted",
             **({"input_sha256": digest} if digest else {})}
 

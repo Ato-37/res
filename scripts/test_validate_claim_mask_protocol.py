@@ -6,12 +6,12 @@ H = "0" * 64
 G = "0" * 40
 def fixture():
     value = {
-        "schema_version": 10,
+        "schema_version": 12,
         "protocol_stage": "exploratory",
         "model": {"revision": G, "tokenizer_revision": G, "quant": "4bit", "dtype": "bfloat16", "attention_implementation": "sdpa"},
         "cohort": {"candidate_manifest_sha256": H, "eligible_manifest_sha256": H, "exclusion_manifest_sha256": H, "overlap_audit_sha256": H, "candidate_video_count": 2, "eligible_video_count": 2, "prerun_exclusion_count": 0, "analysis_unit_count": 2, "split_overlap_count": 0, "primary_population": "all_eligible_videos", "secondary_population": "baseline_correctness_strata"},
         "inference_design": {"target_kind": "unresolved", "target_definition_sha256": H, "selection_design": "unknown", "sampling_frame_sha256": H, "selection_record_sha256": H},
-        "dependence_plan": {"uncertainty_target": "unresolved", "independence_unit": "video", "cluster_audit_status": "unresolved", "cluster_unit": "unresolved", "independent_cluster_count": None, "cluster_audit_sha256": H, "method_status": "unresolved", "method": "two_sided_student_t_df_n_minus_1"},
+        "dependence_plan": {"uncertainty_target": "unresolved", "independence_unit": "video", "cluster_audit_status": "unresolved", "cluster_unit": "unresolved", "independent_cluster_count": None, "cluster_audit_sha256": H, "distributional_status": "unresolved", "distributional_assumption": "unresolved", "distributional_rationale_sha256": None, "tail_sensitivity_plan_sha256": None, "distributional_reviewed_at_utc": None, "outcome_access_status": "unresolved", "outcome_access_record_sha256": None, "method_status": "unresolved", "method": "two_sided_student_t_df_n_minus_1"},
         "claim_review": {"claim_manifest_sha256": H, "mapping_sha256": H, "review_record_sha256": H, "review_status": "completed", "review_timing": "before_scoring", "mapping_unit": "claim_to_evidence_frames"},
         "data_rights": {"scope": "future chosen dataset split", "status": "unresolved", "evidence_sha256": H, "item_rights_manifest_sha256": H, "covered_eligible_video_count": 0, "unresolved_eligible_video_count": 2},
         "sampling": {"policy": "whole_video_fixed", "config_sha256": H, "uses_claim_for_selection": False, "num_frames": 16, "frame_size": 1024, "max_pixels": 200704, "cap_pixels_per_frame": True},
@@ -27,7 +27,7 @@ def fixture():
 def resolved_inference_fixture():
     value = fixture()
     value["inference_design"].update(target_kind="eligible_video_superpopulation", selection_design="nonprobability_sample")
-    value["dependence_plan"].update(uncertainty_target="model_based_video_superpopulation", cluster_audit_status="reviewed_no_known_cluster_fields", method_status="resolved")
+    value["dependence_plan"].update(uncertainty_target="model_based_video_superpopulation", cluster_audit_status="reviewed_no_known_cluster_fields", distributional_status="reviewed", distributional_assumption="iid_video_differences_finite_variance", distributional_rationale_sha256=H, tail_sensitivity_plan_sha256=H, distributional_reviewed_at_utc="2026-10-14T11:00:00Z", outcome_access_status="not_accessed_at_review", outcome_access_record_sha256=H, method_status="resolved")
     value["estimand"]["primary_estimand_sha256"] = compute_primary_estimand_sha256(value)
     value["analysis"]["inference_plan_sha256"] = compute_inference_plan_sha256(value)
     return value
@@ -86,9 +86,12 @@ class TestClaimMaskProtocol(unittest.TestCase):
         x=fixture(); x["protocol_stage"]="confirmatory"
         self.assertIn("protocol_stage_invalid",validate(x)["failure_codes"])
 
-    def test_schema_v9_is_rejected_after_v10_change(self):
+    def test_schema_v9_through_v11_are_rejected_after_v12_change(self):
         x=fixture(); x["schema_version"]=9
         self.assertIn("schema_version_invalid",validate(x)["failure_codes"])
+        for version in (10, 11):
+            x=fixture(); x["schema_version"]=version
+            self.assertIn("schema_version_invalid",validate(x)["failure_codes"])
 
     def test_inference_design_is_required_and_fail_closed(self):
         x=fixture(); x.pop("inference_design")
@@ -104,13 +107,105 @@ class TestClaimMaskProtocol(unittest.TestCase):
         self.assertIn("dependence_plan_inconsistent",validate(x)["failure_codes"])
 
     def test_dependence_plan_rejects_unhashable_enum_without_crashing(self):
-        for field in ("uncertainty_target", "cluster_audit_status", "cluster_unit", "method_status", "method"):
+        for field in ("uncertainty_target", "cluster_audit_status", "cluster_unit", "distributional_status", "distributional_assumption", "outcome_access_status", "method_status", "method"):
             with self.subTest(field=field):
                 x=fixture(); x["dependence_plan"][field]=[]
                 self.assertIn("dependence_plan_fields_invalid",validate(x)["failure_codes"])
         x=fixture(); x["dependence_plan"]["independent_cluster_count"]=2
         x["analysis"]["inference_plan_sha256"] = compute_inference_plan_sha256(x)
         self.assertIn("dependence_plan_inconsistent",validate(x)["failure_codes"])
+
+    def test_resolved_method_requires_preoutcome_distribution_review(self):
+        x=fixture()
+        x["inference_design"].update(target_kind="eligible_video_superpopulation", selection_design="nonprobability_sample")
+        x["dependence_plan"].update(uncertainty_target="model_based_video_superpopulation", cluster_audit_status="reviewed_no_known_cluster_fields", method_status="resolved")
+        x["estimand"]["primary_estimand_sha256"] = compute_primary_estimand_sha256(x)
+        x["analysis"]["inference_plan_sha256"] = compute_inference_plan_sha256(x)
+        self.assertIn("dependence_plan_inconsistent",validate(x)["failure_codes"])
+
+        x["dependence_plan"].update(distributional_status="reviewed", distributional_assumption="iid_video_differences_finite_variance", distributional_rationale_sha256=H, tail_sensitivity_plan_sha256=H, distributional_reviewed_at_utc="2026-10-14T11:00:00Z", outcome_access_status="not_accessed_at_review", outcome_access_record_sha256=H)
+        x["analysis"]["inference_plan_sha256"] = compute_inference_plan_sha256(x)
+        self.assertTrue(validate(x)["structurally_valid"])
+
+    def test_distributional_plan_hash_is_bound_to_inference_plan(self):
+        x=resolved_inference_fixture()
+        self.assertTrue(validate(x)["structurally_valid"])
+        for field, value in (("tail_sensitivity_plan_sha256", "1" * 64),
+                             ("distributional_reviewed_at_utc", "2026-10-14T11:30:00Z"),
+                             ("outcome_access_record_sha256", "2" * 64)):
+            with self.subTest(field=field):
+                y=resolved_inference_fixture()
+                y["dependence_plan"][field]=value
+                self.assertIn("inference_plan_hash_mismatch",validate(y)["failure_codes"])
+
+    def test_distributional_review_must_precede_fixed_sesoi_and_precede_outcome_access(self):
+        x=resolved_inference_fixture()
+        sesoi=x["analysis"]["sesoi"]
+        sesoi.update(status="preoutcome_fixed", value_nat=0.2,
+            decision_rule="primary_95pct_ci_lower_gt_sesoi",
+            estimand_sha256=x["estimand"]["primary_estimand_sha256"],
+            inference_plan_sha256=x["analysis"]["inference_plan_sha256"],
+            rationale_category="measurement_interpretability", rationale_sha256=H,
+            fixed_at_utc="2026-10-14T13:00:00Z", review_status="completed",
+            review_timing="before_scoring", independent_review_sha256=H,
+            independent_reviewed_at_utc="2026-10-14T12:00:00Z",
+            outcome_access_status="not_accessed_at_freeze", outcome_access_record_sha256=H)
+        self.assertTrue(validate(x)["structurally_valid"])
+        sesoi["independent_reviewed_at_utc"]="2026-10-14T11:00:00Z"
+        self.assertTrue(validate(x)["structurally_valid"])
+        sesoi["independent_reviewed_at_utc"]="2026-10-14T10:00:00Z"
+        self.assertIn("sesoi_fixed_fields_invalid",validate(x)["failure_codes"])
+        sesoi["independent_reviewed_at_utc"]="2026-10-14T12:00:00Z"
+        x["dependence_plan"]["distributional_reviewed_at_utc"]="2026-10-14T14:00:00Z"
+        x["analysis"]["inference_plan_sha256"]=compute_inference_plan_sha256(x)
+        x["analysis"]["sesoi"]["inference_plan_sha256"]=x["analysis"]["inference_plan_sha256"]
+        self.assertIn("sesoi_fixed_fields_invalid",validate(x)["failure_codes"])
+
+        x=resolved_inference_fixture()
+        x["dependence_plan"]["outcome_access_status"]="unresolved"
+        x["analysis"]["inference_plan_sha256"]=compute_inference_plan_sha256(x)
+        self.assertIn("dependence_plan_fields_invalid",validate(x)["failure_codes"])
+
+    def test_bad_review_and_freeze_timestamps_fail_closed_without_crashing(self):
+        for bad in ("not-a-time", "2026-99-99T00:00:00Z", "2026-10-14T11:00:00+00:00"):
+            with self.subTest(field="distributional_reviewed_at_utc", value=bad):
+                x=resolved_inference_fixture()
+                x["dependence_plan"]["distributional_reviewed_at_utc"]=bad
+                x["analysis"]["inference_plan_sha256"]=compute_inference_plan_sha256(x)
+                self.assertIn("dependence_plan_fields_invalid",validate(x)["failure_codes"])
+
+        def with_fixed_sesoi():
+            x=resolved_inference_fixture()
+            sesoi=x["analysis"]["sesoi"]
+            sesoi.update(status="preoutcome_fixed", value_nat=0.2,
+                decision_rule="primary_95pct_ci_lower_gt_sesoi",
+                estimand_sha256=x["estimand"]["primary_estimand_sha256"],
+                inference_plan_sha256=x["analysis"]["inference_plan_sha256"],
+                rationale_category="measurement_interpretability", rationale_sha256=H,
+                fixed_at_utc="2026-10-14T13:00:00Z", review_status="completed",
+                review_timing="before_scoring", independent_review_sha256=H,
+                independent_reviewed_at_utc="2026-10-14T12:00:00Z",
+                outcome_access_status="not_accessed_at_freeze", outcome_access_record_sha256=H)
+            return x
+
+        x=with_fixed_sesoi()
+        x["dependence_plan"]["distributional_reviewed_at_utc"]="not-a-time"
+        x["analysis"]["inference_plan_sha256"]=compute_inference_plan_sha256(x)
+        self.assertIn("dependence_plan_fields_invalid",validate(x)["failure_codes"])
+
+        x=with_fixed_sesoi()
+        x["analysis"]["sesoi"]["fixed_at_utc"]="2026-99-99T00:00:00Z"
+        self.assertIn("sesoi_fixed_fields_invalid",validate(x)["failure_codes"])
+
+        x=with_fixed_sesoi()
+        x["analysis"]["sesoi"]["independent_reviewed_at_utc"]="not-a-time"
+        self.assertIn("sesoi_fixed_fields_invalid",validate(x)["failure_codes"])
+
+    def test_unresolved_distribution_plan_must_have_null_evidence_fields(self):
+        x=fixture()
+        x["dependence_plan"]["distributional_rationale_sha256"] = H
+        x["analysis"]["inference_plan_sha256"] = compute_inference_plan_sha256(x)
+        self.assertIn("dependence_plan_fields_invalid",validate(x)["failure_codes"])
 
     def test_no_known_cluster_fields_cannot_smuggle_a_cluster_unit_or_count(self):
         x=fixture(); x["dependence_plan"].update(cluster_audit_status="reviewed_no_known_cluster_fields", cluster_unit="creator", independent_cluster_count=1)
@@ -145,7 +240,7 @@ class TestClaimMaskProtocol(unittest.TestCase):
 
     def test_resolved_method_requires_scoped_model_target(self):
         x=fixture(); x["inference_design"].update(target_kind="eligible_video_superpopulation", selection_design="nonprobability_sample")
-        x["dependence_plan"].update(cluster_audit_status="reviewed_no_known_cluster_fields", method_status="resolved", method="two_sided_student_t_df_n_minus_1", uncertainty_target="model_based_video_superpopulation")
+        x["dependence_plan"].update(cluster_audit_status="reviewed_no_known_cluster_fields", distributional_status="reviewed", distributional_assumption="iid_video_differences_finite_variance", distributional_rationale_sha256=H, tail_sensitivity_plan_sha256=H, distributional_reviewed_at_utc="2026-10-14T11:00:00Z", outcome_access_status="not_accessed_at_review", outcome_access_record_sha256=H, method_status="resolved", method="two_sided_student_t_df_n_minus_1", uncertainty_target="model_based_video_superpopulation")
         x["estimand"]["primary_estimand_sha256"] = compute_primary_estimand_sha256(x)
         x["analysis"]["inference_plan_sha256"] = compute_inference_plan_sha256(x)
         self.assertTrue(validate(x)["structurally_valid"])
@@ -154,7 +249,7 @@ class TestClaimMaskProtocol(unittest.TestCase):
         x["analysis"]["inference_plan_sha256"] = compute_inference_plan_sha256(x)
         self.assertIn("dependence_plan_inconsistent",validate(x)["failure_codes"])
         x=fixture(); x["inference_design"].update(target_kind="eligible_video_superpopulation", selection_design="nonprobability_sample")
-        x["dependence_plan"].update(cluster_audit_status="reviewed_no_known_cluster_fields", method_status="resolved", method="two_sided_student_t_df_n_minus_1", uncertainty_target="model_based_video_superpopulation")
+        x["dependence_plan"].update(cluster_audit_status="reviewed_no_known_cluster_fields", distributional_status="reviewed", distributional_assumption="iid_video_differences_finite_variance", distributional_rationale_sha256=H, tail_sensitivity_plan_sha256=H, distributional_reviewed_at_utc="2026-10-14T11:00:00Z", outcome_access_status="not_accessed_at_review", outcome_access_record_sha256=H, method_status="resolved", method="two_sided_student_t_df_n_minus_1", uncertainty_target="model_based_video_superpopulation")
         x["estimand"]["primary_estimand_sha256"] = compute_primary_estimand_sha256(x)
         x["analysis"]["inference_plan_sha256"] = compute_inference_plan_sha256(x)
         x["dependence_plan"]["uncertainty_target"]="finite_cohort_description"
@@ -312,7 +407,7 @@ class TestClaimMaskProtocol(unittest.TestCase):
         self.assertIn("runtime_fields_invalid",r["failure_codes"])
 
     def test_duplicate_json_key_is_rejected_without_echoing_input(self):
-        raw=json.dumps(fixture()).replace('"schema_version": 10', '"schema_version": 10, "schema_version": 10', 1)
+        raw=json.dumps(fixture()).replace('"schema_version": 12', '"schema_version": 12, "schema_version": 12', 1)
         with tempfile.TemporaryDirectory() as directory:
             path=Path(directory)/"duplicate.json"; path.write_text(raw, encoding="utf-8")
             stdout=io.StringIO()

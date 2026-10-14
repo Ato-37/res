@@ -92,7 +92,11 @@ token列対応の[修正監査](../results/clevrer_program_operator_trace_correc
 
 **将来「もっと新規性が欲しい」という話が出たら、まずここに立ち返ってよい。ただしユーザーから明示的に「見直したい」という指示がない限り、これらを主軸として提案しない。**
 
-## 現在の到達点(2026-10-06時点、詳細は experiments/ 参照)
+## 現在の到達点（2026-10-15、詳細は experiments/ 参照）
+
+2026-10-15時点では、事前基準未達のhead-faithfulness確認枝は停止しており、head/layer/alpha探索を再開しない。主な次候補のclaim-linked evidence-frame maskは、対象母集団・分布仮定・SESOIの決定、動画ごとの権利確認、人手claim-to-frameレビュー、runner統合が未完了のため、confirmatory scoringとGPU推論は`no_go`である。schema v12 validatorと合成テストはプロトコル整備であり、実データfaithfulness測定ではない。この研究作業窓での新規faithfulness標本・効果推定は0件。ゲートの根拠と次の作業は[2026-10-15 PDCAログ](../experiments/2026-10-15_pdca_5h.md)を参照。
+
+### 2026-10-06時点の履歴
 
 - 診断パイプライン(head ablation、attention抽出)は複数マシンで動作確認済み
 - 主要候補: `layer=6, head=16`。ただし根拠の信頼度は指標によって異なる(attentionベースのhit_rateは位置バイアスの疑いがあり、steeringのcorrect_logprobベースの統計検定の方が頑健)。詳細は[experiments/2026-09-30_fixed_chunk_baseline_confound.md](../experiments/2026-09-30_fixed_chunk_baseline_confound.md)

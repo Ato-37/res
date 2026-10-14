@@ -12,8 +12,8 @@ eventual protocol.
 ## Frozen target
 
 - Protocol revision/hash:
-- Primary-estimand hash (schema v10 canonical hash):
-- Inference-plan hash (schema v10 canonical hash):
+- Primary-estimand hash (schema v12 canonical hash):
+- Inference-plan hash (schema v12 canonical hash):
 - Mask-transform specification/hash: specify exact replacement, parameters,
   color space, operation order, and whether the whole sampled frame is replaced.
   Keep the specification private and versioned; use the identical transform
@@ -28,6 +28,11 @@ eventual protocol.
   dependence assessment:
 - Inference method justified for that target and cluster count; if a cluster-aware
   method is proposed, state the number of independent clusters and its limits:
+- Distributional assumption for video-level paired differences (iid normal or
+  iid finite variance), supporting pre-outcome rationale hash, and frozen
+  tail-sensitivity plan hash; UTC review timestamp, outcome-access status and
+  access-audit record hash. This distribution review must occur no later than
+  independent SESOI review, which must be no later than the SESOI freeze:
 - Primary contrast: fixed-answer log-margin drop under claim-linked evidence-frame
   mask minus the matched temporal-control margin drop:
 - Score unit: natural-log units (nat):
@@ -102,7 +107,7 @@ not determine it.
 Choose one and complete only its fields:
 
 - `unresolved`: no threshold is defensible yet; leave SESOI value/rationale,
-  fixed time, review/access fields, and inference-plan hash null in schema v10.
+  fixed time, review/access fields, and inference-plan hash null in schema v12.
   Do not label the protocol confirmatory.
 - `preoutcome_fixed`: set `δ > 0`; bind the exact canonical primary-estimand
   and inference-plan hashes and rationale evidence; record a UTC freeze time
