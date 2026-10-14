@@ -4,10 +4,19 @@ from math import inf, nan
 import torch
 
 from necessity_choice_margin_test import (failure_code, sample_accounting_fields,
-                                          score_conditions_with_accounting)
+                                          score_conditions_with_accounting,
+                                          summary_seed_schedule)
 
 
 class FailureCodeTests(unittest.TestCase):
+    def test_summary_seed_schedule_is_stable_and_distinct(self):
+        self.assertEqual(summary_seed_schedule(2026), {
+            'all': 2026,
+            'baseline_correct_primary': 2027,
+            'baseline_incorrect_secondary': 2028,
+            'correct_minus_incorrect_interaction': 2029,
+        })
+
     def test_oom_is_generic(self):
         self.assertEqual(failure_code(torch.cuda.OutOfMemoryError('secret path /x')), 'cuda_oom')
 

@@ -11,6 +11,7 @@ import argparse
 import hashlib
 import json
 import os
+import platform
 import shutil
 import subprocess
 import tempfile
@@ -62,6 +63,13 @@ def score_conditions_with_accounting(sample_index, score, paths, question, choic
 def sample_accounting_fields(n_requested, rows, failures):
     """Build the runner's requested/effective/failure accounting fields."""
     return {'n_requested': n_requested, 'n_effective': len(rows), 'failures': failures}
+
+
+def summary_seed_schedule(seed):
+    """Return stable, distinct seeds for each reported resampling summary."""
+    return {'all': seed, 'baseline_correct_primary': seed + 1,
+            'baseline_incorrect_secondary': seed + 2,
+            'correct_minus_incorrect_interaction': seed + 3}
 
 
 def provenance(path: Path) -> dict:
@@ -226,13 +234,17 @@ def main():
     correct = [r['selective_necessity_margin_drop'] for r in rows if r['baseline_choice_correct']]
     incorrect = [r['selective_necessity_margin_drop'] for r in rows if not r['baseline_choice_correct']]
     empty_summary = not rows
-    result = {'schema_version': 2, 'script': 'necessity_choice_margin_test.py',
+    summary_seeds = summary_seed_schedule(args.seed)
+    result = {'schema_version': 3, 'script': 'necessity_choice_margin_test.py',
               'samples_file': args.samples_file, 'model': args.model, 'quant': args.quant,
               **provenance(Path(args.samples_file)),
               'dtype': 'bfloat16', 'attn_implementation': 'eager',
+              'python_version': platform.python_version(),
+              'python_implementation': platform.python_implementation(),
               'torch_version': torch.__version__, 'transformers_version': transformers.__version__,
               'device': device, 'gpu_name': torch.cuda.get_device_name(0) if device == 'cuda' else None,
-              'seed': args.seed, 'num_frames': args.num_frames,
+              'seed': args.seed, 'bootstrap_draws': args.bootstrap_draws,
+              'summary_seed_schedule': summary_seeds, 'num_frames': args.num_frames,
               'frame_size': args.frame_size, 'max_pixels': args.max_pixels,
               'cap_pixels_per_frame': args.cap_pixels_per_frame,
               'peak_cuda_memory_bytes': (torch.cuda.max_memory_allocated()
@@ -249,11 +261,12 @@ def main():
                            'baseline_incorrect_secondary': None,
                            'correct_minus_incorrect_interaction': None}
                           if empty_summary else
-                          {'all': summarize(all_effects, args.bootstrap_draws, args.seed),
-                           'baseline_correct_primary': summarize(correct, args.bootstrap_draws, args.seed + 1),
-                           'baseline_incorrect_secondary': summarize(incorrect, args.bootstrap_draws, args.seed + 2),
+                          {'all': summarize(all_effects, args.bootstrap_draws, summary_seeds['all']),
+                           'baseline_correct_primary': summarize(correct, args.bootstrap_draws, summary_seeds['baseline_correct_primary']),
+                           'baseline_incorrect_secondary': summarize(incorrect, args.bootstrap_draws, summary_seeds['baseline_incorrect_secondary']),
                            'correct_minus_incorrect_interaction': interaction_ci(
-                               correct, incorrect, args.bootstrap_draws, args.seed + 3)}),
+                               correct, incorrect, args.bootstrap_draws,
+                               summary_seeds['correct_minus_incorrect_interaction'])}),
               'multiplicity': 'One predeclared primary cohort (baseline-correct); all-sample, '
                               'baseline-incorrect, and interaction results are secondary and '
                               'not multiplicity-corrected.',

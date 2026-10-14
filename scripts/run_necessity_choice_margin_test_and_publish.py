@@ -14,6 +14,18 @@ def run(command, repo):
     subprocess.run(command, cwd=repo, check=True)
 
 
+def analysis_command(repo, samples, output, args):
+    command = [sys.executable, str(repo / 'scripts/necessity_choice_margin_test.py'),
+               '--samples-file', str(samples), '--output', str(output),
+               '--quant', args.quant, '--seed', str(args.seed),
+               '--bootstrap-draws', str(args.bootstrap_draws),
+               '--num-frames', str(args.num_frames),
+               '--mask-fill', args.mask_fill, '--blur-radius', str(args.blur_radius)]
+    if args.n_samples is not None:
+        command.extend(['--n-samples', str(args.n_samples)])
+    return command
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--samples-file', required=True)
@@ -22,6 +34,7 @@ def main():
     parser.add_argument('--n-samples', type=int)
     parser.add_argument('--quant', choices=['4bit', '8bit', 'none'], default='4bit')
     parser.add_argument('--seed', type=int, default=0)
+    parser.add_argument('--bootstrap-draws', type=int, default=10000)
     parser.add_argument('--num-frames', type=int, default=16)
     parser.add_argument('--mask-fill', choices=['black', 'blur'], default='black')
     parser.add_argument('--blur-radius', type=float, default=12.0)
@@ -40,13 +53,7 @@ def main():
     if output.exists():
         parser.error(f'Refusing to overwrite existing output: {output}')
     name, email = git_identity(str(repo))
-    command = [sys.executable, str(repo / 'scripts/necessity_choice_margin_test.py'),
-               '--samples-file', str(samples), '--output', str(output),
-               '--quant', args.quant, '--seed', str(args.seed),
-               '--num-frames', str(args.num_frames),
-               '--mask-fill', args.mask_fill, '--blur-radius', str(args.blur_radius)]
-    if args.n_samples is not None:
-        command.extend(['--n-samples', str(args.n_samples)])
+    command = analysis_command(repo, samples, output, args)
     run(command, str(repo))
     manifest = output.with_name(output.stem + '_run_manifest.json')
     manifest.write_text(json.dumps({
@@ -55,7 +62,8 @@ def main():
         'samples_file': str(samples.relative_to(repo)),
         'preflight_report': str(preflight.relative_to(repo)) if preflight else None,
         'output': str(output.relative_to(repo)), 'n_samples': args.n_samples,
-        'quant': args.quant, 'seed': args.seed, 'num_frames': args.num_frames,
+        'quant': args.quant, 'seed': args.seed,
+        'bootstrap_draws': args.bootstrap_draws, 'num_frames': args.num_frames,
         'mask_fill': args.mask_fill, 'blur_radius': args.blur_radius,
         'command': command, 'git_user_name': name, 'git_user_email': email,
     }, indent=2) + '\n')
