@@ -796,3 +796,19 @@ sequence, not a claim that those inputs exist or are complete.
 
 At 19:13:23 JST, 1h50m11s had elapsed and 1h09m49s remained. The gate update is
 not yet committed.
+
+## Control-frame tie-break regression
+
+An independent audit compared the existing `nearest_control_indices` function
+with the claim-mask control contract. It enumerates every eligible equal-size
+control subset, minimizes total absolute temporal-rank distance, and uses the
+ordered rank tuple as the tie-break key. A regression test now exercises a
+two-sided equal-distance tie and confirms the lexicographically lower rank is
+selected. The focused utility suite passes 11/11; the full scripts suite passes
+553/553. No implementation change or real-video read occurred. This confirms a
+deterministic synthetic control-selection property; it does not establish
+screen-content matching, human claim validity, rights, or faithfulness effect.
+Direct faithfulness progress remains 0 new samples / 0 effects.
+
+At 19:14:57 JST, 1h51m45s had elapsed and 1h08m15s remained. Publication is
+pending.

@@ -56,6 +56,9 @@ class NecessityChoiceMarginUtilsTests(unittest.TestCase):
         self.assertFalse(set(controls) & set(evidence))
         self.assertEqual(controls, [2, 5])
 
+    def test_control_matching_ties_choose_lexicographically_lower_rank(self):
+        self.assertEqual(nearest_control_indices([0, 1, 2, 3, 4], [2]), [1])
+
     def test_no_evidence_or_insufficient_controls_returns_empty(self):
         self.assertEqual(nearest_control_indices([0, 1, 2], []), [])
         self.assertEqual(nearest_control_indices([0, 1, 2], [0, 1]), [])
