@@ -1,0 +1,32 @@
+{
+  "cohort_ids_in_multiple_splits": 0,
+  "cohort_ids_unmatched": 0,
+  "cohort_manifest_sha256": "7bf254a944ec1f05017b01e365a0145dac762fb6d08b69ea736a06864b02cb32",
+  "cohort_matches_by_split": {
+    "test": 25,
+    "train": 0,
+    "val": 0
+  },
+  "cohort_rows": 25,
+  "cohort_unique_video_ids": 25,
+  "failure_codes": [],
+  "rights_or_inference_authorization": "not_granted",
+  "schema_version": 1,
+  "semantic_validation": "not_machine_verifiable",
+  "source_split_pairwise_overlaps": {
+    "train_test": 0,
+    "train_val": 0,
+    "val_test": 0
+  },
+  "source_split_sha256": {
+    "test": "62c5637f12b96bb09fb099ae5c86495f96da08926a94700f1863c65ac5ca8b90",
+    "train": "e81d6651a2b1edbc13d6c592de20439ac920c3a3acd1358deb0e01dbaf42e14c",
+    "val": "4f99f7c11470c22017cf4fecdc91a6bb350b1c51e84a6005fb45d36ee50895d4"
+  },
+  "source_unique_video_ids_by_split": {
+    "test": 1000,
+    "train": 3870,
+    "val": 570
+  },
+  "status": "mapped_unambiguously"
+}

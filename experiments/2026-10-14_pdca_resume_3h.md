@@ -253,6 +253,39 @@ strings; it does not link the paths to NExT-CF records. This lead cannot close
 the rights gate absent an independently reviewable, cohort-matched per-item
 record and evidence for the actual source media.
 
+To test the split applicability without sending IDs externally, a second local
+audit compares only filename stems from the two private cohorts to the local
+NExT-QA `train.csv`, `val.csv`, and `test.csv`. The NExT-GQA README says its
+`train.csv` annotations match NExT-QA train and its `val.csv`/`test.csv` are
+subsets of the corresponding NExT-QA splits ([official dataset README](https://github.com/doc-doc/NExT-GQA/blob/main/datasets/nextgqa/README.md)).
+All 25 held-out and all 80 necessity-choice candidate IDs match the NExT-QA
+test video set; neither cohort matches train or val. The local split sets have
+0 pairwise video-ID intersections (3,870 train, 570 val, 1,000 test distinct
+video IDs). NExT-CF's Croissant metadata says its source videos were drawn from
+NExT-QA validation ([Croissant metadata at commit `1b03938`](https://huggingface.co/datasets/nextcf-anon-2026/nextcf/blob/1b03938/croissant.json)).
+Under the declared split IDs, its license index is therefore not a cohort match
+for these test samples. This is still not proof against aliases or duplicate
+media under different IDs, nor an independent validation of either dataset's
+split claims. The final privacy-safe outputs are
+`results/nextgqa_heldout_split_membership_20261014_03.json` and
+`results/nextgqa_necessity_candidates_split_membership_20261014_03.json`; they
+contain aggregate split counts, hashes, and fixed statuses only. Unsalted hashes
+retain the same linkability caveat above, and permissions remain not granted.
+The independent audit found that Python's CSV `DictReader` could silently
+overwrite duplicate `video_id` headers or ignore extra fields. The parser now
+rejects duplicate/missing headers and rows with incorrect field counts; JSON
+also rejects non-finite constants. Regression tests cover these malformed
+inputs. Five focused split-audit tests and the full 513-test scripts suite pass;
+`py_compile` and `git diff --check` pass. The final strict CSV-parser rerun uses
+the `_03` outputs; `_01` and `_02` are excluded from publication. The
+independent auditor reviewed the hardened parser and `_02` summaries; the
+primary agent reran with strict CSV parsing and confirmed byte-identical `_03`
+summaries, with hashes below. The SHA-256
+values are `da5d7094278a5e4dd55123be6bc3b83b174b403f27f9eeadccecb5002e903d47`
+(held-out) and
+`27cafd48100003908dd1c2521818490078e336a5d6361512bf4ce95d58017d9e`
+(necessity-choice candidates).
+
 ## Faithfulness progress at this checkpoint
 
 - New direct faithfulness samples this window: 0.
