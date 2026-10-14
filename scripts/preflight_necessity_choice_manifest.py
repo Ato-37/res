@@ -16,6 +16,7 @@ Usage:
 import argparse
 from collections import Counter
 import json
+import math
 import os
 from pathlib import Path
 
@@ -29,10 +30,13 @@ def decodable_video_info(video_path):
 
     cap = cv2.VideoCapture(video_path)
     if not cap.isOpened():
+        cap.release()
         raise RuntimeError(f'Could not open video {video_path}')
-    fps = cap.get(cv2.CAP_PROP_FPS) or 25.0
     count = 0
     try:
+        fps = cap.get(cv2.CAP_PROP_FPS)
+        if isinstance(fps, bool) or not isinstance(fps, (int, float)) or not math.isfinite(fps) or fps <= 0:
+            raise RuntimeError('Video reports invalid source FPS')
         while True:
             ok, _ = cap.read()
             if not ok:

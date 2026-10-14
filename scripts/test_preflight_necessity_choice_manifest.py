@@ -2,14 +2,47 @@ from __future__ import annotations
 
 import sys
 import unittest
+from types import SimpleNamespace
 from pathlib import Path
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import preflight_necessity_choice_manifest as preflight  # noqa: E402
 
 
 class DistinctFramePreflightTests(unittest.TestCase):
+    def _mock_capture(self, fps):
+        cap = MagicMock()
+        cap.isOpened.return_value = True
+        cap.get.return_value = fps
+        cap.read.side_effect = [(True, object()), (True, object()), (False, None)]
+        module = SimpleNamespace(VideoCapture=lambda _: cap, CAP_PROP_FPS=5)
+        return cap, module
+
+    def test_invalid_source_fps_is_rejected_and_capture_released(self):
+        for fps in (0.0, -1.0, float("nan"), float("inf"), None, True, "30"):
+            with self.subTest(fps=fps):
+                cap, cv2 = self._mock_capture(fps)
+                with patch.dict(sys.modules, {"cv2": cv2}):
+                    with self.assertRaisesRegex(RuntimeError, "invalid source FPS"):
+                        preflight.decodable_video_info("synthetic.mp4")
+                cap.release.assert_called_once()
+                cap.read.assert_not_called()
+
+    def test_valid_source_fps_is_returned_without_substitution(self):
+        cap, cv2 = self._mock_capture(29.97)
+        with patch.dict(sys.modules, {"cv2": cv2}):
+            self.assertEqual(preflight.decodable_video_info("synthetic.mp4"), (2, 29.97))
+        cap.release.assert_called_once()
+
+    def test_capture_is_released_if_fps_metadata_read_raises(self):
+        cap, cv2 = self._mock_capture(29.97)
+        cap.get.side_effect = RuntimeError("synthetic metadata error")
+        with patch.dict(sys.modules, {"cv2": cv2}):
+            with self.assertRaisesRegex(RuntimeError, "synthetic metadata error"):
+                preflight.decodable_video_info("synthetic.mp4")
+        cap.release.assert_called_once()
+
     def test_short_clip_with_duplicate_sampled_indices_is_excluded_pre_score(self):
         sample = {"video_id": "synthetic-video", "qid": "q1", "video": "synthetic.mp4",
                   "grounding": [[0.0, 0.0]]}

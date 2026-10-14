@@ -118,7 +118,10 @@ scoring path may still fail when it cannot materialize the requested distinct
 frames. The future v9 runner must freeze its sampling rule in the sampling-config
 hash and enforce the same requirement before any model score call. This shared
 helper does not by itself establish timestamp precision or v9 runner
-compatibility.
+compatibility. Preflight also requires a finite, positive source FPS from the
+video metadata; it does not substitute a conventional FPS when metadata is zero,
+missing, or non-finite, because that would silently change the time-to-frame
+mapping used for evidence intervals.
 
 ## Cohort, mapping, and control
 
