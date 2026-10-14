@@ -1,0 +1,9 @@
+{
+  "artifact": "results/qwen_temporal_position_gpu_monitor_summary_20261015_01.json",
+  "artifact_sha256": "e4743dd32d4a570848c3d9d97416b13146f8b9144bdcca0062819aea137f0db8",
+  "raw_trace_sha256": "159658677fd463233c1c2c4ca2a4ad12840fbf051ed8026200575f179675b77f",
+  "sample_count": 119,
+  "schema_version": 1,
+  "source_result": "results/qwen_temporal_position_synthetic_16frame_monitor_20261015_01.json",
+  "source_result_sha256": "54ab34df8508ea435dfdfe3751b3d911462cb61a61039669f726d2dbff5f6f36"
+}

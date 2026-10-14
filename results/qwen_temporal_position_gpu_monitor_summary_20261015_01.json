@@ -1,0 +1,40 @@
+{
+  "limitations": [
+    "Poll trace has no timestamps, phase markers, or device ID.",
+    "Window includes model loading, preprocessing, model forwards, cleanup, and publication; values are not forward-only utilization.",
+    "The raw telemetry trace is not published; reported values are derived from its hashed local CSV."
+  ],
+  "metrics": {
+    "device_memory_used_mib": {
+      "max": 9699.0,
+      "mean": 5739.403361344538,
+      "median": 7123.0,
+      "min": 1282.0,
+      "p95": 9683.0,
+      "p95_index_rule": "sorted[floor(0.95*(n-1))]"
+    },
+    "gpu_utilization_pct": {
+      "max": 100.0,
+      "mean": 17.33613445378151,
+      "median": 8.0,
+      "min": 1.0,
+      "p95": 90.0,
+      "p95_index_rule": "sorted[floor(0.95*(n-1))]"
+    },
+    "power_w": {
+      "max": 189.41,
+      "mean": 62.80705882352941,
+      "median": 46.34,
+      "min": 26.9,
+      "p95": 166.47,
+      "p95_index_rule": "sorted[floor(0.95*(n-1))]"
+    }
+  },
+  "poll_interval_ms_requested": 200,
+  "purpose": "whole_command_gpu_resource_monitor_summary",
+  "raw_trace_sha256": "159658677fd463233c1c2c4ca2a4ad12840fbf051ed8026200575f179675b77f",
+  "sample_count": 119,
+  "schema_version": 1,
+  "source_result": "results/qwen_temporal_position_synthetic_16frame_monitor_20261015_01.json",
+  "source_result_sha256": "54ab34df8508ea435dfdfe3751b3d911462cb61a61039669f726d2dbff5f6f36"
+}
