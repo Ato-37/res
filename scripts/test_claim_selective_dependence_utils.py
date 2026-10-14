@@ -16,8 +16,10 @@ class Tests(unittest.TestCase):
         self.assertAlmostEqual(out["standard_error_d"], 0.25)
         self.assertAlmostEqual(out["ci95_t_d"][0], -2.9265, places=3)
         self.assertAlmostEqual(out["ci95_t_d"][1], 3.4265, places=3)
-        self.assertEqual(out["interval_method"].split(";")[0],
-                         "two-sided Student-t interval over independent video-level contrasts")
+        self.assertEqual(out["primary_ci_method"], "two_sided_student_t_df_n_minus_1")
+        self.assertEqual(out["interval_confidence_level"], 0.95)
+        self.assertEqual(out["interval_degrees_of_freedom"], 1)
+        self.assertEqual(out["interval_assumption"], "independent video-level contrasts")
 
     def test_single_video_has_no_inferential_interval(self):
         out = summarize([{"video_id": "v1", "target_sha256": "a" * 64,
@@ -27,6 +29,7 @@ class Tests(unittest.TestCase):
         self.assertIsNone(out["sample_sd_d"])
         self.assertIsNone(out["standard_error_d"])
         self.assertIsNone(out["ci95_t_d"])
+        self.assertIsNone(out["interval_degrees_of_freedom"])
 
     def test_constant_effect_has_zero_width_interval(self):
         rows = [{"video_id": f"v{i}", "target_sha256": "a" * 64,

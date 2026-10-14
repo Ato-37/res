@@ -746,3 +746,17 @@ claim that every public-source legal statement was independently adjudicated.
 
 At 19:09:13 JST, 1h46m01s had elapsed and 1h13m59s remained. This publication
 scope audit note is not yet committed.
+
+## Machine-readable CI provenance
+
+To make the estimator output directly comparable with schema v7, its summary
+now emits the same `primary_ci_method` field/value, `interval_confidence_level`
+0.95, numeric `interval_degrees_of_freedom` (`n-1`, or null at n=1), and the
+video-independence assumption. An independent audit confirms those fields and
+the 10/10 focused estimator tests. The final full scripts suite passes 552/552;
+expected diagnostic output is from negative-path fixtures. Byte-compilation and
+`git diff --check` pass. This is output provenance only; it adds no result,
+fixed SESOI, or authorization. Direct faithfulness remains 0 new samples / 0
+new estimates. The small update is not yet published.
+
+At 19:11:33 JST, 1h48m21s had elapsed and 1h11m39s remained.

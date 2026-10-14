@@ -73,6 +73,9 @@ def summarize(records: list[dict]) -> dict:
         "sample_sd_d": sd,
         "standard_error_d": se,
         "ci95_t_d": ci95,
-        "interval_method": "two-sided Student-t interval over independent video-level contrasts; df=n-1",
+        "primary_ci_method": "two_sided_student_t_df_n_minus_1",
+        "interval_confidence_level": 0.95,
+        "interval_degrees_of_freedom": n - 1 if n >= 2 else None,
+        "interval_assumption": "independent video-level contrasts",
         "interpretation_limit": "synthetic arithmetic/interval contract only; no claim extraction, semantic alignment, human review, GPU inference, or faithfulness efficacy",
     }
