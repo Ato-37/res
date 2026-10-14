@@ -652,3 +652,31 @@ checkpoint, the focused provenance suite passed 14/14, the full scripts suite
 passed 546/546, `py_compile` passed for the builder and focused tests, and
 `git diff --check` passed. Negative-path tests printed their expected error
 and diagnostic JSON fixtures. Publication is still pending at this checkpoint.
+
+## Public-source rights-path check
+
+On 2026-10-14, the official NExT-GQA repository description and dataset README
+were checked without opening local annotations or sample IDs. They describe
+NExT-GQA QA annotations as a subset of NExT-QA and describe a mapping from QA
+video IDs to video paths. The official NExT-QA repository README says raw video
+is sourced from VidOR and asks dataset users to cite/attribute the project; its
+`LICENSE` file is an MIT license for software/documentation. The official
+Multimedia Commons YFCC page currently says its Webscope route is unavailable,
+that dataset access is subject to a Webscope agreement, and that original media
+licenses are uploader-selected and represented per item in metadata. These
+pages do not establish the applicable terms for any particular local video or
+the annotation files; no item ID was matched and no legal conclusion is made.
+The rights gate therefore remains unresolved. Needed evidence is still a
+source-bound item-level media license/conditions review plus an annotation
+dataset terms review, for the exact frozen eligible cohort.
+
+Sources inspected: <https://github.com/doc-doc/NExT-GQA>;
+<https://github.com/doc-doc/NExT-GQA/blob/main/datasets/nextgqa/README.md>;
+<https://github.com/doc-doc/NExT-QA/blob/main/README.md>;
+<https://github.com/doc-doc/NExT-QA/blob/main/LICENSE>;
+<https://multimediacommons.wordpress.com/yfcc100m-core-dataset/>.
+This is a research-log note, not a rights determination. Direct faithfulness
+progress remains 0 new samples / 0 effects.
+
+At 19:03:21 JST, 1h40m09s had elapsed and 1h19m03s remained. This log update
+has not yet been committed or published.
