@@ -110,6 +110,19 @@ implementation. `gold_choice_manifest_sha256` binds per-video gold labels;
 mapping, review, and rights hashes refer to separate artifacts. These are
 declared references; the validator does not resolve or authenticate them.
 
+For NExT-GQA, the supplied temporal interval is a QA-pair-level answer-evidence
+annotation. It is not, by itself, a mapping for a later Qwen-generated
+natural-language claim. If such an interval is used to seed review, the
+independent reviewer must inspect the frozen generated claim and video and
+record whether the reviewed interval supports that specific claim. The paper's
+grounding criterion accepts any moment sufficient to reveal the answer; its
+appendix asks annotators to label all relevant moments when the same evidence
+recurs. A future claim-level protocol must state whether it maps one sufficient
+occurrence or all relevant occurrences, and reviewers must follow that rule.
+The schema-v9 hash declarations do not enforce these semantic requirements;
+until an independent content-aware review gate exists, a structural pass alone
+cannot establish them or authorize inference.
+
 Before scoring, a runner must verify that the five distinct A–E labels each
 map to one token and that the exact rendered chat-generation prefix remains
 stable when each label is appended as the assistant target, with the target's
