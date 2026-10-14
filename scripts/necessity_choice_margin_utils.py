@@ -1,7 +1,22 @@
 """Dependency-light utilities for temporal choice-margin necessity analyses."""
 from itertools import combinations
+from math import isfinite
 from random import Random
 from statistics import stdev
+
+
+MIN_BOOTSTRAP_DRAWS = 100
+
+
+def _validate_bootstrap_inputs(values, draws):
+    if isinstance(draws, bool) or not isinstance(draws, int) or draws < MIN_BOOTSTRAP_DRAWS:
+        raise ValueError(f'draws must be an integer >= {MIN_BOOTSTRAP_DRAWS}')
+    try:
+        finite = all(isfinite(value) for value in values)
+    except (TypeError, ValueError, OverflowError):
+        finite = False
+    if not finite:
+        raise ValueError('values must contain only finite numbers')
 
 
 def strict_evidence_indices(indices, fps, intervals):
@@ -50,11 +65,21 @@ def apply_mask_fill(image, fill, blur_radius=12.0):
     raise ValueError(f"Unknown mask fill: {fill}")
 
 
+def validate_choice_logprobs(values):
+    """Reject malformed/non-finite A–E scores before they enter a run summary."""
+    if len(values) != 5:
+        raise ValueError(f'Expected five choice log-probabilities; got {len(values)}')
+    if not all(isfinite(value) for value in values):
+        raise ValueError('Choice log-probabilities must all be finite')
+    return values
+
+
 def _bootstrap_mean(values, rng):
     return sum(values[rng.randrange(len(values))] for _ in values) / len(values)
 
 
 def summarize(values, draws, seed):
+    _validate_bootstrap_inputs(values, draws)
     if not values:
         return {'n': 0, 'mean': None, 'sd': None, 'ci95_pointwise': None,
                 'positive_fraction': None, 'signflip_p_two_sided': None}
@@ -75,6 +100,8 @@ def summarize(values, draws, seed):
 
 
 def interaction_ci(correct, incorrect, draws, seed):
+    _validate_bootstrap_inputs(correct, draws)
+    _validate_bootstrap_inputs(incorrect, draws)
     if len(correct) < 2 or len(incorrect) < 2:
         return {'mean_correct_minus_incorrect': None, 'ci95_pointwise': None}
     rng = Random(seed)

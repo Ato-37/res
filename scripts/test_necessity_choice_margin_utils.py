@@ -1,10 +1,12 @@
 """CPU tests for necessity choice-margin matching and summary utilities."""
 import unittest
+from math import inf, nan
 
 from analyze_necessity_choice_mask_fill import compare_results
 from necessity_choice_margin_utils import (apply_mask_fill, assess_frame_coverage,
                                            interaction_ci, nearest_control_indices,
-                                           strict_evidence_indices, summarize)
+                                           strict_evidence_indices, summarize,
+                                           validate_choice_logprobs)
 
 
 class NecessityChoiceMarginUtilsTests(unittest.TestCase):
@@ -93,6 +95,30 @@ class NecessityChoiceMarginUtilsTests(unittest.TestCase):
             apply_mask_fill(image, 'blur', 0)
         with self.assertRaises(ValueError):
             apply_mask_fill(image, 'pixelate')
+
+    def test_choice_logprobs_reject_nonfinite_or_wrong_choice_count(self):
+        valid = [-3.0, -2.0, -1.0, -4.0, -5.0]
+        self.assertEqual(validate_choice_logprobs(valid), valid)
+        for invalid in ([0.0] * 4, [0.0, 0.0, nan, 0.0, 0.0],
+                        [0.0, 0.0, inf, 0.0, 0.0], [0.0, 0.0, -inf, 0.0, 0.0]):
+            with self.subTest(invalid=invalid):
+                with self.assertRaises(ValueError):
+                    validate_choice_logprobs(invalid)
+
+    def test_summary_utilities_reject_nonfinite_values_and_too_few_draws(self):
+        for values in ([1.0, nan], [1.0, inf], [1.0, -inf], [1.0, 'bad'],
+                       [10**1000]):
+            with self.subTest(values=values):
+                with self.assertRaises(ValueError):
+                    summarize(values, draws=100, seed=1)
+        with self.assertRaises(ValueError):
+            interaction_ci([1.0, nan], [0.0, 1.0], draws=100, seed=1)
+        for draws in (0, 1, 99, True, 100.0):
+            with self.subTest(draws=draws):
+                with self.assertRaises(ValueError):
+                    summarize([1.0, 2.0], draws=draws, seed=1)
+                with self.assertRaises(ValueError):
+                    interaction_ci([1.0, 2.0], [0.0, 1.0], draws=draws, seed=1)
 
     def test_singleton_summary_does_not_claim_inferential_uncertainty(self):
         result = summarize([0.25], draws=100, seed=7)

@@ -24,7 +24,7 @@ from activation_patching_sweep import build_inputs, read_sampled_frames, write_f
 from necessity_mask_test import decodable_video_info, sample_indices
 from necessity_choice_margin_utils import (apply_mask_fill, interaction_ci,
                                            nearest_control_indices, strict_evidence_indices,
-                                           summarize)
+                                           summarize, validate_choice_logprobs)
 
 LABELS = list('ABCDE')
 
@@ -129,7 +129,8 @@ def main():
             position = inputs['input_ids'].shape[1] - 1
             logits = model(**inputs).logits[0, position].float()
             logprobs = torch.log_softmax(logits, dim=-1)
-            return logprobs[torch.tensor(label_ids, device=logprobs.device)].cpu().tolist(), input_meta
+            values = logprobs[torch.tensor(label_ids, device=logprobs.device)].cpu().tolist()
+            return validate_choice_logprobs(values), input_meta
 
     rows, failures = [], []
     for sample_idx, sample in enumerate(samples):
