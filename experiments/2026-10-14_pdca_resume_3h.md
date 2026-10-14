@@ -286,6 +286,31 @@ values are `da5d7094278a5e4dd55123be6bc3b83b174b403f27f9eeadccecb5002e903d47`
 `27cafd48100003908dd1c2521818490078e336a5d6361512bf4ce95d58017d9e`
 (necessity-choice candidates).
 
+### Private review-template preparation
+
+To make the remaining human rights review actionable, added
+`scripts/create_item_rights_review_template.py`. It accepts a private cohort
+manifest (`video_id` records or file-like `video` values normalized to filename
+stems), creates a canonical eligible manifest and matching schema-v2 ledger in
+one new private directory, and writes only unresolved decisions/review fields.
+The bundle directory is mode 0700 and its two files are mode 0600; existing
+output directories are refused. An independent audit found and prompted a hash
+binding repair: the ledger now hashes the exact canonical eligible-manifest
+bytes that are written beside it. Five focused tests pass, including parsing,
+permissions, no overwrite, stdout privacy, hash binding, and the requirement
+that the generated ledger remains a rights-audit failure. The final independent
+audit found no remaining critical issue; unsalted summary hashes remain
+linkable and are not treated as anonymous.
+
+Private, local-only bundles were generated for 25 held-out and 80
+necessity-choice candidate videos; their IDs and paths were not committed. The
+existing rights checker confirms the files bind correctly but both templates
+fail closed: complete permitted declarations are 0/25 and 0/80, respectively,
+with annotation/source evidence, source lineage, conditions, and use decisions
+unresolved. No reviewer attestation was created, and execution authorization
+remains `not_granted`. This prepares a human worksheet only; it does not advance
+faithfulness evidence or clear data rights.
+
 ## Faithfulness progress at this checkpoint
 
 - New direct faithfulness samples this window: 0.
