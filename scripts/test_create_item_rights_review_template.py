@@ -84,6 +84,16 @@ class ItemRightsTemplateTests(unittest.TestCase):
             with self.assertRaises(ValueError):
                 _read_manifest(path)
 
+    def test_manifest_rejects_surrounding_whitespace_in_ids_and_paths(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "eligible.json"
+            for field, value in (("video_id", "x "), ("video", "clip.mp4\t"),
+                                 ("video", "clip .mp4"), ("video", " clip.mp4")):
+                with self.subTest(field=field):
+                    path.write_text(json.dumps([{field: value}]), encoding="utf-8")
+                    with self.assertRaises(ValueError):
+                        _read_manifest(path, field)
+
     def test_template_requires_scope_and_restricted_use_choices(self):
         with self.assertRaises(ValueError):
             build_template(["x"], b"[]", "", "scope", ["local_inference"])

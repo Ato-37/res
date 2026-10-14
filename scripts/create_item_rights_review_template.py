@@ -32,15 +32,19 @@ def _read_manifest(path: Path, video_field: str = "video_id") -> tuple[list[str]
         raise ValueError("eligible manifest must be a non-empty JSON array")
     ids = []
     for row in manifest:
-        if not isinstance(row, dict) or not isinstance(row.get(video_field), str) or not row[video_field].strip():
+        if not isinstance(row, dict) or not isinstance(row.get(video_field), str):
             raise ValueError("cohort video field is invalid")
-        value = row[video_field].strip()
+        value = row[video_field]
+        if not value.strip() or value != value.strip():
+            raise ValueError("cohort video field is empty or has surrounding whitespace")
         if video_field == "video":
             normalized = value.replace("\\", "/")
             path_value = PurePosixPath(normalized)
             if normalized.endswith("/") or not path_value.suffix or not path_value.stem:
                 raise ValueError("video field must be a file-like path with an extension")
             value = path_value.stem
+            if value != value.strip():
+                raise ValueError("video filename stem has surrounding whitespace")
         ids.append(value)
     if len(ids) != len(set(ids)):
         raise ValueError("eligible manifest video_id values are not unique")
