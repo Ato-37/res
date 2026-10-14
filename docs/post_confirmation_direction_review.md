@@ -74,3 +74,11 @@ CLEVRER train/validationの既存counterfactual questionsは、各回答選択�
 上記のCLEVRER案について、question JSONの探索・choice-program署名・公式executorに基づく演算列・質問文token距離のCPU監査を実施した。最終結果と判断は[実験ログ](../experiments/2026-10-08_post_confirmation_direction_review.md)に記録した。異なるchoice-program署名を持つ12,974ペア中、演算列一致は158件。さらに質問文token距離が2–3のものは12件のみで、4以上が146件だった。これらの表層・構造指標は意味上妥当な反実仮想pairを立証しない。
 
 よって、本レビューで提案したCLEVRER-based faithfulness実験はデータ適合性が確認できず、現時点で停止する。GPU実験、個別ケースのpost-hoc選別、token距離閾値の追加調整は行わない。今後再開する場合は、別個に定義したestimand、意味的pair基準、個別例を結果に盲検化して評価する手順を先に作る。本節が本レビューの最新判断であり、上記の当初案より優先する。
+
+## 7. 視覚説明faithfulnessの追加先行研究監査（2026-10-15追記）
+
+- Menzat et al., [Counterfactual Tests for Measuring Chain-of-Thought Faithfulness in Visual Language Models](https://arxiv.org/html/2609.06704)（arXiv:2609.06704、Findings of EMNLP 2026採択）は、A-OKVQAとSNLI-VEの画像ペアに対してvCT/vCCTを適用する。元画像と単一物体を編集除去した画像でVLMの選択肢分布を比べ、説明が編集対象に言及するかを評価し、再構成controlも使う。画像に対する同一生成器の説明・回答変化整合性は既に扱われている。動画フレーム、claim-to-time mapping、等量の時間control mask、gold-vs-best-foil log-margin差の組合せとは異なる。
+- Liu et al., [On the Faithfulness of Visual Thinking](https://arxiv.org/html/2510.23482)（arXiv:2510.23482）は画像のzoom-in/tool-use型multimodal CoTで、視覚cropをnoiseに置き換える介入とテキストCoTの誤り注入を行い、答えaccuracyを比較する。視覚要素の介入で答えへの寄与を調べる枠組みは近いが、元動画の時間frame・外部にレビューされた自然言語claimとのmapping・matched temporal controlは扱っていない。
+- Moll et al., [Evaluating Reasoning Faithfulness in Medical Vision-Language Models using Multimodal Perturbations](https://arxiv.org/html/2510.11196)（arXiv:2510.11196）は、胸部X線VQAの画像・prompt介入と、放射線科医の知識ベースに基づく説明評価を組み合わせ、4名の放射線科医による読影評価も報告する。画像VLM説明faithfulnessと専門家評価の先行例だが、動画時間情報や本計画のframe-mask margin estimandとは異なる。
+
+この更新は「視覚説明faithfulnessへの介入評価」一般を新規性として主張できないことを明確にする。残る候補差分は、**動画上で事前固定・独立レビューされた自然言語回答claimの時間区間をmaskし、同数の最近接時間control maskと比べ、固定gold-vs-best-foil log-margin差を測る**というプロトコルの組合せに限られる。これも本PDCAで確認した限定検索に対する候補差分で、firstnessや全世界的な新規性を立証しない。研究価値の判断では、NExT-GQA適合性、人手mapping、権利、SESOIの未解決ゲートを通過した後も、この動画領域への適用が卒論として十分な独自性を持つかを再評価する。
