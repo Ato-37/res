@@ -392,6 +392,10 @@ reviewed and recorded; a video-ID mapping alone does not count. Declaring
 `verified` requires all eligible videos covered and zero unresolved. The
 validator checks only the declared counts and hash shape, not the evidence or
 whether a video license permits the intended use.
+Declare `verified` only after a human has also reviewed every applicable
+dataset-level access/metadata agreement for the same planned-use scope; if none
+applies, the private evidence index must preserve the substantiated
+non-applicability decision. The validator cannot enforce this condition.
 
 The private item-rights manifest should contain exactly one row per eligible
 video and a local-only crosswalk to the eligible manifest. Record the
@@ -413,6 +417,14 @@ separate private record until the schema is deliberately extended. In this
 protocol, `aggregate_publication` means privacy-safe derived numerical
 summaries only. It does not authorize publishing source media, identifiable
 frames, item-level records, or raw model outputs.
+For the protocol's `data_rights` object, use `item_rights_manifest_sha256` for
+the exact v2 item-rights ledger and `evidence_sha256` for a versioned private
+evidence-index JSON that lists the exact-byte hashes and private references for
+that ledger, annotation terms, item-level media/conditions evidence, and any
+dataset-level agreement applicability/use review (including substantiation of
+non-applicability when relevant). The validator checks only hash shape and
+does not resolve the index or its entries. The blank worksheet specifies the
+minimum private review record; it does not substitute for evidence inspection.
 The blank [human-review worksheet](claim_mask_human_review_worksheet.md) also
 provides a private evidence checklist for claim and rights reviewers.
 

@@ -118,7 +118,7 @@ public repository.
 | Applicability of each condition and evidence that it is fulfilled | |
 | Reviewer role, authority basis, review timestamp (UTC), and review-record hash | |
 | Annotation dataset terms reviewed separately? evidence reference | |
-| Dataset-level access/metadata agreement applicable? separate record and use-scope decision | |
+| Dataset-level access/metadata agreement applicability, evidence, and review record | |
 
 For every use declared in the ledger, record a separate decision and its
 evidence: `local_inference`, `local_retention`, `aggregate_publication`, and
@@ -130,6 +130,34 @@ Treat missing, ambiguous, conditional-but-unfulfilled, or unverified terms as
 unresolved. A `not_permitted` or unresolved decision blocks the corresponding
 planned use. If the local media cannot be tied confidently to the source item,
 keep the item unresolved.
+
+### Dataset-level access or metadata agreement
+
+Assess agreements that govern access to the benchmark, source media, metadata,
+or download/service account separately from annotation and media licenses.
+Keep this record private. Record the agreement name and issuer, version or
+effective date, private evidence locator and retrieved-copy SHA-256, retrieval
+date, affected dataset/service and access route, and any project/account
+acceptance evidence and date. State whether the agreement applies to the frozen
+cohort and why; use `applicable`, `not_applicable`, or `unresolved`. For an
+applicable agreement, decide separately for each proposed use—local inference,
+local retention/cache, privacy-safe numerical aggregate publication, and
+redistribution—using `permitted`, `not_permitted`, or `unresolved`. For each
+decision, cite the clause and record required conditions and evidence of their
+fulfillment. Missing, ambiguous, conditional-but-unfulfilled, or unverified
+terms remain unresolved. Record the reviewer's role, authority basis, review
+time (UTC), and private review-record hash. A `not_applicable` decision also
+needs evidence and a written basis; it is not the default when no agreement has
+been located.
+
+Maintain a versioned private evidence-index JSON containing the exact-byte
+SHA-256 and private record reference for the item-rights ledger, annotation
+terms, item-level media and conditions evidence, and dataset-level agreement
+assessment (including evidence for non-applicability when relevant). Set the
+protocol's `data_rights.evidence_sha256` to the SHA-256 of the exact index-file
+bytes; keep `data_rights.item_rights_manifest_sha256` bound separately to the
+v2 item-rights ledger. The structural validator checks only hash syntax and
+does not read this index or authenticate any evidence.
 
 The v2 item-rights ledger records hashes and declarations, not the full legal
 reasoning. Preserve the private evidence bundle and any applicable
@@ -153,3 +181,7 @@ from the eligible video to the exact source-media item. Annotation rights use
 their separate top-level record and use-by-use decisions. Keep the complete
 terms, clause analysis, retrieval dates, condition fulfillment evidence, and
 any dataset-access agreement in the linked private evidence bundle.
+Do not declare the protocol's `data_rights.status=verified` unless the private
+evidence index also records completed review of every applicable
+dataset-level agreement for the planned-use scope, or substantiates that none
+applies; leave the status unresolved if this review is incomplete.
