@@ -149,8 +149,10 @@ class TestClaimMaskProtocol(unittest.TestCase):
         self.assertIn("primary_estimand_hash_mismatch",validate(x)["failure_codes"])
         x=fixture(); x["cohort"]["eligible_manifest_sha256"]="1"*64
         self.assertIn("primary_estimand_hash_mismatch",validate(x)["failure_codes"])
-        x=fixture(); x["claim_review"]["mapping_sha256"]="1"*64
-        self.assertIn("primary_estimand_hash_mismatch",validate(x)["failure_codes"])
+        for field in ("claim_manifest_sha256", "mapping_sha256", "review_record_sha256"):
+            with self.subTest(claim_review_hash=field):
+                x=fixture(); x["claim_review"][field]="1"*64
+                self.assertIn("primary_estimand_hash_mismatch",validate(x)["failure_codes"])
 
     def test_primary_estimand_hash_rejects_non_utf8_surrogate_text(self):
         x=fixture(); x["model"]["quant"]="\ud800"
