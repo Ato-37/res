@@ -57,6 +57,13 @@ def sample_indices(total, num_frames):
 def audit_samples(samples, num_frames):
     selected, records = [], []
     for sample_idx, sample in enumerate(samples):
+        if (not isinstance(sample, dict)
+                or not isinstance(sample.get('video'), str)
+                or not sample['video']):
+            records.append({'sample_id': f'{sample_idx}:{sample_idx}',
+                            'status': 'invalid_manifest_record',
+                            'error': 'sample row must be an object with a nonempty video path'})
+            continue
         sample_id = f"{sample.get('video_id', sample_idx)}:{sample.get('qid', sample_idx)}"
         try:
             video = os.path.expanduser(sample['video'])

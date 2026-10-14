@@ -125,7 +125,7 @@ class DistinctFramePreflightTests(unittest.TestCase):
             selected_path = root / "selected.json"
             smoke_path = root / "smoke.json"
             audit_path = root / "audit.json"
-            samples_path.write_text(json.dumps([valid, invalid]))
+            samples_path.write_text(json.dumps([valid, invalid, None]))
             argv = ["preflight", "--samples-file", str(samples_path), "--n-valid", "1",
                     "--n-smoke", "0", "--output-samples", str(selected_path),
                     "--smoke-samples-output", str(smoke_path), "--audit-output", str(audit_path)]
@@ -135,9 +135,19 @@ class DistinctFramePreflightTests(unittest.TestCase):
                 preflight.main()
 
             report = json.loads(audit_path.read_text())
-            self.assertEqual(report["status_counts"], {"invalid_assignment_geometry": 1, "ok": 1})
+            self.assertEqual(report["status_counts"], {
+                "invalid_assignment_geometry": 1, "invalid_manifest_record": 1, "ok": 1})
             self.assertEqual(json.loads(selected_path.read_text()), [valid])
             self.assertEqual(json.loads(smoke_path.read_text()), [])
+
+    def test_invalid_manifest_rows_are_recorded_without_aborting_audit(self):
+        selected, records = preflight.audit_samples([None, 17, "bad", {}], num_frames=16)
+
+        self.assertEqual(selected, [])
+        self.assertEqual([record["status"] for record in records],
+                         ["invalid_manifest_record"] * 4)
+        self.assertEqual([record["sample_id"] for record in records],
+                         ["0:0", "1:1", "2:2", "3:3"])
 
 
 if __name__ == "__main__":
