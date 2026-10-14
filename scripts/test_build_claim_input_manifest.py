@@ -137,7 +137,8 @@ class BuildClaimInputManifestTests(unittest.TestCase):
             self.assertIn('"execution_authorization": "not_granted"', output.getvalue())
             self.assertNotIn("Café", output.getvalue())
             self.assertNotIn("synthetic-a", output.getvalue())
-            self.assertEqual(json.loads(output_path.read_bytes())["schema_version"], 1)
+            original_bytes = output_path.read_bytes()
+            self.assertEqual(json.loads(original_bytes)["schema_version"], 1)
             with contextlib.redirect_stdout(output):
                 second_status = main([
                     "--eligible-manifest", str(eligible_path),
@@ -148,7 +149,7 @@ class BuildClaimInputManifestTests(unittest.TestCase):
                     "--output", str(output_path),
                 ])
             self.assertEqual(second_status, 1)
-            self.assertEqual(json.loads(output_path.read_bytes())["schema_version"], 1)
+            self.assertEqual(output_path.read_bytes(), original_bytes)
 
 
 if __name__ == "__main__":
