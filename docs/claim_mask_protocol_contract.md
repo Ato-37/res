@@ -123,6 +123,16 @@ video metadata; it does not substitute a conventional FPS when metadata is zero,
 missing, or non-finite, because that would silently change the time-to-frame
 mapping used for evidence intervals.
 
+`necessity_choice_margin_utils.assign_evidence_control_frames` now composes
+the sampler, distinct-frame check, inclusive interval overlap, and equal-count
+matched-control selection into one deterministic CPU assignment with explicit
+pre-score statuses and matched rank-distance. It validates interval ordering
+and finite nonnegative-duration endpoints; the private claim ledger separately
+requires positive-duration reviewed intervals. The legacy preflight passes its
+existing QA grounding intervals to this generic helper; that does not turn
+those QA-level intervals into independently reviewed model-claim mappings.
+The helper also cannot authenticate source FPS or referenced review records.
+
 ## Cohort, mapping, and control
 
 `candidate_manifest_sha256` binds the pre-screen universe;

@@ -20,7 +20,7 @@ import math
 import os
 from pathlib import Path
 
-from necessity_choice_margin_utils import assess_frame_coverage, uniform_sample_indices
+from necessity_choice_margin_utils import assign_evidence_control_frames, uniform_sample_indices
 
 
 def decodable_video_info(video_path):
@@ -61,34 +61,27 @@ def audit_samples(samples, num_frames):
         try:
             video = os.path.expanduser(sample['video'])
             total, fps = decodable_video_info(video)
-            indices = sorted(set(sample_indices(total, num_frames)))
-            if len(indices) < num_frames:
-                record = {
-                    'sample_id': sample_id,
-                    'status': 'insufficient_distinct_sample_frames',
-                    'video': sample['video'],
-                    'requested_frame_count': num_frames,
-                    'sampled_frame_count': len(indices),
-                    'sampled_indices': indices,
-                    'evidence_frame_count': 0,
-                    'control_frame_count': 0,
-                    'evidence_indices': [],
-                    'control_indices': [],
-                }
+            try:
+                coverage = assign_evidence_control_frames(
+                    total, num_frames, fps, sample.get('grounding'))
+            except (TypeError, ValueError) as exc:
+                record = {'sample_id': sample_id,
+                          'status': 'invalid_assignment_geometry',
+                          'video': sample.get('video'), 'error': repr(exc)}
                 records.append(record)
                 continue
-            coverage = assess_frame_coverage(indices, fps, sample['grounding'])
             record = {
                 'sample_id': sample_id,
                 'status': coverage['status'],
                 'video': sample['video'],
-                'requested_frame_count': num_frames,
-                'sampled_frame_count': len(indices),
-                'evidence_frame_count': len(coverage['evidence']),
-                'control_frame_count': len(coverage['control']),
-                'sampled_indices': indices,
-                'evidence_indices': coverage['evidence'],
-                'control_indices': coverage['control'],
+                'requested_frame_count': coverage['requested_frame_count'],
+                'sampled_frame_count': coverage['sampled_frame_count'],
+                'evidence_frame_count': len(coverage['evidence_indices']),
+                'control_frame_count': len(coverage['control_indices']),
+                'sampled_indices': coverage['sampled_indices'],
+                'evidence_indices': coverage['evidence_indices'],
+                'control_indices': coverage['control_indices'],
+                'matched_rank_distance': coverage['matched_rank_distance'],
             }
             if coverage['status'] == 'ok':
                 selected.append(sample)

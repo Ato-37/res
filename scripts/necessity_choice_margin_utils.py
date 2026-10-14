@@ -1,11 +1,19 @@
 """Dependency-light utilities for temporal choice-margin necessity analyses."""
-from itertools import combinations
-from math import isfinite
+from math import inf, isfinite
 from random import Random
 from statistics import stdev
 
 
 MIN_BOOTSTRAP_DRAWS = 100
+
+
+def _finite_number(value):
+    if isinstance(value, bool) or not isinstance(value, (int, float)):
+        return False
+    try:
+        return isfinite(value)
+    except (OverflowError, TypeError, ValueError):
+        return False
 
 
 def uniform_sample_indices(total_frames, num_frames):
@@ -45,14 +53,72 @@ def nearest_control_indices(indices, evidence):
     if k == 0 or len(controls) < k:
         return []
     evidence_positions = sorted(indices.index(i) for i in evidence)
-    best, best_cost = None, None
-    for combo in combinations(controls, k):
-        control_positions = [indices.index(i) for i in combo]
-        key = (sum(abs(a - b) for a, b in zip(evidence_positions, control_positions)),
-               tuple(control_positions))
-        if best_cost is None or key < best_cost:
-            best, best_cost = list(combo), key
-    return best
+    control_positions = [indices.index(i) for i in controls]
+
+    # Sequence-alignment DP: each cell stores (minimum cost, selected ranks).
+    # Comparing these pairs preserves the declared lexicographic tie-break.
+    previous = [(0, ()) for _ in range(len(control_positions) + 1)]
+    for evidence_rank, evidence_position in enumerate(evidence_positions, start=1):
+        current = [(inf, ())]
+        for control_count, control_position in enumerate(control_positions, start=1):
+            skip = current[-1]
+            prior = previous[control_count - 1]
+            take = (prior[0] + abs(evidence_position - control_position),
+                    prior[1] + (control_position,))
+            current.append(min(skip, take))
+        previous = current
+    selected_positions = previous[-1][1]
+    if len(selected_positions) != k:
+        return []
+    return [indices[position] for position in selected_positions]
+
+
+def assign_evidence_control_frames(total_frames, num_frames, fps, intervals):
+    """Build a deterministic pre-score evidence/control assignment.
+
+    This composes the frozen endpoint-inclusive sampler, inclusive
+    frame-index/FPS interval membership, and equal-count temporal control. It
+    validates geometry only; it cannot authenticate or interpret intervals.
+    """
+    if not _finite_number(fps) or fps <= 0:
+        raise ValueError("fps must be finite and positive")
+    if not isinstance(intervals, list):
+        raise ValueError("intervals must be a list")
+    parsed_intervals = []
+    for interval in intervals:
+        if not isinstance(interval, (list, tuple)) or len(interval) != 2:
+            raise ValueError("each interval must have two endpoints")
+        start, end = interval
+        if not _finite_number(start) or not _finite_number(end) or start < 0 or end < start:
+            raise ValueError("interval endpoints must be finite nonnegative-duration times")
+        parsed_intervals.append((start, end))
+    if parsed_intervals != sorted(parsed_intervals) or len(set(parsed_intervals)) != len(parsed_intervals):
+        raise ValueError("intervals must be sorted and unique")
+
+    sampled = uniform_sample_indices(total_frames, num_frames)
+    indices = sorted(set(sampled))
+    base = {
+        "requested_frame_count": num_frames,
+        "sampled_frame_count": len(indices),
+        "sampled_indices": indices,
+        "evidence_indices": [],
+        "control_indices": [],
+        "matched_rank_distance": None,
+    }
+    if len(indices) != num_frames:
+        return {"status": "insufficient_distinct_sample_frames", **base}
+
+    evidence = strict_evidence_indices(indices, fps, parsed_intervals)
+    if not evidence:
+        return {"status": "no_evidence", **base}
+    control = nearest_control_indices(indices, evidence)
+    if len(control) != len(evidence):
+        return {"status": "insufficient_control", **base,
+                "evidence_indices": evidence}
+    rank = {frame_index: position for position, frame_index in enumerate(indices)}
+    cost = sum(abs(rank[a] - rank[b]) for a, b in zip(evidence, control))
+    return {"status": "ok", **base, "evidence_indices": evidence,
+            "control_indices": control, "matched_rank_distance": cost}
 
 
 def assess_frame_coverage(indices, fps, intervals):

@@ -5,6 +5,7 @@ from functools import lru_cache
 
 from analyze_necessity_choice_mask_fill import compare_results
 from necessity_choice_margin_utils import (apply_mask_fill, assess_frame_coverage,
+                                           assign_evidence_control_frames,
                                            interaction_ci, nearest_control_indices,
                                            strict_evidence_indices, summarize,
                                            uniform_sample_indices,
@@ -116,6 +117,14 @@ class NecessityChoiceMarginUtilsTests(unittest.TestCase):
                     self.assertEqual(nearest_control_indices(indices, evidence),
                                      dp_oracle(indices, evidence))
 
+    def test_control_assignment_scales_to_larger_sampled_frame_sets(self):
+        indices = list(range(256))
+        evidence = list(range(40))
+        controls = nearest_control_indices(indices, evidence)
+        self.assertEqual(controls, list(range(40, 80)))
+        self.assertEqual(len(controls), len(evidence))
+        self.assertFalse(set(controls) & set(evidence))
+
     def test_no_evidence_or_insufficient_controls_returns_empty(self):
         self.assertEqual(nearest_control_indices([0, 1, 2], []), [])
         self.assertEqual(nearest_control_indices([0, 1, 2], [0, 1]), [])
@@ -129,6 +138,40 @@ class NecessityChoiceMarginUtilsTests(unittest.TestCase):
         matched = assess_frame_coverage(list(range(8)), 1, [[2, 3]])
         self.assertEqual(matched['status'], 'ok')
         self.assertEqual(len(matched['evidence']), len(matched['control']))
+
+    def test_integrated_assignment_uses_inclusive_union_and_fixed_controls(self):
+        result = assign_evidence_control_frames(
+            16, 16, 2.0, [[1.0, 2.0], [1.5, 2.5]])
+        self.assertEqual(result['status'], 'ok')
+        self.assertEqual(result['requested_frame_count'], 16)
+        self.assertEqual(result['sampled_frame_count'], 16)
+        self.assertEqual(result['evidence_indices'], [2, 3, 4, 5])
+        self.assertEqual(len(result['control_indices']), 4)
+        self.assertFalse(set(result['evidence_indices']) & set(result['control_indices']))
+        self.assertEqual(result['matched_rank_distance'], sum(
+            abs(a - b) for a, b in zip(result['evidence_indices'], result['control_indices'])))
+
+    def test_integrated_assignment_returns_pre_score_exclusions(self):
+        repeated = assign_evidence_control_frames(15, 16, 1.0, [[0.0, 0.0]])
+        self.assertEqual(repeated['status'], 'insufficient_distinct_sample_frames')
+        self.assertEqual(repeated['sampled_frame_count'], 15)
+        self.assertEqual(repeated['evidence_indices'], [])
+
+        no_evidence = assign_evidence_control_frames(16, 16, 1.0, [[20.0, 21.0]])
+        self.assertEqual(no_evidence['status'], 'no_evidence')
+        insufficient_control = assign_evidence_control_frames(16, 16, 1.0, [[0.0, 8.0]])
+        self.assertEqual(insufficient_control['status'], 'insufficient_control')
+        self.assertEqual(len(insufficient_control['evidence_indices']), 9)
+        self.assertEqual(insufficient_control['control_indices'], [])
+
+    def test_integrated_assignment_rejects_invalid_fps_and_intervals(self):
+        for fps in (0, -1, inf, nan, True, '30'):
+            with self.subTest(fps=fps), self.assertRaises(ValueError):
+                assign_evidence_control_frames(16, 16, fps, [[1.0, 2.0]])
+        for intervals in ([[2.0, 1.0]], [[-1.0, 2.0]], [[3.0, 4.0], [1.0, 2.0]],
+                          [[1.0, inf]], [[True, 2.0]], 'invalid'):
+            with self.subTest(intervals=intervals), self.assertRaises(ValueError):
+                assign_evidence_control_frames(16, 16, 1.0, intervals)
 
     def test_mask_fill_preserves_frame_size_and_blur_preserves_nonblack_content(self):
         from PIL import Image

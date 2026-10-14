@@ -80,6 +80,36 @@ class DistinctFramePreflightTests(unittest.TestCase):
         self.assertEqual(len(records[0]["evidence_indices"]), 1)
         self.assertEqual(len(records[0]["control_indices"]), 1)
 
+    def test_invalid_assignment_geometry_has_distinct_fail_closed_status(self):
+        sample = {"video_id": "synthetic-video", "qid": "q1", "video": "synthetic.mp4",
+                  "grounding": [[2.0, 1.0]]}
+        with patch.object(preflight, "decodable_video_info", return_value=(16, 1.0)):
+            selected, records = preflight.audit_samples([sample], num_frames=16)
+
+        self.assertEqual(selected, [])
+        self.assertEqual(records[0]["status"], "invalid_assignment_geometry")
+        self.assertIn("nonnegative-duration", records[0]["error"])
+
+    def test_decoder_failure_remains_separate_from_assignment_geometry(self):
+        sample = {"video_id": "synthetic-video", "qid": "q1", "video": "synthetic.mp4",
+                  "grounding": [[0.0, 0.0]]}
+        with patch.object(preflight, "decodable_video_info",
+                          side_effect=RuntimeError("synthetic decoder failure")):
+            selected, records = preflight.audit_samples([sample], num_frames=16)
+
+        self.assertEqual(selected, [])
+        self.assertEqual(records[0]["status"], "video_or_metadata_error")
+        self.assertIn("decoder failure", records[0]["error"])
+
+    def test_missing_grounding_is_classified_as_invalid_assignment_geometry(self):
+        sample = {"video_id": "synthetic-video", "qid": "q1", "video": "synthetic.mp4"}
+        with patch.object(preflight, "decodable_video_info", return_value=(16, 1.0)):
+            selected, records = preflight.audit_samples([sample], num_frames=16)
+
+        self.assertEqual(selected, [])
+        self.assertEqual(records[0]["status"], "invalid_assignment_geometry")
+        self.assertIn("intervals must be a list", records[0]["error"])
+
 
 if __name__ == "__main__":
     unittest.main()
