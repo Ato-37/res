@@ -6,12 +6,12 @@ H = "0" * 64
 G = "0" * 40
 def fixture():
     return {
-        "schema_version": 3,
+        "schema_version": 4,
         "protocol_stage": "exploratory",
         "model": {"revision": G, "tokenizer_revision": G, "quant": "4bit", "dtype": "bfloat16", "attention_implementation": "sdpa"},
         "cohort": {"candidate_manifest_sha256": H, "eligible_manifest_sha256": H, "exclusion_manifest_sha256": H, "overlap_audit_sha256": H, "candidate_video_count": 2, "eligible_video_count": 2, "prerun_exclusion_count": 0, "analysis_unit_count": 2, "split_overlap_count": 0, "primary_population": "all_eligible_videos", "secondary_population": "baseline_correctness_strata"},
         "claim_review": {"claim_manifest_sha256": H, "mapping_sha256": H, "review_record_sha256": H, "review_status": "completed", "review_timing": "before_scoring", "mapping_unit": "claim_to_evidence_frames"},
-        "data_rights": {"scope": "future chosen dataset split", "status": "unresolved", "evidence_sha256": H},
+        "data_rights": {"scope": "future chosen dataset split", "status": "unresolved", "evidence_sha256": H, "item_rights_manifest_sha256": H, "covered_eligible_video_count": 0, "unresolved_eligible_video_count": 2},
         "sampling": {"policy": "whole_video_fixed", "config_sha256": H, "uses_claim_for_selection": False, "num_frames": 16, "frame_size": 1024, "max_pixels": 200704, "cap_pixels_per_frame": True},
         "estimand": {"answer_candidate_protocol_sha256": H, "gold_choice_manifest_sha256": H, "score_kind": "teacher_forced_gold_vs_best_foil_logprob_margin", "baseline_correction": "selected_minus_control_margin_drop", "triplet_manifest_sha256": H, "target_definition": "fixed_gold_choice_from_annotation", "margin_definition": "gold_label_logprob_minus_max_foil_label_logprob_same_prompt"},
         "intervention": {"kind": "claim_linked_evidence_frame_mask", "selector_sha256": H, "control_sha256": H, "selected_condition": "claim-linked evidence frames masked", "control_condition": "matched temporal control frames masked", "selected_unit": "sampled_frames_overlapping_reviewed_claim_evidence_interval", "control_matching": "equal_count_minimum_total_temporal_rank_distance_lexicographic_tie_break"},
@@ -73,8 +73,8 @@ class TestClaimMaskProtocol(unittest.TestCase):
         x=fixture(); x["protocol_stage"]="confirmatory"
         self.assertIn("protocol_stage_invalid",validate(x)["failure_codes"])
 
-    def test_schema_v2_is_rejected_after_breaking_v3_change(self):
-        x=fixture(); x["schema_version"]=2
+    def test_schema_v3_is_rejected_after_breaking_v4_change(self):
+        x=fixture(); x["schema_version"]=3
         self.assertIn("schema_version_invalid",validate(x)["failure_codes"])
 
     def test_eligible_denominator_must_equal_video_level_analysis_units(self):
@@ -95,6 +95,14 @@ class TestClaimMaskProtocol(unittest.TestCase):
         self.assertEqual(r["execution_authorization"],"not_granted")
         x=fixture(); x["data_rights"]["status"]=[]
         self.assertIn("data_rights_fields_invalid",validate(x)["failure_codes"])
+
+    def test_rights_coverage_reconciles_to_eligible_videos(self):
+        x=fixture(); x["data_rights"]["unresolved_eligible_video_count"]=1
+        self.assertIn("data_rights_coverage_count_invalid",validate(x)["failure_codes"])
+        x=fixture(); x["data_rights"].update(status="verified", covered_eligible_video_count=1, unresolved_eligible_video_count=1)
+        self.assertIn("verified_rights_incomplete",validate(x)["failure_codes"])
+        x=fixture(); x["data_rights"].update(status="verified", covered_eligible_video_count=2, unresolved_eligible_video_count=0)
+        self.assertEqual(validate(x)["execution_authorization"],"not_granted")
 
     def test_review_mapping_must_end_in_evidence_frames(self):
         x=fixture(); x["claim_review"]["mapping_unit"]="claim_tokens"
@@ -125,7 +133,7 @@ class TestClaimMaskProtocol(unittest.TestCase):
         self.assertIn("runtime_fields_invalid",r["failure_codes"])
 
     def test_duplicate_json_key_is_rejected_without_echoing_input(self):
-        raw=json.dumps(fixture()).replace('"schema_version": 3', '"schema_version": 3, "schema_version": 3', 1)
+        raw=json.dumps(fixture()).replace('"schema_version": 4', '"schema_version": 4, "schema_version": 4', 1)
         with tempfile.TemporaryDirectory() as directory:
             path=Path(directory)/"duplicate.json"; path.write_text(raw, encoding="utf-8")
             stdout=io.StringIO()

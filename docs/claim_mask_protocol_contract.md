@@ -1,11 +1,11 @@
-# Claim-linked evidence-frame mask protocol contract (schema v3)
+# Claim-linked evidence-frame mask protocol contract (schema v4)
 
 `scripts/validate_claim_mask_protocol.py` is a CPU-only, fail-closed structural
 validator for the exploratory design stage. The secondary-family multiplicity
 policy is inherited from the research plan: Holm correction within each
 predeclared family (baseline-correctness strata and question-type strata), with
 one unadjusted primary contrast. Family membership must be frozen before
-scoring. The SESOI is still not fixed, so schema v3 rejects a `confirmatory` stage.
+scoring. The SESOI is still not fixed, so schema v4 rejects a `confirmatory` stage.
 Structural validity neither authenticates evidence nor authorizes inference.
 
 The `analysis` object must declare one unadjusted primary contrast, the two
@@ -65,6 +65,14 @@ sampling, fill, preprocessing, model, precision, prompt, gold target, and
 execution settings. Masking can create out-of-distribution input.
 
 ## Gates and limits
+
+The rights declaration binds a separate item-rights manifest and reconciles
+covered plus unresolved eligible-video counts to the frozen eligible cohort.
+“Covered” means item-specific rights evidence for the intended use has been
+reviewed and recorded; a video-ID mapping alone does not count. Declaring
+`verified` requires all eligible videos covered and zero unresolved. The
+validator checks only the declared counts and hash shape, not the evidence or
+whether a video license permits the intended use.
 
 `execution_authorization` must remain false. Review timing and data-rights status
 are separate declarations, but a structural pass does not make either gate

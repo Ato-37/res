@@ -31,7 +31,7 @@ def validate(value: Any, input_sha256: str | None = None) -> dict:
            "data_rights", "sampling", "estimand", "intervention", "analysis", "runtime"}
     if not isinstance(value, dict): return _summary({"protocol_not_object"}, input_sha256)
     if set(value) != req: f.add("protocol_schema_keys_invalid")
-    if type(value.get("schema_version")) is not int or value.get("schema_version") != 3: f.add("schema_version_invalid")
+    if type(value.get("schema_version")) is not int or value.get("schema_version") != 4: f.add("schema_version_invalid")
     stage = value.get("protocol_stage")
     # The estimand direction and secondary Holm families are selected, but the
     # SESOI is not fixed. This schema must not label a run confirmatory yet.
@@ -57,11 +57,20 @@ def validate(value: Any, input_sha256: str | None = None) -> dict:
     elif cr.get("review_status") != "completed": f.add("claim_review_incomplete")
     elif cr.get("review_timing") != "before_scoring": f.add("claim_review_timing_invalid")
     elif cr.get("mapping_unit") != "claim_to_evidence_frames": f.add("claim_review_mapping_unit_invalid")
-    rights = value.get("data_rights"); dk = {"scope", "status", "evidence_sha256"}
+    rights = value.get("data_rights"); dk = {"scope", "status", "evidence_sha256", "item_rights_manifest_sha256", "covered_eligible_video_count", "unresolved_eligible_video_count"}
     if not _keys(rights, dk): f.add("data_rights_schema_invalid")
     elif (not _text(rights.get("scope")) or not isinstance(rights.get("status"), str)
           or rights.get("status") not in {"unresolved", "verified"}
-          or not _sha(rights.get("evidence_sha256"))): f.add("data_rights_fields_invalid")
+          or not _sha(rights.get("evidence_sha256"))
+          or not _sha(rights.get("item_rights_manifest_sha256"))
+          or any(type(rights.get(k)) is not int or rights[k] < 0
+                 for k in ("covered_eligible_video_count", "unresolved_eligible_video_count"))): f.add("data_rights_fields_invalid")
+    elif isinstance(cohort, dict) and type(cohort.get("eligible_video_count")) is int:
+        covered = rights["covered_eligible_video_count"]
+        unresolved = rights["unresolved_eligible_video_count"]
+        if covered + unresolved != cohort["eligible_video_count"]: f.add("data_rights_coverage_count_invalid")
+        if rights["status"] == "verified" and (covered != cohort["eligible_video_count"] or unresolved != 0):
+            f.add("verified_rights_incomplete")
     sm = value.get("sampling"); sk = {"policy", "config_sha256", "uses_claim_for_selection", "num_frames", "frame_size", "max_pixels", "cap_pixels_per_frame"}
     if not _keys(sm, sk): f.add("sampling_schema_invalid")
     elif (sm.get("policy") != "whole_video_fixed" or not _sha(sm.get("config_sha256")) or sm.get("uses_claim_for_selection") is not False
@@ -99,7 +108,7 @@ def _summary(f, digest):
     if digest is not None and not _sha(digest):
         failures.add("input_sha256_invalid")
         digest = None
-    return {"schema_version": 3, "structurally_valid": not failures, "failure_codes": sorted(failures),
+    return {"schema_version": 4, "structurally_valid": not failures, "failure_codes": sorted(failures),
             "semantic_validation": "not_machine_verifiable", "execution_authorization": "not_granted",
             **({"input_sha256": digest} if digest else {})}
 

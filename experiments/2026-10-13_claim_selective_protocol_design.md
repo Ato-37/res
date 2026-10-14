@@ -9,7 +9,7 @@ claim-mask efficacy run. The existing research plan's Holm correction within
 each predeclared secondary family is adopted; the secondary families are
 baseline-correctness strata and question-type strata, with family membership
 frozen before scoring. The primary is one contrast and has no within-study
-multiplicity adjustment. The SESOI remains unfixed, so schema v3 rejects a
+multiplicity adjustment. The SESOI remains unfixed, so schema v4 rejects a
 confirmatory stage. NOAA's required human review is incomplete and
 NExT-GQA item-level rights are unresolved; real-data execution remains `no_go`.
 
