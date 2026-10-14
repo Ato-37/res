@@ -1,10 +1,11 @@
 """Audit Qwen chat-prefix/claim token boundaries on fixed synthetic text only.
 
-CPU/tokenizer-only diagnostic. It loads the pinned processor from the local
-Hugging Face cache; downloads, model weights, videos, QA data, and generation are
-disabled. The fixed prompt and 12 targets are prospective fixtures, not selected
-from model outcomes. Output contains case indices, lengths, equality flags and
-hashes only; it never emits fixture text or token IDs.
+CPU/tokenizer-and-preprocessor diagnostic. It loads the pinned processor from
+the local Hugging Face cache and generates three tiny synthetic video frames;
+downloads, model weights, real/private videos, QA data, and model generation
+are disabled. The fixed prompt and targets are prospective fixtures, not
+selected from model outcomes. Output contains case indices, lengths, equality
+flags and hashes only; it never emits fixture text, frame paths, or token IDs.
 
 Usage::
 
@@ -25,8 +26,11 @@ import os
 from pathlib import Path
 import subprocess
 import sys
+import tempfile
 import time
 from typing import Any
+
+from PIL import Image
 
 
 MODEL_REVISION = "cc594898137f460bfe9f0759e9844b3ce807cfb5"
@@ -222,6 +226,73 @@ def audit_fixed_choice_labels(processor: Any) -> dict[str, Any]:
     }
 
 
+def audit_video_choice_labels(processor: Any) -> dict[str, Any]:
+    """Check label boundaries after the production video-input processor expands frames."""
+    from activation_patching_sweep import build_inputs
+    from qwen_vl_utils import process_vision_info
+
+    prompt = CHOICE_PROMPT
+    with tempfile.TemporaryDirectory(prefix="synthetic_choice_video_") as directory:
+        frame_paths = []
+        for index, color in enumerate(("red", "green", "blue")):
+            path = Path(directory) / f"frame_{index}.jpg"
+            Image.new("RGB", (32, 32), color).save(path, format="JPEG")
+            frame_paths.append(str(path))
+
+        user_message = {
+            "role": "user",
+            "content": [
+                {"type": "video", "video": frame_paths},
+                {"type": "text", "text": prompt},
+            ],
+        }
+        base_inputs = build_inputs(processor, "cpu", frame_paths, prompt)
+        base_ids = ids_list(base_inputs["input_ids"])
+        records = []
+        for label in CHOICE_LABELS:
+            messages = [user_message, {"role": "assistant", "content": label}]
+            rendered = processor.apply_chat_template(
+                messages, tokenize=False, add_generation_prompt=False
+            )
+            images, videos = process_vision_info(messages)
+            completed_inputs = processor(
+                text=[rendered], images=images, videos=videos,
+                padding=True, return_tensors="pt",
+            )
+            completed_ids = ids_list(completed_inputs["input_ids"])
+            stable_prefix = completed_ids[:len(base_ids)] == base_ids
+            suffix = completed_ids[len(base_ids):] if stable_prefix else []
+            label_ids = _tokenize(processor.tokenizer, label)
+            records.append({
+                "label_index": len(records),
+                "expanded_video_prefix_stable": stable_prefix,
+                "expanded_video_target_starts_with_label": (
+                    bool(label_ids) and suffix[:len(label_ids)] == label_ids
+                ),
+                "completed_input_token_count": len(completed_ids),
+                "completed_input_token_ids_sha256": _token_hash(completed_ids),
+            })
+        gate_pass = all(
+            row["expanded_video_prefix_stable"]
+            and row["expanded_video_target_starts_with_label"]
+            for row in records
+        )
+        return {
+            "synthetic_frame_count": len(frame_paths),
+            "base_expanded_video_input_token_count": len(base_ids),
+            "base_expanded_video_input_token_ids_sha256": _token_hash(base_ids),
+            "label_count": len(records),
+            "expanded_video_prefix_stable_count": sum(
+                row["expanded_video_prefix_stable"] for row in records
+            ),
+            "expanded_video_contextual_label_match_count": sum(
+                row["expanded_video_target_starts_with_label"] for row in records
+            ),
+            "gate_pass": gate_pass,
+            "labels": records,
+        }
+
+
 def _source_commit(repo_root: Path) -> str | None:
     try:
         result = subprocess.run(
@@ -252,10 +323,13 @@ def _local_tokenizer_source_hashes(snapshot: Path) -> dict[str, str]:
 
 def _installed_implementation_hashes(processor: Any, tokenizer: Any) -> dict[str, str | None]:
     """Hash installed implementation files without returning their local paths."""
+    from qwen_vl_utils import process_vision_info
+
     objects = {
         "processor_class_source": type(processor),
         "tokenizer_class_source": type(tokenizer),
         "chat_template_method_source": getattr(processor, "apply_chat_template", None),
+        "video_preprocessor_source": process_vision_info,
     }
     try:
         objects["chat_template_utils_module_source"] = import_module(
@@ -264,6 +338,11 @@ def _installed_implementation_hashes(processor: Any, tokenizer: Any) -> dict[str
     except (ImportError, ModuleNotFoundError):
         objects["chat_template_utils_module_source"] = None
     hashes: dict[str, str | None] = {}
+    builder_path = Path(__file__).resolve().with_name("activation_patching_sweep.py")
+    try:
+        hashes["production_video_prompt_builder_source"] = sha256_bytes(builder_path.read_bytes())
+    except OSError:
+        hashes["production_video_prompt_builder_source"] = None
     for name, obj in objects.items():
         if obj is None:
             hashes[name] = None
@@ -296,6 +375,7 @@ def build_report(
     comparison_started = time.perf_counter()
     observations = audit_fixed_cases(processor)
     choice_labels = audit_fixed_choice_labels(processor)
+    video_choice_labels = audit_video_choice_labels(processor)
     comparison_elapsed = time.perf_counter() - comparison_started
     result = {
         "schema_version": 1,
@@ -303,8 +383,8 @@ def build_report(
         "requested_cases": len(FIXED_TARGETS),
         "effective_cases": len(observations["cases"]),
         "failures": 0,
-        "purpose": "synthetic_qwen_claim_tokenizer_prefix_boundary_cpu_diagnostic",
-        "scope": "tokenizer_and_chat_template_only_no_model_weights_no_generation_no_video_or_QA",
+        "purpose": "synthetic_qwen_claim_tokenizer_and_video_boundary_cpu_diagnostic",
+        "scope": "tokenizer_chat_template_and_synthetic_video_preprocessor_only_no_model_weights_no_real_video_or_QA_or_generation",
         "model_revision": MODEL_REVISION,
         "versions": {
             "transformers": transformers.__version__,
@@ -322,12 +402,13 @@ def build_report(
         },
         "observations": observations,
         "choice_label_boundary": choice_labels,
+        "video_choice_label_boundary": video_choice_labels,
         "timing": {
-            "tokenizer_comparison_core_seconds": comparison_elapsed,
-            "scope": "audit_fixed_cases_only_excludes_imports_processor_loading_and_artifact_write",
+            "synthetic_boundary_check_core_seconds": comparison_elapsed,
+            "scope": "fixed_synthetic_boundary_checks_excludes_imports_processor_loading_and_artifact_write",
         },
         "interpretation_limit": (
-            "A tokenizer-boundary result on these fixed synthetic cases only; it does not show a prior QA/claim score was mis-tokenized, "
+            "A tokenizer/preprocessor boundary result on these fixed synthetic text/video cases only; it does not show a prior QA/claim score was mis-tokenized, "
             "does not evaluate model behavior or semantics, and does not establish faithfulness or efficacy. "
             "The revision-named local snapshot and listed source-file hashes record provenance but do not authenticate every snapshot file."
         ),
@@ -402,7 +483,10 @@ def main(argv: list[str] | None = None) -> int:
         print("claim-tokenizer diagnostic: local tokenizer audit failed", file=sys.stderr)
         return 2
     observations = report["observations"]
-    choice_gate_pass = report["choice_label_boundary"]["gate_pass"]
+    choice_gate_pass = (
+        report["choice_label_boundary"]["gate_pass"]
+        and report["video_choice_label_boundary"]["gate_pass"]
+    )
     print(
         "Claim tokenizer boundary CPU check: "
         f"cases={observations['fixed_case_count']} | "
@@ -411,6 +495,8 @@ def main(argv: list[str] | None = None) -> int:
         f"completed-chat prefix stable={observations['completed_chat_prefix_stable_count']}/"
         f"{observations['fixed_case_count']} | "
         f"chat-boundary A-E={report['choice_label_boundary']['contextual_label_match_count']}/5 "
+        f"video-input-boundary A-E="
+        f"{report['video_choice_label_boundary']['expanded_video_contextual_label_match_count']}/5 "
         f"gate={'pass' if choice_gate_pass else 'fail'} | "
         f"artifact=results/{output.name}"
     )

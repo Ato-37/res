@@ -10,6 +10,7 @@ import types
 import unittest
 from unittest import mock
 
+import audit_qwen_claim_tokenization_cpu as audit_module
 from audit_qwen_claim_tokenization_cpu import (
     FIXED_PROMPT,
     FIXED_TARGETS,
@@ -158,19 +159,35 @@ class ClaimTokenizationAuditTests(unittest.TestCase):
                 sys.modules,
                 {"tokenizers": fake_tokenizers, "transformers": fake_transformers},
             ):
-                report = build_report(
-                    FakeProcessor(), runner=Path(__file__), repo_root=root, snapshot=snapshot
-                )
+                with mock.patch.object(
+                    audit_module,
+                    "audit_video_choice_labels",
+                    return_value={
+                        "synthetic_frame_count": 3,
+                        "label_count": 5,
+                        "expanded_video_prefix_stable_count": 5,
+                        "expanded_video_contextual_label_match_count": 5,
+                        "gate_pass": True,
+                        "labels": [],
+                    },
+                ):
+                    report = build_report(
+                        FakeProcessor(), runner=Path(__file__), repo_root=root, snapshot=snapshot
+                    )
         self.assertEqual(report["status"], "ok")
         self.assertEqual(report["requested_cases"], 12)
         self.assertEqual(report["effective_cases"], 12)
         self.assertEqual(report["failures"], 0)
-        self.assertGreaterEqual(report["timing"]["tokenizer_comparison_core_seconds"], 0)
+        self.assertIn("synthetic_video_preprocessor_only", report["scope"])
+        self.assertIn("no_real_video_or_QA", report["scope"])
+        self.assertTrue(report["video_choice_label_boundary"]["gate_pass"])
+        self.assertGreaterEqual(report["timing"]["synthetic_boundary_check_core_seconds"], 0)
         self.assertIn("excludes_imports_processor_loading", report["timing"]["scope"])
         hashes = report["source_sha256"]["installed_implementation_files"]
         self.assertEqual(set(hashes), {
             "processor_class_source", "tokenizer_class_source", "chat_template_method_source",
-            "chat_template_utils_module_source",
+            "chat_template_utils_module_source", "production_video_prompt_builder_source",
+            "video_preprocessor_source",
         })
         self.assertNotIn(str(root), json.dumps(report))
 

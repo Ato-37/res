@@ -1129,3 +1129,43 @@ No model weights, data, GPU, or user-local samples were read. Direct
 faithfulness progress remains 0 new samples / 0 new effect estimates, with
 the historical head result unchanged. At 19:42:52 JST, 2h19m40s elapsed and
 40m20s remained.
+
+### Multimodal video-processor boundary extension
+
+The text-only chat-template token sequence (60 tokens in a separate probe)
+does not equal the fully processed multimodal model input because the video
+processor expands frame placeholders into patch tokens. Therefore template
+stability alone did not verify the token sequence actually scored by the
+legacy runner. I passed three generated 32×32 solid-color JPEG frames and the
+same fixed synthetic choice prompt through production `build_inputs()` on CPU,
+then processed each completed assistant A–E prompt through the same processor.
+The expanded base prefix was 353 tokens; all five completed inputs preserved
+it and began their assistant suffix with the same standalone label token
+(5/5). No model forward pass or GPU was used. This adds expanded video-input
+stability to the required future runner gate.
+
+An intermediate candidate report for this extension was superseded and deleted
+after review found stale `no_video` metadata; it was not published. The final
+CPU diagnostic records both text-template and expanded video checks in
+`results/qwen_claim_tokenization_cpu_20261014T104900Z.json`, SHA-256
+`6d29b855ec966fbdfc0e4c313816f406cbbc3d71cb71113b0dec7b569dd6dafe`.
+Runner SHA-256:
+`8b9cda5da06146aae32fa3ca79b6ed793accb769a1fb11eb37b61d38ef8d3d78`.
+It binds the production video prompt-builder source with SHA-256
+`ef400606a7e6b7100870990a600df71694c7e019292136e23a25e8513d1e28b3` and
+the installed `process_vision_info` implementation with SHA-256
+`f3710ced8ffe735da57d08cf5236cf9d326ff646ed1bdad2e62593a7801adc33`, without
+publishing local paths.
+All prompt/frame content is fixed synthetic fixture material; the artifact
+stores counts, booleans, and hashes only. The processor emitted its warning
+that its default video path does not apply qwen-vl-utils' per-frame pixel cap;
+this diagnostic intentionally follows the production runner's current default
+and its tiny synthetic frames make no runtime estimate for real videos. Run
+time/VRAM, multimodal model behavior, historical score correctness, and
+faithfulness efficacy remain untested. Independent review confirmed the final
+scope and focused 7/7 tests pass. The independent reviewer recomputed the
+production builder file hash and installed video-preprocessor source hash; both
+match the final artifact. Full suite passes 559/559 after the final code change,
+with `git diff --check` and Python compilation clean. At 19:49:39 JST,
+2h26m27s elapsed and 33m33s remained; direct faithfulness progress remains
+0 samples / 0 effects.
