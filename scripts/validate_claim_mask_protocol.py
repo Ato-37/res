@@ -38,6 +38,7 @@ def compute_primary_estimand_sha256(value: dict) -> str | None:
             "eligible_manifest_sha256": c["eligible_manifest_sha256"],
             "primary_population": c["primary_population"],
             "sampling_config_sha256": s["config_sha256"],
+            "claim_review": {k: value["claim_review"][k] for k in ("claim_manifest_sha256", "mapping_sha256", "review_record_sha256", "mapping_unit")},
             "answer_candidate_protocol_sha256": e["answer_candidate_protocol_sha256"],
             "gold_choice_manifest_sha256": e["gold_choice_manifest_sha256"],
             "triplet_manifest_sha256": e["triplet_manifest_sha256"],

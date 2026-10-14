@@ -17,15 +17,19 @@ the primary CI decision rule, a rationale category and hash, a UTC fixed time,
 and a separate independent review record hash with completed/before-scoring
 declarations. The primary-estimand SHA-256 is recomputed from compact,
 sorted-key UTF-8 JSON (`ensure_ascii=false`) containing the model identity,
-eligible-manifest hash and primary population, sampling-config hash,
-answer-candidate, gold-choice, and full/selected/control triplet hashes,
-score/baseline/target/margin definitions, and all intervention/control
-definition fields and hashes. This
+eligible-manifest hash and primary population, sampling-config hash, claim,
+mapping and human-review record hashes, answer-candidate, gold-choice, and
+full/selected/control triplet hashes, score/baseline/target/margin definitions,
+and all intervention/control definition fields and hashes. This
 stops a threshold for another estimand from being structurally substituted by
 unit alone and catches changes to those declared inputs if the hash is stale.
 The validator cannot authenticate referenced artifacts, reviewer independence,
 or that the declaration predates outcome access. A pass remains exploratory
 and does not authorize inference.
+
+Use [the SESOI decision record template](claim_mask_sesoi_decision_template.md)
+to document the practical interpretation, estimand-specific support, and
+independent pre-outcome review. It deliberately supplies no default threshold.
 
 ## Proposed estimand
 
