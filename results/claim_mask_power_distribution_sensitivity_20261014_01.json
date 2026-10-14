@@ -1,0 +1,92 @@
+{
+  "assumption": "independent video-level paired differences; symmetric Student-t with finite variance, scaled to unit variance",
+  "empirical_data_used": false,
+  "purpose": "distributional stress test of the paired-t CI-lower-bound power rule",
+  "rows": [
+    {
+      "confidence": 0.95,
+      "distribution": "standardized_student_t_df_3",
+      "effective_video_n": 20,
+      "normal_noncentral_t_reference": 0.025000000000000043,
+      "repetitions": 500000,
+      "seed": 20261014,
+      "true_mean_minus_sesoi_in_paired_sd": 0.0,
+      "two_sided_monte_carlo_se": 0.00028704886446735857,
+      "two_sided_rejection_probability": 0.043052,
+      "upper_tail_monte_carlo_se": 0.0002050764730533466,
+      "upper_tail_probability": 0.02149
+    },
+    {
+      "confidence": 0.95,
+      "distribution": "standardized_student_t_df_3",
+      "effective_video_n": 20,
+      "normal_noncentral_t_reference": 0.13348840002310083,
+      "repetitions": 500000,
+      "seed": 20261015,
+      "true_mean_minus_sesoi_in_paired_sd": 0.2,
+      "two_sided_monte_carlo_se": 0.000544837472830201,
+      "two_sided_rejection_probability": 0.18129,
+      "upper_tail_monte_carlo_se": 0.000544014658361335,
+      "upper_tail_probability": 0.180588
+    },
+    {
+      "confidence": 0.95,
+      "distribution": "standardized_student_t_df_3",
+      "effective_video_n": 40,
+      "normal_noncentral_t_reference": 0.025000000000000015,
+      "repetitions": 500000,
+      "seed": 20261016,
+      "true_mean_minus_sesoi_in_paired_sd": 0.0,
+      "two_sided_monte_carlo_se": 0.0002953785036322041,
+      "two_sided_rejection_probability": 0.045714,
+      "upper_tail_monte_carlo_se": 0.00021007772001809235,
+      "upper_tail_probability": 0.022576
+    },
+    {
+      "confidence": 0.95,
+      "distribution": "standardized_student_t_df_3",
+      "effective_video_n": 40,
+      "normal_noncentral_t_reference": 0.2338961178869503,
+      "repetitions": 500000,
+      "seed": 20261017,
+      "true_mean_minus_sesoi_in_paired_sd": 0.2,
+      "two_sided_monte_carlo_se": 0.0006477315695317004,
+      "two_sided_rejection_probability": 0.299446,
+      "upper_tail_monte_carlo_se": 0.0006476039258682733,
+      "upper_tail_probability": 0.29924
+    },
+    {
+      "confidence": 0.95,
+      "distribution": "standardized_student_t_df_3",
+      "effective_video_n": 80,
+      "normal_noncentral_t_reference": 0.025000000000000022,
+      "repetitions": 500000,
+      "seed": 20261018,
+      "true_mean_minus_sesoi_in_paired_sd": 0.0,
+      "two_sided_monte_carlo_se": 0.0002976929260160543,
+      "two_sided_rejection_probability": 0.04647,
+      "upper_tail_monte_carlo_se": 0.00021292904327968037,
+      "upper_tail_probability": 0.023208
+    },
+    {
+      "confidence": 0.95,
+      "distribution": "standardized_student_t_df_3",
+      "effective_video_n": 80,
+      "normal_noncentral_t_reference": 0.4235335265054896,
+      "repetitions": 500000,
+      "seed": 20261019,
+      "true_mean_minus_sesoi_in_paired_sd": 0.2,
+      "two_sided_monte_carlo_se": 0.0007070434836698519,
+      "two_sided_rejection_probability": 0.49331,
+      "upper_tail_monte_carlo_se": 0.0007070431046265849,
+      "upper_tail_probability": 0.49329
+    }
+  ],
+  "sesoi_selected": false,
+  "software": {
+    "numpy": "2.5.2",
+    "python": "3.12.14",
+    "scipy": "1.18.1"
+  },
+  "warning": "hypothetical sensitivity only; not evidence that future paired differences follow this distribution"
+}
