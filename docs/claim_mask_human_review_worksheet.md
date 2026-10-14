@@ -155,7 +155,12 @@ metadata, and describes a separate agreement for access to the metadata
 dataset. Use these sources only to trace the evidence needed: they do not
 establish the exact lineage, license, or agreement applicability for any video
 in the private cohort. Verify those records item by item and document the
-actual acquisition route. See the [NExT-GQA README](https://github.com/doc-doc/NExT-GQA/blob/main/datasets/nextgqa/README.md),
+actual acquisition route. Preserve separate identifier fields/namespaces at
+each edge—eligible item, NExT-QA video key, VidOR record/video hash, and YFCC
+media/metadata record—and bind each mapping to its source evidence. Values may
+coincide where an upstream source reuses an identifier, but equality alone does
+not establish identity. Do not infer a YFCC item identity from a matching
+filename or numeric ID alone. See the [NExT-GQA README](https://github.com/doc-doc/NExT-GQA/blob/main/datasets/nextgqa/README.md),
 [NExT-QA README](https://github.com/doc-doc/NExT-QA/blob/main/README.md) and
 [license](https://github.com/doc-doc/NExT-QA/blob/main/LICENSE),
 [VidOR project page](https://xdshang.github.io/docs/vidor.html), and
