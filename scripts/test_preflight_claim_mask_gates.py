@@ -53,6 +53,13 @@ class ClaimMaskGatePreflightTests(unittest.TestCase):
             claim_parts[3]["claims"][index]["video_id"] = video_id
             claim_parts[5]["claims"][index]["video_id"] = video_id
             claim_parts[7]["records"][index]["video_id"] = video_id
+        # Exercise UTF-8 builder bytes through every downstream hash binding.
+        unicode_claim = "Café, synthetic evidence statement."
+        unicode_claim_sha = hashlib.sha256(unicode_claim.encode("utf-8")).hexdigest()
+        claim_parts[3]["claims"][0]["claim_text"] = unicode_claim
+        claim_parts[3]["claims"][0]["claim_text_sha256"] = unicode_claim_sha
+        claim_parts[5]["claims"][0]["claim_text_sha256"] = unicode_claim_sha
+        claim_parts[5]["claims"][0]["review"]["claim_text_sha256_seen"] = unicode_claim_sha
         eligible_sha = hashlib.sha256(eligible_raw).hexdigest()
         claim_parts[3]["eligible_manifest_sha256"] = eligible_sha
         claim_parts[5]["eligible_manifest_sha256"] = eligible_sha
