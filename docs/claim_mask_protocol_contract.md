@@ -184,11 +184,12 @@ establish priority. See also [The Probabilities Also Matter (ACL 2024)](https://
 For this current all-eligible-video estimand, the independent pre-score review
 must establish a supportable claim-to-interval mapping for every eligible
 video. A contradicted, unsupported, ambiguous, unlocalizable, or unreviewed
-claim does not authorize silently dropping that video, substituting another
-claim/video, or continuing with a reduced denominator. Any such case is a
-no-go for the planned full-cohort claim-mask run; record the gate failure and
-retain the frozen cohort. This preserves the stated population but makes
-feasibility contingent on every mapping. A future study may instead define a
+claim, a zero-overlap interval, or an insufficient-control assignment does not
+authorize silently dropping that video, substituting another claim/video, or
+continuing with a reduced denominator. Any such case is a no-go for the planned
+full-cohort claim-mask run; record the gate failure and retain the frozen
+cohort. This preserves the stated population but makes feasibility contingent
+on every mapping and assignment. A future study may instead define a
 supportable-claim population before outcome access, but that is a different,
 restricted estimand: it must freeze the eligibility rule and screened
 denominator in a new protocol version, report screening attrition, and limit
@@ -214,9 +215,13 @@ describe them as protocol-v12 results or use this runner unchanged for a future
 schema-v12 run. A future runner must score all
 eligible videos for the primary population, use the fixed Student-t primary
 interval and frozen Holm secondary families, establish the independent claim
-mapping, record zero-overlap exclusions before scoring, and enforce/hash the
-current contract's mask-transform and nonempty-mask rules in a schema-v12-
-compatible runner.
+mapping, and enforce/hash the current contract's mask-transform and
+nonempty-mask rules in a schema-v12-compatible runner. Before any model score
+call, it must compute assignments for the entire frozen eligible cohort. If
+any reviewed claim has zero sampled overlap or lacks an equal-count control,
+the runner must record a fixed-code cohort-level gate failure, score none of
+the cohort, and preserve its denominator. A subset run requires a separately
+versioned estimand and cohort frozen before outcome access.
 
 The legacy scorer and CPU preflight share one endpoint-inclusive rounded
 uniform sampler, `round(i * (N - 1) / max(F - 1, 1))`, where `N` is decoded
@@ -237,11 +242,13 @@ any schema-v12 scoring run, the runner must either validate constant-frame-rate
 presentation timestamps for every eligible video or use a validated per-frame
 presentation-time map for both interval assignment and the exact frames passed
 to the model. Bind the timestamp source, conversion, and mapping code in the
-private mapping provenance; if timestamps are missing or cannot be reconciled
-to the decoded frame sequence, stop before scoring. The current OpenCV
-index/FPS helper has not passed this validation and remains geometry only. The
-structural protocol validator does not inspect media timestamps or enforce this
-gate.
+private mapping provenance, along with the time origin, time base, numeric
+precision/tolerance, and fail-closed handling of missing, duplicate, or
+non-monotonic timestamps. Freeze these choices before outcome access. If
+timestamps are missing or cannot be reconciled to the decoded frame sequence,
+stop before scoring. The current OpenCV index/FPS helper has not passed this
+validation and remains geometry only. The structural protocol validator does
+not inspect media timestamps or enforce this gate.
 
 `necessity_choice_margin_utils.assign_evidence_control_frames` now composes
 the sampler, distinct-frame check, inclusive interval overlap, and equal-count
@@ -265,16 +272,19 @@ The helper also cannot authenticate source FPS or referenced review records.
 `exclusion_manifest_sha256` binds pre-scoring exclusions and reason codes. The
 candidate count must reconcile with eligible count plus pre-run exclusions.
 The freeze order is: freeze the candidate manifest, complete the prespecified,
-outcome-blind eligibility and geometry screen, record every exclusion and
-reason, then freeze the eligible and exclusion manifests before scoring.
+outcome-blind eligibility screen, record every exclusion and reason, then
+freeze the eligible and exclusion manifests before claim review and scoring.
 The eligible count is the analysis denominator. Never remove a row from an
-already-frozen eligible manifest to repair coverage or geometry; such a case
-blocks that run. The structural validator checks count reconciliation and hash
-syntax, not whether the exclusions were justified or whether the review really
-preceded scoring. This screening order does not permit removing an unsupported
-or unreviewed claim from an already-defined eligible cohort; the full-cohort
-no-go above applies. A supportable-claim-only cohort requires the separately
-defined restricted estimand described above. The primary-estimand hash
+already-frozen eligible manifest to repair claim coverage or control geometry;
+such a case blocks the full-cohort run. In this protocol the claim-input
+manifest and human review are bound to the frozen eligible manifest, so those
+claim-dependent geometry failures are only known after cohort freeze. The
+structural validator checks count reconciliation and hash syntax, not whether
+the exclusions were justified or whether the review really preceded scoring.
+Pre-freeze exclusions cannot be used to remove an unsupported or unreviewed
+claim from the current all-eligible cohort; the full-cohort no-go above
+applies. A supportable-claim-only cohort requires the separately defined
+restricted estimand described above. The primary-estimand hash
 binds the final eligible set, while the candidate,
 exclusion, and overlap-audit hashes remain separately required provenance for
 the screening and selection process; changes to that process are not encoded in
@@ -404,17 +414,22 @@ sampled time is original frame index divided by decoded source FPS and interval
 endpoints are inclusive (`start <= time <= end`); the mapping hash must bind
 source timestamps and mapping code. This reviewed interval determines the
 evidence mask and its size `k`; observed model scores cannot alter it. Require
-`k >= 1`: if no sampled frame overlaps the reviewed interval (`k=0`), record a
-pre-scoring exclusion and do not score the item. Schema v9 fixes
+`k >= 1`. If no sampled frame overlaps the reviewed interval (`k=0`), record a
+fixed-code cohort-level gate failure before scoring any item, stop the planned
+full-cohort run, and retain its eligible denominator.
+Schema v9 fixes
 `minimum_selected_frame_count=1`. For control, sort evidence ranks
 `e_1..e_k` and candidate control ranks `c_1..c_k`,
 then choose a subset of `k` non-evidence frames minimizing
 `sum_j |e_j-c_j|`. Resolve equal-cost ties with the lexicographically lower
-ordered control-rank tuple. If fewer than `k` control frames exist, mark the
-item ineligible before scoring; do not substitute after observing outcomes.
+ordered control-rank tuple. If fewer than `k` control frames exist for any
+eligible video, record a fixed-code cohort-level gate failure before scoring
+any item, stop the full-cohort run, and retain its frozen denominator. Never
+substitute after observing outcomes.
 The structural validator does not decode videos or calculate per-item overlap
-or mask cardinality. Any future scoring runner must enforce the minimum before
-scoring and record zero-overlap exclusions in the frozen exclusion manifest.
+or mask cardinality. Any future scoring runner must enforce the minimum over
+the entire frozen eligible cohort before scoring; a failure blocks that run
+and does not alter the frozen exclusion manifest or denominator.
 Full, selected, and control conditions share frame
 sampling, fill, preprocessing, model, precision, prompt, gold target, and
 execution settings. The required `mask_transform_sha256` must bind a private,
