@@ -105,6 +105,43 @@ class BuildSamplesProvenanceTests(unittest.TestCase):
             self.assertEqual(audit.read_text(encoding="utf-8"), '{"preserve": true}\n')
             self.assertFalse(list(Path(tmp).glob(".selection_tmp_*")))
 
+    def test_pair_writer_cleans_up_when_audit_construction_fails(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            sample = Path(tmp) / "samples.json"
+            audit = Path(tmp) / "audit.json"
+
+            def fail(_staged):
+                raise RuntimeError("synthetic audit serialization failure")
+
+            with self.assertRaisesRegex(RuntimeError, "synthetic"):
+                write_sample_and_audit_exclusive(sample, [{"count": 1}], audit, fail)
+            self.assertFalse(sample.exists())
+            self.assertFalse(audit.exists())
+            self.assertFalse(list(Path(tmp).glob(".selection_tmp_*")))
+
+    def test_pair_writer_rolls_back_on_noncollision_second_link_error(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            sample = Path(tmp) / "samples.json"
+            audit = Path(tmp) / "audit.json"
+            real_link = os.link
+            calls = 0
+
+            def fail_second_link(source, target):
+                nonlocal calls
+                calls += 1
+                if calls == 2:
+                    raise PermissionError("synthetic second-link failure")
+                return real_link(source, target)
+
+            with patch("scripts.build_samples.os.link", side_effect=fail_second_link):
+                with self.assertRaisesRegex(PermissionError, "synthetic"):
+                    write_sample_and_audit_exclusive(
+                        sample, [{"count": 1}], audit, lambda _staged: {"ok": True},
+                    )
+            self.assertFalse(sample.exists())
+            self.assertFalse(audit.exists())
+            self.assertFalse(list(Path(tmp).glob(".selection_tmp_*")))
+
 
 if __name__ == "__main__":
     unittest.main()

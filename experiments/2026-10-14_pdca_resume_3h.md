@@ -528,13 +528,14 @@ first link, and sidecar-construction failure happens before publication. The
 two names are not jointly atomic to concurrent readers, so a successful writer
 can briefly expose the sample before the sidecar. This prevents a failed writer
 from leaving an orphan sample that looks provenance-complete. The sidecar
-remains private because its unsalted hashes can link inputs. It does not repair historical selection
-provenance or authorize inference.
+remains private because its unsalted hashes can link inputs. It does not repair
+historical selection provenance or authorize inference.
 
 Verification: 5 focused provenance tests pass, including matching the sidecar
 hash to the exact staged manifest, owner-only permissions, existing-output
-preservation, rollback after a collision, and rejection of `n <= 0`. A synthetic one-video CLI run
-selected 1/1 fake readable MP4, emitted both files at mode 0600, and its
+preservation, rollback after a collision, and rejection of `n <= 0`. A
+synthetic one-video CLI run selected 1/1 fake readable MP4, emitted both files
+at mode 0600, and its
 sidecar status/hash checks passed. The complete scripts suite passes 537 tests;
 expected failure-shaped JSON lines are emitted by negative-path tests. Python
 byte-compilation and `git diff --check` pass. No real sample selection, direct
@@ -543,8 +544,16 @@ whitelist of OpenCV backend/FFmpeg environment settings without storing the
 values, following an independent design review. The independent implementation
 audit found no correctness blocker; it noted that the pair is not jointly
 atomic to concurrent readers and suggested additional failure-injection tests.
-Those limitations remain explicit; no failure-injection result beyond the
-second-output collision is claimed.
+An additional regression round then injected audit-construction and arbitrary
+second-link failures and verified temporary-file cleanup and rollback. The
+focused suite passes 7 tests and the full scripts suite passes 539. These tests
+do not establish joint atomic visibility or crash durability.
 
-At 18:48:06 JST, 1h24m54s had elapsed and 1h35m06s remained. Direct faithfulness
+Commit `526d6a5c1246fcd3d5a5f7c8e751532692e7bdf5` was pushed to GitHub `main`
+and verified with a live `git ls-remote`; only the script, focused tests, and
+dated log were included. Existing untracked dataset and sample files remain
+untouched. The two new failure-injection tests and updated counts are pending a
+follow-up scoped commit.
+
+At 18:49:42 JST, 1h26m30s had elapsed and 1h33m30s remained. Direct faithfulness
 progress remains 0 new samples and 0 new effect estimates.
