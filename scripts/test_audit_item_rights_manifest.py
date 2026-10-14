@@ -94,6 +94,81 @@ class ItemRightsManifestAuditTests(unittest.TestCase):
         self.assertFalse(result["declared_use_gates_structurally_complete"])
         self.assertEqual(result["eligible_rows_with_complete_permitted_declarations"], 0)
 
+    def test_parsed_objects_must_match_hash_bound_raw_bytes(self):
+        eligible, eligible_raw, ledger, ledger_raw = fixture()
+        mismatched_eligible = [{"video_id": "private-other-a"}, {"video_id": "private-other-b"}]
+        result = audit(mismatched_eligible, eligible_raw, ledger, ledger_raw)
+        self.assertIn("parsed_input_raw_bytes_mismatch", result["failure_codes"])
+        self.assertFalse(result["declared_use_gates_structurally_complete"])
+        self.assertEqual(result["execution_authorization"], "not_granted")
+
+        mismatched_ledger = json.loads(ledger_raw)
+        mismatched_ledger["items"][0]["decisions"]["local_inference"] = "unresolved"
+        result = audit(eligible, eligible_raw, mismatched_ledger, ledger_raw)
+        self.assertIn("parsed_input_raw_bytes_mismatch", result["failure_codes"])
+        self.assertFalse(result["declared_use_gates_structurally_complete"])
+        self.assertEqual(result["execution_authorization"], "not_granted")
+
+    def test_nonfinite_or_duplicate_key_inputs_are_rejected(self):
+        eligible, eligible_raw, ledger, ledger_raw = fixture()
+        with_nonfinite = json.loads(eligible_raw)
+        with_nonfinite[0]["ignored"] = float("inf")
+        result = audit(with_nonfinite, eligible_raw, ledger, ledger_raw)
+        self.assertIn("parsed_input_raw_bytes_mismatch", result["failure_codes"])
+
+        duplicate_key_raw = b'{"schema_version":2,"schema_version":2}'
+        result = audit(eligible, eligible_raw, ledger, duplicate_key_raw)
+        self.assertIn("parsed_input_raw_bytes_mismatch", result["failure_codes"])
+
+        result = audit(eligible, eligible_raw, ledger, ledger_raw.decode())
+        self.assertIn("parsed_input_raw_bytes_mismatch", result["failure_codes"])
+
+        eligible_with_non_json_extra = [{"video_id": "private-a", 1: "number-key"}, eligible[1]]
+        eligible_with_non_json_raw = b'[{"video_id":"private-a","1":"number-key"},{"video_id":"private-b"}]'
+        result = audit(eligible_with_non_json_extra, eligible_with_non_json_raw, ledger, ledger_raw)
+        self.assertIn("parsed_input_raw_bytes_mismatch", result["failure_codes"])
+
+        eligible_with_tuple = [("private-a",), {"video_id": "private-b"}]
+        tuple_raw = b'[["private-a"],{"video_id":"private-b"}]'
+        result = audit(eligible_with_tuple, tuple_raw, ledger, ledger_raw)
+        self.assertIn("parsed_input_raw_bytes_mismatch", result["failure_codes"])
+
+        for invalid_raw in (
+            b'{"schema_version":2,"x":1e999}',
+            b'{"schema_version":2,"schema_version":2}',
+            b'{not-json',
+            b'\xff',
+        ):
+            with self.subTest(invalid_raw=invalid_raw):
+                result = audit(eligible, eligible_raw, ledger, invalid_raw)
+                self.assertIn("parsed_input_raw_bytes_mismatch", result["failure_codes"])
+                self.assertFalse(result["declared_use_gates_structurally_complete"])
+                self.assertEqual(result["execution_authorization"], "not_granted")
+
+    def test_lineage_identifiers_reject_padding_at_each_link(self):
+        for field in ("from_dataset_id", "from_record_id", "to_dataset_id", "to_record_id"):
+            with self.subTest(field=field):
+                eligible, eligible_raw, ledger, _ = fixture()
+                ledger["items"][0]["source_lineage"][0][field] += " "
+                result = audit(eligible, eligible_raw, ledger, raw(ledger))
+                self.assertFalse(result["declared_use_gates_structurally_complete"])
+                self.assertEqual(result["execution_authorization"], "not_granted")
+
+    def test_identifier_whitespace_is_rejected_instead_of_normalized(self):
+        eligible, eligible_raw, ledger, _ = fixture()
+        eligible[0]["video_id"] = "private-a "
+        padded_eligible_raw = raw(eligible)
+        result = audit(eligible, padded_eligible_raw, ledger, raw(ledger))
+        self.assertIn("eligible_manifest_invalid", result["failure_codes"])
+
+        eligible, eligible_raw, ledger, _ = fixture()
+        ledger["items"][0]["video_id"] = "private-a "
+        ledger["items"][0]["source_lineage"][0]["from_record_id"] = "private-a "
+        result = audit(eligible, eligible_raw, ledger, raw(ledger))
+        self.assertIn("item_rights_video_id_invalid", result["failure_codes"])
+        self.assertFalse(result["declared_use_gates_structurally_complete"])
+        self.assertEqual(result["execution_authorization"], "not_granted")
+
     def test_missing_duplicate_and_out_of_cohort_rows_fail_without_echoing_ids(self):
         eligible, eligible_raw, ledger, _ = fixture()
         ledger["items"] = [ledger["items"][0], ledger["items"][0], {

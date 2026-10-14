@@ -302,7 +302,11 @@ Locators, roles, and notes stay in the private ledger. Decisions are exactly
 and conditions must be declared `reviewed_resolved` for every eligible item.
 Keep both inputs local and private. The output contains no item identifiers or
 evidence text; it reports hashes, counts, structural-status fields, and failure
-codes.
+codes. The callable audit also reparses both hash-bound raw byte inputs and
+requires canonical parsed-object equality, rejecting duplicate JSON keys and
+non-finite numbers; the CLI summary records only generic mismatch codes. Video,
+dataset, and lineage record identifiers must match exactly and cannot rely on
+whitespace trimming for cohort reconciliation.
 Because the hashes are unsalted, they can reveal equality and may be guessable
 for predictable manifests; do not treat the output as absolutely private.
 Example:

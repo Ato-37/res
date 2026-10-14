@@ -10,6 +10,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import math
 import re
 import sys
 from datetime import datetime
@@ -37,7 +38,48 @@ def _read_json(path: Path) -> tuple[Any, bytes]:
         raw.decode("utf-8"), object_pairs_hook=_object,
         parse_constant=lambda _: (_ for _ in ()).throw(ValueError("non-finite JSON")),
     )
+    if _contains_nonfinite(value):
+        raise ValueError("non-finite JSON number")
     return value, raw
+
+
+def _contains_nonfinite(value: Any) -> bool:
+    if isinstance(value, float):
+        return not math.isfinite(value)
+    if isinstance(value, dict):
+        return any(_contains_nonfinite(key) or _contains_nonfinite(item) for key, item in value.items())
+    if isinstance(value, list):
+        return any(_contains_nonfinite(item) for item in value)
+    return False
+
+
+def _is_json_tree(value: Any) -> bool:
+    if value is None or type(value) in (bool, int, str):
+        return True
+    if type(value) is float:
+        return math.isfinite(value)
+    if type(value) is list:
+        return all(_is_json_tree(item) for item in value)
+    if type(value) is dict:
+        return all(type(key) is str and _is_json_tree(item) for key, item in value.items())
+    return False
+
+
+def _matches_raw(value: Any, raw: bytes) -> bool:
+    if not isinstance(raw, bytes) or not _is_json_tree(value):
+        return False
+    try:
+        parsed = json.loads(
+            raw.decode("utf-8"), object_pairs_hook=_object,
+            parse_constant=lambda _: (_ for _ in ()).throw(ValueError("non-finite JSON")),
+        )
+        if not _is_json_tree(parsed):
+            return False
+        left = json.dumps(parsed, sort_keys=True, separators=(",", ":"), allow_nan=False)
+        right = json.dumps(value, sort_keys=True, separators=(",", ":"), allow_nan=False)
+        return left == right
+    except (AttributeError, UnicodeError, ValueError, TypeError, OverflowError):
+        return False
 
 
 def _is_sha(value: Any) -> bool:
@@ -58,14 +100,18 @@ def _nonempty_text(value: Any) -> bool:
     return isinstance(value, str) and bool(value.strip())
 
 
+def _identifier(value: Any) -> bool:
+    return _nonempty_text(value) and value == value.strip()
+
+
 def _eligible_ids(value: Any) -> list[str]:
     if not isinstance(value, list) or not value:
         raise ValueError("eligible manifest must be a non-empty JSON array")
     ids = []
     for row in value:
-        if not isinstance(row, dict) or not _nonempty_text(row.get("video_id")):
+        if not isinstance(row, dict) or not _identifier(row.get("video_id")):
             raise ValueError("eligible manifest row schema invalid")
-        ids.append(row["video_id"].strip())
+        ids.append(row["video_id"])
     if len(ids) != len(set(ids)):
         raise ValueError("eligible manifest video IDs are not unique")
     return ids
@@ -118,7 +164,7 @@ def _audit_source_lineage(row: dict, eligible_dataset_id: Any, failures: set[str
             failures.add("item_source_lineage_schema_invalid")
             valid = False
             continue
-        if (not all(_nonempty_text(step.get(key)) for key in (
+        if (not all(_identifier(step.get(key)) for key in (
                 "from_dataset_id", "from_record_id", "to_dataset_id", "to_record_id",
                 "mapping_evidence_locator"))
                 or not _is_sha(step.get("mapping_evidence_sha256"))):
@@ -149,10 +195,10 @@ def _audit_item(row: Any, eligible_dataset_id: Any, intended_uses: list[str], fa
         failures.add("item_rights_schema_invalid")
         return None, False
     video_id = row.get("video_id")
-    if not _nonempty_text(video_id):
+    if not _identifier(video_id):
         failures.add("item_rights_video_id_invalid")
         video_id = None
-    if not all(_nonempty_text(row.get(k)) for k in (
+    if not all(_identifier(row.get(k)) for k in (
             "source_dataset_id", "source_video_id", "media_license_id",
             "media_evidence_locator", "media_reviewer_role")):
         failures.add("item_rights_source_evidence_invalid")
@@ -178,11 +224,15 @@ def _audit_item(row: Any, eligible_dataset_id: Any, intended_uses: list[str], fa
             elif decision == "unresolved":
                 failures.add("item_use_unresolved")
     covered = not failures
-    return video_id.strip() if isinstance(video_id, str) else None, covered
+    return video_id if isinstance(video_id, str) else None, covered
 
 
 def audit(eligible: Any, eligible_raw: bytes, ledger: Any, ledger_raw: bytes) -> dict:
     failures: set[str] = set()
+    eligible_raw_bytes = eligible_raw if isinstance(eligible_raw, bytes) else b""
+    ledger_raw_bytes = ledger_raw if isinstance(ledger_raw, bytes) else b""
+    if (not _matches_raw(eligible, eligible_raw) or not _matches_raw(ledger, ledger_raw)):
+        failures.add("parsed_input_raw_bytes_mismatch")
     try:
         ids = _eligible_ids(eligible)
     except ValueError:
@@ -194,12 +244,12 @@ def audit(eligible: Any, eligible_raw: bytes, ledger: Any, ledger_raw: bytes) ->
         "annotation_rights", "items",
     }:
         failures.add("rights_ledger_schema_invalid")
-        return _summary(failures, eligible_raw, ledger_raw, len(ids), 0, 0, 0)
+        return _summary(failures, eligible_raw_bytes, ledger_raw_bytes, len(ids), 0, 0, 0)
     if type(ledger.get("schema_version")) is not int or ledger["schema_version"] != 2:
         failures.add("rights_ledger_version_invalid")
-    if not _nonempty_text(ledger.get("eligible_dataset_id")):
+    if not _identifier(ledger.get("eligible_dataset_id")):
         failures.add("eligible_dataset_id_missing")
-    if not _is_sha(ledger.get("eligible_manifest_sha256")) or ledger.get("eligible_manifest_sha256") != hashlib.sha256(eligible_raw).hexdigest():
+    if not _is_sha(ledger.get("eligible_manifest_sha256")) or ledger.get("eligible_manifest_sha256") != hashlib.sha256(eligible_raw_bytes).hexdigest():
         failures.add("eligible_manifest_hash_mismatch")
     if not _nonempty_text(ledger.get("intended_use_scope")):
         failures.add("intended_use_scope_missing")
@@ -239,7 +289,7 @@ def audit(eligible: Any, eligible_raw: bytes, ledger: Any, ledger_raw: bytes) ->
         failures.add("rights_row_count_mismatch")
 
     complete = not failures and annotation_ok and item_covered == len(ids)
-    return _summary(failures, eligible_raw, ledger_raw, len(ids), len(rows), item_covered,
+    return _summary(failures, eligible_raw_bytes, ledger_raw_bytes, len(ids), len(rows), item_covered,
                     item_covered if complete else 0, complete)
 
 
