@@ -552,8 +552,12 @@ do not establish joint atomic visibility or crash durability.
 Commit `526d6a5c1246fcd3d5a5f7c8e751532692e7bdf5` was pushed to GitHub `main`
 and verified with a live `git ls-remote`; only the script, focused tests, and
 dated log were included. Existing untracked dataset and sample files remain
-untouched. The two new failure-injection tests and updated counts are pending a
-follow-up scoped commit.
+untouched. Follow-up commit `67a0bc764d1e490e94032d2eaa867f1166e1aa42` adds two
+failure-injection tests and updates this log; it too was pushed, live-fetched,
+and its source/test SHA-256 values matched the local files. A post-commit
+synthetic CLI smoke additionally verified `source_matches_commit=true` with
+the recorded commit, 1/1 selected synthetic video, 0600 outputs, and no
+temporary files left over. Full scripts suite: 539 passed.
 
 At 18:49:42 JST, 1h26m30s had elapsed and 1h33m30s remained. Direct faithfulness
 progress remains 0 new samples and 0 new effect estimates.
