@@ -216,7 +216,8 @@ bytes; keep `data_rights.item_rights_manifest_sha256` bound separately to the
 v2 item-rights ledger. The structural validator checks only hash syntax and
 does not read this index or authenticate any evidence.
 
-For the optional CPU cross-checker `scripts/audit_data_rights_evidence_index.py`,
+For the CPU cross-checker `scripts/audit_data_rights_evidence_index.py` (a
+structural helper, not a substitute for required human evidence review),
 use a closed schema with root keys `schema_version=1`, `eligible_manifest`,
 `item_rights_manifest`, `annotation_terms`, `item_media_conditions`, and
 `dataset_access_agreement`. The first three evidence entries contain
@@ -233,15 +234,20 @@ equal to the entry's `sha256` and set `decisions` to null. For an applicable
 agreement, `sha256` identifies the reviewed agreement evidence; for a
 substantiated non-applicability decision, it identifies that basis evidence.
 Unresolved applicability or any uncleared planned use cannot pass the
-structural cross-check. Bind ledger and eligible-manifest
-entries to their exact bytes, annotation terms to the ledger's declared
-annotation-evidence hash, media/conditions to the restricted evidence bundle,
-and the agreement entry to the reviewed agreement or non-applicability
-evidence. The checker also cross-checks the exact intended-use scope and
-eligible count/hash across protocol, ledger, and index. Run it in addition to
-the protocol and item-rights validators; its pass means only that declarations
-and byte references are structurally consistent. It cannot authenticate
-evidence, decide rights, establish reviewer authority, or grant execution.
+structural cross-check. Bind ledger and eligible-manifest entries to their
+exact bytes, and annotation terms to the ledger's declared annotation-evidence
+hash. The `item_media_conditions` hash and locator refer to the restricted
+evidence bundle: the checker validates their syntax and declared eligible-item
+count, but does not resolve the locator or compare referenced bytes with each
+ledger row's media/conditions hashes. Agreement hash and locator are also
+recorded references and are not rehashed from their locators. The checker
+cross-checks intended-use scope and eligible count/hash across protocol,
+ledger, and index. Before declaring rights verified, a human reviewer must
+inspect the restricted media/conditions bundle and agreement evidence and
+confirm that each reference identifies the reviewed material. A pass means
+only that the checked declarations and references are structurally consistent.
+It cannot authenticate evidence, decide rights, establish reviewer authority,
+or grant execution.
 
 The v2 item-rights ledger records hashes and declarations, not the full legal
 reasoning. Preserve the private evidence bundle and any applicable

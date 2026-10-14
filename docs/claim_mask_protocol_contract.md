@@ -450,9 +450,15 @@ non-applicability when relevant). The validator checks only hash shape and
 does not resolve the index or its entries. The blank worksheet specifies the
 minimum private review record; it does not substitute for evidence inspection.
 The CPU-only `scripts/audit_data_rights_evidence_index.py` can separately
-cross-check exact-byte links and declared scope/count consistency across the
-protocol, eligible manifest, v2 ledger, and evidence index. Run it alongside
-the existing structural protocol and item-rights audits. This component is not
+cross-check the exact-byte hashes of the eligible manifest and v2 ledger, and
+compare the annotation evidence hash declared in the index with the hash
+declared in the ledger. It also checks declared scope/count consistency across
+the protocol, eligible manifest, ledger, and evidence index. It checks
+the media/conditions and agreement hash/locator references for shape and
+coverage/declarations but does not resolve those references or compare their
+target bytes with the ledger rows. A human must inspect those private artifacts
+and verify the references before declaring rights verified. Run the checker
+alongside the existing structural protocol and item-rights audits. This component is not
 a launch orchestrator, does not authenticate private evidence or legal
 judgments, and always reports `execution_authorization=not_granted`; a passing
 structural check is not permission to load a model or score data.

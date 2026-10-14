@@ -270,6 +270,7 @@ def audit(eligible: Any, eligible_raw: bytes, ledger: Any, ledger_raw: bytes) ->
 
     row_ids: list[str] = []
     item_covered = 0
+    covered_eligible_ids: set[str] = set()
     for row in rows:
         row_failures: set[str] = set()
         row_id, covered = _audit_item(row, ledger.get("eligible_dataset_id"), uses, row_failures)
@@ -278,6 +279,8 @@ def audit(eligible: Any, eligible_raw: bytes, ledger: Any, ledger_raw: bytes) ->
             row_ids.append(row_id)
         if covered:
             item_covered += 1
+            if row_id in ids:
+                covered_eligible_ids.add(row_id)
 
     if len(row_ids) != len(set(row_ids)):
         failures.add("rights_video_ids_duplicate")
@@ -291,7 +294,7 @@ def audit(eligible: Any, eligible_raw: bytes, ledger: Any, ledger_raw: bytes) ->
 
     complete = not failures and annotation_ok and item_covered == len(ids)
     return _summary(failures, eligible_raw_bytes, ledger_raw_bytes, len(ids), len(rows), item_covered,
-                    item_covered if complete else 0, complete)
+                    len(covered_eligible_ids), complete)
 
 
 def _summary(failures: set[str], eligible_raw: bytes, ledger_raw: bytes, eligible_n: int,

@@ -93,7 +93,7 @@ class ItemRightsManifestAuditTests(unittest.TestCase):
         result = audit(eligible, eligible_raw, ledger, raw(ledger))
         self.assertIn("eligible_manifest_hash_mismatch", result["failure_codes"])
         self.assertFalse(result["declared_item_and_annotation_use_gates_structurally_complete"])
-        self.assertEqual(result["eligible_rows_with_complete_permitted_declarations"], 0)
+        self.assertEqual(result["eligible_rows_with_complete_permitted_declarations"], 2)
 
     def test_parsed_objects_must_match_hash_bound_raw_bytes(self):
         eligible, eligible_raw, ledger, ledger_raw = fixture()
@@ -178,6 +178,7 @@ class ItemRightsManifestAuditTests(unittest.TestCase):
         self.assertIn("rights_video_ids_duplicate", result["failure_codes"])
         self.assertIn("rights_rows_missing", result["failure_codes"])
         self.assertIn("rights_rows_outside_eligible_cohort", result["failure_codes"])
+        self.assertEqual(result["eligible_rows_with_complete_permitted_declarations"], 1)
         self.assertNotIn("private-a", json.dumps(result))
         self.assertNotIn("private-extra", json.dumps(result))
 
@@ -190,6 +191,15 @@ class ItemRightsManifestAuditTests(unittest.TestCase):
         self.assertIn("item_rights_conditions_unresolved", result["failure_codes"])
         self.assertFalse(result["declared_item_and_annotation_use_gates_structurally_complete"])
         self.assertEqual(result["item_rows_with_complete_permitted_decisions"], 0)
+        self.assertEqual(result["eligible_rows_with_complete_permitted_declarations"], 0)
+        self.assertEqual(result["execution_authorization"], "not_granted")
+
+    def test_partial_eligible_row_count_is_not_erased_by_another_failed_row(self):
+        eligible, eligible_raw, ledger, _ = fixture()
+        ledger["items"][1]["decisions"]["local_retention"] = "unresolved"
+        result = audit(eligible, eligible_raw, ledger, raw(ledger))
+        self.assertFalse(result["declared_item_and_annotation_use_gates_structurally_complete"])
+        self.assertEqual(result["eligible_rows_with_complete_permitted_declarations"], 1)
         self.assertEqual(result["execution_authorization"], "not_granted")
 
     def test_not_permitted_annotation_use_fails_gate(self):
