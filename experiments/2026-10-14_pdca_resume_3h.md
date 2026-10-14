@@ -527,8 +527,9 @@ published with exclusive hard links; a second-target collision rolls back the
 first link, and sidecar-construction failure happens before publication. The
 two names are not jointly atomic to concurrent readers, so a successful writer
 can briefly expose the sample before the sidecar. This prevents a failed writer
-from leaving an orphan sample that looks provenance-complete. The sidecar
-remains private because its unsalted hashes can link inputs. It does not repair
+from leaving an orphan sample when cleanup runs; abrupt process/system
+termination between the links can still leave one. The sidecar remains private
+because its unsalted hashes can link inputs. It does not repair
 historical selection provenance or authorize inference.
 
 Verification: 5 focused provenance tests pass, including matching the sidecar
