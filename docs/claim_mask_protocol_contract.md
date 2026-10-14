@@ -73,6 +73,25 @@ gold-answer margin dropped more under the
 selected mask than the matched control. This is an operational dependence
 contrast, not proof that a claim is true or causally explained.
 
+Interpret this as a post-hoc, input-intervention test of explanatory
+faithfulness/evidence dependence: the model first produces an answer and its
+claim, then the evaluated answer margin is measured after altering frames.
+It does not test causal faithfulness of an explanation generated before and
+used to produce the answer, nor identify an internal reasoning mechanism.
+Siegel et al. distinguish explanatory-faithfulness tests that intervene on
+inputs from causal-faithfulness claims about a prediction causally depending
+on a generated reasoning trace; the present post-hoc design belongs to the
+former operational family. Its margin-difference contrast is narrower than
+their distribution-shift-based CCT, but the broad idea of relating
+counterfactual input impact to free-text explanations is established prior
+work. Video intervention itself is also established: [MACD (ICML 2026)](https://proceedings.mlr.press/v306/xiao26w.html)
+constructs object-level counterfactual video inputs at inference time to
+improve hallucination-mitigating contrastive decoding. The proposed design is
+an evaluation contrast over a model-generated claim's reviewed temporal span
+against an equal-count temporal control, not a decoding intervention or a
+test that the explanation caused the answer. These method distinctions do not
+establish priority. See also [The Probabilities Also Matter (ACL 2024)](https://aclanthology.org/2024.acl-short.49/).
+
 For this current all-eligible-video estimand, the independent pre-score review
 must establish a supportable claim-to-interval mapping for every eligible
 video. A contradicted, unsupported, ambiguous, unlocalizable, or unreviewed
@@ -292,6 +311,14 @@ remain unresolved until their applicability and fulfillment for that use are
 reviewed and recorded. Keep item identifiers, source URLs, and evidence
 private. A matching validator could check row/key/count reconciliation, but a
 human must assess evidence authenticity, reviewer authority, and license scope.
+If obtaining or identifying the source items also invokes a dataset-level
+access or metadata agreement, review that separately from annotation and
+media licenses. The current v2 rights ledger has no general dataset-access-
+agreement record; keep any applicable agreement and its use-scope decision in a
+separate private record until the schema is deliberately extended. In this
+protocol, `aggregate_publication` means privacy-safe derived numerical
+summaries only. It does not authorize publishing source media, identifiable
+frames, item-level records, or raw model outputs.
 
 For a private draft ledger, `scripts/audit_item_rights_manifest.py` checks the
 eligible-manifest byte hash, one-to-one video-ID row coverage, separate
