@@ -39,7 +39,7 @@ def derive_public_summary(raw: dict, raw_sha256: str) -> dict:
         raise ValueError("fractional candidate failed its synthetic reference check")
     if not raw.get("actual_forward_position_ids_verified"):
         raise ValueError("actual model forward position IDs were not verified")
-    sensitivity = raw.get("fractional_vs_native_sensitivity")
+    sensitivity = raw.get("fixed_vs_legacy_v517_sensitivity")
     if not isinstance(sensitivity, dict):
         raise ValueError("missing derived position-ID sensitivity summary")
     return {
@@ -72,12 +72,13 @@ def derive_public_summary(raw: dict, raw_sha256: str) -> dict:
             "seconds_per_grid": raw["seconds_per_grid"],
             "native_temporal_anchors": raw["native_temporal_anchors"],
             "fractional_temporal_anchors": raw["fractional_temporal_anchors"],
+            "legacy_v517_temporal_anchors": raw["legacy_v517_temporal_anchors"],
             "changed_position_id_entries": raw["changed_position_id_entries"],
             "native_matches_fractional_reference": assertions[
                 "native_matches_fractional_reference"
             ],
         },
-        "sensitivity": sensitivity,
+        "fixed_vs_legacy_v517_sensitivity": sensitivity,
         "source_sha256": raw["source_sha256"],
         "installed_model_source_sha256": raw["installed_model_source_sha256"],
         "installed_processor_source_sha256": raw["installed_processor_source_sha256"],

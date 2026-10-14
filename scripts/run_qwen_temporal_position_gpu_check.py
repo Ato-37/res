@@ -2,10 +2,10 @@
 
 The default ``noaa`` fixture preserves the existing fixed NOAA video behavior.
 The fixed ``synthetic_subsecond`` fixture uses four deterministic in-memory
-frames at 8/3 FPS, with no NOAA media, annotations, or QA. Both compare the
-same three conditions: native automatic IDs, explicit-native no-op IDs, and a
-video-temporal-row-only fractional candidate. Neither fixture evaluates
-faithfulness, QA accuracy, or semantic temporal validity. Does not edit .venv.
+frames at 8/3 FPS, with no NOAA media, annotations, or QA. It compares native
+automatic IDs, explicit-native no-op IDs, and an explicit reconstruction of
+the Transformers 5.17 integer-pretruncate reference. This is an engineering
+diagnostic, not a faithfulness result. Does not edit .venv.
 
 Usage::
 
@@ -85,6 +85,41 @@ def validate_synthetic_subsecond_geometry(
         raise RuntimeError(
             f'Installed temporal anchors match neither legacy nor fixed formula: {native}'
         )
+
+
+def legacy_pretruncate_position_ids(
+    native_position_ids, *, video_token_start, video_token_stop,
+    video_grid_thw, spatial_merge_size, seconds_per_grid, tokens_per_second,
+):
+    """Reconstruct the old `tps * int(seconds_per_grid)` temporal video row."""
+    rows = [list(row) for row in native_position_ids]
+    if len(rows) != 3 or not rows[0] or len({len(row) for row in rows}) != 1:
+        raise ValueError("native position IDs must have shape (3, sequence_length)")
+    if len(video_grid_thw) != 3:
+        raise ValueError("video_grid_thw must contain T, H, W")
+    temporal, height, width = (int(value) for value in video_grid_thw)
+    merge = int(spatial_merge_size)
+    if temporal < 1 or merge < 1 or height % merge or width % merge:
+        raise ValueError("invalid temporal/spatial grid")
+    tokens_per_step = (height // merge) * (width // merge)
+    if video_token_stop - video_token_start != temporal * tokens_per_step:
+        raise ValueError("video token span does not match grid")
+    if not 0 <= video_token_start < video_token_stop <= len(rows[0]):
+        raise ValueError("video token span is outside the position sequence")
+    seconds = float(seconds_per_grid)
+    tps = int(tokens_per_second)
+    if not math.isfinite(seconds) or seconds <= 0 or tps <= 0:
+        raise ValueError("seconds_per_grid and tokens_per_second must be positive")
+    base = int(rows[0][video_token_start])
+    step = tps * int(seconds)
+    anchors = []
+    for index in range(temporal):
+        value = base + index * step
+        begin = video_token_start + index * tokens_per_step
+        end = begin + tokens_per_step
+        rows[0][begin:end] = [value] * tokens_per_step
+        anchors.append(value)
+    return rows, anchors
 
 
 def compare_logits(reference, candidate):
@@ -213,13 +248,18 @@ def main():
         step_tokens=(grid[1]//merge)*(grid[2]//merge)
         preforward_anchors=[int(candidate[0,0,positions[0]+i*step_tokens]) for i in range(grid[0])]
         assert_fractional_float32_compatibility(preforward_anchors,seconds,int(config.tokens_per_second))
+        legacy_rows,legacy_anchors=legacy_pretruncate_position_ids(
+            native_list,video_token_start=positions[0],video_token_stop=positions[-1]+1,
+            video_grid_thw=grid,spatial_merge_size=merge,seconds_per_grid=seconds,
+            tokens_per_second=int(config.tokens_per_second))
+        legacy_ids=torch.tensor(legacy_rows,dtype=native.dtype,device=native.device).unsqueeze(1)
         captures=[]
         def capture(module, positional, keyword):
             captures.append(keyword['position_ids'].detach().cpu().clone())
         handle=model.model.language_model.register_forward_pre_hook(capture,with_kwargs=True)
         conditions=[]; logits=[]
         try:
-            for name,ids in [('native_auto',None),('explicit_native_noop',native),('fractional_video_time_only',candidate)]:
+            for name,ids in [('native_auto',None),('explicit_native_noop',native),('legacy_v517_reference',legacy_ids)]:
                 gc.collect(); torch.cuda.empty_cache(); torch.cuda.reset_peak_memory_stats()
                 begin=time.monotonic()
                 kw={} if ids is None else {'position_ids':ids}
@@ -238,7 +278,7 @@ def main():
         finally:
             handle.remove()
         RUN_PROGRESS['stage']='identity_and_position_validation'
-        if len(captures)!=3 or not torch.equal(captures[0],native.cpu()) or not torch.equal(captures[1],native.cpu()) or not torch.equal(captures[2],candidate.cpu()):
+        if len(captures)!=3 or not torch.equal(captures[0],native.cpu()) or not torch.equal(captures[1],native.cpu()) or not torch.equal(captures[2],legacy_ids.cpu()):
             raise RuntimeError('Actual language-model position IDs differ from requested IDs')
         noop=compare_logits(logits[0],logits[1])
         if not noop['bitwise_equal']:
@@ -287,9 +327,10 @@ def main():
             'sample_timestamps_seconds':timestamps,'sampled_fps':fps,'grid_thw':grid,'video_tokens':len(positions),
             'input_tokens':int(batch['input_ids'].shape[1]),'seconds_per_grid':seconds,
             'native_temporal_anchors':anchors_native,'fractional_temporal_anchors':anchors_candidate,
+            'legacy_v517_temporal_anchors':legacy_anchors,
             'changed_position_id_entries':int((native!=candidate).sum()),
             'spatial_and_text_position_ids_preserved':True,'actual_forward_position_ids_verified':True,
-            'noop_comparison':noop,'fractional_vs_native_sensitivity':compare_logits(logits[0],logits[2]),
+            'noop_comparison':noop,'fixed_vs_legacy_v517_sensitivity':compare_logits(logits[0],logits[2]),
             'temporal_geometry':qwen_temporal_geometry(timestamps,int(processor.video_processor.temporal_patch_size),
                 tokens_per_second=int(config.tokens_per_second),second_per_grid=seconds,video_start_position=anchors_native[0]),
             'conditions':conditions,'gpu':torch.cuda.get_device_name(0),'gpu_free_before_gib':free/1024**3,'gpu_total_gib':total/1024**3,
@@ -333,7 +374,7 @@ def main():
         with output.open('x',encoding='utf-8') as stream:
             json.dump(result,stream,indent=2,allow_nan=False); stream.write('\n')
         os.chmod(output, 0o600)
-        print(f'GPU position check passed: fixture={args.fixture}, 1 video, 3/3 forwards; no-op identical; native anchors {anchors_native}, candidate {anchors_candidate}; output {args.output}')
+        print(f'GPU position check passed: fixture={args.fixture}, 1 video, 3/3 forwards; fixed anchors {anchors_native}, legacy-v5.17 anchors {legacy_anchors}; output {args.output}')
     finally:
         if tmp is not None:
             shutil.rmtree(tmp,ignore_errors=True)

@@ -9,6 +9,7 @@ import torch
 
 from qwen_temporal_geometry import qwen_temporal_geometry, replace_video_temporal_rope_row
 from run_qwen_temporal_position_gpu_check import (
+    legacy_pretruncate_position_ids,
     make_synthetic_subsecond_fixture,
     validate_synthetic_subsecond_geometry,
     assert_fractional_float32_compatibility,
@@ -23,6 +24,40 @@ MODEL_PATH = (
 
 
 class FractionalPrecisionGateTests(unittest.TestCase):
+    def test_legacy_reference_reconstructs_integer_pretruncate_without_touching_other_rows(self):
+        native = (
+            (0, 1, 5, 6, 7),
+            (0, 1, 5, 5, 5),
+            (0, 1, 5, 5, 5),
+        )
+        rows, anchors = legacy_pretruncate_position_ids(
+            native,
+            video_token_start=2,
+            video_token_stop=4,
+            video_grid_thw=(2, 2, 2),
+            spatial_merge_size=2,
+            seconds_per_grid=0.75,
+            tokens_per_second=2,
+        )
+        self.assertEqual(anchors, [5, 5])
+        self.assertEqual(rows[0], [0, 1, 5, 5, 7])
+        self.assertEqual(rows[1:], [list(native[1]), list(native[2])])
+
+    def test_legacy_reference_rejects_invalid_grid_and_token_span(self):
+        native = ((0, 1, 2), (0, 1, 2), (0, 1, 2))
+        with self.assertRaisesRegex(ValueError, "span does not match"):
+            legacy_pretruncate_position_ids(
+                native, video_token_start=1, video_token_stop=2,
+                video_grid_thw=(2, 2, 2), spatial_merge_size=2,
+                seconds_per_grid=0.75, tokens_per_second=2,
+            )
+        with self.assertRaisesRegex(ValueError, "invalid temporal/spatial"):
+            legacy_pretruncate_position_ids(
+                native, video_token_start=1, video_token_stop=3,
+                video_grid_thw=(2, 3, 2), spatial_merge_size=2,
+                seconds_per_grid=0.75, tokens_per_second=2,
+            )
+
     def test_declared_runtime_fixtures_are_compatible(self):
         assert_fractional_float32_compatibility([15,16],.75,2)
         assert_fractional_float32_compatibility([15,414],199.9998016357422,2)
