@@ -231,6 +231,28 @@ the 25/25 and 80/80 aggregate counts. The full CPU suite passes 508 tests,
 schema and are excluded from publication; only the `_03` held-out result and
 the 80-row candidate result are in scope.
 
+### NExT-CF license-index lead review
+
+The public NExT-CF dataset card describes 570 clips derived from NExT-QA and
+states that it publishes `metadata.json`, `tier_assignment.csv`, and
+`ATTRIBUTION.csv` with per-clip original license and Flickr attribution. Its
+v1.0.0 release `CITATION.cff` marks the authors as anonymous and the submission
+as under review ([release commit](https://huggingface.co/datasets/nextcf-anon-2026/nextcf/commit/f5975d9),
+[CITATION.cff](https://huggingface.co/datasets/nextcf-anon-2026/nextcf/blob/main/CITATION.cff)).
+The README limits use to noncommercial research and distinguishes
+CC-BY-NC-SA edited tier-1 videos
+from CC-BY-SA metadata; tier-2 NoDerivatives entries are not redistributed as
+edited videos. The official [NExT-CF dataset card](https://huggingface.co/datasets/nextcf-anon-2026/nextcf/blob/main/README.md)
+and release metadata are therefore a potentially useful source-license index,
+but they do not verify
+that any of this repository's held-out/candidate items are present or that its
+assertions are authoritative for our intended uses. No item IDs were queried
+externally, no gated records were downloaded, and no license conclusion was
+made. The held-out mapping result only maps local QA IDs to local video-path
+strings; it does not link the paths to NExT-CF records. This lead cannot close
+the rights gate absent an independently reviewable, cohort-matched per-item
+record and evidence for the actual source media.
+
 ## Faithfulness progress at this checkpoint
 
 - New direct faithfulness samples this window: 0.
