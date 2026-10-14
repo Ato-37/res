@@ -112,6 +112,17 @@ was made. Links: [NExT-CF dataset card](https://huggingface.co/datasets/nextcf-a
 [NExT-CF v1.0.0 release metadata](https://huggingface.co/datasets/nextcf-anon-2026/nextcf/commit/f5975d95e8a920bd7531db12f41e3e8d7e5656d2),
 [official YFCC100M page](https://multimediacommons.wordpress.com/yfcc100m-core-dataset/).
 
+The official [NExT-QA README](https://github.com/doc-doc/NExT-QA/blob/main/README.md)
+says its videos are sourced from VidOR and points to separately downloaded raw
+videos; it asks users to cite/attach the source for use and distribution but
+does not provide item-level media-license decisions there. The official
+[NExT-GQA README](https://github.com/doc-doc/NExT-GQA/blob/main/README.md)
+similarly separates raw-video download from annotation/code, and its root
+[MIT license](https://github.com/doc-doc/NExT-GQA/blob/main/LICENSE) only
+licenses the software package. This recheck supports keeping the two rights
+streams separate; it does not establish whether any particular clip is
+permitted for this study.
+
 ## Rights-ledger structural audit and publication checkpoint
 
 To make the unresolved rights gate easier to assess without exposing private
@@ -125,20 +136,20 @@ does not label declaration hashes as authenticated rights. The protocol
 contract documents the private draft shape and the command. Synthetic tests
 cover complete declarations, stale cohort hash, missing/duplicate/extra rows,
 unresolved or prohibited uses, unresolved conditions, and private-ID
-non-disclosure. Focused tests pass 6/6; the full scripts test suite passed
-488 tests before the final output-label refinement, and the focused suite,
-byte-compilation, and diff check passed after it. An independent auditor found
+non-disclosure. The full scripts test suite passes 489 tests, including the
+seven new synthetic/CLI audit tests. Python byte-compilation and `git diff
+--check` pass. An independent auditor found
 no fail-open path or identifier echo and prompted clearer terminology for
 declaration-completeness versus actual rights verification; that clarification
 is now applied. No real rights ledger or dataset manifest was passed to the
 new checker.
 
-Scoped workflow patch and the initial window log were committed as
-`a5033f0d208780c5b452508cdf92635a91e8a1f7`, pushed to GitHub, then live-fetched.
-The fetched `origin/main` resolved to the same commit; the published NOAA
-workflow log SHA-256 matches the local file. The current rights-ledger code,
-its synthetic tests, contract extension, and this updated PDCA log are a
-separate, not-yet-published change at this checkpoint.
+The scoped NOAA workflow change was committed as
+`a5033f0d208780c5b452508cdf92635a91e8a1f7`; the rights-ledger structural audit,
+tests, contract, and log were committed as
+`24ef1b4d116d5f7bf7f1c4dfe8f301cb2376e05c`. Both were pushed in sequence and
+then live-fetched. The latest `origin/main` resolves to the same second commit;
+the published audit-script and log SHA-256 values match their local files.
 
 ## Faithfulness progress at this checkpoint
 
