@@ -57,7 +57,9 @@ def derive_public_summary(raw: dict, raw_sha256: str) -> dict:
     expected_legacy = [15 + step * 2 * int(0.75) for step in range(grid[0])]
     if fractional != expected_fractional or native != expected_fractional or legacy != expected_legacy:
         raise ValueError("native/fractional/legacy temporal anchors failed fixed-fixture reference")
-    expected_changed = (grid[0] - 1) * (grid[1] // 2) * (grid[2] // 2)
+    # This field counts native-vs-candidate entries, not native-vs-legacy.
+    # The pinned 5.18 native path already matches the fractional reference.
+    expected_changed = 0
     if type(raw.get("changed_position_id_entries")) is not int or raw["changed_position_id_entries"] != expected_changed:
         raise ValueError("changed temporal-position entry count does not match fixed fixture")
     if (type(raw.get("failures")) is not int or raw["failures"] != 0
@@ -184,6 +186,46 @@ def _run_raw_gpu_check(repo: Path, raw_path: Path, frame_count: int) -> None:
     run(command, repo)
 
 
+def _validate_reusable_raw_path(raw_path: Path, repo: Path) -> None:
+    results = (repo / "results").resolve()
+    if (raw_path.is_symlink() or not raw_path.is_file() or raw_path.resolve().parent != results
+            or not raw_path.name.startswith(".qwen_temporal_position_raw_")):
+        raise ValueError("reusable raw run must be a private runner artifact directly under results/")
+
+
+def _verify_reusable_raw(raw: dict, raw_path: Path, repo: Path, current_commit: str) -> str:
+    """Verify a preserved synthetic run before deriving/publishing it without rerunning GPU."""
+    _validate_reusable_raw_path(raw_path, repo)
+    source_commit = raw.get("source_commit")
+    if (not isinstance(source_commit, str) or len(source_commit) != 40
+            or any(char not in "0123456789abcdef" for char in source_commit)):
+        raise ValueError("reusable raw run has invalid source commit")
+    ancestor = subprocess.run(
+        ["git", "merge-base", "--is-ancestor", source_commit, current_commit],
+        cwd=repo, check=False,
+    )
+    if ancestor.returncode != 0:
+        raise ValueError("reusable raw run source is not an ancestor of current HEAD")
+    hashes = raw.get("source_sha256")
+    expected_names = {
+        "run_qwen_temporal_position_gpu_check.py",
+        "qwen_temporal_geometry.py",
+        "video_time_mapping.py",
+        "run_dataset_video_gpu_smoke.py",
+    }
+    if not isinstance(hashes, dict) or set(hashes) != expected_names:
+        raise ValueError("reusable raw run source hash set is incomplete or unexpected")
+    for name, expected in hashes.items():
+        if (not isinstance(name, str) or Path(name).name != name
+                or not isinstance(expected, str) or len(expected) != 64
+                or any(char not in "0123456789abcdef" for char in expected)):
+            raise ValueError("reusable raw run source hash entry is malformed")
+        source = repo / "scripts" / name
+        if not source.is_file() or hashlib.sha256(source.read_bytes()).hexdigest() != expected:
+            raise ValueError("reusable raw run source files differ from current checkout")
+    return source_commit
+
+
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
@@ -191,6 +233,11 @@ def main(argv=None):
         help="unique filename prefix directly under results/ (defaults to UTC timestamp)",
     )
     parser.add_argument("--synthetic-frame-count", type=int, choices=(4, 16, 32), default=4)
+    parser.add_argument(
+        "--reuse-raw",
+        type=Path,
+        help="derive/publish an already completed private runner artifact under results/ without another GPU run",
+    )
     args = parser.parse_args(argv)
     repo = Path(__file__).resolve().parents[1]
     branch = git_output(repo, "branch", "--show-current")
@@ -209,15 +256,25 @@ def main(argv=None):
     stamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
     prefix = args.output_prefix or f"results/qwen_temporal_position_synthetic_{stamp}"
     summary_path, manifest_path = _output_paths(repo, prefix)
-    raw_path = repo / "results" / f".qwen_temporal_position_raw_{uuid.uuid4().hex}.json"
-    source_commit = git_output(repo, "rev-parse", "HEAD")
-    print(f"Running 1 synthetic {args.synthetic_frame_count}-frame sample and 3 Qwen forwards; no real media/QA used.", flush=True)
-    _run_raw_gpu_check(repo, raw_path, args.synthetic_frame_count)
+    raw_path = ((repo / args.reuse_raw) if args.reuse_raw is not None else
+                repo / "results" / f".qwen_temporal_position_raw_{uuid.uuid4().hex}.json")
+    current_commit = git_output(repo, "rev-parse", "HEAD")
+    if args.reuse_raw is None:
+        source_commit = current_commit
+        print(f"Running 1 synthetic {args.synthetic_frame_count}-frame sample and 3 Qwen forwards; no real media/QA used.", flush=True)
+        _run_raw_gpu_check(repo, raw_path, args.synthetic_frame_count)
+    else:
+        print("Reusing a verified completed synthetic runner artifact; no model/GPU execution.", flush=True)
     try:
+        if args.reuse_raw is not None:
+            _validate_reusable_raw_path(raw_path, repo)
         raw_bytes = raw_path.read_bytes()
         raw = json.loads(raw_bytes)
-        if raw.get("source_commit") != source_commit:
-            raise ValueError("source commit changed during the GPU run")
+        if args.reuse_raw is None:
+            if raw.get("source_commit") != source_commit:
+                raise ValueError("source commit changed during the GPU run")
+        else:
+            source_commit = _verify_reusable_raw(raw, raw_path, repo, current_commit)
         public = derive_public_summary(raw, sha256_bytes(raw_bytes))
         summary_bytes = (json.dumps(public, indent=2, sort_keys=True, allow_nan=False) + "\n").encode()
         manifest = {

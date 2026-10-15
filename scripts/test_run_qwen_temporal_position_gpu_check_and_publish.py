@@ -1,10 +1,13 @@
 import tempfile
 from pathlib import Path
+import subprocess
 import unittest
 
 from run_qwen_temporal_position_gpu_check_and_publish import (
     _output_paths,
     derive_public_summary,
+    _verify_reusable_raw,
+    _validate_reusable_raw_path,
 )
 
 
@@ -49,7 +52,7 @@ def valid_raw():
         "native_temporal_anchors": [15, 16],
         "fractional_temporal_anchors": [15, 16],
         "legacy_v517_temporal_anchors": [15, 15],
-        "changed_position_id_entries": 256,
+        "changed_position_id_entries": 0,
         "source_sha256": {"runner.py": "d" * 64},
         "installed_model_source_sha256": "e" * 64,
         "installed_processor_source_sha256": "f" * 64,
@@ -58,6 +61,54 @@ def valid_raw():
 
 
 class PublishSummaryTests(unittest.TestCase):
+    def test_reusable_raw_verifies_ancestor_source_and_current_source_hash(self):
+        repo = Path(__file__).resolve().parents[1]
+        current = subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=repo, text=True).strip()
+        import hashlib
+        names = {
+            "run_qwen_temporal_position_gpu_check.py",
+            "qwen_temporal_geometry.py",
+            "video_time_mapping.py",
+            "run_dataset_video_gpu_smoke.py",
+        }
+        hashes = {name: hashlib.sha256((repo / "scripts" / name).read_bytes()).hexdigest()
+                  for name in names}
+
+        with tempfile.NamedTemporaryFile(
+            prefix=".qwen_temporal_position_raw_test_", suffix=".json", dir=repo / "results"
+        ) as handle:
+            raw = {"source_commit": current, "source_sha256": hashes}
+            self.assertEqual(_verify_reusable_raw(raw, Path(handle.name), repo, current), current)
+            raw["source_sha256"]["run_qwen_temporal_position_gpu_check.py"] = "0" * 64
+            with self.assertRaisesRegex(ValueError, "source files differ"):
+                _verify_reusable_raw(raw, Path(handle.name), repo, current)
+            raw["source_sha256"] = dict(hashes)
+            del raw["source_sha256"]["video_time_mapping.py"]
+            with self.assertRaisesRegex(ValueError, "incomplete"):
+                _verify_reusable_raw(raw, Path(handle.name), repo, current)
+
+    def test_reusable_raw_path_rejects_files_outside_results(self):
+        repo = Path(__file__).resolve().parents[1]
+        with tempfile.TemporaryDirectory() as temp:
+            outside = Path(temp) / ".qwen_temporal_position_raw_external.json"
+            outside.write_text("{}", encoding="utf-8")
+            with self.assertRaisesRegex(ValueError, "directly under results"):
+                _validate_reusable_raw_path(outside, repo)
+
+    def test_reusable_raw_path_rejects_symlink_alias(self):
+        repo = Path(__file__).resolve().parents[1]
+        results = repo / "results"
+        with tempfile.NamedTemporaryFile(
+            prefix=".qwen_temporal_position_raw_target_", suffix=".json", dir=results
+        ) as target:
+            alias = results / ".qwen_temporal_position_raw_alias_test.json"
+            try:
+                alias.symlink_to(Path(target.name).name)
+                with self.assertRaisesRegex(ValueError, "directly under results"):
+                    _validate_reusable_raw_path(alias, repo)
+            finally:
+                alias.unlink(missing_ok=True)
+
     def test_derives_minimal_synthetic_summary(self):
         result = derive_public_summary(valid_raw(), "1" * 64)
         self.assertEqual(result["fixture"], "deterministic synthetic pixels; no project media or annotations")
@@ -74,7 +125,7 @@ class PublishSummaryTests(unittest.TestCase):
         raw["native_temporal_anchors"] = [15 + int(i * 0.75 * 2) for i in range(16)]
         raw["fractional_temporal_anchors"] = list(raw["native_temporal_anchors"])
         raw["legacy_v517_temporal_anchors"] = [15] * 16
-        raw["changed_position_id_entries"] = 15 * 16 * 16
+        raw["changed_position_id_entries"] = 0
         result = derive_public_summary(raw, "1" * 64)
         self.assertEqual(result["synthetic_video"]["frames"], 32)
         self.assertEqual(result["synthetic_video"]["grid_thw"], [16, 32, 32])
@@ -131,7 +182,7 @@ class PublishSummaryTests(unittest.TestCase):
             ("native_temporal_anchors", [999, 999]),
             ("legacy_v517_temporal_anchors", [15, 16]),
             ("native_temporal_anchors", [999, 1000]),
-            ("changed_position_id_entries", 0),
+            ("changed_position_id_entries", 1),
             ("requested_samples", True),
             ("failures", False),
             ("actual_forward_position_ids_verified", 1),
