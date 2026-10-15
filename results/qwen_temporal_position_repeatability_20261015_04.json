@@ -1,0 +1,255 @@
+{
+  "analyzer_sha256": "1a33fdb1438c476a089e780ef441380969da556cf360ae1022c3a76ed6bb2212",
+  "conditions": {
+    "explicit_native_noop": {
+      "forward_seconds": {
+        "maximum": 6.565994928008877,
+        "median": 5.962096079005278,
+        "minimum": 5.898838891997002,
+        "range": 0.6671560360118747,
+        "values": [
+          5.962096079005278,
+          6.565994928008877,
+          5.898838891997002
+        ]
+      },
+      "peak_allocated_gib": {
+        "maximum": 13.225001811981201,
+        "median": 13.225001811981201,
+        "minimum": 13.225001811981201,
+        "range": 0.0,
+        "values": [
+          13.225001811981201,
+          13.225001811981201,
+          13.225001811981201
+        ]
+      }
+    },
+    "legacy_v517_reference": {
+      "forward_seconds": {
+        "maximum": 6.034592309006257,
+        "median": 5.832435550008086,
+        "minimum": 5.825532072994974,
+        "range": 0.20906023601128254,
+        "values": [
+          5.832435550008086,
+          5.825532072994974,
+          6.034592309006257
+        ]
+      },
+      "peak_allocated_gib": {
+        "maximum": 13.225001811981201,
+        "median": 13.225001811981201,
+        "minimum": 13.225001811981201,
+        "range": 0.0,
+        "values": [
+          13.225001811981201,
+          13.225001811981201,
+          13.225001811981201
+        ]
+      }
+    },
+    "native_auto": {
+      "forward_seconds": {
+        "maximum": 8.085661420001998,
+        "median": 7.3832960199943045,
+        "minimum": 6.8960789470002055,
+        "range": 1.189582473001792,
+        "values": [
+          8.085661420001998,
+          6.8960789470002055,
+          7.3832960199943045
+        ]
+      },
+      "peak_allocated_gib": {
+        "maximum": 13.225880146026611,
+        "median": 13.225880146026611,
+        "minimum": 13.225880146026611,
+        "range": 0.0,
+        "values": [
+          13.225880146026611,
+          13.225880146026611,
+          13.225880146026611
+        ]
+      }
+    }
+  },
+  "effective_samples_per_run": 1,
+  "failures_per_run": 0,
+  "fixture_frames": 40,
+  "forwards_per_run": 3,
+  "identity": {
+    "compute_dtype": "bfloat16",
+    "cuda_version": "12.8",
+    "device": "NVIDIA GeForce RTX 5070 Ti",
+    "model": "Qwen/Qwen2.5-VL-7B-Instruct",
+    "model_config_sha256": "77d9ec7321cc572e3579e2c84799c9cadaded63c49ce93b101733349fc330c43",
+    "model_revision": "cc594898137f460bfe9f0759e9844b3ce807cfb5",
+    "quantization": "4bit",
+    "seed": 20261012,
+    "source_sha256": {
+      "qwen_temporal_geometry.py": "a0d455fd43f1ccdd5335676abedc2c85df8096ae962bbedff3b4b952ee3fd118",
+      "run_dataset_video_gpu_smoke.py": "a9801b139e4a9a8c590193a3c9fb4b14242463f3728eabf6555652c409464539",
+      "run_qwen_temporal_position_gpu_check.py": "700410f08f59809f3fe3ea0393f500f0b08a0216ac5a9dde114584cadbc59c5a",
+      "video_time_mapping.py": "01711ac0f20770530239cf98ffb719c7f9e6f416f8c416aaf48da9543b091089"
+    },
+    "total_gib": 15.89398193359375,
+    "versions": {
+      "bitsandbytes": "0.50.2",
+      "opencv-python-headless": "5.0.0.93",
+      "qwen-vl-utils": "0.0.14",
+      "torch": "2.11.0+cu128",
+      "transformers": "5.18.0"
+    }
+  },
+  "limitations": [
+    "Three fresh processes only; descriptive min/median/max/range, no inferential test or stable variance estimate.",
+    "Fixed condition order confounds condition with warmup, runtime order, and thermal state.",
+    "Synthetic engineering check only; no faithfulness, QA, or semantic-validity evidence.",
+    "Peak allocated VRAM is PyTorch allocation, not total-device memory or a capacity guarantee."
+  ],
+  "purpose": "descriptive_repeatability_summary_synthetic_gpu_engineering_check",
+  "requested_samples_per_run": 1,
+  "run_count": 3,
+  "runs": [
+    {
+      "artifact": "results/qwen_temporal_position_synthetic_40frame_repeat_20261015_01.json",
+      "artifact_sha256": "f296bfc0f36d9fb811c4bd8977f5552cc0829292db618945995f3b1f01c82ada",
+      "identity": {
+        "compute_dtype": "bfloat16",
+        "cuda_version": "12.8",
+        "device": "NVIDIA GeForce RTX 5070 Ti",
+        "model": "Qwen/Qwen2.5-VL-7B-Instruct",
+        "model_config_sha256": "77d9ec7321cc572e3579e2c84799c9cadaded63c49ce93b101733349fc330c43",
+        "model_revision": "cc594898137f460bfe9f0759e9844b3ce807cfb5",
+        "quantization": "4bit",
+        "seed": 20261012,
+        "source_sha256": {
+          "qwen_temporal_geometry.py": "a0d455fd43f1ccdd5335676abedc2c85df8096ae962bbedff3b4b952ee3fd118",
+          "run_dataset_video_gpu_smoke.py": "a9801b139e4a9a8c590193a3c9fb4b14242463f3728eabf6555652c409464539",
+          "run_qwen_temporal_position_gpu_check.py": "700410f08f59809f3fe3ea0393f500f0b08a0216ac5a9dde114584cadbc59c5a",
+          "video_time_mapping.py": "01711ac0f20770530239cf98ffb719c7f9e6f416f8c416aaf48da9543b091089"
+        },
+        "total_gib": 15.89398193359375,
+        "versions": {
+          "bitsandbytes": "0.50.2",
+          "opencv-python-headless": "5.0.0.93",
+          "qwen-vl-utils": "0.0.14",
+          "torch": "2.11.0+cu128",
+          "transformers": "5.18.0"
+        }
+      },
+      "manifest": "results/qwen_temporal_position_synthetic_40frame_repeat_20261015_01_run_manifest.json",
+      "manifest_sha256": "9a451992d638b5a0f1050815cac4dacb4eb13d171476653955f8e11228f47d3c",
+      "measurements": {
+        "explicit_native_noop": {
+          "forward_seconds": 5.962096079005278,
+          "peak_allocated_gib": 13.225001811981201
+        },
+        "legacy_v517_reference": {
+          "forward_seconds": 5.832435550008086,
+          "peak_allocated_gib": 13.225001811981201
+        },
+        "native_auto": {
+          "forward_seconds": 8.085661420001998,
+          "peak_allocated_gib": 13.225880146026611
+        }
+      },
+      "run_id": "01",
+      "source_commit": "c9048b950f09d887d077e4b651451b56f4031f17"
+    },
+    {
+      "artifact": "results/qwen_temporal_position_synthetic_40frame_repeat_20261015_02.json",
+      "artifact_sha256": "c29c4ab61b535745c7a7618696285b4febd46c7795ba26ad6f3f9c278b859ef0",
+      "identity": {
+        "compute_dtype": "bfloat16",
+        "cuda_version": "12.8",
+        "device": "NVIDIA GeForce RTX 5070 Ti",
+        "model": "Qwen/Qwen2.5-VL-7B-Instruct",
+        "model_config_sha256": "77d9ec7321cc572e3579e2c84799c9cadaded63c49ce93b101733349fc330c43",
+        "model_revision": "cc594898137f460bfe9f0759e9844b3ce807cfb5",
+        "quantization": "4bit",
+        "seed": 20261012,
+        "source_sha256": {
+          "qwen_temporal_geometry.py": "a0d455fd43f1ccdd5335676abedc2c85df8096ae962bbedff3b4b952ee3fd118",
+          "run_dataset_video_gpu_smoke.py": "a9801b139e4a9a8c590193a3c9fb4b14242463f3728eabf6555652c409464539",
+          "run_qwen_temporal_position_gpu_check.py": "700410f08f59809f3fe3ea0393f500f0b08a0216ac5a9dde114584cadbc59c5a",
+          "video_time_mapping.py": "01711ac0f20770530239cf98ffb719c7f9e6f416f8c416aaf48da9543b091089"
+        },
+        "total_gib": 15.89398193359375,
+        "versions": {
+          "bitsandbytes": "0.50.2",
+          "opencv-python-headless": "5.0.0.93",
+          "qwen-vl-utils": "0.0.14",
+          "torch": "2.11.0+cu128",
+          "transformers": "5.18.0"
+        }
+      },
+      "manifest": "results/qwen_temporal_position_synthetic_40frame_repeat_20261015_02_run_manifest.json",
+      "manifest_sha256": "c0ec42073afd466486d3149e1a4adc02aef795f7af1010493ff0f26b80a7472c",
+      "measurements": {
+        "explicit_native_noop": {
+          "forward_seconds": 6.565994928008877,
+          "peak_allocated_gib": 13.225001811981201
+        },
+        "legacy_v517_reference": {
+          "forward_seconds": 5.825532072994974,
+          "peak_allocated_gib": 13.225001811981201
+        },
+        "native_auto": {
+          "forward_seconds": 6.8960789470002055,
+          "peak_allocated_gib": 13.225880146026611
+        }
+      },
+      "run_id": "02",
+      "source_commit": "6415f09aab83e82f5578a0b832a903268ec71690"
+    },
+    {
+      "artifact": "results/qwen_temporal_position_synthetic_40frame_repeat_20261015_03.json",
+      "artifact_sha256": "909b71cd76ba249df1f596fe785e46451707c8dea60ecf85057f35d7ada46386",
+      "identity": {
+        "compute_dtype": "bfloat16",
+        "cuda_version": "12.8",
+        "device": "NVIDIA GeForce RTX 5070 Ti",
+        "model": "Qwen/Qwen2.5-VL-7B-Instruct",
+        "model_config_sha256": "77d9ec7321cc572e3579e2c84799c9cadaded63c49ce93b101733349fc330c43",
+        "model_revision": "cc594898137f460bfe9f0759e9844b3ce807cfb5",
+        "quantization": "4bit",
+        "seed": 20261012,
+        "source_sha256": {
+          "qwen_temporal_geometry.py": "a0d455fd43f1ccdd5335676abedc2c85df8096ae962bbedff3b4b952ee3fd118",
+          "run_dataset_video_gpu_smoke.py": "a9801b139e4a9a8c590193a3c9fb4b14242463f3728eabf6555652c409464539",
+          "run_qwen_temporal_position_gpu_check.py": "700410f08f59809f3fe3ea0393f500f0b08a0216ac5a9dde114584cadbc59c5a",
+          "video_time_mapping.py": "01711ac0f20770530239cf98ffb719c7f9e6f416f8c416aaf48da9543b091089"
+        },
+        "total_gib": 15.89398193359375,
+        "versions": {
+          "bitsandbytes": "0.50.2",
+          "opencv-python-headless": "5.0.0.93",
+          "qwen-vl-utils": "0.0.14",
+          "torch": "2.11.0+cu128",
+          "transformers": "5.18.0"
+        }
+      },
+      "manifest": "results/qwen_temporal_position_synthetic_40frame_repeat_20261015_03_run_manifest.json",
+      "manifest_sha256": "ca839db981373ba2c50a9cd27b477f2fac54c194373c4a3014882b3c0ebd2db6",
+      "measurements": {
+        "explicit_native_noop": {
+          "forward_seconds": 5.898838891997002,
+          "peak_allocated_gib": 13.225001811981201
+        },
+        "legacy_v517_reference": {
+          "forward_seconds": 6.034592309006257,
+          "peak_allocated_gib": 13.225001811981201
+        },
+        "native_auto": {
+          "forward_seconds": 7.3832960199943045,
+          "peak_allocated_gib": 13.225880146026611
+        }
+      },
+      "run_id": "03",
+      "source_commit": "af0fbe67a2202cacf0181f1346ef51a573032992"
+    }
+  ],
+  "schema_version": 1
+}
