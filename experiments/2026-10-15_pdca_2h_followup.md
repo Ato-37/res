@@ -691,3 +691,13 @@ The model forward in this smoke still used no QA, answer, generated claim, or
 interval score. Faithfulness progress remains **0/3 human-reviewed, 0/3 scored,
 0 effects**. The code change is measurement-only and does not change experiment
 selection or outcome scoring.
+
+At a post-run idle check, the current WSL-visible environment reported 15 GiB
+total RAM, 1.4 GiB `used`, 1.8 GiB `free`, 12 GiB `buff/cache`, and 13 GiB
+`available`; cgroup `memory.current` was 14,025,715,712 bytes with no numeric
+`memory.max`. Memory PSI `avg10/avg60/avg300` was 0.00/0.05/0.21, and I/O PSI
+was 0.10/0.10/0.13. This snapshot is consistent with reclaimable page cache
+contributing to high “used” percentages, but it does not identify which host
+dashboard's numerator is being viewed or establish memory-pressure history
+outside this namespace. The WSL view exposes 15 GiB here, not the machine's
+reported 32 GiB physical capacity.
