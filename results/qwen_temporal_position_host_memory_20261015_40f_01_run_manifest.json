@@ -1,0 +1,31 @@
+{
+  "artifact": "results/qwen_temporal_position_host_memory_20261015_40f_01.json",
+  "artifact_sha256": "25b08601e486aa130f5f307f241af67e13e74a897af5580f73cb4d606e63d705",
+  "effective_samples": 1,
+  "execution": {
+    "allowlisted_arguments": [
+      "--fixture",
+      "synthetic_subsecond",
+      "--synthetic-frame-count",
+      "40",
+      "--output",
+      "<redacted>"
+    ],
+    "fixture_frames": 40,
+    "mode": "fresh_synthetic_gpu_run",
+    "raw_output_path_redacted": true,
+    "requested_forwards": 3,
+    "runner": "scripts/run_qwen_temporal_position_gpu_check.py"
+  },
+  "failures": 0,
+  "fixture": "synthetic_subsecond",
+  "manifest_created_utc": "2026-10-15T03:45:01.948249+00:00",
+  "model_config_sha256": "77d9ec7321cc572e3579e2c84799c9cadaded63c49ce93b101733349fc330c43",
+  "model_revision": "cc594898137f460bfe9f0759e9844b3ce807cfb5",
+  "raw_run_sha256": "5207881c972c3f955d6fa5e8f481f1b394d62a04639009008c9d694a99030714",
+  "requested_samples": 1,
+  "runner_completed_utc": "2026-10-15T03:45:00.860529+00:00",
+  "runner_started_utc": "2026-10-15T03:44:28.950123+00:00",
+  "schema_version": 2,
+  "source_commit": "432ea63130ea07a11197a51fddc57f00bd603308"
+}
