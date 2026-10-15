@@ -392,3 +392,37 @@ for this window. No metric, cohort, intervention, exclusions, failures, CI,
 significance test, or multiplicity-adjusted result was generated. This route
 closure is operational hardening, not scientific evidence. The broader
 claim-mask no-go remains unchanged.
+
+### Claim-mask SESOI and contrast audit — 15:29 JST
+
+Independently checked the schema-v12 contract, validator, and blank decision
+worksheet against the older threshold review. The algebra and sign are
+consistent: positive `d_i = S_i(control) - S_i(claim-mask)` means the
+claim-linked mask lowers the gold-versus-best-foil log-margin more than the
+equal-count control; `exp(d_i)` is the control/evidence ratio of those
+condition-specific gold-to-best-foil ratios. `exp(mean(d))` is a geometric
+mean of per-video ratios, not an answer-probability or accuracy change. The
+success rule (lower endpoint of a two-sided 95% video-level t interval above
+the fixed SESOI) matches the declaration.
+
+The independent review found no basis for carrying the old `+0.25 nat`
+head-ablation threshold into this distinct input-mask estimand. The worksheet
+correctly leaves the value unresolved and asks for a practical interpretation
+and independent pre-outcome review. This agrees with Lakens' sample-size
+guidance, which distinguishes a smallest effect of interest from the effect
+size needed for statistical significance or power and expects justification
+to match the inferential goal ([Lakens, 2022](https://doi.org/10.1525/collabra.33267)).
+No threshold value was proposed or frozen. The worksheet/validator hashes and
+review timestamps are declarations, not authentication of the evidence or
+reviewer independence; the docs already state this limit. Primary video
+faithfulness progress remains 0/0/0, and no scoring follows from this review.
+
+The complete standalone suite passed **809/809 in 9.173 seconds** after the
+publisher guard change. The modified scripts also pass `py_compile`, and the
+scoped diff passes `git diff --check`. The code fix and inventory update are in
+commit `448de214f2c98e4d66a91425fd181625760e9fd7`; a live elevated
+`git ls-remote` confirmed that exact commit as `origin/main`. Source SHA-256:
+`scripts/run_task_validity_audit_and_publish.py` —
+`b4ef19f8dd8fdeda47e1b79cfdfda9f5d15738eb237701386027fff293b32005`;
+`scripts/test_closed_research_branches.py` —
+`15eabd62bb0ef66d0855765a92c90624ac05c3b0ef9398636a0192c5e677876a`.
