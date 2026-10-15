@@ -1,0 +1,84 @@
+{
+  "faithfulness_status": {
+    "classification": "resource diagnostic only",
+    "direct_samples": 0,
+    "effect_estimates": 0
+  },
+  "guest_window": {
+    "cgroup_anon_gib": {
+      "max": 0.514,
+      "median": 0.506,
+      "min": 0.5
+    },
+    "cgroup_current_gib": {
+      "max": 13.468,
+      "median": 13.453,
+      "min": 13.446
+    },
+    "cgroup_file_gib": {
+      "max": 12.81,
+      "median": 12.803,
+      "min": 12.803
+    },
+    "mem_available_gib": {
+      "max": 14.103,
+      "median": 14.097,
+      "min": 14.079
+    }
+  },
+  "host_window": {
+    "commit_charge_gib": {
+      "max": 36.971,
+      "median": 36.861,
+      "min": 36.647
+    },
+    "physical_free_gib": {
+      "max": 3.599,
+      "median": 3.379,
+      "min": 3.278
+    },
+    "physical_total_gib": 31.114,
+    "vmmemWSL_working_set_gib": {
+      "max": 14.602,
+      "median": 14.598,
+      "min": 14.598
+    }
+  },
+  "interpretation": "WSL vmmemWSL is a large stable contributor in this observation, but neither WSL counters nor summed process working sets fully explain physical use. Process working sets can include shared resident pages and must not be summed as unique physical memory. Host commit charge is not physical RAM usage. One short observation is not a long-run causal attribution.",
+  "limitations": [
+    "one five-minute idle interval, no controlled host shutdown or cache reclamation",
+    "a single grouped process snapshot can miss temporal variation",
+    "Windows working-set totals may double count shared pages",
+    "no model inference or project dataset access"
+  ],
+  "observation_utc": {
+    "end": "2026-10-15T05:02:41.000401+00:00",
+    "seconds": 300.188,
+    "start": "2026-10-15T04:57:40.812429+00:00"
+  },
+  "purpose": "describe current paired Windows/WSL idle memory counters and identify the aggregate scale of resident process working sets",
+  "run_id": "20261015_1357_idle_5m",
+  "sampler": {
+    "guest_errors_reported": 0,
+    "guest_median_interval_seconds": 1.00046,
+    "guest_samples": 300,
+    "host_errors_reported": 0,
+    "host_median_interval_seconds": 5.7295,
+    "host_samples": 53,
+    "private_raw_trace_bytes": 64703,
+    "private_raw_trace_sha256": "8f53a39a698bf9a091271df3816503d72a7638f25962c3e51493c34cb5ef9ef1",
+    "script_sha256": "332fd2326cef5b452ead6c8ed8451168535c8101f607811aa0ad4e324ddb8471"
+  },
+  "schema_version": 1,
+  "simultaneous_process_snapshot": {
+    "host_free_gib": 3.4047927856445312,
+    "host_total_gib": 31.113628387451172,
+    "process_name_groups_total": 133,
+    "process_names_published": false,
+    "top_15_group_count": 15,
+    "top_15_process_name_groups_combined_working_set_gib": 25.637928009033203,
+    "vmmemWSL_working_set_gib": 14.600822448730469
+  },
+  "simultaneous_process_snapshot_utc": "2026-10-15T05:03:26.6774666+00:00",
+  "units": "binary GiB (bytes / 2^30)"
+}
