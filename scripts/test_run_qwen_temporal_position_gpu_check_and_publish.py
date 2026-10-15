@@ -44,12 +44,12 @@ def valid_raw():
         "effective_frames": 4,
         "requested_frames": 4,
         "sampled_fps": 8 / 3,
-        "grid_thw": [2, 2, 2],
+        "grid_thw": [2, 32, 32],
         "seconds_per_grid": 0.75,
-        "native_temporal_anchors": [0, 1],
-        "fractional_temporal_anchors": [0, 1],
-        "legacy_v517_temporal_anchors": [0, 0],
-        "changed_position_id_entries": 0,
+        "native_temporal_anchors": [15, 16],
+        "fractional_temporal_anchors": [15, 16],
+        "legacy_v517_temporal_anchors": [15, 15],
+        "changed_position_id_entries": 256,
         "source_sha256": {"runner.py": "d" * 64},
         "installed_model_source_sha256": "e" * 64,
         "installed_processor_source_sha256": "f" * 64,
@@ -67,6 +67,18 @@ class PublishSummaryTests(unittest.TestCase):
         self.assertEqual(result["gpu_resources"]["device"], "NVIDIA GeForce RTX 5070 Ti")
         self.assertEqual(len(result["gpu_resources"]["forwards"]), 3)
 
+    def test_derives_32_frame_capacity_summary(self):
+        raw = valid_raw()
+        raw["effective_frames"] = raw["requested_frames"] = 32
+        raw["grid_thw"] = [16, 32, 32]
+        raw["native_temporal_anchors"] = [15 + int(i * 0.75 * 2) for i in range(16)]
+        raw["fractional_temporal_anchors"] = list(raw["native_temporal_anchors"])
+        raw["legacy_v517_temporal_anchors"] = [15] * 16
+        raw["changed_position_id_entries"] = 15 * 16 * 16
+        result = derive_public_summary(raw, "1" * 64)
+        self.assertEqual(result["synthetic_video"]["frames"], 32)
+        self.assertEqual(result["synthetic_video"]["grid_thw"], [16, 32, 32])
+
     def test_refuses_real_media_fixture(self):
         raw = valid_raw()
         raw["fixture"] = "noaa"
@@ -80,7 +92,7 @@ class PublishSummaryTests(unittest.TestCase):
             derive_public_summary(raw, "1" * 64)
         raw = valid_raw()
         raw["fractional_temporal_anchors"] = [0]
-        with self.assertRaisesRegex(ValueError, "anchor count"):
+        with self.assertRaisesRegex(ValueError, "anchors"):
             derive_public_summary(raw, "1" * 64)
 
     def test_refuses_incomplete_or_mismatched_forward_counts(self):
@@ -110,6 +122,26 @@ class PublishSummaryTests(unittest.TestCase):
         raw["effective_forwards"] = 2
         with self.assertRaisesRegex(ValueError, "exactly three"):
             derive_public_summary(raw, "1" * 64)
+
+    def test_refuses_inconsistent_geometry_timing_anchors_and_boolean_counts(self):
+        mutations = (
+            ("grid_thw", [2, 999, 999]),
+            ("sampled_fps", 24.0),
+            ("seconds_per_grid", 9.5),
+            ("native_temporal_anchors", [999, 999]),
+            ("legacy_v517_temporal_anchors", [15, 16]),
+            ("native_temporal_anchors", [999, 1000]),
+            ("changed_position_id_entries", 0),
+            ("requested_samples", True),
+            ("failures", False),
+            ("actual_forward_position_ids_verified", 1),
+        )
+        for field, value in mutations:
+            with self.subTest(field=field):
+                raw = valid_raw()
+                raw[field] = value
+                with self.assertRaises(ValueError):
+                    derive_public_summary(raw, "1" * 64)
 
     def test_output_paths_are_scoped_and_do_not_overwrite(self):
         with tempfile.TemporaryDirectory() as directory:

@@ -43,8 +43,8 @@ def make_synthetic_subsecond_fixture(frame_count=4):
     """Create deterministic PIL frames and hash their ordered pixel bytes."""
     from PIL import Image
 
-    if frame_count not in (4, 16):
-        raise ValueError('Synthetic fixture frame_count must be 4 or 16')
+    if frame_count not in (4, 16, 32):
+        raise ValueError('Synthetic fixture frame_count must be 4, 16, or 32')
     frame_size = 224
     legacy_four = ((17, 43, 89), (61, 97, 131), (109, 151, 173), (197, 211, 229))
     colors = legacy_four + tuple(
@@ -175,7 +175,7 @@ def main():
     parser.add_argument('--output',required=True)
     parser.add_argument('--fixture',choices=('noaa','synthetic_subsecond'),default='noaa',
         help='Input fixture; noaa preserves existing behavior (default)')
-    parser.add_argument('--synthetic-frame-count',type=int,choices=(4,16),default=4,
+    parser.add_argument('--synthetic-frame-count',type=int,choices=(4,16,32),default=4,
         help='Synthetic fixture frame count; ignored for NOAA')
     args = parser.parse_args()
     repo = Path(__file__).resolve().parents[1]

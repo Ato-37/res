@@ -29,27 +29,52 @@ def derive_public_summary(raw: dict, raw_sha256: str) -> dict:
     """Validate synthetic-only scope and retain minimum derived diagnostics."""
     if raw.get("fixture") != "synthetic_subsecond":
         raise ValueError("only the synthetic_subsecond fixture may be published")
-    if raw.get("effective_frames") not in (4, 16) or raw.get("requested_frames") != raw.get("effective_frames"):
-        raise ValueError("only the validated 4- or 16-frame synthetic fixture may be published")
+    if raw.get("effective_frames") not in (4, 16, 32) or raw.get("requested_frames") != raw.get("effective_frames"):
+        raise ValueError("only the validated 4-, 16-, or 32-frame synthetic fixture may be published")
     frame_count = raw["effective_frames"]
     grid = raw.get("grid_thw")
-    if not isinstance(grid, list) or len(grid) != 3 or grid[0] != frame_count // 2:
+    if (not isinstance(grid, list) or len(grid) != 3
+            or any(type(value) is not int for value in grid)
+            or grid != [frame_count // 2, 32, 32]):
         raise ValueError("temporal processor grid does not match synthetic frame count")
-    if len(raw.get("native_temporal_anchors", [])) != grid[0] or len(
-        raw.get("fractional_temporal_anchors", [])
-    ) != grid[0]:
-        raise ValueError("temporal anchor count does not match processor grid")
-    if (raw.get("failures") != 0 or raw.get("effective_samples") != 1
-            or raw.get("requested_samples") != 1):
+    if (type(raw.get("sampled_fps")) not in (int, float)
+            or not math.isclose(raw["sampled_fps"], 8 / 3, rel_tol=0, abs_tol=1e-12)
+            or type(raw.get("seconds_per_grid")) not in (int, float)
+            or not math.isclose(raw["seconds_per_grid"], 0.75, rel_tol=0, abs_tol=1e-6)):
+        raise ValueError("synthetic sampling rate or temporal interval changed")
+    native = raw.get("native_temporal_anchors")
+    fractional = raw.get("fractional_temporal_anchors")
+    legacy = raw.get("legacy_v517_temporal_anchors")
+    if any(not isinstance(values, list) or len(values) != grid[0]
+           or any(type(value) is not int for value in values)
+           for values in (native, fractional, legacy)):
+        raise ValueError("temporal anchors do not match processor grid")
+    # This pinned prompt/processor fixture has a verified first temporal base
+    # of 15; checking only relative spacing would let arbitrary row shifts pass.
+    if native[0] != 15:
+        raise ValueError("synthetic temporal position base differs from fixed fixture")
+    expected_fractional = [15 + int(step * 0.75 * 2) for step in range(grid[0])]
+    expected_legacy = [15 + step * 2 * int(0.75) for step in range(grid[0])]
+    if fractional != expected_fractional or native != expected_fractional or legacy != expected_legacy:
+        raise ValueError("native/fractional/legacy temporal anchors failed fixed-fixture reference")
+    expected_changed = (grid[0] - 1) * (grid[1] // 2) * (grid[2] // 2)
+    if type(raw.get("changed_position_id_entries")) is not int or raw["changed_position_id_entries"] != expected_changed:
+        raise ValueError("changed temporal-position entry count does not match fixed fixture")
+    if (type(raw.get("failures")) is not int or raw["failures"] != 0
+            or type(raw.get("effective_samples")) is not int or raw["effective_samples"] != 1
+            or type(raw.get("requested_samples")) is not int or raw["requested_samples"] != 1):
         raise ValueError("run did not complete the one requested synthetic sample")
-    if raw.get("effective_forwards") != 3 or raw.get("requested_forwards") != 3:
+    if (type(raw.get("effective_forwards")) is not int or raw["effective_forwards"] != 3
+            or type(raw.get("requested_forwards")) is not int or raw["requested_forwards"] != 3):
         raise ValueError("expected exactly three completed synthetic forwards")
     if raw.get("annotations_used") is not False or raw.get("audio_used") is not False:
         raise ValueError("unexpected annotation or audio input")
     assertions = raw.get("synthetic_temporal_assertions", {})
     if assertions.get("candidate_matches_fractional_reference") is not True:
         raise ValueError("fractional candidate failed its synthetic reference check")
-    if not raw.get("actual_forward_position_ids_verified"):
+    if assertions.get("native_matches_fractional_reference") is not True:
+        raise ValueError("native positions failed their synthetic reference check")
+    if raw.get("actual_forward_position_ids_verified") is not True:
         raise ValueError("actual model forward position IDs were not verified")
     sensitivity = raw.get("fixed_vs_legacy_v517_sensitivity")
     if not isinstance(sensitivity, dict):
@@ -121,7 +146,7 @@ def derive_public_summary(raw: dict, raw_sha256: str) -> dict:
             "fractional_temporal_anchors": raw["fractional_temporal_anchors"],
             "legacy_v517_temporal_anchors": raw["legacy_v517_temporal_anchors"],
             "changed_position_id_entries": raw["changed_position_id_entries"],
-            "native_matches_fractional_reference": assertions[
+        "native_matches_fractional_reference": assertions[
                 "native_matches_fractional_reference"
             ],
         },
@@ -165,7 +190,7 @@ def main(argv=None):
         "--output-prefix",
         help="unique filename prefix directly under results/ (defaults to UTC timestamp)",
     )
-    parser.add_argument("--synthetic-frame-count", type=int, choices=(4, 16), default=4)
+    parser.add_argument("--synthetic-frame-count", type=int, choices=(4, 16, 32), default=4)
     args = parser.parse_args(argv)
     repo = Path(__file__).resolve().parents[1]
     branch = git_output(repo, "branch", "--show-current")
