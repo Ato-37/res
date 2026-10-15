@@ -1236,3 +1236,45 @@ measurements remain because distinct hashes alone do not show redundancy. No
 confirmatory raw/source result was removed. The temporary `_02` CPU preflight
 was removed only after the audited GPU artifact, with matching embedded grids
 and counts, had been pushed and verified live.
+
+### Shared multi-condition decoder optimization — in progress
+
+The capacity measurement showed that 88.11 s of its three condition-level
+CPU decode+processor stages were spent repeating the same video's two-pass
+decoder. To remove that measured redundancy while preserving provenance,
+generalized `decode_sampled_video` into a compatibility wrapper over
+`decode_sampled_video_sets`. The shared API independently computes each
+condition's endpoint-inclusive index set, sample rate and PTS tolerance,
+decodes once for the complete PTS/RGB digest, then makes one second full pass
+that rechecks the whole PTS/time-base/pixel-spec sequence and RGB hashes for
+the deduplicated union of selected indices. It reconstructs each returned
+condition in its own ordered index sequence and retains source-handle hashes
+before and after both passes. The Qwen boundary still verifies each condition's
+exact frame buffers. This removes repeated video scans across conditions, not
+the two-pass integrity check or condition-specific processor work.
+
+The actual NOAA source passed the revised CPU-only 4/8/16 preflight. It decoded
+the 8,992-frame PTS/RGB sequence once across conditions and reproduced the
+same per-condition frames, PTS grids, `[24,44]` spatial grids, temporal grids
+2/4/8, and 528/1,056/2,112 video tokens. Shared two-pass decode measured
+29.598 s in the first revised preflight and 29.051 s in a second preflight;
+Qwen CPU processing took 0.085/0.032/0.092 s and 0.039/0.034/0.114 s,
+respectively. The prior single run's 88.11 s covered three separate
+decode+processor stages. The revised second run took 29.24 s for shared decode
+plus all processor stages, a descriptive 66.8% reduction for this one clip.
+This is two before/after observations, not a controlled repeated benchmark or
+general performance guarantee. The latest local CPU artifact is
+`results/claim_mask_real_video_capacity_shared_decode_preflight_20261015_02.json`,
+with schema 2, decoder SHA-256
+`e5ddd9e1e665a849add91d5cf010bbe4bf96a3609b8d7792b542de7288a5cd9c`, and runner
+SHA-256 `19abfc9a91b3c7fc5fd4426344cfdc80bbc021e70936589bdfd865312cdd47dc`.
+
+Focused decoder/capacity tests pass 15/15 and the full script suite passes
+843/843. The independent auditor confirmed source hashes match the latest CPU
+preflight, per-condition PTS checks, selected-union RGB checks, schema version
+2 for success/failure records, and CPU artifact consistency. A second GPU
+feasibility run using the shared decoder is now the next action; it can verify
+that resource results remain finite and measure savings in this pipeline, but
+does not test faithfulness. Current direct faithfulness progress remains **0
+requested / 0 effective direct faithfulness samples / 0 new direct effect
+estimates**.

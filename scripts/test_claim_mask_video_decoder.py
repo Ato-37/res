@@ -7,7 +7,9 @@ import os
 from unittest.mock import patch
 
 from audit_qwen_pts_to_processor_cpu import encode_fixture
-from claim_mask_video_decoder import decode_sampled_video, verify_sampled_frame_pixels
+from claim_mask_video_decoder import (
+    decode_sampled_video, decode_sampled_video_sets, verify_sampled_frame_pixels,
+)
 
 
 class ClaimMaskVideoDecoderTests(unittest.TestCase):
@@ -106,6 +108,53 @@ class ClaimMaskVideoDecoderTests(unittest.TestCase):
             self.assertEqual(meta["source_sha256"], original_hash)
             self.assertEqual(meta["decoded_frame_count"], 7)
             verify_sampled_frame_pixels(frames, meta)
+
+    def test_multiple_sample_grids_share_the_same_two_verified_decode_passes(self):
+        with tempfile.TemporaryDirectory() as temp:
+            path = self.make_video(temp, range(7))
+            import claim_mask_video_decoder as decoder
+            first_pass = decoder._stream_and_decode
+            second_pass = decoder._decode_selected_frames
+            with patch.object(decoder, "_stream_and_decode", wraps=first_pass) as pass1, \
+                    patch.object(decoder, "_decode_selected_frames", wraps=second_pass) as pass2:
+                frame_sets, metadata_sets = decode_sampled_video_sets(
+                    path, frame_counts=(4, 6), uniform_tolerance_seconds=Fraction(1, 2))
+        self.assertEqual(pass1.call_count, 1)
+        self.assertEqual(pass2.call_count, 1)
+        self.assertEqual(set(frame_sets), {4, 6})
+        self.assertEqual(len(frame_sets[4]), 4)
+        self.assertEqual(len(frame_sets[6]), 6)
+        self.assertEqual(metadata_sets[4]["source_sha256"], metadata_sets[6]["source_sha256"])
+        self.assertEqual(metadata_sets[4]["decoded_pts_sequence_sha256"],
+                         metadata_sets[6]["decoded_pts_sequence_sha256"])
+        self.assertEqual(len(set(row["decoded_frame_index"] for row in
+                                 metadata_sets[4]["sampled_frames"]
+                                 + metadata_sets[6]["sampled_frames"])), 6)
+        for count in (4, 6):
+            verify_sampled_frame_pixels(frame_sets[count], metadata_sets[count])
+
+    def test_multi_sample_grids_reject_duplicate_or_invalid_counts(self):
+        with tempfile.TemporaryDirectory() as temp:
+            path = self.make_video(temp, range(7))
+            for counts in ((4, 4), (), (1, 4), (4, True)):
+                with self.subTest(counts=counts), self.assertRaisesRegex(
+                        ValueError, "frame_counts_must_be_ordered"):
+                    decode_sampled_video_sets(
+                        path, frame_counts=counts,
+                        uniform_tolerance_seconds=Fraction(0))
+
+    def test_each_sample_grid_is_checked_independently(self):
+        with tempfile.TemporaryDirectory() as temp:
+            path = self.make_video(temp, range(7))
+            import claim_mask_video_decoder as decoder
+            original_check = decoder.uniform_sampling_rate_from_times
+            with patch.object(decoder, "uniform_sampling_rate_from_times",
+                              wraps=original_check) as grid_check:
+                with self.assertRaisesRegex(ValueError, "uniform-grid tolerance"):
+                    decode_sampled_video_sets(
+                        path, frame_counts=(4, 6),
+                        uniform_tolerance_seconds=Fraction(0))
+            self.assertEqual(grid_check.call_count, 2)
 
 
 if __name__ == "__main__":

@@ -19,7 +19,7 @@ import random
 import subprocess
 import time
 
-from claim_mask_video_decoder import decode_sampled_video, verify_sampled_frame_pixels
+from claim_mask_video_decoder import decode_sampled_video_sets, verify_sampled_frame_pixels
 from run_claim_mask_real_video_gpu_smoke import (
     EXPECTED_MEDIA_SHA256, MODEL_REVISION, PROMPT, sha256,
 )
@@ -27,6 +27,7 @@ from run_qwen_video_cache_gpu_smoke import GpuTelemetrySampler
 
 
 RUN_STATE = {"stage": "not_started", "requested_frame_counts": [], "conditions": []}
+SCHEMA_VERSION = 2
 ALLOWED_FRAME_COUNTS = (4, 8, 16)
 # Half a source-frame period at the fixed 30000/1001 fps CFR source. This is a
 # capacity-diagnostic tolerance for index quantization, not a claim-mask rule.
@@ -129,12 +130,16 @@ def main() -> None:
     processor = AutoProcessor.from_pretrained(
         str(model_path), local_files_only=True, min_pixels=256 * 28 * 28,
         max_pixels=256 * 28 * 28)
+    shared_decode_start = time.monotonic()
+    decoded_sets, decode_metadata = decode_sampled_video_sets(
+        video, frame_counts=args.frame_counts,
+        uniform_tolerance_seconds=UNIFORM_TOLERANCE)
+    shared_video_decode_seconds = time.monotonic() - shared_decode_start
     prepared = []
     for frame_count in args.frame_counts:
-        decode_start = time.monotonic()
-        frames, decode_meta = decode_sampled_video(
-            video, num_frames=frame_count,
-            uniform_tolerance_seconds=UNIFORM_TOLERANCE)
+        prepare_start = time.monotonic()
+        frames = decoded_sets[frame_count]
+        decode_meta = decode_metadata[frame_count]
         if decode_meta["source_sha256"] != EXPECTED_MEDIA_SHA256:
             raise RuntimeError("PyAV source hash differs from pinned media")
         verify_sampled_frame_pixels(frames, decode_meta)
@@ -191,14 +196,14 @@ def main() -> None:
             "grid": grid,
             "video_tokens": tokens,
             "seconds_per_grid": seconds_per_grid,
-            "decode_and_cpu_prepare_seconds": time.monotonic() - decode_start,
+            "processor_prepare_seconds": time.monotonic() - prepare_start,
         })
 
     validate_fixed_spatial_grid([row["grid"] for row in prepared])
 
     if args.processor_only:
         artifact = {
-            "schema_version": 1,
+            "schema_version": SCHEMA_VERSION,
             "purpose": "real_video_pyav_qwen_temporal_input_capacity_cpu_preflight",
             "status": "passed",
             "source_sha256": {
@@ -218,8 +223,9 @@ def main() -> None:
                 "grid_thw": row["grid"],
                 "video_tokens": row["video_tokens"],
                 "seconds_per_grid": row["seconds_per_grid"],
-                "decode_and_cpu_prepare_seconds": row["decode_and_cpu_prepare_seconds"],
+            "processor_prepare_seconds": row["processor_prepare_seconds"],
             } for row in prepared],
+        "shared_video_decode_seconds": shared_video_decode_seconds,
             "faithfulness_effect_estimate": None,
             "privacy": "No raw media, QA/answer text, generated text, or absolute local path.",
         }
@@ -290,7 +296,7 @@ def main() -> None:
             "video_tokens": condition["video_tokens"],
             "input_tokens": int(device_batch["input_ids"].shape[1]),
             "seconds_per_grid": condition["seconds_per_grid"],
-            "decode_and_cpu_prepare_seconds": condition["decode_and_cpu_prepare_seconds"],
+            "processor_prepare_seconds": condition["processor_prepare_seconds"],
             "forward_seconds": forward_seconds,
             "finite_logits": finite_logits,
             "peak_allocated_gib": torch.cuda.max_memory_allocated() / 1024**3,
@@ -304,7 +310,7 @@ def main() -> None:
         gc.collect()
 
     artifact = {
-        "schema_version": 1,
+        "schema_version": SCHEMA_VERSION,
         "purpose": "real_video_pyav_qwen_temporal_input_capacity_sweep",
         "status": "passed",
         "started_utc": start_utc,
@@ -341,6 +347,7 @@ def main() -> None:
         "gpu_total_gib": total_bytes / 1024**3,
         "host_available_before_run_gib": host_available_bytes() / 1024**3,
         "model_load_seconds": model_load_seconds,
+        "shared_video_decode_seconds": shared_video_decode_seconds,
         "conditions": condition_rows,
         "versions": {name: importlib.metadata.version(name) for name in
                      ["torch", "transformers", "bitsandbytes", "qwen-vl-utils", "av"]},
@@ -385,7 +392,7 @@ if __name__ == "__main__":
                     output.parent.mkdir(parents=True, exist_ok=True)
                     with output.open("x", encoding="utf-8") as stream:
                         json.dump({
-                            "schema_version": 1,
+                            "schema_version": SCHEMA_VERSION,
                             "purpose": "real_video_pyav_qwen_temporal_input_capacity_sweep",
                             "status": "failed",
                             "stage": RUN_STATE["stage"],

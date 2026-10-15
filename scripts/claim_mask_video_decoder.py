@@ -161,19 +161,26 @@ def _image_sha256(image: Image.Image) -> str:
     return hashlib.sha256(image.convert("RGB").tobytes()).hexdigest()
 
 
-def decode_sampled_video(path, *, num_frames: int, uniform_tolerance_seconds) -> tuple[list[Image.Image], dict]:
-    """Decode one video twice and return exact sampled RGB frames plus metadata.
+def decode_sampled_video_sets(path, *, frame_counts, uniform_tolerance_seconds) -> tuple[dict[int, list[Image.Image]], dict[int, dict]]:
+    """Decode one video twice and return several exact sample sets.
 
     The time-origin is the first decoded frame's PTS. The declared tolerance
-    and sampled PTS must yield a uniform temporal grid, because the current
-    Qwen list-frame input and rank-matched control cannot express arbitrary VFR
-    timestamps. This function does not calibrate that origin to annotations.
+    and each set's sampled PTS must yield a uniform temporal grid, because the
+    current Qwen list-frame input and rank-matched control cannot express
+    arbitrary VFR timestamps. The same pinned file handle and two full decode
+    passes are shared across all requested counts. This does not calibrate the
+    time-origin to annotations.
     """
     video_path = Path(path)
     if not video_path.is_file():
         raise FileNotFoundError("video_input_missing")
-    if type(num_frames) is not int or num_frames < 2:
-        raise ValueError("num_frames_must_be_integer_at_least_two")
+    try:
+        counts = tuple(frame_counts)
+    except TypeError as exc:
+        raise ValueError("frame_counts_must_be_ordered_unique_integers") from exc
+    if (not counts or any(type(count) is not int or count < 2 for count in counts)
+            or len(set(counts)) != len(counts)):
+        raise ValueError("frame_counts_must_be_ordered_unique_integers")
     tolerance = _seconds_fraction(uniform_tolerance_seconds, "uniform_tolerance")
     # Pin one inode for both PyAV passes. Reopening the path would allow a path
     # replacement between passes to make the recorded hash describe other bytes.
@@ -181,67 +188,85 @@ def decode_sampled_video(path, *, num_frames: int, uniform_tolerance_seconds) ->
         source_before = _file_sha256(source)
         (pts, time_base, relative_times, pixel_spec,
          pixel_hashes, stream_info) = _stream_and_decode(source)
-        indices = uniform_sample_indices(len(pts), num_frames)
-        if len(set(indices)) != num_frames:
-            raise ValueError("insufficient_distinct_decoded_frames")
-        sampled_times = [relative_times[index] for index in indices]
-        sample_rate, max_deviation = uniform_sampling_rate_from_times(sampled_times, tolerance)
-        selected_set = set(indices)
+        samples = {}
+        selected_set = set()
+        for count in counts:
+            indices = uniform_sample_indices(len(pts), count)
+            if len(set(indices)) != count:
+                raise ValueError("insufficient_distinct_decoded_frames")
+            sampled_times = [relative_times[index] for index in indices]
+            sample_rate, max_deviation = uniform_sampling_rate_from_times(sampled_times, tolerance)
+            samples[count] = (indices, sample_rate, max_deviation)
+            selected_set.update(indices)
         selected_frames, selected_pts = _decode_selected_frames(
             source, pts, time_base, pixel_hashes, selected_set, pixel_spec)
         source_after = _file_sha256(source)
         if source_before != source_after:
             raise ValueError("video_input_changed_during_decode")
-    ordered_frames = [selected_frames[index] for index in indices]
-    frame_rows = []
-    for index, frame in zip(indices, ordered_frames, strict=True):
-        frame_rows.append({
-            "decoded_frame_index": index,
-            "pts": selected_pts[index],
-            "relative_presentation_time": [
-                relative_times[index].numerator, relative_times[index].denominator,
-            ],
-            "rgb_pixel_sha256": _image_sha256(frame),
-            "rgb_size": [int(frame.width), int(frame.height)],
-        })
     pts_payload = json.dumps(
         [[value, time_base.numerator, time_base.denominator] for value in pts],
         separators=(",", ":"),
     ).encode("ascii")
     pixel_hash_payload = json.dumps(pixel_hashes, separators=(",", ":")).encode("ascii")
-    metadata = {
-        "schema_version": 1,
-        "purpose": "claim_mask_pyav_decode_sample_provenance",
-        "source_sha256": source_before,
-        "decoder": {
-            "name": "PyAV",
-            "version": str(av.__version__),
-            "ffmpeg_libraries": {
-                name: list(version) for name, version in sorted(av.library_versions.items())
+    frame_sets = {}
+    metadata_sets = {}
+    for count, (indices, sample_rate, max_deviation) in samples.items():
+        ordered_frames = [selected_frames[index] for index in indices]
+        frame_rows = []
+        for index, frame in zip(indices, ordered_frames, strict=True):
+            frame_rows.append({
+                "decoded_frame_index": index,
+                "pts": selected_pts[index],
+                "relative_presentation_time": [
+                    relative_times[index].numerator, relative_times[index].denominator,
+                ],
+                "rgb_pixel_sha256": _image_sha256(frame),
+                "rgb_size": [int(frame.width), int(frame.height)],
+            })
+        metadata_sets[count] = {
+            "schema_version": 1,
+            "purpose": "claim_mask_pyav_decode_sample_provenance",
+            "source_sha256": source_before,
+            "decoder": {
+                "name": "PyAV",
+                "version": str(av.__version__),
+                "ffmpeg_libraries": {
+                    name: list(version) for name, version in sorted(av.library_versions.items())
+                },
             },
-        },
-        "stream": stream_info,
-        "decoded_frame_count": len(pts),
-        "decoded_pts_sequence_sha256": hashlib.sha256(pts_payload).hexdigest(),
-        "pass1_decoded_rgb_sequence_sha256": hashlib.sha256(pixel_hash_payload).hexdigest(),
-        "reported_stream_frame_count_matches_decoded": stream_info["reported_stream_frame_count"] == len(pts),
-        "decoded_time_base": [time_base.numerator, time_base.denominator],
-        "timestamp_origin": "first_decoded_presentation_timestamp",
-        "decoded_pixel_spec": {
-            "width": pixel_spec[0], "height": pixel_spec[1], "pixel_format": pixel_spec[2],
-        },
-        "sampler": "endpoint_inclusive_uniform_decoded_frame_index_v1",
-        "requested_frame_count": num_frames,
-        "sampled_frames": frame_rows,
-        "uniform_grid_tolerance_seconds": [tolerance.numerator, tolerance.denominator],
-        "effective_sample_fps": [sample_rate.numerator, sample_rate.denominator],
-        "max_sampled_grid_deviation_seconds": [
-            max_deviation.numerator, max_deviation.denominator,
-        ],
-        "annotation_clock_calibrated": False,
-        "execution_authorization": "not_granted",
-    }
-    return ordered_frames, metadata
+            "stream": stream_info,
+            "decoded_frame_count": len(pts),
+            "decoded_pts_sequence_sha256": hashlib.sha256(pts_payload).hexdigest(),
+            "pass1_decoded_rgb_sequence_sha256": hashlib.sha256(pixel_hash_payload).hexdigest(),
+            "reported_stream_frame_count_matches_decoded": stream_info["reported_stream_frame_count"] == len(pts),
+            "decoded_time_base": [time_base.numerator, time_base.denominator],
+            "timestamp_origin": "first_decoded_presentation_timestamp",
+            "decoded_pixel_spec": {
+                "width": pixel_spec[0], "height": pixel_spec[1], "pixel_format": pixel_spec[2],
+            },
+            "sampler": "endpoint_inclusive_uniform_decoded_frame_index_v1",
+            "requested_frame_count": count,
+            "sampled_frames": frame_rows,
+            "uniform_grid_tolerance_seconds": [tolerance.numerator, tolerance.denominator],
+            "effective_sample_fps": [sample_rate.numerator, sample_rate.denominator],
+            "max_sampled_grid_deviation_seconds": [
+                max_deviation.numerator, max_deviation.denominator,
+            ],
+            "annotation_clock_calibrated": False,
+            "execution_authorization": "not_granted",
+        }
+        frame_sets[count] = ordered_frames
+    return frame_sets, metadata_sets
+
+
+def decode_sampled_video(path, *, num_frames: int, uniform_tolerance_seconds) -> tuple[list[Image.Image], dict]:
+    """Decode one video twice and return one exact sampled RGB frame set."""
+    if type(num_frames) is not int or num_frames < 2:
+        raise ValueError("num_frames_must_be_integer_at_least_two")
+    frame_sets, metadata_sets = decode_sampled_video_sets(
+        path, frame_counts=(num_frames,),
+        uniform_tolerance_seconds=uniform_tolerance_seconds)
+    return frame_sets[num_frames], metadata_sets[num_frames]
 
 
 def verify_sampled_frame_pixels(frames, metadata: dict) -> None:

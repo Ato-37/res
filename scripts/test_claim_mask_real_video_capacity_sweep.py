@@ -4,7 +4,7 @@ import argparse
 import unittest
 
 from run_claim_mask_real_video_capacity_sweep import (
-    UNIFORM_TOLERANCE, expected_video_tokens, parse_frame_counts,
+    SCHEMA_VERSION, UNIFORM_TOLERANCE, expected_video_tokens, parse_frame_counts,
     validate_fixed_spatial_grid,
 )
 
@@ -12,6 +12,9 @@ from run_claim_mask_real_video_capacity_sweep import (
 class RealVideoCapacitySweepTests(unittest.TestCase):
     def test_frozen_sampling_tolerance_is_half_original_cfr_frame(self):
         self.assertEqual(UNIFORM_TOLERANCE, Fraction(1001, 60000))
+
+    def test_capacity_artifact_schema_is_v2_for_success_and_failure_records(self):
+        self.assertEqual(SCHEMA_VERSION, 2)
 
     def test_fixed_spatial_grid_video_token_counts_scale_with_temporal_grid(self):
         self.assertEqual(expected_video_tokens([2, 24, 44], 2), 528)
