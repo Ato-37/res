@@ -1,0 +1,61 @@
+{
+  "gpu": "NVIDIA GeForce RTX 5070 Ti",
+  "limitations": [
+    "Synthetic engineering diagnostic only; no faithfulness evidence.",
+    "nvidia-smi utilization is a sampled busy percentage, not measured memory bandwidth in GB/s.",
+    "The runner interval includes model loading and preprocessing as well as three forwards.",
+    "A single run has no uncertainty interval or inferential comparison."
+  ],
+  "metrics": {
+    "gpu_utilization_percent": {
+      "max": 100,
+      "median": 37.0,
+      "min": 1,
+      "p95_nearest_rank": 100
+    },
+    "memory_controller_utilization_percent": {
+      "max": 31,
+      "median": 13.0,
+      "min": 0,
+      "p95_nearest_rank": 30
+    },
+    "memory_used_mib": {
+      "max": 15777,
+      "median": 8983.0,
+      "min": 1373,
+      "p95_nearest_rank": 15777
+    },
+    "power_w": {
+      "max": 171.92,
+      "median": 116.38499999999999,
+      "min": 32.65,
+      "p95_nearest_rank": 169.27
+    }
+  },
+  "purpose": "synthetic_qwen_gpu_utilization_diagnostic",
+  "schema_version": 1,
+  "source_commit": "9c35b9ad522ccacedefbdf2f876693b1e946ce4d",
+  "source_run": {
+    "completed_utc": "2026-10-15T03:53:48.563607+00:00",
+    "forward_counts": {
+      "effective": 3,
+      "requested": 3
+    },
+    "manifest_sha256": "6597d545da90628e47b433ef2dde06e4dc70649886ea060644b7d9ce5de58f7d",
+    "sample_counts": {
+      "effective": 1,
+      "failures": 0,
+      "requested": 1
+    },
+    "started_utc": "2026-10-15T03:53:16.873390+00:00",
+    "summary_path": "results/qwen_temporal_position_gpu_telemetry_20261015_01.json",
+    "summary_sha256": "e9d8d77e783cf9a19926e91699fd579d4cc9063f437f2067179ef6b455d0e9d7"
+  },
+  "trace": {
+    "runner_interval_samples": 126,
+    "sampling_interval_ms": 250,
+    "sha256": "b1c92c1521058b23560b551cd14fc888d5de791420c3ebf85fe43f9904a036ea",
+    "timestamp_timezone": "UTC (TZ=UTC set for nvidia-smi)",
+    "total_samples": 158
+  }
+}
