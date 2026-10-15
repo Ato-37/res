@@ -1,0 +1,14 @@
+{
+  "analyzer_path": "scripts/analyze_nvidia_smi_gpu_trace.py",
+  "analyzer_sha256": "b3d33f5e7eedc3af22944b8d4258a919335bff1a5fb2ae9f8dcaf3e9fc214f89",
+  "artifact": "results/qwen_gpu_utilization_20261015_07.json",
+  "artifact_sha256": "c358800328e462ff03f664698d4f2928c90b86036210a24c4cacdf7c0565e7bd",
+  "sample_count_in_runner_interval": 124,
+  "schema_version": 2,
+  "source_commit": "9596c201f1971bf936e70859dcd918129c4e6c68",
+  "source_hashes_verified_at_commit": true,
+  "source_run_manifest_sha256": "d6b36f417830a8e8fa20358d28814e9d5f57607d86e41bb20c26341f9fb8fdf4",
+  "source_run_summary_sha256": "2ef521ae751fd740e777e46ef9e2eb4eda4359d4f6efed69f43328652d81b9fe",
+  "trace_path": "results/qwen_gpu_utilization_20261015_07.csv",
+  "trace_sha256": "e2b8b31409d6ddebcd81be942dc6eff07c541a2dd586c38e334f40916b38aa94"
+}
