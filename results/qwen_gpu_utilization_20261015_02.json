@@ -1,0 +1,180 @@
+{
+  "gpu": "NVIDIA GeForce RTX 5070 Ti",
+  "limitations": [
+    "Synthetic engineering diagnostic only; no faithfulness evidence.",
+    "nvidia-smi utilization is a sampled busy percentage, not measured memory bandwidth in GB/s.",
+    "The runner interval includes model loading and preprocessing as well as three forwards.",
+    "Forward windows include CUDA synchronization, logits transfer, and finite-value checking.",
+    "A single run has no uncertainty interval or inferential comparison."
+  ],
+  "metrics": {
+    "forward_union": {
+      "gpu_utilization_percent": {
+        "max": 100,
+        "median": 100.0,
+        "min": 2,
+        "p95_nearest_rank": 100
+      },
+      "memory_controller_utilization_percent": {
+        "max": 30,
+        "median": 22.0,
+        "min": 0,
+        "p95_nearest_rank": 30
+      },
+      "memory_used_mib": {
+        "max": 15777,
+        "median": 15763.0,
+        "min": 7667,
+        "p95_nearest_rank": 15777
+      },
+      "power_w": {
+        "max": 170.72,
+        "median": 139.385,
+        "min": 40.32,
+        "p95_nearest_rank": 168.51
+      }
+    },
+    "per_condition": {
+      "explicit_native_noop": {
+        "metrics": {
+          "gpu_utilization_percent": {
+            "max": 100,
+            "median": 100.0,
+            "min": 9,
+            "p95_nearest_rank": 100
+          },
+          "memory_controller_utilization_percent": {
+            "max": 29,
+            "median": 22.0,
+            "min": 2,
+            "p95_nearest_rank": 28
+          },
+          "memory_used_mib": {
+            "max": 15763,
+            "median": 15763.0,
+            "min": 8983,
+            "p95_nearest_rank": 15763
+          },
+          "power_w": {
+            "max": 165.29,
+            "median": 151.535,
+            "min": 120.11,
+            "p95_nearest_rank": 165.2
+          }
+        },
+        "sample_count": 24
+      },
+      "legacy_v517_reference": {
+        "metrics": {
+          "gpu_utilization_percent": {
+            "max": 100,
+            "median": 100,
+            "min": 3,
+            "p95_nearest_rank": 100
+          },
+          "memory_controller_utilization_percent": {
+            "max": 30,
+            "median": 22,
+            "min": 0,
+            "p95_nearest_rank": 30
+          },
+          "memory_used_mib": {
+            "max": 15763,
+            "median": 15763,
+            "min": 8983,
+            "p95_nearest_rank": 15763
+          },
+          "power_w": {
+            "max": 168.86,
+            "median": 144.2,
+            "min": 113.88,
+            "p95_nearest_rank": 168.74
+          }
+        },
+        "sample_count": 23
+      },
+      "native_auto": {
+        "metrics": {
+          "gpu_utilization_percent": {
+            "max": 100,
+            "median": 58,
+            "min": 2,
+            "p95_nearest_rank": 100
+          },
+          "memory_controller_utilization_percent": {
+            "max": 30,
+            "median": 22,
+            "min": 0,
+            "p95_nearest_rank": 30
+          },
+          "memory_used_mib": {
+            "max": 15777,
+            "median": 15777,
+            "min": 7667,
+            "p95_nearest_rank": 15777
+          },
+          "power_w": {
+            "max": 170.72,
+            "median": 126.17,
+            "min": 40.32,
+            "p95_nearest_rank": 168.51
+          }
+        },
+        "sample_count": 27
+      }
+    },
+    "runner_interval": {
+      "gpu_utilization_percent": {
+        "max": 100,
+        "median": 45,
+        "min": 1,
+        "p95_nearest_rank": 100
+      },
+      "memory_controller_utilization_percent": {
+        "max": 30,
+        "median": 17,
+        "min": 0,
+        "p95_nearest_rank": 30
+      },
+      "memory_used_mib": {
+        "max": 15777,
+        "median": 8983,
+        "min": 1373,
+        "p95_nearest_rank": 15777
+      },
+      "power_w": {
+        "max": 170.72,
+        "median": 123.8,
+        "min": 30.14,
+        "p95_nearest_rank": 168.22
+      }
+    }
+  },
+  "purpose": "synthetic_qwen_gpu_utilization_diagnostic",
+  "schema_version": 2,
+  "source_commit": "031e3c547c8213609fff19e9b8ada52479709309",
+  "source_run": {
+    "completed_utc": "2026-10-15T04:01:13.200434+00:00",
+    "forward_counts": {
+      "effective": 3,
+      "requested": 3
+    },
+    "manifest_sha256": "97115ff82d90712af9f04cedf0728040a0578eab395103161e210ce52027df9d",
+    "sample_counts": {
+      "effective": 1,
+      "failures": 0,
+      "requested": 1
+    },
+    "started_utc": "2026-10-15T04:00:43.327299+00:00",
+    "summary_path": "results/qwen_temporal_position_gpu_telemetry_20261015_02.json",
+    "summary_sha256": "3e98c4121d8323815bcdc4c10ccbeffa8f4a6d55781483060a4fa4c5586ee9a6"
+  },
+  "trace": {
+    "forward_union_samples": 74,
+    "runner_interval_samples": 119,
+    "sampling_interval_ms": 250,
+    "sha256": "b04a6807d2c7029a29a888407a167e931e9b11fa7aea7f5b051e4bb42b579f51",
+    "timestamp_timezone": "UTC (TZ=UTC set for nvidia-smi)",
+    "total_samples": 158
+  }
+}
