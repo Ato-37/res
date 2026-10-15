@@ -1,0 +1,41 @@
+{
+  "schema_version": 1,
+  "purpose": "synthetic_video_attention_wiring_smoke",
+  "status": "complete",
+  "started_utc": "2026-10-15T06:17:46.821555+00:00",
+  "runner_sha256": "cdd3838677149ed27c6659e9c0af358c47c318a81ce307776e59199fe279188b",
+  "synthetic_video_sha256": "607bc71ac0a5d3a661017e5aac6c5fff37ecf4db2623158ddcb7a7c7fd4d0adf",
+  "model_revision": "cc594898137f460bfe9f0759e9844b3ce807cfb5",
+  "model_config_sha256": "77d9ec7321cc572e3579e2c84799c9cadaded63c49ce93b101733349fc330c43",
+  "seed": 20261015,
+  "requested_frames": 4,
+  "effective_frames": 4,
+  "video_grid_thw": [
+    2,
+    32,
+    32
+  ],
+  "video_token_count": 512,
+  "input_token_count": 539,
+  "attention_layer_count": 28,
+  "finite_logits": true,
+  "finite_attentions": true,
+  "forward_seconds": 1.7711100220039953,
+  "elapsed_seconds": 11.29070630899514,
+  "gpu": "NVIDIA GeForce RTX 5070 Ti",
+  "gpu_free_before_bytes": 15738077184,
+  "gpu_total_bytes": 17066033152,
+  "peak_allocated_bytes": 7096033280,
+  "versions": {
+    "torch": "2.11.0+cu128",
+    "transformers": "5.18.0",
+    "bitsandbytes": "0.50.2",
+    "qwen-vl-utils": "0.0.14",
+    "opencv-python-headless": "5.0.0.93"
+  },
+  "limitations": [
+    "Synthetic media only; no project dataset or annotations.",
+    "Checks one attention forward and resource wiring only.",
+    "No QA, grounding, faithfulness score, treatment/control, or effect estimate."
+  ]
+}

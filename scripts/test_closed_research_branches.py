@@ -72,6 +72,7 @@ ALLOWED_ENGINEERING_LOADERS = {
     "run_qwen_temporal_position_gpu_check.py",
     "run_qwen_video_batch_throughput_gpu_smoke.py",
     "run_qwen_video_cache_gpu_smoke.py",
+    "smoke_qwen_attention.py",
     "smoke_qwen_video_time_alignment.py",
     "spike_test_attention.py",
     "spike_test_video_attention.py",

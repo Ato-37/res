@@ -276,8 +276,47 @@ declarations, claim/model/run bindings, row-level rights/use decisions, and
 agreement applicability branches. Structural checks remain provenance aids,
 not human review substitutes.
 
-The complete standalone suite was rerun after the loader-inventory and doc
-updates: **806/806 passed in 8.190 seconds**; `py_compile` and `git diff
+That reviewer also found a genuine overblock: `smoke_qwen_attention.py` built a
+temporary synthetic MP4 but delegated the forward to the now-retired
+`grounding_check.py` scorer, so the synthetic wiring smoke could no longer
+run. Replaced that delegation with a self-contained, offline-only Qwen
+attention forward over four sampled frames from a generated synthetic MP4.
+It writes a mode-0600 aggregate artifact, records model/config/runner/media
+hashes and runtime/VRAM, and emits no attention or answer scores. The closed
+real-media scorer remains stopped. The expanded dynamic inventory now finds
+31 pretrained-loader scripts: 17 retired scorers, one preflight-controlled
+direct choice-margin scorer, and 13 explicitly classified engineering smoke
+tools (including this synthetic one). Focused tests passed 4/4 and CLI help and
+byte-compilation passed before the GPU smoke.
+
+The bounded GPU smoke then completed 1/1 synthetic videos, 4/4 requested
+frames, and one forward with finite logits and attention across 28 layers.
+On RTX 5070 Ti / Qwen2.5-VL-7B-Instruct pinned revision
+`cc594898137f460bfe9f0759e9844b3ce807cfb5`, 4-bit weights, BF16 compute,
+eager attention, seed 20261015, PyTorch 2.11.0+cu128 and Transformers 5.18.0,
+the forward took 1.771 s; the runner's 11.291 s elapsed field begins after
+synthetic-video creation and frame extraction, so it covers model load through
+forward and is not full process wall time. PyTorch peak allocation was
+7,096,033,280 bytes (6.61 GiB). Pre-load free VRAM was 15,738,077,184 bytes.
+The result is
+`results/qwen_synthetic_attention_smoke_20261015_01.json`, SHA-256
+`a49726a3fa5d81ab08e7333b7b10fb0bbdcc105064c34a36a15c6c0ccdd68327`;
+its runner hash is
+`cdd3838677149ed27c6659e9c0af358c47c318a81ce307776e59199fe279188b`.
+The post-run manifest
+`results/qwen_synthetic_attention_smoke_20261015_01.manifest.json` binds that
+hash to checkout commit `b233016b7027393967843b79528ea3db9ed5ddd0`, records
+that the worktree was dirty at execution, and freezes the run settings; its
+SHA-256 is `85480f4e1289ab102ac0185ccee71349e2df4b0ad2c4348b1df0658a2541a5b9`.
+The independent artifact auditor reproduced the result and runner hashes and
+all reported counts/resources; no QA text, IDs, paths, raw pixels, logits,
+attention arrays or scores appear in the output. This demonstrates the
+restored synthetic execution path only; it contributes zero direct faithfulness
+samples and zero effect estimates.
+
+The complete standalone suite was rerun after the synthetic-smoke repair:
+**808/808 passed in 8.092 seconds**; `py_compile` and `git diff
 --check` also passed. Only fixture-driven expected failure messages and
-non-failing upstream processor deprecation warnings appeared. No model/media
-was loaded and no GPU work ran.
+non-failing upstream processor deprecation warnings appeared. No GPU model was
+loaded and no GPU work ran during this CPU test-suite run; the separate GPU
+smoke above is recorded independently.
