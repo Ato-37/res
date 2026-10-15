@@ -573,6 +573,15 @@ SESOI gates remain unresolved. The cross-gate remains `blocked`/`not_granted`;
 the repair authorizes no inference and changes no experimental outcome.
 Faithfulness progress remains **0 requested / 0 effective / 0 new estimates**.
 
+The schema-v13 hash update and sanitized synthetic result were published in
+`79bff800933f715518062870ee3d83ba9b50b43c`; the exact-config cross-gate repair
+and audit were published in `650414c3032deb7e30c951ae877d6199845cbbf8`.
+`git ls-remote origin refs/heads/main` returned the latter commit, matching
+local `HEAD`. The committed result JSON's SHA-256 matches
+`a921726c29d094be5a703c783e2dbad104782a8dca9c767496ee8bd420819760`; no raw
+media, protected sample manifests, personal locators, or local paths were
+included.
+
 ### Exact sampling-config cross-gate binding — 15:43–15:45 JST
 
 Followed the hash audit's remaining limitation by adding the CPU-only
