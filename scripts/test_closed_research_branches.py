@@ -77,10 +77,13 @@ ALLOWED_ENGINEERING_LOADERS = {
     "spike_test_attention.py",
     "spike_test_video_attention.py",
 }
+SYNTHETIC_CPU_MODEL_CONSTRUCTORS = {
+    "audit_qwen_cache_positions_cpu.py": "Qwen2_5_VLForConditionalGeneration",
+}
 
 
 class ClosedResearchBranchGuardTests(unittest.TestCase):
-    def test_every_model_loader_cli_has_an_explicit_gate_or_diagnostic_class(self):
+    def test_every_literal_pretrained_loader_has_an_explicit_class(self):
         discovered = set()
         for path in (REPO / "scripts").glob("*.py"):
             if path.name.startswith("test_"):
@@ -94,6 +97,18 @@ class ClosedResearchBranchGuardTests(unittest.TestCase):
         expected = (set(GUARDED_ENTRYPOINTS) & discovered
                     | GATE_CONTROLLED_LOADERS | ALLOWED_ENGINEERING_LOADERS)
         self.assertEqual(discovered, expected)
+
+    def test_known_random_config_model_constructor_is_classified_synthetic_cpu(self):
+        discovered = set()
+        for filename, constructor in SYNTHETIC_CPU_MODEL_CONSTRUCTORS.items():
+            tree = ast.parse((REPO / "scripts" / filename).read_text(encoding="utf-8"))
+            calls = [node for node in ast.walk(tree) if isinstance(node, ast.Call)
+                     and isinstance(node.func, ast.Name) and node.func.id == constructor
+                     and node.args and isinstance(node.args[0], ast.Name)
+                     and node.args[0].id == "config"]
+            self.assertTrue(calls, f"{filename} no longer constructs the declared random config model")
+            discovered.add(filename)
+        self.assertEqual(discovered, set(SYNTHETIC_CPU_MODEL_CONSTRUCTORS))
 
     def test_every_retired_cli_stops_immediately_after_argument_parsing(self):
         for filename in GUARDED_ENTRYPOINTS:

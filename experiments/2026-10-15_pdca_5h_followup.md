@@ -310,12 +310,24 @@ that the worktree was dirty at execution, and freezes the run settings; its
 SHA-256 is `85480f4e1289ab102ac0185ccee71349e2df4b0ad2c4348b1df0658a2541a5b9`.
 The independent artifact auditor reproduced the result and runner hashes and
 all reported counts/resources; no QA text, IDs, paths, raw pixels, logits,
-attention arrays or scores appear in the output. This demonstrates the
-restored synthetic execution path only; it contributes zero direct faithfulness
-samples and zero effect estimates.
+attention arrays or scores appear in the output. It also confirmed the
+runner-hash/checkout relationship is the best provenance available because the
+run happened from a dirty worktree; the companion manifest records the parent
+commit and that dirty state. This demonstrates the restored synthetic
+execution path only; it contributes zero direct faithfulness samples and zero
+effect estimates.
 
-The complete standalone suite was rerun after the synthetic-smoke repair:
-**808/808 passed in 8.092 seconds**; `py_compile` and `git diff
+The same audit found that the direct `.from_pretrained()` inventory did not
+classify an unrelated tiny random-weight CPU constructor in
+`audit_qwen_cache_positions_cpu.py`. This was not a real-checkpoint or dataset
+bypass, but the test name overstated its coverage. Renamed the check to specify
+literal pretrained loaders and added a separate explicit classification test
+for the known synthetic CPU model constructor. This is still a source-level
+inventory of known construction forms, not a proof against every future custom
+or dynamic loader API.
+
+The complete standalone suite was rerun after the pretrained-loader scope
+clarification: **809/809 passed in 8.044 seconds**; `py_compile` and `git diff
 --check` also passed. Only fixture-driven expected failure messages and
 non-failing upstream processor deprecation warnings appeared. No GPU model was
 loaded and no GPU work ran during this CPU test-suite run; the separate GPU
