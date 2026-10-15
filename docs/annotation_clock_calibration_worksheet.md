@@ -52,6 +52,12 @@ worksheet does not choose them.
 Held-out means excluded from fitting; it does not imply that anchor errors
 within one video are statistically independent. Do not apply an independent,
 identically distributed uncertainty model without a separate justification.
+The optional CPU helper `scripts/annotation_clock_calibration.py` implements
+exact-rational ordinary least-squares affine mapping with positive drift from
+PTS seconds to annotation seconds and evaluates caller-supplied held-out anchors without
+refitting. Use it only if that exact method was already frozen in the protocol;
+it does not select a tolerance, validate anchor provenance or temporal coverage,
+calculate mapping uncertainty, or clear this worksheet's gate.
 
 | Field | Record privately |
 |---|---|

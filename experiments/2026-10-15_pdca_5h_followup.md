@@ -652,3 +652,29 @@ Next action: independent implementation audit, then inspect any remaining
 executable protocol boundary with synthetic data. Do not run claim-mask scoring
 until human frame mapping, item-level rights, production-clock calibration,
 target/dependence, SESOI, and a run-bound authenticated gate are resolved.
+
+### Synthetic annotation-clock calibration arithmetic — 15:51–15:53 JST
+
+Implemented `scripts/annotation_clock_calibration.py` as an exact-rational,
+CPU-only ordinary least-squares affine fit from PTS seconds to annotation
+seconds, followed by held-out residual calculation with no refit. Fit and
+held-out rows must use disjoint unique anchor IDs; malformed/empty inputs,
+fewer than two fit anchors, degenerate fit PTS, nonpositive fitted drift, and
+nonpositive tolerances fail closed. The caller supplies a positive rational
+tolerance; the helper returns `uncertainty_status=not_evaluated` and
+`execution_authorization=not_granted`. Documentation limits its use to cases
+where this exact fit method was already fixed before observing anchors.
+
+An independent code review verified the OLS formulas, exact arithmetic, and
+fit/held-out separation. It recommended a non-collinear fit fixture to
+distinguish OLS over all fit observations from a two-point line, and explicit
+tolerance-boundary checks; both were added. Six synthetic unit tests pass,
+covering known offset/drift, non-collinear OLS and inclusive threshold,
+held-out outlier/no-refit, degenerate and reused anchors, negative drift, and
+malformed tolerance/values. The complete CPU suite passes **826/826** in
+8.656 s; `py_compile` and `git diff --check` pass. No actual calibration
+anchors, videos, model, CUDA, or private project data were used. This utility
+cannot establish anchor provenance, source identity, temporal coverage,
+measurement chronology, uncertainty, decoder equivalence, or actual clock
+validity. It does not resolve the production timing gate. Faithfulness remains
+**0 requested / 0 effective / 0 new effect estimates**.
