@@ -1184,3 +1184,49 @@ needed for this active experiment; those and all confirmatory/source results
 remain untouched. The new successful GPU capacity artifact will supersede the
 temporary `_02` CPU preflight after its contents and provenance are recorded in
 the experiment log.
+
+### Real-video temporal input capacity GPU sweep — 16:42–16:44 JST
+
+Ran the committed `76c4f0996081377b323f849c668a76dcb9b510fe` runner on the
+same NOAA source and pinned Qwen2.5-VL-7B checkpoint. All 3/3 conditions
+completed with finite logits and zero failures. The source was fully decoded
+8,992 frames per condition; endpoint-inclusive effective counts were 4/4,
+8/8, and 16/16. Spatial processor grid stayed `[24,44]`; temporal grid was
+2/4/8 and video tokens 528/1,056/2,112. Total input token counts were
+560/1,088/2,144. The CPU preflight and GPU artifact agree on these counts,
+grids, and sampled indices.
+
+Peak CUDA allocated memory was 6.049/6.236/7.237 GiB and peak reserved memory
+6.375/6.797/8.102 GiB. Free VRAM immediately before forwards was
+8.683/8.657/8.657 GiB; host `MemAvailable` was 12.991/11.934/11.915 GiB.
+The 16-frame condition therefore passed the predeclared 6 GiB free-VRAM and
+8 GiB host-memory guards. Single-forward durations were 1.928/0.743/1.875 s;
+they are non-monotonic and each has only one observation, so they do not
+support a latency scaling estimate. Sparse GPU utilization samples (2–4 per
+condition) had mean 11.0/51.5/48.25%, maxima 18/76/99%, and mean memory-busy
+time 1.25/17.5/18.75% (maxima 2/27/40%). These are descriptive telemetry, not
+stable utilization estimates or proof of memory-bandwidth saturation.
+
+End-to-end elapsed time was 103.08 s, including 9.69 s model load. The three
+CPU decode/processor preparations took 29.26/29.60/29.25 s (88.11 s total),
+while GPU forwards totalled 4.55 s. Thus this measured run spent far more time
+repeatedly decoding/preparing the same clip than doing model forwards. This
+supports optimizing shared video decode across frame-count conditions before
+scaling multi-video experiments; it does not imply anything about task quality.
+The artifact SHA-256 is
+`16936ac563c27559cc980d9e155d427924d5cf0c096bad7f104129040a0b47e3`. Its
+source commit equals the runner's pre-run HEAD, and runner/decoder/model/helper
+hashes independently match. Reviewer re-computed the counts and token-grid
+relationship, confirmed finite outputs and privacy-safe fields, and found no
+material inconsistency. The artifact uses no QA, annotation, generated text,
+score, or raw media.
+
+Interpretation is limited to this one NOAA clip, this pinned model/configuration,
+and one forward at each frame count. At 16 frames, this exact path fits within
+the observed GPU/RAM headroom; evidence coverage, frame quality, answer
+performance, optimal sampling, and explanation faithfulness remain untested.
+No treatment/control contrast exists, so there is no effect estimate, CI,
+hypothesis test, or multiplicity correction. Faithfulness progress remains **0
+requested / 0 effective direct faithfulness samples / 0 new direct effect
+estimates**. The final GPU artifact supersedes and permits removal of the
+temporary ignored CPU preflight summary `_02.json` after publication.

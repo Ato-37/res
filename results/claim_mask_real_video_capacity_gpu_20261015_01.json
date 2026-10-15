@@ -1,0 +1,422 @@
+{
+  "attention_implementation": "eager",
+  "compute_dtype": "bfloat16",
+  "conditions": [
+    {
+      "decode_and_cpu_prepare_seconds": 29.26476353200269,
+      "decoded_frame_count": 8992,
+      "effective_frames": 4,
+      "finite_logits": true,
+      "forward_seconds": 1.9277150580019224,
+      "free_vram_before_forward_gib": 8.6826171875,
+      "grid_thw": [
+        2,
+        24,
+        44
+      ],
+      "host_available_before_forward_gib": 12.990703582763672,
+      "input_tokens": 560,
+      "max_sampled_grid_deviation_seconds": [
+        0,
+        1
+      ],
+      "peak_allocated_gib": 6.048710346221924,
+      "peak_reserved_gib": 6.375,
+      "requested_frames": 4,
+      "sample_fps": [
+        10000,
+        999999
+      ],
+      "sampled_frame_indices": [
+        0,
+        2997,
+        5994,
+        8991
+      ],
+      "sampled_presentation_times_seconds": [
+        [
+          0,
+          1
+        ],
+        [
+          999999,
+          10000
+        ],
+        [
+          999999,
+          5000
+        ],
+        [
+          2999997,
+          10000
+        ]
+      ],
+      "seconds_per_grid": 199.9998016357422,
+      "telemetry": {
+        "gpu_util_percent": {
+          "max": 18,
+          "mean": 11.0,
+          "median": 10.0
+        },
+        "memory_busy_time_percent": {
+          "max": 2,
+          "mean": 1.25,
+          "median": 1.0
+        },
+        "memory_free_mib": {
+          "max": 8541,
+          "mean": 8361.5,
+          "median": 8357.0
+        },
+        "memory_used_mib": {
+          "max": 7805,
+          "mean": 7634.5,
+          "median": 7639.0
+        },
+        "power_watts": {
+          "max": 64.24,
+          "mean": 55.239999999999995,
+          "median": 53.685
+        },
+        "sample_count": 4,
+        "sample_errors": 0,
+        "sampling_window_seconds": 1.927884388001985
+      },
+      "video_tokens": 528
+    },
+    {
+      "decode_and_cpu_prepare_seconds": 29.602264408997144,
+      "decoded_frame_count": 8992,
+      "effective_frames": 8,
+      "finite_logits": true,
+      "forward_seconds": 0.7431699510052567,
+      "free_vram_before_forward_gib": 8.6572265625,
+      "grid_thw": [
+        4,
+        24,
+        44
+      ],
+      "host_available_before_forward_gib": 11.93436050415039,
+      "input_tokens": 1088,
+      "max_sampled_grid_deviation_seconds": [
+        143,
+        10000
+      ],
+      "peak_allocated_gib": 6.236159324645996,
+      "peak_reserved_gib": 6.796875,
+      "requested_frames": 8,
+      "sample_fps": [
+        10000,
+        428571
+      ],
+      "sampled_frame_indices": [
+        0,
+        1284,
+        2569,
+        3853,
+        5138,
+        6422,
+        7707,
+        8991
+      ],
+      "sampled_presentation_times_seconds": [
+        [
+          0,
+          1
+        ],
+        [
+          107107,
+          2500
+        ],
+        [
+          2571569,
+          30000
+        ],
+        [
+          3856853,
+          30000
+        ],
+        [
+          2571569,
+          15000
+        ],
+        [
+          3214211,
+          15000
+        ],
+        [
+          2571569,
+          10000
+        ],
+        [
+          2999997,
+          10000
+        ]
+      ],
+      "seconds_per_grid": 85.71420288085938,
+      "telemetry": {
+        "gpu_util_percent": {
+          "max": 76,
+          "mean": 51.5,
+          "median": 51.5
+        },
+        "memory_busy_time_percent": {
+          "max": 27,
+          "mean": 17.5,
+          "median": 17.5
+        },
+        "memory_free_mib": {
+          "max": 8287,
+          "mean": 7958.0,
+          "median": 7958.0
+        },
+        "memory_used_mib": {
+          "max": 8367,
+          "mean": 8038.0,
+          "median": 8038.0
+        },
+        "power_watts": {
+          "max": 119.0,
+          "mean": 105.345,
+          "median": 105.345
+        },
+        "sample_count": 2,
+        "sample_errors": 0,
+        "sampling_window_seconds": 0.7435298530035652
+      },
+      "video_tokens": 1056
+    },
+    {
+      "decode_and_cpu_prepare_seconds": 29.247899537993362,
+      "decoded_frame_count": 8992,
+      "effective_frames": 16,
+      "finite_logits": true,
+      "forward_seconds": 1.8752465860015946,
+      "free_vram_before_forward_gib": 8.6572265625,
+      "grid_thw": [
+        8,
+        24,
+        44
+      ],
+      "host_available_before_forward_gib": 11.91525650024414,
+      "input_tokens": 2144,
+      "max_sampled_grid_deviation_seconds": [
+        1001,
+        75000
+      ],
+      "peak_allocated_gib": 7.237422466278076,
+      "peak_reserved_gib": 8.1015625,
+      "requested_frames": 16,
+      "sample_fps": [
+        50000,
+        999999
+      ],
+      "sampled_frame_indices": [
+        0,
+        599,
+        1199,
+        1798,
+        2398,
+        2997,
+        3596,
+        4196,
+        4795,
+        5395,
+        5994,
+        6593,
+        7193,
+        7792,
+        8392,
+        8991
+      ],
+      "sampled_presentation_times_seconds": [
+        [
+          0,
+          1
+        ],
+        [
+          599599,
+          30000
+        ],
+        [
+          1200199,
+          30000
+        ],
+        [
+          899899,
+          15000
+        ],
+        [
+          1200199,
+          15000
+        ],
+        [
+          999999,
+          10000
+        ],
+        [
+          899899,
+          7500
+        ],
+        [
+          1050049,
+          7500
+        ],
+        [
+          959959,
+          6000
+        ],
+        [
+          1080079,
+          6000
+        ],
+        [
+          999999,
+          5000
+        ],
+        [
+          6599593,
+          30000
+        ],
+        [
+          7200193,
+          30000
+        ],
+        [
+          487487,
+          1875
+        ],
+        [
+          1050049,
+          3750
+        ],
+        [
+          2999997,
+          10000
+        ]
+      ],
+      "seconds_per_grid": 39.999961853027344,
+      "telemetry": {
+        "gpu_util_percent": {
+          "max": 99,
+          "mean": 48.25,
+          "median": 35.0
+        },
+        "memory_busy_time_percent": {
+          "max": 40,
+          "mean": 18.75,
+          "median": 13.0
+        },
+        "memory_free_mib": {
+          "max": 8043,
+          "mean": 7471.5,
+          "median": 7773.0
+        },
+        "memory_used_mib": {
+          "max": 9699,
+          "mean": 8524.5,
+          "median": 8223.0
+        },
+        "power_watts": {
+          "max": 144.94,
+          "mean": 130.0725,
+          "median": 136.82
+        },
+        "sample_count": 4,
+        "sample_errors": 0,
+        "sampling_window_seconds": 1.8754588989977492
+      },
+      "video_tokens": 2112
+    }
+  ],
+  "cuda_version": "12.8",
+  "effective_conditions": 3,
+  "elapsed_seconds": 103.07689507000032,
+  "failures": 0,
+  "faithfulness_effect_estimate": null,
+  "ffmpeg_libraries": {
+    "libavcodec": [
+      62,
+      28,
+      102
+    ],
+    "libavdevice": [
+      62,
+      3,
+      102
+    ],
+    "libavfilter": [
+      11,
+      14,
+      102
+    ],
+    "libavformat": [
+      62,
+      12,
+      102
+    ],
+    "libavutil": [
+      60,
+      26,
+      102
+    ],
+    "libswresample": [
+      6,
+      3,
+      102
+    ],
+    "libswscale": [
+      9,
+      5,
+      102
+    ]
+  },
+  "frame_max_dimension": 224,
+  "gpu": "NVIDIA GeForce RTX 5070 Ti",
+  "gpu_free_before_load_gib": 14.6572265625,
+  "gpu_total_gib": 15.89398193359375,
+  "host_available_before_run_gib": 11.958477020263672,
+  "limitations": [
+    "Resource/processor feasibility only; no QA, annotations, treatment/control, or answer scoring.",
+    "Frame-count differences do not establish evidence coverage, quality, or optimal sampling.",
+    "One video, one forward per condition; utilization telemetry is sparse and descriptive.",
+    "The 16.683 ms tolerance addresses source-frame index quantization only and is not an inferential protocol threshold."
+  ],
+  "logits_to_keep": 1,
+  "max_pixels_per_frame": 200704,
+  "media_sha256": "13ab1d0e12d9c6b9e776890d123f363c12c572d52d1f58464b57a2e98667f126",
+  "model": "Qwen/Qwen2.5-VL-7B-Instruct",
+  "model_config_sha256": "77d9ec7321cc572e3579e2c84799c9cadaded63c49ce93b101733349fc330c43",
+  "model_load_seconds": 9.685384076990886,
+  "model_revision": "cc594898137f460bfe9f0759e9844b3ce807cfb5",
+  "output_attentions": false,
+  "privacy": "No raw media, pixels, QA/answer text, generated text, logits, or absolute local path.",
+  "purpose": "real_video_pyav_qwen_temporal_input_capacity_sweep",
+  "pyav_version": "18.1.0",
+  "quantization": "4bit",
+  "requested_conditions": 3,
+  "schema_version": 1,
+  "seed": 20261015,
+  "source_commit": "76c4f0996081377b323f849c668a76dcb9b510fe",
+  "source_sha256": {
+    "decoder": "c0226f23aa073317a34d982a40cdf199820e502ce6ae992f8fc19082991f6516",
+    "four_frame_runner": "12be80b9d2661d213856c1ee1159a70fae4d462f393ceb295539c9def8961e43",
+    "runner": "43fd3e8f1f2e60ebe3848bf5ec1be832fe2d92bb39e1b4c47665da8d3c902f89",
+    "telemetry_helper": "dacc534b12af284f70719a94898ce34a36593d0e600626c7384825899b9be9fe"
+  },
+  "started_utc": "2026-10-15T07:42:49.542425+00:00",
+  "status": "passed",
+  "tolerance_basis": "half a 1001/30000 second source frame period; capacity sweep only",
+  "uniform_grid_tolerance_seconds": [
+    1001,
+    60000
+  ],
+  "use_cache": false,
+  "versions": {
+    "av": "18.1.0",
+    "bitsandbytes": "0.50.2",
+    "qwen-vl-utils": "0.0.14",
+    "torch": "2.11.0+cu128",
+    "transformers": "5.18.0"
+  }
+}
