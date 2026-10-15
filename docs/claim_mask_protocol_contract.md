@@ -11,6 +11,11 @@ compares the lower bound with the separately fixed SESOI. Family membership
 must be frozen before scoring. The SESOI is still
 not fixed, so schema v12 rejects a `confirmatory` stage.
 Structural validity neither authenticates evidence nor authorizes inference.
+The frozen primary cohort must contain at least two eligible videos because
+the declared sample SD and `df=n-1` interval are undefined at `n=1`; the
+validator rejects smaller cohorts. This is only a mathematical minimum, not a
+claim that two videos provide adequate precision or support the population
+assumptions.
 
 Schema v12 adds a distributional plan to the hashed inference declaration. A
 resolved Student-t method requires a reviewed declaration of either iid normal
@@ -230,12 +235,14 @@ helper deliberately preserves repeated indices for legacy parity; the
 preflight deduplicates and now explicitly rejects a clip when fewer than the
 requested number of distinct frames remain, before model scoring. The old
 scoring path may still fail when it cannot materialize the requested distinct
-frames. Any future schema-v12-compatible runner must freeze its sampling rule
-in the sampling-config hash and enforce the same requirement before any model
-score call. This shared helper does not by itself establish timestamp precision
-or contract compatibility. Preflight also requires a finite, positive source FPS from the
-video metadata; it does not substitute a conventional FPS when metadata is zero,
-missing, or non-finite, because that would silently change the time-to-frame
+frames. Schema v12 requires `F >= 2` so a sampled temporal rate and a distinct
+equal-count control can be defined. Any future schema-v12-compatible runner
+must freeze one cohort-wide `F` in the sampling-config hash and enforce the
+same requirement before any model score call. This shared helper does not by
+itself establish timestamp precision or contract compatibility. Preflight also
+requires a finite, positive source FPS from the video metadata; it does not
+substitute a conventional FPS when metadata is zero, missing, or non-finite,
+because that would silently change the time-to-frame
 mapping used for evidence intervals. A finite nominal FPS alone does not prove
 that decoded frame index divided by FPS equals media presentation time. Before
 any schema-v12 scoring run, the runner must obtain a validated presentation-time
@@ -311,6 +318,16 @@ timestamp origin conversion, sampled-frame pixel identity, and mapping-code
 hash; validate this correspondence on the exact path used for model inputs;
 and freeze the annotation-time calibration and endpoint precision before any
 outcome access. Until that exists, the PTS helper does not clear the timing gate.
+`scripts/preflight_claim_mask_timing.py` adds a synthetic-only whole-cohort
+contract check for complete monotonic PTS, fixed-sampler indices, nonempty
+evidence/control assignment, pixel-identity witnesses, derived FPS, and equal
+timing declarations across full/selected/control conditions. Its tests show
+that each record must match one cohort-level frozen frame count, that one
+failing member blocks the declared denominator, and the helper itself has no
+scoring call path. It is not connected to the actual cross-gate
+preflight or scorer; the hashes in these synthetic fixtures are caller-provided
+identity witnesses, not proof of production pixel provenance. It cannot clear
+the production PTS, pixel-binding, or annotation-clock gates.
 The NExT-GQA README represents its annotated spans in seconds and separately
 lists per-video duration/FPS and a frame-ID-to-time map, but does not specify
 how that map's clock origin is calibrated against a decoded stream's PTS

@@ -110,7 +110,8 @@ def validate(value: Any, input_sha256: str | None = None) -> dict:
           or cohort.get("primary_population") != "all_eligible_videos"
           or cohort.get("secondary_population") != "baseline_correctness_strata"):
         f.add("cohort_fields_invalid")
-    elif cohort["eligible_video_count"] == 0 or cohort["analysis_unit_count"] != cohort["eligible_video_count"]: f.add("analysis_unit_not_video_level")
+    elif cohort["eligible_video_count"] < 2: f.add("analysis_unit_count_below_minimum")
+    elif cohort["analysis_unit_count"] != cohort["eligible_video_count"]: f.add("analysis_unit_not_video_level")
     inference = value.get("inference_design")
     infk = {"target_kind", "target_definition_sha256", "selection_design", "sampling_frame_sha256", "selection_record_sha256"}
     if not _keys(inference, infk): f.add("inference_design_schema_invalid")
@@ -171,7 +172,10 @@ def validate(value: Any, input_sha256: str | None = None) -> dict:
     sm = value.get("sampling"); sk = {"policy", "config_sha256", "uses_claim_for_selection", "num_frames", "frame_size", "max_pixels", "cap_pixels_per_frame"}
     if not _keys(sm, sk): f.add("sampling_schema_invalid")
     elif (sm.get("policy") != "whole_video_fixed" or not _sha(sm.get("config_sha256")) or sm.get("uses_claim_for_selection") is not False
-          or any(type(sm.get(k)) is not int or sm[k] <= 0 for k in ("num_frames", "frame_size", "max_pixels")) or type(sm.get("cap_pixels_per_frame")) is not bool): f.add("sampling_fields_invalid")
+          or any(type(sm.get(k)) is not int for k in ("num_frames", "frame_size", "max_pixels"))
+          or (type(sm.get("num_frames")) is int and sm["num_frames"] < 2)
+          or any(type(sm.get(k)) is int and sm[k] <= 0 for k in ("frame_size", "max_pixels"))
+          or type(sm.get("cap_pixels_per_frame")) is not bool): f.add("sampling_fields_invalid")
     es = value.get("estimand"); ek = {"answer_candidate_protocol_sha256", "gold_choice_manifest_sha256", "primary_estimand_sha256", "score_kind", "baseline_correction", "triplet_manifest_sha256", "target_definition", "margin_definition"}
     if not _keys(es, ek): f.add("estimand_schema_invalid")
     elif (not _sha(es.get("answer_candidate_protocol_sha256")) or not _sha(es.get("gold_choice_manifest_sha256")) or not _sha(es.get("primary_estimand_sha256")) or not _sha(es.get("triplet_manifest_sha256"))

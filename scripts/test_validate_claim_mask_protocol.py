@@ -46,6 +46,10 @@ class TestClaimMaskProtocol(unittest.TestCase):
     def test_annotation_sampling_fails(self):
         x=fixture(); x["sampling"]["uses_claim_for_selection"]=True; r=validate(x); self.assertIn("sampling_fields_invalid",r["failure_codes"])
 
+    def test_sampling_requires_two_or_more_frames_for_timing_and_control(self):
+        x=fixture(); x["sampling"]["num_frames"]=1
+        self.assertIn("sampling_fields_invalid", validate(x)["failure_codes"])
+
     def test_boolean_schema_version_is_not_integer_one(self):
         x=fixture(); x["schema_version"]=True; r=validate(x)
         self.assertFalse(r["structurally_valid"]); self.assertIn("schema_version_invalid",r["failure_codes"])
@@ -73,6 +77,13 @@ class TestClaimMaskProtocol(unittest.TestCase):
     def test_overlap_count_cannot_exceed_video_count(self):
         x=fixture(); x["cohort"]["split_overlap_count"]=3; r=validate(x)
         self.assertIn("split_overlap_exceeds_video_count",r["failure_codes"])
+
+    def test_student_t_video_level_analysis_requires_at_least_two_videos(self):
+        x=fixture()
+        x["cohort"].update(candidate_video_count=1, eligible_video_count=1,
+                           prerun_exclusion_count=0, analysis_unit_count=1)
+        r=validate(x)
+        self.assertIn("analysis_unit_count_below_minimum", r["failure_codes"])
 
     def test_selected_and_control_conditions_must_be_distinct(self):
         x=fixture(); x["intervention"]["control_condition"]=x["intervention"]["selected_condition"]
