@@ -101,3 +101,13 @@ GPU前に必要なこと:
 **FaithLM: Towards Faithful Explanations for Large Language Models** — [Chuang et al., EACL 2026](https://aclanthology.org/2026.eacl-long.177/)。説明と矛盾するcontrary hintへの予測変化でfaithfulnessを測る介入テスト。maskingに依存しない発想を得られるが、テキストLLM向けで動画claim・内部経路は直接検証しない。説明最適化と同じデータで評価する際は選択バイアスに注意する。
 
 本書は候補論文の設計用整理で、検索式・全DB・重複除去を記録した体系的レビューではない。主要会議の一次資料を優先し、arXiv/workshopは身分を明記した。採用前に本文・付録・実装を照合する。
+
+### 2026-10-15追加：動画介入ベンチマークとの区別
+
+**INFACT: A Diagnostic Benchmark for Induced Faithfulness and Factuality Hallucinations in Video-LLMs** — [Yangjunqi et al., ACL 2026](https://aclanthology.org/2026.acl-long.2062/)。実・合成動画9,800問で、Base、視覚劣化、証拠corruption、時間順序介入を分ける。正解が変わらない想定の介入はResist Rate、順序が正解に必要な項目のshuffle/reversalはTemporal Sensitivity Scoreで評価する。Base精度だけでは誘導条件での信頼性を示さない、という診断は本研究の回答marginとfaithfulnessを分ける必要性を補強する。これは回答が動画に依存するかの信頼性評価であり、自由記述claimがモデル判断の根拠を忠実に表すかを直接検証する指標ではない。同論文はlabel-preserving operatorについて、200例/条件を3名のblind annotatorで監査している。
+
+**Evidence-Backed Video Question Answering** — [Wang et al., ECCV 2026](https://arxiv.org/abs/2607.11862)。答えに時間区間とdense tracked maskletsを添える課題と、人手確認付きST-Evidenceを提案する。モデル出力と証拠の照合を可能にする点で近いが、予測された証拠のgrounding精度は、説明claimへの選択的依存や説明の内部faithfulnessとは別の性質である。
+
+**EDCT-Bench** — [Ding et al., arXiv:2609.17953](https://arxiv.org/abs/2609.17953)。画像VLMの説明から視覚概念を抽出し、検証した最小編集を適用して回答と説明の一貫性を測る。説明由来の介入という点は近いが、現時点ではarXiv preprintであり、画像向けの編集・判定を時間構造のある動画へそのまま移せない。論文自身も、モデルごとの説明から介入を選ぶことで難度が変わり得ることと、より多くのhuman-verified記述・介入による確認を課題として挙げる。
+
+**本研究への含意:** 現行のclaim-mask案は説明claimを固定し、claimに人手対応づけした区間と同枚数の時間対照でgold-vs-foil margin差を測るため、INFACTの一般的な動画依存性やE-VQAのgrounding精度と異なる問いを狙う。human claim reviewが完了するまでは、どちらの文献も未実施のfaithfulness実験を代替しない。別案として時間順序介入を検討する場合は、質問が順序依存であること、介入後に正答がどう変わるべきかを結果閲覧前に人手確認し、説明由来介入とは別estimandとして事前登録する。

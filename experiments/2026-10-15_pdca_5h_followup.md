@@ -1348,3 +1348,35 @@ PTS challenge and would still be only engineering feasibility, no extra GPU
 capacity run was justified by this check. It would not add a faithfulness
 measurement. This decision is outcome-blind and does not inspect QA or review
 data.
+
+### Targeted literature update — 17:10 JST
+
+Checked three current primary sources to guide the next faithfulness branch.
+INFACT is an ACL 2026 video-LLM benchmark with separate label-invariant
+robustness operators and order-changing temporal interventions; its abstract
+reports that clean accuracy does not determine reliability under those
+interventions. The paper audits assumed label-preserving transformations with
+three blinded reviewers on 200 cases per operator. This is useful evidence
+that intervention semantics need their own validation, but its Resist Rate and
+Temporal Sensitivity Score measure answer reliability/video dependence, not
+whether a generated explanation faithfully reports the model's decision basis.
+Primary source: https://aclanthology.org/2026.acl-long.2062/ .
+
+ECCV 2026's E-VQA asks models to produce answers plus temporal spans and dense
+masklets, with a human-verified grounding benchmark. That is adjacent to
+evidence localization, but spatial/temporal grounding accuracy is not the same
+estimand as selective dependence on a fixed explanation claim. Source:
+https://arxiv.org/abs/2607.11862 . EDCT-Bench (September 2026 arXiv preprint)
+derives visual edits from image-VLM explanations and tests answer/explanation
+consistency; its image-only scope does not supply a ready video intervention.
+Source: https://arxiv.org/abs/2609.17953 .
+
+Decision: retain the claim-linked mask estimand as distinct from these
+benchmark-level reliability and grounding outcomes. Do not add a temporal
+shuffle experiment until order-sensitive items and the label-changing
+counterfactual are human-verified before outcomes; this could be a separate
+future estimand rather than a replacement selected after observing results.
+The human claim-review artifact remains incomplete, so current direct
+faithfulness progress is unchanged at **0 new samples / 0 new effect
+estimates**. These papers guide protocol design; they are not measurements on
+this project's model or data.
