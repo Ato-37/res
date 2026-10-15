@@ -116,7 +116,8 @@ def main() -> None:
     from transformers import AutoProcessor, BitsAndBytesConfig, Qwen2_5_VLForConditionalGeneration
     if not torch.cuda.is_available() or not torch.cuda.is_bf16_supported():
         parser.error("CUDA and BF16 required; CPU fallback disabled")
-    free_bytes, total_bytes = torch.cuda.mem_get_info()
+    cuda_device = torch.cuda.current_device()
+    free_bytes, total_bytes = torch.cuda.mem_get_info(cuda_device)
     if free_bytes < 12 * 1024**3:
         parser.error("at least 12 GiB free VRAM required before model loading")
 
@@ -185,7 +186,7 @@ def main() -> None:
             load_in_4bit=True, bnb_4bit_compute_dtype=torch.bfloat16)).eval()
     if int(model.config.video_token_id) != int(processor.video_token_id):
         raise RuntimeError("model_processor_video_token_mismatch")
-    torch.cuda.reset_peak_memory_stats()
+    torch.cuda.reset_peak_memory_stats(cuda_device)
     forward_start = time.monotonic()
     with torch.inference_mode():
         out = model(**batch, use_cache=False, logits_to_keep=1)
@@ -193,6 +194,14 @@ def main() -> None:
     finite = bool(torch.isfinite(out.logits).all())
     if not finite:
         raise RuntimeError("nonfinite_model_logits")
+    post_free_bytes, post_total_bytes = torch.cuda.mem_get_info(cuda_device)
+    memory_stats = torch.cuda.memory_stats(cuda_device)
+    memory_segments = [segment for segment in torch.cuda.memory_snapshot(include_traces=False)
+                       if segment.get("device") == cuda_device]
+    snapshot_totals = {
+        key: sum(int(segment.get(key, 0)) for segment in memory_segments)
+        for key in ("total_size", "allocated_size", "active_size")
+    }
     payload = {
         "schema_version": 1,
         "purpose": "local_nextgqa_real_video_qwen_gpu_path_smoke_not_faithfulness",
@@ -217,8 +226,30 @@ def main() -> None:
         "finite_logits": finite,
         "forward_seconds": time.monotonic() - forward_start,
         "elapsed_seconds": time.monotonic() - timer,
-        "peak_allocated_gib": torch.cuda.max_memory_allocated() / 1024**3,
-        "gpu": torch.cuda.get_device_name(0),
+        # Keep allocator accounting distinct from physical device occupancy.
+        # This WSL run produced tensor-allocation peaks above reported VRAM.
+        "peak_allocated_gib": torch.cuda.max_memory_allocated(cuda_device) / 1024**3,
+        "pytorch_peak_reserved_gib": torch.cuda.max_memory_reserved(cuda_device) / 1024**3,
+        "pytorch_current_allocated_gib": memory_stats["allocated_bytes.all.current"] / 1024**3,
+        "pytorch_current_reserved_gib": memory_stats["reserved_bytes.all.current"] / 1024**3,
+        "pytorch_peak_allocated_stat_gib": memory_stats["allocated_bytes.all.peak"] / 1024**3,
+        "pytorch_peak_reserved_stat_gib": memory_stats["reserved_bytes.all.peak"] / 1024**3,
+        "allocator_snapshot_segment_count": len(memory_segments),
+        "allocator_snapshot_total_size_gib": snapshot_totals["total_size"] / 1024**3,
+        "allocator_snapshot_allocated_size_gib": snapshot_totals["allocated_size"] / 1024**3,
+        "allocator_snapshot_active_size_gib": snapshot_totals["active_size"] / 1024**3,
+        "cuda_driver_free_after_gib": post_free_bytes / 1024**3,
+        "cuda_driver_total_after_gib": post_total_bytes / 1024**3,
+        "cuda_current_device_index": cuda_device,
+        "cuda_device_count": torch.cuda.device_count(),
+        "cuda_allocator_backend": torch.cuda.get_allocator_backend(),
+        "cuda_allocator_config": {key: os.environ.get(key) for key in
+                                  ("PYTORCH_CUDA_ALLOC_CONF", "PYTORCH_ALLOC_CONF")},
+        "gpu": torch.cuda.get_device_name(cuda_device),
+        "cuda_device_total_property_gib": (
+            torch.cuda.get_device_properties(cuda_device).total_memory / 1024**3),
+        "process_id": os.getpid(),
+        "memory_sampled_utc": datetime.now(timezone.utc).isoformat(),
         "gpu_free_before_gib": free_bytes / 1024**3,
         "gpu_total_gib": total_bytes / 1024**3,
         "cuda_version": torch.version.cuda,

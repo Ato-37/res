@@ -651,3 +651,43 @@ QA text, generated text, and scores remain unused.
   instrumentation explanation before use as a capacity estimate.
 - Continue with measurement/protocol work until the deadline; do not claim the
   64-frame smoke tests explanation faithfulness.
+
+## 22:56 JST checkpoint — same-process allocator snapshot
+
+Elapsed **1h22m05s / 2h**; deadline **23:34:23 JST** (**37m55s remain**). I
+added explicit-current-device counters and a no-trace allocator snapshot to the
+smoke runner, then reran the same 64-frame video once. After the per-device
+telemetry change, `py_compile`, `git diff --check`, and the full CPU suite
+(**885/885**) passed; after adding the snapshot fields, `py_compile`,
+`git diff --check`, and the actual 64-frame GPU run passed. The new
+mode-0600 output is `/tmp/nextgqa_real_video_gpu_smoke64_snapshot_20261015_2253.json`,
+SHA-256 `ab8084a32b06e927bf0ab4901aa7c95f2a568275585d9fe6a324f18173e5c3d3`,
+bound to runner SHA `cd2c60f96083eecb6e226cc18e9111c7a1820558cf28536d074b6a731d894076`.
+
+At the post-forward sample (`2026-10-15T13:56:00.519476Z`, CUDA device 0 of
+1, native allocator), PyTorch reported 25.411 GiB peak allocated,
+29.438 GiB peak/current reserved, and 5.971 GiB current allocated. The
+lightweight snapshot contained 111 segments totaling exactly 29.438 GiB, with
+5.971 GiB allocated and active; same-process CUDA `mem_get_info` reported
+0 GiB free and 15.894 GiB total. Thus the snapshot corroborates allocator
+internal counters, while the allocator's 29.438 GiB segment total still
+conflicts with the 15.894 GiB physical-device total. The forward returned
+finite logits; this does not validate the inconsistent capacity counters.
+
+PyTorch defines `max_memory_allocated` as peak tensor-occupied bytes and
+`max_memory_reserved` as allocator-managed memory; its snapshot segments are
+described as memory returned from `cudaMalloc` ([CUDA memory accounting](https://docs.pytorch.org/docs/stable/notes/cuda.html),
+[snapshot format](https://docs.pytorch.org/docs/stable/torch_cuda_memory)). NVIDIA
+documents limited unified-memory support under WSL and states that managed
+memory oversubscription is not supported there ([CUDA Programming Guide](https://docs.nvidia.com/cuda/cuda-programming-guide/02-basics/understanding-memory.html),
+[CUDA on WSL guide](https://docs.nvidia.com/cuda/archive/12.4.0/wsl-user-guide/index.html)).
+Consequently, WSL managed-memory paging is not established as the explanation;
+the allocator/driver discrepancy remains unresolved. Do not use 25.411/29.438
+GiB as physical VRAM figures. The earlier 2-second NVML samples remain an
+independent time series, but WSL NVML query limitations and nonidentical sample
+times limit exact reconciliation.
+
+The model forward in this smoke still used no QA, answer, generated claim, or
+interval score. Faithfulness progress remains **0/3 human-reviewed, 0/3 scored,
+0 effects**. The code change is measurement-only and does not change experiment
+selection or outcome scoring.
