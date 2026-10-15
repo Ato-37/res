@@ -606,4 +606,48 @@ row reconciliation, omission of private values from summaries, invalid-span
 rejection, and the invariant that even a structurally complete preflight stays
 blocked without execution authorization. They are synthetic/structural tests,
 not human review or empirical faithfulness evidence. A scoped local commit
-`f716ca7` records this checkpoint; no remote fetch or push was performed.
+`4b65044` records this checkpoint; no remote fetch or push was performed.
+
+## 22:47 JST checkpoint — 64-frame load and memory-metric audit
+
+Elapsed **1h12m44s / 2h**; deadline **23:34:23 JST** (**47m16s remain**). A
+single 64-frame/1-video rerun was performed because the first artifact's
+PyTorch peak-allocation value (25.411 GiB) exceeded the RTX 5070 Ti's reported
+15.894 GiB total. The rerun selected the exact same video and pixel/PTS hashes,
+used the same 8,480-token input, returned finite logits, and again reported
+25.411 GiB peak allocated. The two forward times were 67.96 s and 54.69 s;
+runner elapsed values were 82.55 s and 105.59 s (this timer excludes initial
+imports/CUDA preflight/candidate scan, as noted above).
+
+During the rerun, 2-second `nvidia-smi` samples showed 15,575–15,598 MiB used
+of 16,303 MiB during inference, with several samples at 99–100% GPU compute
+utilization; the device returned to 589 MiB used after the process exited. This
+independently confirms substantial physical GPU loading for this 64-frame
+forward. It does **not** explain the PyTorch 25.411 GiB peak-allocation number,
+which is inconsistent with physical VRAM totals and should not be presented as
+physical memory consumption. Treat that allocator metric as unresolved; driver
+samples are periodic observations, not guaranteed peak capture. No outcome or
+faithfulness score was produced.
+
+The first and rerun summaries are local mode-0600 files:
+`/tmp/nextgqa_real_video_gpu_smoke64_20261015_2242.json` (SHA-256
+`73f62b0d1969bac1e32b6767e594f670f9a81392f75552bb76b48fc88e2f6e3c`) and
+`/tmp/nextgqa_real_video_gpu_smoke64_check_20261015_2245.json` (SHA-256
+`097b0a4fba3861726367515431a6e54ec2fcb3f68229d381218b6d4bcd430796`). Both
+bind runner SHA-256 `a75e5242ed7e15db52dfef57cee32a51f5c07e55c7c0f648a6a85a07e6286254`.
+The 50 ms uniform-grid tolerance was a technical candidate-selection setting
+only; it does not validate annotation timestamps or justify a mask threshold.
+QA text, generated text, and scores remain unused.
+
+### Faithfulness progress at 22:47 JST
+
+- Direct claim-specific evidence remains **0/3 reviewed, 0/3 scored, 0
+  effects**. Timestamp checks and GPU workload measurements are feasibility
+  diagnostics only.
+- Verified real-video GPU paths now cover 4, 16, and 64 sampled frames on
+  actual NExT-GQA clips. The 64-frame run reached near-full physical VRAM and
+  99–100% GPU utilization for sampled intervals, but its PyTorch allocator
+  peak counter is internally inconsistent and requires a separate
+  instrumentation explanation before use as a capacity estimate.
+- Continue with measurement/protocol work until the deadline; do not claim the
+  64-frame smoke tests explanation faithfulness.
