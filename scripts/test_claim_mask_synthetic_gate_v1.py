@@ -87,6 +87,21 @@ class SyntheticGateOrderingTests(unittest.TestCase):
         self.assertEqual(scorer.calls, 0)
         self.assertEqual(calls, [])
 
+    def test_invalid_tolerance_blocks_before_structure_and_scorer(self):
+        validator_calls = []
+        scorer = SyntheticScorerSpy()
+        result = self.run_gate(
+            fixture(), scorer,
+            tolerance_seconds=0.0,
+            structural_validator=lambda rows: validator_calls.append("validate"),
+        )
+        self.assertEqual(result["status"], "blocked")
+        self.assertIn("video_timing_invalid", result["timing_preflight"]["failure_codes"])
+        self.assertEqual(result["timing_preflight"]["validated_videos"], 0)
+        self.assertEqual(result["score_calls"], 0)
+        self.assertEqual(scorer.calls, 0)
+        self.assertEqual(validator_calls, [])
+
     def test_structural_failure_after_valid_timing_means_zero_score_calls(self):
         calls = []
         scorer = SyntheticScorerSpy()
