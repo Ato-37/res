@@ -343,9 +343,11 @@ def main():
             'run_dataset_video_gpu_smoke.py']
         if args.fixture=='noaa':
             source_files += ['grounding_check.py']
+        completed=datetime.now(timezone.utc).isoformat()
         result={
             'schema_version':1,'purpose':purpose,'fixture':args.fixture,
-            'started_utc':started,'elapsed_seconds':time.monotonic()-timer,
+            'started_utc':started,'completed_utc':completed,
+            'elapsed_seconds':time.monotonic()-timer,
             'source_commit':subprocess.check_output(['git','rev-parse','HEAD'],cwd=repo,text=True).strip(),
             'source_sha256':{n:sha256(repo/'scripts'/n) for n in source_files},
             'installed_model_source_sha256':sha256(inspect.getfile(Qwen2_5_VLModel)),

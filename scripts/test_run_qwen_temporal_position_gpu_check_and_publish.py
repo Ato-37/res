@@ -1,10 +1,12 @@
 import tempfile
 from pathlib import Path
 import subprocess
+import json
 import unittest
 
 from run_qwen_temporal_position_gpu_check_and_publish import (
     _output_paths,
+    build_run_manifest,
     derive_public_summary,
     _verify_reusable_raw,
     _validate_reusable_raw_path,
@@ -61,6 +63,93 @@ def valid_raw():
 
 
 class PublishSummaryTests(unittest.TestCase):
+    def test_manifest_binds_fresh_run_window_and_sanitized_command(self):
+        raw = valid_raw()
+        raw["started_utc"] = "2026-10-15T03:00:00+00:00"
+        raw["completed_utc"] = "2026-10-15T03:00:12+00:00"
+        raw["argv"] = ["--reuse-raw", "/home/path-sentinel/private.json"]
+        raw["local_path"] = "/home/path-sentinel"
+        public = derive_public_summary(raw, "1" * 64)
+        manifest = build_run_manifest(
+            public, Path("results/synthetic.json"), raw,
+            summary_sha256="2" * 64, fresh_gpu_run=True,
+            manifest_created_utc="2026-10-15T03:01:00Z",
+        )
+        self.assertEqual(manifest["schema_version"], 2)
+        self.assertEqual(manifest["execution"]["mode"], "fresh_synthetic_gpu_run")
+        self.assertEqual(manifest["runner_started_utc"], raw["started_utc"])
+        self.assertEqual(manifest["runner_completed_utc"], raw["completed_utc"])
+        self.assertTrue(manifest["execution"]["raw_output_path_redacted"])
+        self.assertEqual(manifest["execution"]["allowlisted_arguments"], [
+            "--fixture", "synthetic_subsecond", "--synthetic-frame-count", "4",
+            "--output", "<redacted>",
+        ])
+        self.assertNotIn("path-sentinel", json.dumps(manifest))
+        self.assertEqual(manifest["artifact_sha256"], "2" * 64)
+
+    def test_manifest_reuse_mode_does_not_claim_gpu_execution(self):
+        public = derive_public_summary(valid_raw(), "1" * 64)
+        raw = valid_raw()
+        raw["started_utc"] = "2026-10-15T03:00:00Z"
+        raw["completed_utc"] = "2026-10-15T03:00:12Z"
+        manifest = build_run_manifest(
+            public, Path("results/reused.json"), raw,
+            summary_sha256="2" * 64, fresh_gpu_run=False,
+            manifest_created_utc="2026-10-15T03:01:00Z",
+        )
+        self.assertEqual(manifest["execution"]["mode"], "raw_reuse_publish_only")
+        self.assertEqual(manifest["runner_started_utc"], raw["started_utc"])
+        self.assertEqual(manifest["runner_completed_utc"], raw["completed_utc"])
+
+    def test_fresh_run_manifest_requires_valid_utc_timestamps(self):
+        raw = valid_raw()
+        raw["started_utc"] = "2026-10-15 03:00:00"
+        raw["completed_utc"] = "2026-10-15T03:00:12Z"
+        public = derive_public_summary(raw, "1" * 64)
+        with self.assertRaisesRegex(ValueError, "ordered UTC runner"):
+            build_run_manifest(
+                public, Path("results/invalid.json"), raw,
+                summary_sha256="2" * 64, fresh_gpu_run=True,
+                manifest_created_utc="2026-10-15T03:01:00Z",
+            )
+
+    def test_fresh_manifest_rejects_reversed_runner_window(self):
+        raw = valid_raw()
+        raw["started_utc"] = "2026-10-15T03:00:12Z"
+        raw["completed_utc"] = "2026-10-15T03:00:00Z"
+        public = derive_public_summary(raw, "1" * 64)
+        with self.assertRaisesRegex(ValueError, "ordered UTC runner"):
+            build_run_manifest(
+                public, Path("results/reversed.json"), raw,
+                summary_sha256="2" * 64, fresh_gpu_run=True,
+                manifest_created_utc="2026-10-15T03:01:00Z",
+            )
+
+    def test_manifest_rejects_absolute_or_out_of_scope_summary_path(self):
+        raw = valid_raw()
+        raw["started_utc"] = "2026-10-15T03:00:00Z"
+        raw["completed_utc"] = "2026-10-15T03:00:12Z"
+        public = derive_public_summary(raw, "1" * 64)
+        for path in (Path("/home/path-sentinel/private.json"),
+                     Path("results/nested/private.json"), Path("private.json")):
+            with self.subTest(path=path), self.assertRaisesRegex(ValueError, "relative direct-child"):
+                build_run_manifest(
+                    public, path, raw, summary_sha256="2" * 64,
+                    fresh_gpu_run=True, manifest_created_utc="2026-10-15T03:01:00Z",
+                )
+
+    def test_manifest_creation_cannot_precede_runner_completion(self):
+        raw = valid_raw()
+        raw["started_utc"] = "2026-10-15T03:00:00Z"
+        raw["completed_utc"] = "2026-10-15T03:00:12Z"
+        public = derive_public_summary(raw, "1" * 64)
+        with self.assertRaisesRegex(ValueError, "precedes runner completion"):
+            build_run_manifest(
+                public, Path("results/too-early.json"), raw,
+                summary_sha256="2" * 64, fresh_gpu_run=True,
+                manifest_created_utc="2026-10-15T03:00:11Z",
+            )
+
     def test_reusable_raw_verifies_ancestor_source_and_current_source_hash(self):
         repo = Path(__file__).resolve().parents[1]
         current = subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=repo, text=True).strip()

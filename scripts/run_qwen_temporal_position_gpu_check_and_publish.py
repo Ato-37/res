@@ -226,6 +226,68 @@ def _verify_reusable_raw(raw: dict, raw_path: Path, repo: Path, current_commit: 
     return source_commit
 
 
+def _parse_utc_timestamp(value: object) -> datetime | None:
+    if not isinstance(value, str):
+        return None
+    try:
+        parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
+    except ValueError:
+        return None
+    if parsed.tzinfo is None or parsed.utcoffset().total_seconds() != 0:
+        return None
+    return parsed
+
+
+def build_run_manifest(public: dict, summary_path: Path, raw: dict, *,
+                       summary_sha256: str, fresh_gpu_run: bool,
+                       manifest_created_utc: str) -> dict:
+    """Bind a safe execution record without exposing a local raw-artifact path."""
+    if (not isinstance(summary_path, Path) or summary_path.is_absolute()
+            or summary_path.parent != Path("results") or summary_path.suffix != ".json"):
+        raise ValueError("summary artifact must be a relative direct-child JSON path under results/")
+    started, completed = raw.get("started_utc"), raw.get("completed_utc")
+    parsed_start, parsed_end = _parse_utc_timestamp(started), _parse_utc_timestamp(completed)
+    if fresh_gpu_run and (parsed_start is None or parsed_end is None or parsed_end < parsed_start):
+        raise ValueError("fresh GPU run lacks ordered UTC runner timestamps")
+    if not fresh_gpu_run:
+        if (started is None) != (completed is None):
+            raise ValueError("reused raw run has a partial runner timestamp pair")
+        if started is not None and (parsed_start is None or parsed_end is None or parsed_end < parsed_start):
+            raise ValueError("reused raw run has invalid runner timestamps")
+    if _parse_utc_timestamp(manifest_created_utc) is None:
+        raise ValueError("manifest creation timestamp must be UTC")
+    parsed_created = _parse_utc_timestamp(manifest_created_utc)
+    if parsed_end is not None and parsed_created < parsed_end:
+        raise ValueError("manifest creation precedes runner completion")
+    frame_count = public["synthetic_video"]["frames"]
+    return {
+        "schema_version": 2,
+        "artifact": summary_path.as_posix(),
+        "artifact_sha256": summary_sha256,
+        "source_commit": public["source_commit"],
+        "raw_run_sha256": public["raw_run_sha256"],
+        "fixture": "synthetic_subsecond",
+        "model_revision": public["model_revision"],
+        "model_config_sha256": public["model_config_sha256"],
+        "requested_samples": public["sample_counts"]["requested"],
+        "effective_samples": public["sample_counts"]["effective"],
+        "failures": public["sample_counts"]["failures"],
+        "execution": {
+            "mode": "fresh_synthetic_gpu_run" if fresh_gpu_run else "raw_reuse_publish_only",
+            "runner": "scripts/run_qwen_temporal_position_gpu_check.py",
+            "allowlisted_arguments": ["--fixture", "synthetic_subsecond",
+                                      "--synthetic-frame-count", str(frame_count),
+                                      "--output", "<redacted>"],
+            "fixture_frames": frame_count,
+            "requested_forwards": 3,
+            "raw_output_path_redacted": True,
+        },
+        "runner_started_utc": started,
+        "runner_completed_utc": completed,
+        "manifest_created_utc": manifest_created_utc,
+    }
+
+
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
@@ -277,19 +339,12 @@ def main(argv=None):
             source_commit = _verify_reusable_raw(raw, raw_path, repo, current_commit)
         public = derive_public_summary(raw, sha256_bytes(raw_bytes))
         summary_bytes = (json.dumps(public, indent=2, sort_keys=True, allow_nan=False) + "\n").encode()
-        manifest = {
-            "schema_version": 1,
-            "artifact": str(summary_path.relative_to(repo)),
-            "artifact_sha256": sha256_bytes(summary_bytes),
-            "source_commit": source_commit,
-            "raw_run_sha256": public["raw_run_sha256"],
-            "fixture": "synthetic_subsecond",
-            "model_revision": public["model_revision"],
-            "model_config_sha256": public["model_config_sha256"],
-            "requested_samples": public["sample_counts"]["requested"],
-            "effective_samples": public["sample_counts"]["effective"],
-            "failures": public["sample_counts"]["failures"],
-        }
+        manifest = build_run_manifest(
+            public, summary_path.relative_to(repo), raw,
+            summary_sha256=sha256_bytes(summary_bytes),
+            fresh_gpu_run=args.reuse_raw is None,
+            manifest_created_utc=datetime.now(timezone.utc).isoformat(),
+        )
         manifest_bytes = (json.dumps(manifest, indent=2, sort_keys=True, allow_nan=False) + "\n").encode()
         summary_path.write_bytes(summary_bytes)
         manifest_path.write_bytes(manifest_bytes)
