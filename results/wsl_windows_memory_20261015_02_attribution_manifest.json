@@ -1,0 +1,48 @@
+{
+  "artifacts": {
+    "guest_trace": {
+      "path": "results/wsl_windows_memory_20261015_02_guest.csv",
+      "sha256": "94b11eddb845faaaa3e137f4f8bfbb829eeead83c140272c2827ba1fdfafd710"
+    },
+    "host_trace": {
+      "path": "results/wsl_windows_memory_20261015_02_host.jsonl",
+      "sha256": "53e268297393219c392facf02be48f192de88cbaeea482770ff334dfb4ccb462"
+    },
+    "runner_manifest": {
+      "path": "results/qwen_temporal_position_allocator_memory_32f_20261015_04_run_manifest.json",
+      "sha256": "fac765196debdf4c54b79173a7b99e8d47169bfa1e08630756620edd029cc031"
+    },
+    "runner_summary": {
+      "path": "results/qwen_temporal_position_allocator_memory_32f_20261015_04.json",
+      "sha256": "c0fd8e54091c9bfe3d56098bed218324e4a719369f90b8f5e3c1e89d25b081dc"
+    }
+  },
+  "limitations": [
+    "One approximately 20-second run; descriptive co-movement only, no causal attribution.",
+    "Windows host, WSL guest, cgroup, process RSS, CUDA, and NVML counters have distinct scopes.",
+    "No faithfulness samples or effect estimates are produced.",
+    "Raw telemetry contains only aggregate memory counters and timestamps; no process lists, user identifiers, media, or QA."
+  ],
+  "purpose": "paired_windows_host_wsl_guest_memory_attribution_for_synthetic_qwen_run",
+  "runner_interval_utc": {
+    "end": "2026-10-15T04:35:18.139117+00:00",
+    "start": "2026-10-15T04:34:58.117626+00:00"
+  },
+  "sampling": {
+    "guest_before_during_after": [
+      9,
+      20,
+      10
+    ],
+    "guest_data_rows": 39,
+    "guest_events_high_max_oom_oom_kill_all_zero": true,
+    "host_before_during_after": [
+      4,
+      9,
+      5
+    ],
+    "host_rows": 18
+  },
+  "schema_version": 1,
+  "source_commit": "d17dea8"
+}
