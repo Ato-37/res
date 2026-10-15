@@ -1,0 +1,158 @@
+{
+  "compute_dtype": "bfloat16",
+  "cuda_version": "12.8",
+  "fixed_vs_legacy_v517_sensitivity": {
+    "bitwise_equal": false,
+    "jensen_shannon_divergence_nats": 0.044690372027789915,
+    "maximum_absolute_logit_difference": 11.90234375,
+    "mean_absolute_logit_difference": 2.3427042961120605,
+    "top1_equal": true
+  },
+  "fixture": "deterministic synthetic pixels; no project media or annotations",
+  "forward_counts": {
+    "effective": 3,
+    "requested": 3
+  },
+  "gpu_resources": {
+    "device": "NVIDIA GeForce RTX 5070 Ti",
+    "forwards": [
+      {
+        "condition": "native_auto",
+        "forward_seconds": 7.192090996002662,
+        "peak_allocated_gib": 13.225880146026611
+      },
+      {
+        "condition": "explicit_native_noop",
+        "forward_seconds": 6.129991334993974,
+        "peak_allocated_gib": 13.225001811981201
+      },
+      {
+        "condition": "legacy_v517_reference",
+        "forward_seconds": 5.896595300000627,
+        "peak_allocated_gib": 13.225001811981201
+      }
+    ],
+    "free_before_gib": 14.6572265625,
+    "total_gib": 15.89398193359375
+  },
+  "host_memory": {
+    "available_after_bytes": 12420935680,
+    "available_before_bytes": 13817856000,
+    "process_peak_rss_bytes": 13176639488,
+    "total_after_bytes": 16302923776,
+    "total_before_bytes": 16302923776
+  },
+  "installed_model_source_sha256": "1b7a2a6403d309cdfe1ba31184708ed1a9f14b0ffd8e5bd4992f05a699e4f630",
+  "installed_processor_source_sha256": "dcecc3dff4ebb07c58e66923f1d62c73edee1edf572d27947c27ee5f5f2e654f",
+  "installed_vision_utils_source_sha256": "f3710ced8ffe735da57d08cf5236cf9d326ff646ed1bdad2e62593a7801adc33",
+  "limitations": [
+    "Synthetic engineering regression only; no faithfulness, QA, or semantic-validity evidence.",
+    "One deterministic sample has no uncertainty interval or inferential test.",
+    "No raw frames, model outputs, dataset labels, or per-item information are published."
+  ],
+  "model": "Qwen/Qwen2.5-VL-7B-Instruct",
+  "model_config_sha256": "77d9ec7321cc572e3579e2c84799c9cadaded63c49ce93b101733349fc330c43",
+  "model_revision": "cc594898137f460bfe9f0759e9844b3ce807cfb5",
+  "purpose": "synthetic_subsecond_temporal_position_regression_check",
+  "quantization": "4bit",
+  "raw_run_sha256": "f58718eb6bab2d1d8ed783c26a5a1b9b27b37fa864f6c431e74f79b0827c83f0",
+  "sample_counts": {
+    "effective": 1,
+    "failures": 0,
+    "requested": 1
+  },
+  "schema_version": 1,
+  "seed": 20261012,
+  "source_commit": "9c35b9ad522ccacedefbdf2f876693b1e946ce4d",
+  "source_sha256": {
+    "qwen_temporal_geometry.py": "a0d455fd43f1ccdd5335676abedc2c85df8096ae962bbedff3b4b952ee3fd118",
+    "run_dataset_video_gpu_smoke.py": "a9801b139e4a9a8c590193a3c9fb4b14242463f3728eabf6555652c409464539",
+    "run_qwen_temporal_position_gpu_check.py": "1ed4e6c0547fbc00636da35609cb3884e0c3e57fa1241422557f3dacd4c15ec8",
+    "video_time_mapping.py": "01711ac0f20770530239cf98ffb719c7f9e6f416f8c416aaf48da9543b091089"
+  },
+  "synthetic_video": {
+    "changed_position_id_entries": 0,
+    "fractional_temporal_anchors": [
+      15,
+      16,
+      18,
+      19,
+      21,
+      22,
+      24,
+      25,
+      27,
+      28,
+      30,
+      31,
+      33,
+      34,
+      36,
+      37,
+      39,
+      40,
+      42,
+      43
+    ],
+    "frames": 40,
+    "grid_thw": [
+      20,
+      32,
+      32
+    ],
+    "legacy_v517_temporal_anchors": [
+      15,
+      15,
+      15,
+      15,
+      15,
+      15,
+      15,
+      15,
+      15,
+      15,
+      15,
+      15,
+      15,
+      15,
+      15,
+      15,
+      15,
+      15,
+      15,
+      15
+    ],
+    "native_matches_fractional_reference": true,
+    "native_temporal_anchors": [
+      15,
+      16,
+      18,
+      19,
+      21,
+      22,
+      24,
+      25,
+      27,
+      28,
+      30,
+      31,
+      33,
+      34,
+      36,
+      37,
+      39,
+      40,
+      42,
+      43
+    ],
+    "sampled_fps": 2.6666666666666665,
+    "seconds_per_grid": 0.75
+  },
+  "versions": {
+    "bitsandbytes": "0.50.2",
+    "opencv-python-headless": "5.0.0.93",
+    "qwen-vl-utils": "0.0.14",
+    "torch": "2.11.0+cu128",
+    "transformers": "5.18.0"
+  }
+}
