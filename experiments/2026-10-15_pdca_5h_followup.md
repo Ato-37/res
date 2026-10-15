@@ -1420,3 +1420,18 @@ tracked source, public README, prior logs, and published derived results
 establish that the annotation format and evaluation path exist. Further work
 should resume from those existing outputs and the open temporal-token mapping
 question, rather than repeating the completed sample.
+
+### Legacy preflight artifact privacy cleanup — 17:30 JST
+
+The read-only audit of published run provenance found that the unreferenced
+tracked `results/necessity_choice_replication_preflight.json` contained
+per-sample IDs and absolute local video paths. It was not needed by any tracked
+runner or documentation reference, and those fields are not appropriate for a
+published derived summary. Removed the artifact from the current tree. Its
+aggregate counts were 80 candidates, 72 valid, 7 without matched controls, and
+1 without a sampled evidence frame; equivalent high-level candidate coverage
+is already described in existing research records. No sample manifest, video,
+annotation, or protected untracked file was opened or changed in this cleanup.
+Git history was not rewritten, so earlier commits may still contain the
+removed artifact; current-branch deletion limits future exposure without
+force-pushing or altering published history.
