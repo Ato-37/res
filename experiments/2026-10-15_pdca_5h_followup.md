@@ -1223,19 +1223,22 @@ preflight `_01.json` (the audited corrected preflight `_02` remains); exact
 byte-identical duplicate `qwen_temporal_position_repeatability_20261015_03.json`
 (identical to `_02`, same SHA-256); empty
 `qwen_gpu_utilization_20261015_03.csv`; and regenerated `scripts/__pycache__/`.
-The removals affect only ignored local artifacts, not tracked results or source
-data. An independent read-only inventory found other exact duplicate outputs,
-so I compared their hashes and checked repository references before cleanup.
+These removals affect only ignored local artifacts. An independent read-only
+inventory found other exact duplicate outputs, so I compared their hashes and
+checked repository references before cleanup.
 For exact duplicate untracked split/video-mapping summaries from 2026-10-14, I
 kept the `_03` files cited by the current experiment log and removed `_01/_02`
 duplicates; for thesis exports, I kept the `thesis_summary_final` CSV/SVG and
-removed byte-identical untracked alternate names. I retained the byte-identical
-tracked `necessity_choice_summary_ubuntu_20261006T042949Z_forest.svg` because
-it is a dated published result. Other separately numbered memory and GPU
-measurements remain because distinct hashes alone do not show redundancy. No
-confirmatory raw/source result was removed. The temporary `_02` CPU preflight
-was removed only after the audited GPU artifact, with matching embedded grids
-and counts, had been pushed and verified live.
+removed byte-identical untracked alternate names. Other separately numbered
+memory and GPU measurements remain because distinct hashes alone do not show
+redundancy. A follow-up full hash scan found the only remaining exact duplicate
+was the tracked dated Ubuntu forest plot; after confirming no current
+reference and that `thesis_summary_final_forest.svg` is the linked canonical
+copy, I removed the duplicate tracked path while preserving its Git history.
+No confirmatory raw/source result was removed. Both temporary shared-decoder CPU preflight
+JSONs were removed after the schema-v2 GPU artifact, with matching grids and
+counts, was pushed and verified live; their checksums and measurements remain
+in this log.
 
 ### Shared multi-condition decoder optimization — in progress
 
