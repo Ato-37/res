@@ -940,3 +940,46 @@ permissive grant schema until the upstream scientific and evidence gates are
 actually resolved. Faithfulness remains **0 requested / 0 effective / 0 new
 direct effect estimates**; no GPU workload was scientifically justified by
 this audit.
+
+### Independent cluster/tail sensitivity artifact audit — 16:09–16:12 JST
+
+To check whether the already published synthetic dependence analysis had
+internally consistent provenance and summaries, I audited
+`results/claim_mask_tail_coverage_sensitivity_20261015_02.json` against its
+generator and dependency. The artifact declares 288 conditions and 5,760,000
+synthetic datasets (80 videos per dataset, 20,000 repetitions per condition).
+All 288 condition keys are unique and match the declared six layouts, six ICC
+values, and component-distribution grid (at ICC zero, the inactive cluster
+component has one canonical label). The artifact's generator SHA-256
+`ad6a1b520da829f7f8125c46e381b0a0071ec423d18e7bf36c29281eedf33727` and
+dependency SHA-256
+`6fa22da3a6a57291f824250f8ca2eec735a467b69589b5d13d59a4a922a75ddf` match
+the current source bytes. The artifact SHA-256 is
+`182f3a8763ec7b0c4e80da610eba080dab4cefe2a3ecd9fe1a9da967c564e786`.
+
+I independently recomputed all 288 coverage proportions, Bernoulli Monte
+Carlo standard errors, Wilson intervals, random-intercept design effects,
+and analytic sampling standard deviations; each matched to floating-point
+precision. A separate reviewer also verified the declared mean CI width
+against `2 * t(.975, N-1) * mean_naive_estimated_se` across the grid. Neither
+the simulations nor the artifact were regenerated.
+
+For the normal/normal ICC=.20 cells, the earlier 50,000-repetition Gaussian
+grid and newer 20,000-repetition mixed-tail grid are numerically compatible:
+
+| Fixed layout | Earlier coverage (Wilson 95% interval) | Newer coverage (Wilson 95% interval) | Difference / combined MCSE |
+|---|---:|---:|---:|
+| Balanced, 10 clusters | 0.79250 [0.78892, 0.79603] | 0.79745 [0.79182, 0.80296] | 1.47 |
+| Unequal, 10 clusters | 0.77046 [0.76675, 0.77413] | 0.77260 [0.76674, 0.77836] | 0.61 |
+
+The Wilson intervals overlap and analytic SDs agree for both layouts. The
+grids use independent seeds and different repetition counts; this is an
+internal consistency check, not paired replication or exact reproducibility.
+Only these normal-random-intercept cells have an earlier comparable condition.
+The full sensitivity grid assumes fixed cluster sizes and independent,
+unit-variance random-intercept and residual components. ICC/distribution
+values are scenarios, not estimates from project data; Wilson/Monte Carlo
+uncertainty concerns simulation error only. These outputs do not establish
+real-cohort interval coverage, dependence, SESOI, or an appropriate inference
+method. Faithfulness remains **0 requested / 0 effective / 0 new direct
+effect estimates**.
