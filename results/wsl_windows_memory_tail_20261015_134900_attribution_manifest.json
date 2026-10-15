@@ -1,0 +1,58 @@
+{
+  "diagnostic_script": "scripts/run_wsl_memory_recovery_diagnostic.py",
+  "diagnostic_script_sha256": "ba3b5191e2cfb7ed51f9450242375c080e8d3edf3aaefc72287a56a36e0bbac4",
+  "guest_memory_events_max": {
+    "high": 0,
+    "max": 0,
+    "oom": 0,
+    "oom_kill": 0
+  },
+  "limitations": [
+    "single 32-frame synthetic sample and three forwards",
+    "descriptive co-movement cannot establish causality or long-run host memory cause",
+    "host and guest counters have distinct scopes and must not be added",
+    "cgroup file charge is not established as fully reclaimable"
+  ],
+  "privacy_scope": "aggregate resource counters only; no raw media, prompts, answers, annotations, or model outputs",
+  "purpose": "bind post-run Windows/WSL memory traces to a completed synthetic GPU diagnostic; descriptive only",
+  "run_id": "20261015_134900",
+  "runner_interval_utc": {
+    "completed": "2026-10-15T04:49:59.828604+00:00",
+    "seconds": 20.080164,
+    "started": "2026-10-15T04:49:39.748440+00:00"
+  },
+  "runner_manifest": "results/qwen_temporal_position_allocator_memory_32f_20261015_134900_run_manifest.json",
+  "runner_manifest_sha256": "96910b38dfe37b68bc56d0415723779d9e8c7b67215a523d07c88eeb7ad317a3",
+  "runner_summary": "results/qwen_temporal_position_allocator_memory_32f_20261015_134900.json",
+  "runner_summary_sha256": "77fc8786659e3bbf1affed2ca3193638fad07832cc008f8804a8b16346f14b08",
+  "sampling_errors": {
+    "guest": 0,
+    "host": 0
+  },
+  "schema_version": 1,
+  "source_commit": "15f80542c44b367012466b640d3a262bcb1841d4",
+  "trace_artifacts": {
+    "windows_host_jsonl": {
+      "median_sample_interval_seconds": 3.732226848602295,
+      "path": "results/wsl_windows_memory_tail_20261015_134900_host.jsonl",
+      "phase_counts": {
+        "during": 5,
+        "post": 50,
+        "pre": 5
+      },
+      "rows": 60,
+      "sha256": "dd6e4228959677abd8a598ab68fb78a869659372aa2ea4cc23a837f2e1161332"
+    },
+    "wsl_guest_csv": {
+      "median_sample_interval_seconds": 1.0005290508270264,
+      "path": "results/wsl_windows_memory_tail_20261015_134900_guest.csv",
+      "phase_counts": {
+        "during": 20,
+        "post": 185,
+        "pre": 20
+      },
+      "rows": 225,
+      "sha256": "fd97818b6ad316e80d85744e5590add5d5199b28bca65e96fbf427d9b601e129"
+    }
+  }
+}
