@@ -42,6 +42,15 @@ claim-linked mask than under the matched temporal control. It is operational
 selective dependence under this intervention, not proof of claim truth,
 causality, or a faithful natural-language explanation.
 
+Since the best foil is selected independently in each condition, define
+`Δ_gold = logP_gold(control) - logP_gold(claim-mask)` and `Δ_foil =
+max_foil(logP_foil(control)) - max_foil(logP_foil(claim-mask))`; then
+`d_i = Δ_gold - Δ_foil`. A positive `d_i` may reflect a gold score decrease,
+a best-foil score increase, or both, and the identity of the best foil may
+switch. It is a gold-vs-best-foil margin change, not a gold-answer probability
+drop alone. This is an interpretation of the frozen estimand, not an added
+metric or test.
+
 ## Mask mapping and control
 
 The selected condition masks sampled frames with timestamp `t_i=frame_index /

@@ -852,3 +852,38 @@ coverage but does not authorize or execute any inference. Faithfulness remains
 
 The reviewed guard-inventory test source SHA-256 is
 `cc386b9f7e36d5bbc46dbf69ec5b7f6e4e8f14e377c5ba6c70b70024b963de15`.
+
+### Margin estimand algebra and interpretation audit — 16:04–16:05 JST
+
+A formula-level review of the frozen gold-vs-condition-specific-best-foil
+contrast found that the protocol stated that the foil may change by condition
+but did not spell out how this affects interpretation. Writing the primary
+contrast as `d_i = Δ_gold - Δ_best-foil`, where each delta is the
+control-minus-claim-mask log-probability change, shows that positive `d_i`
+may result from lower gold-label probability, higher best-foil probability, or
+both. It is therefore a margin change, not necessarily a gold-probability
+drop by itself.
+
+An arithmetic-only example illustrates this: control gold/best-foil
+log-probabilities `0.0/-1.0` give margin `1.0`; claim-mask values
+`-0.1/+0.2` give margin `-0.3`, with the best foil changing. Thus
+`d=1.3 = 0.1 - (-1.2)`: only `0.1` nat comes from the gold score decrease,
+while `1.2` nat comes from the best-foil increase. These are deliberately
+synthetic values, not model outputs or project results.
+
+Added this decomposition and interpretation limit to the schema-v13 protocol
+contract and the dated protocol-design note. The primary contrast, score,
+cohort, and hypotheses are unchanged; no new metric or test was added. This
+clarifies what future outcomes can support and prevents describing the
+contrast as gold-label probability drop alone. No dataset, model, or GPU was
+used. Faithfulness remains **0 requested / 0 effective / 0 new direct effect
+estimates**.
+
+An independent reviewer separately expanded the condition-specific margins
+and confirmed the sign and arithmetic: `S_control - S_claimmask` equals
+`(L_gold,control - L_gold,claimmask) - (L_bestfoil,control -
+L_bestfoil,claimmask)`. For the synthetic example, the gold contribution is
+`+0.1` nat and the foil contribution is `-(-1.2) = +1.2` nat, totaling
+`+1.3` nat. The reviewer confirmed that `S_full` cancels, the primary score,
+cohort, and hypotheses remain unchanged, and the added decomposition is
+interpretive only.

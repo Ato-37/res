@@ -157,6 +157,16 @@ exactly `d_i = S_i(control-frame-mask) - S_i(claim-linked-frame-mask)`.
 `S_i(full)` is still collected to determine the pre-mask greedy-correctness
 secondary stratum; it does not contribute numerically to the primary contrast.
 
+Because the highest-scoring foil is selected separately in each condition,
+the primary contrast can also be written as
+`d_i = (L_gold,control - L_gold,claim-mask) - (L_best-foil,control - L_best-foil,claim-mask)`.
+Thus a positive `d_i` can reflect a decrease in the gold-label log-probability,
+an increase in the strongest foil log-probability, or both; the winning foil
+may switch across conditions. Report this as a change in the gold-vs-best-foil
+margin, not as a gold-answer probability drop alone. This decomposition is an
+algebraic interpretation of the frozen contrast and does not add an outcome or
+secondary test.
+
 The primary mean includes every predeclared eligible video, regardless of
 baseline correctness. Determine correctness before masking by taking the
 highest next-token log-probability among the five fixed A–E label tokens in the
