@@ -37,6 +37,13 @@ def valid_raw():
         "gpu": "NVIDIA GeForce RTX 5070 Ti",
         "gpu_free_before_gib": 14.0,
         "gpu_total_gib": 16.0,
+        "host_memory": {
+            "total_before_bytes": 15 * 1024**3,
+            "available_before_bytes": 12 * 1024**3,
+            "total_after_bytes": 15 * 1024**3,
+            "available_after_bytes": 10 * 1024**3,
+            "process_peak_rss_bytes": 6 * 1024**3,
+        },
         "source_commit": "a" * 40,
         "model": "Qwen/Qwen2.5-VL-7B-Instruct",
         "model_revision": "b" * 40,
@@ -273,6 +280,20 @@ class PublishSummaryTests(unittest.TestCase):
         raw = valid_raw()
         raw["effective_forwards"] = 2
         with self.assertRaisesRegex(ValueError, "exactly three"):
+            derive_public_summary(raw, "1" * 64)
+
+    def test_refuses_invalid_host_memory_or_rss_diagnostics(self):
+        raw = valid_raw()
+        raw["host_memory"]["available_before_bytes"] = 7 * 1024**3
+        with self.assertRaisesRegex(ValueError, "host memory"):
+            derive_public_summary(raw, "1" * 64)
+        raw = valid_raw()
+        raw["host_memory"]["process_peak_rss_bytes"] = True
+        with self.assertRaisesRegex(ValueError, "host memory"):
+            derive_public_summary(raw, "1" * 64)
+        raw = valid_raw()
+        raw["host_memory"]["process_peak_rss_bytes"] = raw["host_memory"]["total_before_bytes"] + 1
+        with self.assertRaisesRegex(ValueError, "host memory"):
             derive_public_summary(raw, "1" * 64)
 
     def test_refuses_inconsistent_geometry_timing_anchors_and_boolean_counts(self):

@@ -2,8 +2,10 @@
 
 import os
 from pathlib import Path
+import tempfile
 import unittest
 from types import SimpleNamespace
+from unittest.mock import patch
 
 import torch
 
@@ -14,6 +16,8 @@ from run_qwen_temporal_position_gpu_check import (
     validate_synthetic_subsecond_geometry,
     validate_synthetic_grid,
     assert_fractional_float32_compatibility,
+    host_memory_snapshot,
+    process_peak_rss_bytes,
 )
 
 
@@ -25,6 +29,37 @@ MODEL_PATH = (
 
 
 class FractionalPrecisionGateTests(unittest.TestCase):
+    def test_linux_host_memory_snapshot_reads_kib_as_bytes(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "meminfo"
+            path.write_text(
+                "MemTotal:       15728640 kB\nMemFree: 1024 kB\nMemAvailable: 12582912 kB\n",
+                encoding="ascii",
+            )
+            self.assertEqual(host_memory_snapshot(path), {
+                "total_bytes": 15 * 1024**3,
+                "available_bytes": 12 * 1024**3,
+            })
+
+    def test_linux_host_memory_snapshot_rejects_malformed_counters(self):
+        invalid = (
+            "MemTotal: 1 kB\nMemTotal: 2 kB\nMemAvailable: 1 kB\n",
+            "MemTotal: 1 MB\nMemAvailable: 1 kB\n",
+            "MemTotal: 1 kB\nMemAvailable: 1\n",
+            "MemTotal: 1 kB\n",
+        )
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "meminfo"
+            for contents in invalid:
+                path.write_text(contents, encoding="ascii")
+                with self.subTest(contents=contents), self.assertRaises(RuntimeError):
+                    host_memory_snapshot(path)
+
+    def test_process_peak_rss_kib_is_converted_to_bytes(self):
+        with patch("run_qwen_temporal_position_gpu_check.resource.getrusage",
+                   return_value=SimpleNamespace(ru_maxrss=123)):
+            self.assertEqual(process_peak_rss_bytes(), 123 * 1024)
+
     def test_synthetic_16_frame_geometry_is_deterministic_and_complete(self):
         frames, timestamps, fps, digest = make_synthetic_subsecond_fixture(16)
         again = make_synthetic_subsecond_fixture(16)

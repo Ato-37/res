@@ -110,6 +110,16 @@ def derive_public_summary(raw: dict, raw_sha256: str) -> dict:
         raise ValueError("invalid GPU preflight diagnostics")
     if any(row["peak_allocated_gib"] > gpu_total for row in forward_diagnostics):
         raise ValueError("per-forward allocated VRAM exceeds GPU total memory")
+    host = raw.get("host_memory")
+    host_fields = ("total_before_bytes", "available_before_bytes", "total_after_bytes",
+                   "available_after_bytes", "process_peak_rss_bytes")
+    if (not isinstance(host, dict)
+            or any(type(host.get(key)) is not int or host[key] <= 0 for key in host_fields)
+            or host["available_before_bytes"] > host["total_before_bytes"]
+            or host["available_after_bytes"] > host["total_after_bytes"]
+            or host["process_peak_rss_bytes"] > host["total_before_bytes"]
+            or host["available_before_bytes"] < 8 * 1024**3):
+        raise ValueError("invalid host memory preflight or process RSS diagnostics")
     return {
         "schema_version": 1,
         "purpose": "synthetic_subsecond_temporal_position_regression_check",
@@ -129,6 +139,13 @@ def derive_public_summary(raw: dict, raw_sha256: str) -> dict:
             "free_before_gib": gpu_free,
             "total_gib": gpu_total,
             "forwards": forward_diagnostics,
+        },
+        "host_memory": {
+            "total_before_bytes": host["total_before_bytes"],
+            "available_before_bytes": host["available_before_bytes"],
+            "total_after_bytes": host["total_after_bytes"],
+            "available_after_bytes": host["available_after_bytes"],
+            "process_peak_rss_bytes": host["process_peak_rss_bytes"],
         },
         "sample_counts": {
             "requested": raw["requested_samples"],

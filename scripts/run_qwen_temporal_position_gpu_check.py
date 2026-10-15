@@ -25,14 +25,47 @@ import math
 import os
 from pathlib import Path
 import random
+import resource
 import shutil
 import subprocess
+import sys
 import time
 
 from run_dataset_video_gpu_smoke import sha256
 from qwen_temporal_geometry import replace_video_temporal_rope_row, qwen_temporal_geometry
 
 RUN_PROGRESS = {'stage':'preflight', 'completed_forwards':0}
+MIN_HOST_AVAILABLE_BYTES = 8 * 1024**3
+
+
+def host_memory_snapshot(meminfo_path=Path('/proc/meminfo')):
+    """Read only WSL/Linux total and available host memory in bytes."""
+    fields = {}
+    for line in Path(meminfo_path).read_text(encoding='ascii').splitlines():
+        parts = line.split()
+        key = parts[0].rstrip(':') if parts else None
+        if key in {'MemTotal', 'MemAvailable'}:
+            if key in fields or len(parts) != 3 or parts[2] != 'kB':
+                raise RuntimeError('Malformed host memory counter')
+            try:
+                fields[key] = int(parts[1]) * 1024
+            except ValueError as error:
+                raise RuntimeError('Malformed host memory counter') from error
+    if set(fields) != {'MemTotal', 'MemAvailable'} or fields['MemTotal'] <= 0:
+        raise RuntimeError('Host memory counters unavailable')
+    if fields['MemAvailable'] < 0 or fields['MemAvailable'] > fields['MemTotal']:
+        raise RuntimeError('Host memory counters out of range')
+    return {'total_bytes': fields['MemTotal'], 'available_bytes': fields['MemAvailable']}
+
+
+def process_peak_rss_bytes():
+    """Return Linux ru_maxrss as bytes (Linux reports KiB)."""
+    if not sys.platform.startswith('linux'):
+        raise RuntimeError('Linux process RSS unit is required for this runner')
+    peak_kib = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
+    if type(peak_kib) is not int or peak_kib <= 0:
+        raise RuntimeError('Process peak RSS counter unavailable')
+    return peak_kib * 1024
 
 
 SYNTHETIC_SUBSECOND_TIMESTAMPS = (0.0, 0.375, 0.75, 1.125)
@@ -208,6 +241,9 @@ def main():
     from transformers.models.qwen2_5_vl.modeling_qwen2_5_vl import Qwen2_5_VLModel
     if not torch.cuda.is_available() or not torch.cuda.is_bf16_supported():
         parser.error('CUDA/BF16 required; no CPU fallback')
+    host_before = host_memory_snapshot()
+    if host_before['available_bytes'] < MIN_HOST_AVAILABLE_BYTES:
+        parser.error('At least 8 GiB host MemAvailable required; no memory reclamation attempted')
     free,total = torch.cuda.mem_get_info()
     required_free_gib = 14 if args.fixture == 'synthetic_subsecond' and args.synthetic_frame_count == 40 else 12
     if free<required_free_gib*1024**3:
@@ -343,11 +379,20 @@ def main():
             'run_dataset_video_gpu_smoke.py']
         if args.fixture=='noaa':
             source_files += ['grounding_check.py']
+        host_after = host_memory_snapshot()
+        peak_rss = process_peak_rss_bytes()
         completed=datetime.now(timezone.utc).isoformat()
         result={
             'schema_version':1,'purpose':purpose,'fixture':args.fixture,
             'started_utc':started,'completed_utc':completed,
             'elapsed_seconds':time.monotonic()-timer,
+            'host_memory':{
+                'total_before_bytes':host_before['total_bytes'],
+                'available_before_bytes':host_before['available_bytes'],
+                'total_after_bytes':host_after['total_bytes'],
+                'available_after_bytes':host_after['available_bytes'],
+                'process_peak_rss_bytes':peak_rss,
+            },
             'source_commit':subprocess.check_output(['git','rev-parse','HEAD'],cwd=repo,text=True).strip(),
             'source_sha256':{n:sha256(repo/'scripts'/n) for n in source_files},
             'installed_model_source_sha256':sha256(inspect.getfile(Qwen2_5_VLModel)),
