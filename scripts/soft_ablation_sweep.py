@@ -43,6 +43,8 @@ import transformers
 HEAD_DIM = 128
 
 
+from closed_research_branch import reject_inference
+
 def extract_frames(video_path, num_frames, max_dim):
     # Some legacy videos (notably VP6F) report a frame count that is slightly
     # larger than the number of frames OpenCV can actually decode. Count the
@@ -256,6 +258,8 @@ def main():
     parser.add_argument("--seed", type=int, default=0,
                         help="Torch seed recorded for reproducibility (forward pass is eval-mode)")
     args = parser.parse_args()
+    reject_inference(parser, 'legacy_soft_ablation',
+                     'retired head/layer/alpha search is closed')
 
     if args.num_controls < 1:
         raise ValueError("--num-controls must be at least 1")

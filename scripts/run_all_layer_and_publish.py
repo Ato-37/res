@@ -20,6 +20,7 @@ import json
 from pathlib import Path
 import subprocess
 import sys
+from closed_research_branch import reject_inference
 
 
 def run(command, cwd):
@@ -115,6 +116,8 @@ def main():
     parser.add_argument('--commit-message')
     parser.add_argument('--no-push', action='store_true')
     args = parser.parse_args()
+    reject_inference(parser, "closed_head_search",
+                     "the exploratory head-group screen is not an authorized current branch")
     if args.n_samples < 1:
         parser.error('--n-samples must be positive')
 

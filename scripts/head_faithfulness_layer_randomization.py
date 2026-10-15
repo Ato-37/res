@@ -32,6 +32,7 @@ from head_faithfulness_test import (
     validate_choice_tokens,
 )
 from necessity_mask_test import decodable_video_info, sample_indices
+from closed_research_branch import reject_inference
 
 
 def randomize_decoder_layer(layer, initializer_std, generator):
@@ -94,6 +95,8 @@ def main():
     parser.add_argument('--max-pixels', type=int, default=DEFAULT_MAX_PIXELS)
     parser.add_argument('--output', required=True)
     args = parser.parse_args()
+    reject_inference(parser, "closed_head_faithfulness",
+                     "post-confirmation layer search is closed")
     if args.n_samples < 1:
         parser.error('--n-samples must be positive')
     if args.num_frames != 16:

@@ -10,6 +10,7 @@ import sys
 
 from faithfulness_layer_randomization_utils import validate_accounting
 from run_task_validity_audit_and_publish import git_identity, push_with_rebase
+from closed_research_branch import reject_inference
 
 
 FORBIDDEN_KEYS = {'video', 'video_id', 'question', 'choices', 'answer', 'qid', 'prompt'}
@@ -42,6 +43,8 @@ def main():
     parser.add_argument('--model', default='Qwen/Qwen2.5-VL-7B-Instruct')
     parser.add_argument('--require-success', action='store_true')
     args = parser.parse_args()
+    reject_inference(parser, "closed_head_faithfulness",
+                     "post-confirmation layer search is closed")
     repo = Path(__file__).resolve().parents[1]
     sample_arg = Path(args.samples_file).expanduser()
     sample_path = (sample_arg if sample_arg.is_absolute() else repo / sample_arg).resolve()

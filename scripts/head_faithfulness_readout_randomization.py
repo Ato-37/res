@@ -17,6 +17,7 @@ import cv2
 import torch
 import transformers
 from transformers import AutoProcessor, BitsAndBytesConfig, Qwen2_5_VLForConditionalGeneration
+from closed_research_branch import reject_inference
 
 from activation_patching_sweep import build_inputs, read_sampled_frames, write_frame_set
 from faithfulness_randomization_utils import compare_attribution_rankings
@@ -70,6 +71,8 @@ def main():
     parser.add_argument('--max-pixels', type=int, default=DEFAULT_MAX_PIXELS)
     parser.add_argument('--output', required=True)
     args = parser.parse_args()
+    reject_inference(parser, "closed_head_faithfulness",
+                     "post-confirmation readout randomization does not reopen the closed hypothesis")
     if args.n_samples < 1 or args.randomizations < 1:
         parser.error('--n-samples and --randomizations must be positive')
     if args.num_frames != 16:

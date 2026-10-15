@@ -33,6 +33,7 @@ from faithfulness_utils import (
     signflip_p_against,
 )
 from necessity_mask_test import decodable_video_info, sample_indices
+from closed_research_branch import reject_inference
 
 
 LABELS = 'ABCDE'
@@ -264,6 +265,8 @@ def main():
                         help='allow non-primary settings and label output exploratory')
     parser.add_argument('--output', required=True)
     args = parser.parse_args()
+    reject_inference(parser, "closed_head_faithfulness",
+                     "the preregistered head confirmation did not meet its practical threshold")
     if args.top_k != 4 and not args.exploratory:
         parser.error('The preregistered primary uses --top-k 4; change only for labeled exploratory runs')
     if args.alpha != 0.5 and not args.exploratory:

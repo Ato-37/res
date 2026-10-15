@@ -31,6 +31,7 @@ from necessity_mask_test import (
 )
 from qwen_vl_utils import process_vision_info  # noqa: F401 (dependency check)
 from soft_ablation_sweep import append_answer_tokens, sequence_answer_logprobs
+from closed_research_branch import reject_inference
 
 
 def parse_groups(spec, n_heads):
@@ -171,6 +172,8 @@ def main():
     parser.add_argument('--strict-grounding', action='store_true')
     parser.add_argument('--output', required=True)
     args = parser.parse_args()
+    reject_inference(parser, "closed_head_search",
+                     "further head/layer/alpha exploration is closed")
     if not math.isfinite(args.self_check_atol) or args.self_check_atol < 0:
         parser.error('--self-check-atol must be finite and nonnegative')
     samples = json.loads(open(args.samples_file).read())

@@ -5,6 +5,7 @@ import json
 from pathlib import Path
 import subprocess
 import sys
+from closed_research_branch import reject_inference
 
 from run_task_validity_audit_and_publish import git_identity, push_with_rebase
 
@@ -22,6 +23,8 @@ def main():
     parser.add_argument('--seed', type=int, default=0)
     parser.add_argument('--placebo-repeats', type=int, default=5)
     args = parser.parse_args()
+    reject_inference(parser, "legacy_evidence_control",
+                     "this historical confirmation is not the current preregistered estimand")
     repo = Path(__file__).resolve().parents[1]
     sample_path, output_path = (repo / args.samples_file).resolve(), (repo / args.output).resolve()
     if repo not in sample_path.parents or repo not in output_path.parents:

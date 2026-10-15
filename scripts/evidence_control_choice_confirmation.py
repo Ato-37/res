@@ -18,6 +18,7 @@ from transformers import AutoProcessor, BitsAndBytesConfig, Qwen2_5_VLForConditi
 from activation_patching_sweep import read_sampled_frames, write_frame_set, build_inputs
 from evidence_control_probe import matched_single_frame_pairs, strict_evidence_indices
 from necessity_mask_test import decodable_video_info, sample_indices
+from closed_research_branch import reject_inference
 
 LABELS = list('ABCDE')
 
@@ -79,6 +80,8 @@ def main():
     parser.add_argument('--bootstrap-draws', type=int, default=10000)
     parser.add_argument('--output', required=True)
     args = parser.parse_args()
+    reject_inference(parser, "legacy_evidence_control",
+                     "this historical confirmation is not the current preregistered estimand")
     if args.num_frames < 3 or args.placebo_repeats < 1 or args.bootstrap_draws < 100:
         parser.error('Require num-frames >=3, placebo-repeats >=1, bootstrap-draws >=100')
     samples = json.loads(Path(args.samples_file).read_text())

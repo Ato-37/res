@@ -9,6 +9,7 @@ import subprocess
 import sys
 
 from run_task_validity_audit_and_publish import git_identity, push_with_rebase
+from closed_research_branch import reject_inference
 
 
 FORBIDDEN_KEYS = {'video', 'video_id', 'question', 'choices', 'answer', 'qid', 'prompt'}
@@ -50,6 +51,8 @@ def main():
     parser.add_argument('--require-success', action='store_true',
                         help='exit nonzero after publishing if any sample failed')
     args = parser.parse_args()
+    reject_inference(parser, "closed_head_faithfulness",
+                     "post-confirmation head randomization does not reopen the closed hypothesis")
     repo = Path(__file__).resolve().parents[1]
     sample_arg = Path(args.samples_file).expanduser()
     sample_path = (sample_arg if sample_arg.is_absolute() else repo / sample_arg).resolve()

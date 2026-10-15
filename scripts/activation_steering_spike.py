@@ -36,6 +36,8 @@ from qwen_vl_utils import process_vision_info
 HEAD_DIM = 128
 
 
+from closed_research_branch import reject_inference
+
 def extract_frames(video_path, num_frames, max_dim):
     cap = cv2.VideoCapture(video_path)
     total = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
@@ -103,6 +105,8 @@ def main():
     parser.add_argument("--model", default="Qwen/Qwen2.5-VL-7B-Instruct")
     parser.add_argument("--quant", choices=["4bit", "8bit", "none"], default="4bit")
     args = parser.parse_args()
+    reject_inference(parser, 'legacy_activation_steering',
+                     'retired head steering search is closed')
     scales = [float(x) for x in args.scales.split(",")]
 
     samples = json.load(open(args.samples_file))

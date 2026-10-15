@@ -34,6 +34,7 @@ from transformers import AutoProcessor, BitsAndBytesConfig, Qwen2_5_VLForConditi
 from qwen_vl_utils import process_vision_info
 
 from soft_ablation_sweep import append_answer_tokens, sequence_answer_logprobs
+from closed_research_branch import reject_inference
 
 
 def decodable_video_info(video_path):
@@ -167,6 +168,8 @@ def main():
     args = parser.parse_args()
     if args.num_frames < 2:
         parser.error("--num-frames must be >=2 to construct disjoint evidence/control masks")
+    reject_inference(parser, "legacy_necessity_mask",
+                     "the old nearest-frame QA-span scorer is superseded by the frozen timing contract")
 
     samples = json.load(open(args.samples_file))
     if args.n_samples is not None:

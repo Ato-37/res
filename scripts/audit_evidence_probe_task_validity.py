@@ -23,6 +23,7 @@ from transformers import AutoProcessor, BitsAndBytesConfig, Qwen2_5_VLForConditi
 
 from activation_patching_sweep import build_inputs, read_sampled_frames, write_frame_set
 from necessity_mask_test import decodable_video_info
+from closed_research_branch import reject_inference
 
 
 CHOICE_COLUMNS = [f'a{i}' for i in range(5)]
@@ -157,6 +158,8 @@ def main():
     parser.add_argument('--seed', type=int, default=0)
     parser.add_argument('--output', required=True)
     args = parser.parse_args()
+    reject_inference(parser, 'legacy_evidence_probe_task_validity',
+                     'real-media QA scoring is outside the current gated protocol')
 
     samples = json.loads(Path(args.samples_file).read_text())
     probe = json.loads(Path(args.probe_results).read_text())

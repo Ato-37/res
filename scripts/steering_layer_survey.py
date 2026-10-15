@@ -35,6 +35,8 @@ from qwen_vl_utils import process_vision_info
 HEAD_DIM = 128
 
 
+from closed_research_branch import reject_inference
+
 def _betacf(a, b, x):
     """Continued-fraction evaluation of the incomplete beta function
     (Numerical Recipes 6.4.6), used below to get an exact t-test p-value
@@ -162,6 +164,8 @@ def main():
     parser.add_argument("--n-boot", type=int, default=10000, help="Bootstrap resamples for the 95%% CI")
     parser.add_argument("--seed", type=int, default=0, help="Random seed for the bootstrap (for reproducibility)")
     args = parser.parse_args()
+    reject_inference(parser, 'legacy_steering_layer_survey',
+                     'retired head/layer/alpha search is closed')
     random.seed(args.seed)
     stats_layers = {int(x) for x in args.stats_layers.split(",")}
 

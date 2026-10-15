@@ -9,6 +9,7 @@ import subprocess
 import sys
 
 from run_task_validity_audit_and_publish import git_identity, push_with_rebase
+from closed_research_branch import reject_inference
 
 
 def run(command, repo):
@@ -51,6 +52,8 @@ def main():
     parser.add_argument('--exploratory', action='store_true',
                         help='label non-primary head settings as exploratory')
     args = parser.parse_args()
+    reject_inference(parser, "closed_head_faithfulness",
+                     "the preregistered head confirmation failed its practical threshold")
     repo = Path(__file__).resolve().parents[1]
     sample_arg = Path(args.samples_file).expanduser()
     sample_path = (sample_arg if sample_arg.is_absolute() else repo / sample_arg).resolve()

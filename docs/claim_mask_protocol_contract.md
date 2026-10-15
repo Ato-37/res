@@ -328,6 +328,23 @@ scoring call path. It is not connected to the actual cross-gate
 preflight or scorer; the hashes in these synthetic fixtures are caller-provided
 identity witnesses, not proof of production pixel provenance. It cannot clear
 the production PTS, pixel-binding, or annotation-clock gates.
+Use the blank private
+[annotation-clock calibration worksheet](annotation_clock_calibration_worksheet.md)
+to prepare the human, outcome-blind clock mapping record. It does not supply
+measurements or clear the gate until all frozen eligible items pass the
+prespecified calibration rule.
+
+The direct choice-margin scorer and its publisher currently refuse every
+preflight report before model loading, including a hand-written
+`ready`/`granted` JSON. The schema-v12 cross-gate deliberately emits
+`blocked`/`not_granted` and cannot authorize execution. A future gate must use
+a revised, authenticated report schema that binds the exact eligible/sample
+manifests and model, sampling, and intervention configuration; it must require
+human claim review, item and dataset rights, and production timing/pixel
+calibration, and a prespecified inferential target and SESOI. The consumer must
+verify those bindings and record the accepted report hash in private run
+provenance before it can allow a model load. Such a gate is not implemented,
+so a report's self-declared status cannot clear it.
 The NExT-GQA README represents its annotated spans in seconds and separately
 lists per-video duration/FPS and a frame-ID-to-time map, but does not specify
 how that map's clock origin is calibrated against a decoded stream's PTS

@@ -8,6 +8,7 @@ import sys
 import tempfile
 
 from derive_necessity_choice_margin_summary import derive, publish_manifest
+from require_execution_preflight import require_execution_preflight
 from run_task_validity_audit_and_publish import push_with_rebase
 
 
@@ -31,6 +32,7 @@ def run_analysis(command, repo, private_log):
 def analysis_command(repo, samples, output, args):
     command = [sys.executable, str(repo / "scripts/necessity_choice_margin_test.py"),
                "--samples-file", str(samples), "--output", str(output),
+               "--preflight-report", str(args.preflight_report),
                "--quant", args.quant, "--seed", str(args.seed),
                "--bootstrap-draws", str(args.bootstrap_draws),
                "--num-frames", str(args.num_frames),
@@ -62,8 +64,8 @@ def main():
     parser.add_argument("--samples-file", required=True)
     parser.add_argument("--output", required=True,
                         help="unique derived aggregate path inside results/")
-    parser.add_argument("--preflight-report",
-                        help="optional local-only preflight file; never published")
+    parser.add_argument("--preflight-report", required=True,
+                        help="local-only execution gate report; never published")
     parser.add_argument("--n-samples", type=int)
     parser.add_argument("--quant", choices=["4bit", "8bit", "none"], default="4bit")
     parser.add_argument("--seed", type=int, default=0)
@@ -76,18 +78,22 @@ def main():
     repo = Path(__file__).resolve().parents[1]
     samples = (repo / args.samples_file).resolve()
     output = (repo / args.output).resolve()
-    preflight = (repo / args.preflight_report).resolve() if args.preflight_report else None
+    preflight = (repo / args.preflight_report).resolve()
     if repo not in samples.parents or repo not in output.parents:
         parser.error("sample/output paths must be inside the repository")
-    if preflight is not None and (repo not in preflight.parents or not preflight.is_file()):
+    if not samples.is_file():
+        parser.error("missing sample manifest")
+    if repo not in preflight.parents or not preflight.is_file():
         parser.error("preflight report must exist inside the repository")
+    try:
+        require_execution_preflight(preflight)
+    except (OSError, ValueError) as exc:
+        parser.error(f"execution preflight blocked: {exc}")
     if not output.is_relative_to(repo / "results"):
         parser.error("derived output must be inside results/")
     manifest = output.with_name(output.stem + "_run_manifest.json")
     if output.exists() or manifest.exists():
         parser.error("refusing to overwrite an existing derived artifact or manifest")
-    if not samples.is_file():
-        parser.error("missing sample manifest")
     try:
         sample_rows = json.loads(samples.read_text())
         requested = validate_sample_units(sample_rows, args.n_samples)
@@ -112,7 +118,7 @@ def main():
         capture_output=True, check=True).stdout.strip()
 
     # Raw per-item records are retained in a private temporary directory and
-    # never staged. The sample manifest and optional preflight report also stay local.
+    # never staged. The sample manifest and mandatory preflight report stay local.
     private_dir = Path(tempfile.mkdtemp(prefix="res_necessity_private_"))
     os.chmod(private_dir, 0o700)
     raw_output = private_dir / "raw_result.json"

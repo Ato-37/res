@@ -35,6 +35,8 @@ from grounding_metrics import attention_overlap_proxy, sampled_point_window_cove
 from video_time_mapping import chunk_timestamp_ranges, effective_sample_fps, uniform_frame_indices
 
 
+from closed_research_branch import reject_inference
+
 def extract_frames(video_path, num_frames, max_dim):
     cap = cv2.VideoCapture(video_path)
     total = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
@@ -110,6 +112,8 @@ def main():
     parser.add_argument("--layers", default=None,
                          help="Layers averaged after forward; does not reduce attention memory (default: all)")
     args = parser.parse_args()
+    reject_inference(parser, 'legacy_grounding_check',
+                     'real-media grounding is outside the current gated protocol')
     layer_filter = [int(x) for x in args.layers.split(",")] if args.layers else None
 
     samples = json.load(open(args.samples_file))

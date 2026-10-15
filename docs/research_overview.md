@@ -16,6 +16,8 @@
 
 旧head-faithfulness確認は事前基準を満たさず、追加のhead/layer/alpha探索は停止した。研究を完了する段階ではなく、新しい評価対象へ進むための計画案として、**中間層の時間visual evidence介入によるgrounding改善と、claimの選択的証拠依存の検証**を定めた。[新研究計画書](internal_intervention_grounding_faithfulness_plan.md)が次の作業計画であり、まずCPUでNExT-GQAのinterval/claim適合性・重複ID・token-to-time mappingを監査する。データゲートを通るまで実データのQA・grounding・faithfulness評価を行わない。使用条件を別途確認した入力による動作検証は評価と区別して記録する。これは旧結果を覆すものでも、まだ承認済みの実験でもない。
 
+旧nearest-frame necessity、single-frame evidence-control、head scan/patching、head randomization、head ablation/steering、unsupervised head selection、task-validity QA scoring、旧grounding proxyの実データCLIは、この現行計画の実行経路ではない。閉じたhead仮説は再探索せず、旧single-frame/nearest-frame介入は現行claim-mask/time-mapping契約に合わないため、関連CLIとpublisherは停止する。旧validation pilot orchestratorも入力manifest作成前に停止する。合成診断や過去結果の再解析は引き続き別用途として扱う。動画を使うruntime smokeはQA・grounding・faithfulnessを測らず、実行互換性確認として別扱いにする。将来の実データ推論には、認証され、固定cohort/モデル/介入条件に結び付いた新しい実行ゲートが必要である。
+
 下記の三段構成・その後に記載されたhead中心の計画は、旧設計と実施済み記録を残すための履歴であり、現行の次アクションとして実行しない。旧数値・負の確認結果は保持し、新計画とは別estimandとして扱う。
 
 ## 三段構成

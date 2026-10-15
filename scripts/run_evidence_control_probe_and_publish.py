@@ -9,6 +9,7 @@ import json
 from pathlib import Path
 import subprocess
 import sys
+from closed_research_branch import reject_inference
 
 
 def run(command, repo):
@@ -63,6 +64,8 @@ def main():
     parser.add_argument('--output', default='results/evidence_control_probe.json')
     parser.add_argument('--commit-message', default='Publish evidence versus placebo probe')
     args = parser.parse_args()
+    reject_inference(parser, "legacy_evidence_control",
+                     "this exploratory single-frame protocol is not the current preregistered estimand")
     repo = Path(__file__).resolve().parents[1]
     samples = (repo / args.samples_file).resolve()
     output = (repo / args.output).resolve()

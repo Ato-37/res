@@ -38,6 +38,8 @@ from qwen_vl_utils import process_vision_info
 HEAD_DIM = 128
 
 
+from closed_research_branch import reject_inference
+
 def extract_frames(video_path, num_frames, max_dim):
     cap = cv2.VideoCapture(video_path)
     total = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
@@ -203,6 +205,8 @@ def main():
     parser.add_argument("--mode", choices=["layer", "head"], default="layer")
     parser.add_argument("--layers", default="0", help="Comma-separated layer indices to sweep heads in (--mode head only)")
     args = parser.parse_args()
+    reject_inference(parser, 'legacy_head_ablation',
+                     'retired head/layer search is closed')
 
     if args.samples_file:
         samples = json.load(open(args.samples_file))

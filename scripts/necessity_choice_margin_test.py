@@ -26,6 +26,7 @@ from necessity_mask_test import decodable_video_info, sample_indices
 from necessity_choice_margin_utils import (apply_mask_fill, interaction_ci,
                                            nearest_control_indices, strict_evidence_indices,
                                            summarize, validate_choice_logprobs)
+from require_execution_preflight import require_execution_preflight
 
 LABELS = list('ABCDE')
 
@@ -97,6 +98,8 @@ def masked_paths(frame_map, indices, masked, directory, mask_fill, blur_radius):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--samples-file', required=True)
+    parser.add_argument('--preflight-report', required=True,
+                        help='private report that explicitly grants this frozen run')
     parser.add_argument('--n-samples', type=int)
     parser.add_argument('--num-frames', type=int, default=16)
     parser.add_argument('--mask-fill', choices=['black', 'blur'], default='black')
@@ -111,6 +114,10 @@ def main():
     parser.add_argument('--bootstrap-draws', type=int, default=10000)
     parser.add_argument('--output', required=True)
     args = parser.parse_args()
+    try:
+        require_execution_preflight(Path(args.preflight_report))
+    except (OSError, ValueError) as exc:
+        parser.error(f'execution preflight blocked: {exc}')
     if args.num_frames < 3 or args.bootstrap_draws < 100:
         parser.error('Require --num-frames >=3 and --bootstrap-draws >=100')
     if args.mask_fill == 'blur' and args.blur_radius <= 0:

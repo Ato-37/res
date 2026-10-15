@@ -18,6 +18,7 @@ from transformers import AutoProcessor, BitsAndBytesConfig, Qwen2_5_VLForConditi
 
 from activation_patching_sweep import read_sampled_frames, write_frame_set, build_inputs
 from necessity_mask_test import decodable_video_info
+from closed_research_branch import reject_inference
 
 LABELS = list('ABCDE')
 
@@ -60,6 +61,8 @@ def main():
     parser.add_argument('--permutations', type=int, default=10000)
     parser.add_argument('--output', required=True)
     args = parser.parse_args()
+    reject_inference(parser, "legacy_evidence_control",
+                     "this exploratory single-frame protocol is not the current preregistered estimand")
     if args.bootstrap_draws < 100 or args.permutations < 100:
         parser.error('Use at least 100 bootstrap draws and permutations')
 

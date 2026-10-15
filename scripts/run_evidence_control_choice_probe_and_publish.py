@@ -5,6 +5,7 @@ import json
 from pathlib import Path
 import subprocess
 import sys
+from closed_research_branch import reject_inference
 
 from run_task_validity_audit_and_publish import git_identity, push_with_rebase
 
@@ -24,6 +25,8 @@ def main():
     parser.add_argument('--quant', choices=['4bit', '8bit', 'none'], default='4bit')
     parser.add_argument('--seed', type=int, default=0)
     args = parser.parse_args()
+    reject_inference(parser, "legacy_evidence_control",
+                     "this exploratory single-frame protocol is not the current preregistered estimand")
     repo = Path(__file__).resolve().parents[1]
     paths = {key: (repo / value).resolve() for key, value in {
         'samples': args.samples_file, 'probe': args.probe_results,

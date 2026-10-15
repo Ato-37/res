@@ -26,6 +26,7 @@ from activation_patching_sweep import (
     build_inputs, read_sampled_frames, sequence_score, validate_alignment,
     write_frame_set,
 )
+from closed_research_branch import reject_inference
 from necessity_mask_test import decodable_video_info, sample_indices
 
 
@@ -120,6 +121,8 @@ def main():
     parser.add_argument('--quant', choices=['4bit', '8bit', 'none'], default='4bit')
     parser.add_argument('--output', required=True)
     args = parser.parse_args()
+    reject_inference(parser, "legacy_evidence_control",
+                     "this exploratory single-frame protocol is not the current preregistered estimand")
     if args.placebo_repeats < 1 or args.num_frames < 2:
         parser.error('--placebo-repeats must be >=1 and --num-frames >=2')
     samples = json.loads(Path(args.samples_file).read_text())

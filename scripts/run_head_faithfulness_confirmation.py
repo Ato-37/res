@@ -9,6 +9,7 @@ import subprocess
 import sys
 
 from run_faithfulness_validation_pilot import ensure_git_ready, run
+from closed_research_branch import reject_inference
 
 
 def validate_result(result, requested, stage, minimum_effective=None):
@@ -67,6 +68,8 @@ def main():
     parser.add_argument('--minimum-effective', type=int, default=71)
     parser.add_argument('--quant', choices=['4bit', '8bit', 'none'], default='4bit')
     args = parser.parse_args()
+    reject_inference(parser, "closed_head_faithfulness",
+                     "the independent confirmation was completed and did not meet its practical threshold")
     if not re.fullmatch(r'[A-Za-z0-9_-]+', args.tag):
         parser.error('--tag may contain only letters, numbers, underscore, and hyphen')
     if args.smoke_n != 3:

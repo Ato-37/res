@@ -33,6 +33,7 @@ import torch
 from PIL import Image
 from transformers import AutoProcessor, BitsAndBytesConfig, Qwen2_5_VLForConditionalGeneration
 from qwen_vl_utils import process_vision_info
+from closed_research_branch import reject_inference
 
 
 def extract_frames(video_path, num_frames, max_dim):
@@ -98,6 +99,8 @@ def main():
                          help="Comma-separated layer:head pairs to validate specifically, e.g. '0:0,4:12,8:24,1:7' "
                               "(for testing candidates found on a different sample set, to check they're not just noise)")
     args = parser.parse_args()
+    reject_inference(parser, "closed_head_search",
+                     "further head/layer/alpha exploration is closed")
     head_filter = None
     if args.heads:
         head_filter = [tuple(int(x) for x in pair.split(":")) for pair in args.heads.split(",")]

@@ -42,6 +42,8 @@ from necessity_mask_test import (
 from soft_ablation_sweep import append_answer_tokens, sequence_answer_logprobs
 
 
+from closed_research_branch import reject_inference
+
 def read_sampled_frames(video_path, total, indices, max_dim):
     wanted = set(indices)
     cap = cv2.VideoCapture(video_path)
@@ -213,6 +215,8 @@ def main():
     parser.add_argument("--quant", choices=["4bit", "8bit", "none"], default="4bit")
     parser.add_argument("--output", required=True)
     args = parser.parse_args()
+    reject_inference(parser, 'legacy_activation_patching',
+                     'retired head/layer causal search is closed')
     if not math.isfinite(args.self_check_atol) or args.self_check_atol < 0:
         parser.error("--self-check-atol must be finite and nonnegative")
 

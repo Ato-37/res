@@ -12,6 +12,7 @@ import subprocess
 import sys
 
 from run_head_faithfulness_and_publish import git_identity
+from closed_research_branch import reject_inference
 
 
 def run(command, repo):
@@ -59,6 +60,8 @@ def main():
     parser.add_argument('--pilot-n', type=int, default=30)
     parser.add_argument('--quant', choices=['4bit', '8bit', 'none'], default='4bit')
     args = parser.parse_args()
+    reject_inference(parser, 'legacy_head_faithfulness_pilot',
+                     'retired head-faithfulness pilot is closed')
     if args.smoke_n < 1 or args.pilot_n < 2:
         parser.error('--smoke-n must be >=1 and --pilot-n must be >=2')
 
