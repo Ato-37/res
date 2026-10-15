@@ -1452,3 +1452,28 @@ remaining identity-key, numeric sample-ID-key, or absolute/home-path signals
 among the 265 tracked result JSONs. `git diff --check` passes. Git history was
 not rewritten; old published commits retain their original bytes, while the
 current branch removes the avoidable identifiers and paths.
+
+### NExT-GQA interval-grid coverage and legacy provenance limit — 17:35 JST
+
+Re-read only the published counts-only annotation/time-grid audit. Validation
+has 3,358/3,358 QA rows joined to a gsub span; 3,355 rows are structurally and
+duration-valid, containing 3,926 spans, of which 3,854 (98.17%) intersect at
+least one of the supplied 32-point `frame2time` timestamps. Test has 5,553/5,553
+joins; 5,517 rows and 6,560 spans pass structural/duration checks, with 6,479
+(98.77%) spans intersecting that timestamp grid. Median span duration is 4.5 s
+on validation and 4.1 s on test. These are deterministic metadata coverage
+counts, not model evidence or sampling-based estimates. The grid is the
+dataset's 32-point `frame2time` metadata; it does not establish the display PTS
+of the exact pixels historically passed to Qwen, nor does it calibrate the
+annotation clock origin to decoder PTS.
+
+Independent arithmetic checks over the now-redacted published 60/60 black and
+blur replication records reproduce their saved means, SDs, and group counts;
+the two conditions have the same record ordering and baseline-correct group
+membership. The earlier original run was 55/60 with five failures, so it is not
+the source of the 60/60 estimates. The replication's saved result and run
+manifest do not contain a sample-manifest content hash; therefore exact cohort
+selection cannot now be reverified without the protected private manifest.
+This provenance gap limits confidence in the historical result's full
+reproducibility even though the saved numerical summaries match their
+per-record outputs. No new experiment or effect estimate was produced.
