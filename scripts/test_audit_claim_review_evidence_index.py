@@ -84,7 +84,7 @@ def fixture():
     }
     review_index_raw = raw(review_index)
     protocol = {
-        "schema_version": 12,
+        "schema_version": 13,
         "model": {"revision": REVISION},
         "cohort": {"eligible_manifest_sha256": hashlib.sha256(eligible_raw).hexdigest(),
                    "eligible_video_count": len(eligible)},

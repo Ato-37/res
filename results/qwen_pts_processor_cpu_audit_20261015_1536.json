@@ -1,0 +1,168 @@
+{
+  "schema_version": 1,
+  "purpose": "synthetic_pts_pixels_qwen_processor_rope_integration",
+  "source_commit": "3f1bdb145994c9e1dbd67bfadd9e3b97a3323181",
+  "runner_sha256": "a312a7b76ff0110f8c5485dd8d8aa512e8fa4868603c0773190e85295cfc24fd",
+  "presentation_time_utils_sha256": "9aa1e737f985cffc781a0667d2e4cccb1e7bd1d8222aac743e55a5c3fd52f093",
+  "model_revision": "cc594898137f460bfe9f0759e9844b3ce807cfb5",
+  "model_config_sha256": "77d9ec7321cc572e3579e2c84799c9cadaded63c49ce93b101733349fc330c43",
+  "processor_config_sha256": "f2058c716eef96ccaed1cc1e2d0c08306b62586d535b28d9d08e691b2fab7ca0",
+  "installed_model_source_sha256": "1b7a2a6403d309cdfe1ba31184708ed1a9f14b0ffd8e5bd4992f05a699e4f630",
+  "installed_processor_source_sha256": "dcecc3dff4ebb07c58e66923f1d62c73edee1edf572d27947c27ee5f5f2e654f",
+  "installed_vision_utils_source_sha256": "f3710ced8ffe735da57d08cf5236cf9d326ff646ed1bdad2e62593a7801adc33",
+  "versions": {
+    "pyav": "18.1.0",
+    "av_linked_libraries": {
+      "libavutil": [
+        60,
+        26,
+        102
+      ],
+      "libavcodec": [
+        62,
+        28,
+        102
+      ],
+      "libavformat": [
+        62,
+        12,
+        102
+      ],
+      "libavdevice": [
+        62,
+        3,
+        102
+      ],
+      "libavfilter": [
+        11,
+        14,
+        102
+      ],
+      "libswscale": [
+        9,
+        5,
+        102
+      ],
+      "libswresample": [
+        6,
+        3,
+        102
+      ]
+    },
+    "torch": "2.11.0+cu128",
+    "transformers": "5.18.0"
+  },
+  "cfr": {
+    "requested_frames": 4,
+    "decoded_source_frames": 7,
+    "decoded_frames": 4,
+    "pts": [
+      0,
+      500,
+      1000,
+      1500,
+      2000,
+      2500,
+      3000
+    ],
+    "time_base": "1/1000",
+    "presentation_seconds": [
+      "0",
+      "1/2",
+      "1",
+      "3/2",
+      "2",
+      "5/2",
+      "3"
+    ],
+    "selected_source_indices": [
+      0,
+      2,
+      4,
+      6
+    ],
+    "selected_presentation_seconds": [
+      "0",
+      "1",
+      "2",
+      "3"
+    ],
+    "frame_sha256": [
+      "d39c2ded5b441dea3633c984f76032f7afe94186f7be8d959edf43de2788c466",
+      "59c13786c967982ce10495634f8428d4907f55fb2b3cc46205a283f2fee39945",
+      "4133fb0530293301f35bac0584150832c7f15986df944d8e0db9411ce4105ae6",
+      "d7be57e14aa0d7bc3f30969e7d474899d92c9a57aec649859d27c78ac6ce42a6"
+    ],
+    "qwen_metadata_indices": [
+      0,
+      1,
+      2,
+      3
+    ],
+    "qwen_metadata_fps": 1.0,
+    "qwen_video_grid_thw": [
+      2,
+      2,
+      2
+    ],
+    "tokens_per_second": 2,
+    "seconds_per_grid": 2.0,
+    "native_temporal_anchors": [
+      15,
+      19
+    ],
+    "temporal_anchor_reference": [
+      15,
+      19
+    ]
+  },
+  "vfr_gate": {
+    "pts": [
+      0,
+      100,
+      300,
+      400
+    ],
+    "time_base": "1/1000",
+    "presentation_seconds": [
+      "0",
+      "1/10",
+      "3/10",
+      "2/5"
+    ],
+    "uniform_fps_gate_rejected": true
+  },
+  "irregular_endpoint_sample_gate": {
+    "decoded_source_frames": 8,
+    "pts": [
+      0,
+      500,
+      1000,
+      1500,
+      2000,
+      2500,
+      3000,
+      3500
+    ],
+    "time_base": "1/1000",
+    "selected_source_indices": [
+      0,
+      2,
+      5,
+      7
+    ],
+    "selected_presentation_seconds": [
+      "0",
+      "1",
+      "5/2",
+      "7/2"
+    ],
+    "uniform_fps_gate_rejected": true
+  },
+  "limitations": [
+    "Synthetic CFR/VFR only; no project media, model weights, CUDA, QA, or annotations.",
+    "PTS origin is the first decoded frame and is not calibrated to annotation-player time.",
+    "This verifies the local PyAV\u2192Qwen processor fixture boundary, not production decoder equivalence.",
+    "No faithfulness, answer accuracy, or semantic evidence validity is measured."
+  ]
+}

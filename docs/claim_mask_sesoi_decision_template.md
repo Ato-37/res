@@ -12,8 +12,8 @@ eventual protocol.
 ## Frozen target
 
 - Protocol revision/hash:
-- Primary-estimand hash (schema v12 canonical hash):
-- Inference-plan hash (schema v12 canonical hash):
+- Primary-estimand hash (schema v13 canonical hash):
+- Inference-plan hash (schema v13 canonical hash):
 - Mask-transform specification/hash: specify exact replacement, parameters,
   color space, operation order, and whether the whole sampled frame is replaced.
   Keep the specification private and versioned; use the identical transform
@@ -107,7 +107,7 @@ not determine it.
 Choose one and complete only its fields:
 
 - `unresolved`: no threshold is defensible yet; leave SESOI value/rationale,
-  fixed time, review/access fields, and inference-plan hash null in schema v12.
+  fixed time, review/access fields, and inference-plan hash null in schema v13.
   Do not label the protocol confirmatory.
 - `preoutcome_fixed`: set `δ > 0`; bind the exact canonical primary-estimand
   and inference-plan hashes and rationale evidence; record a UTC freeze time

@@ -141,7 +141,7 @@ class ClaimMaskGatePreflightTests(unittest.TestCase):
         self.assertEqual(report["overall_status"], "blocked")
         self.assertEqual(report["structural_checks_status"], "passed")
         self.assertEqual(report["execution_authorization"], "not_granted")
-        self.assertIn("schema_v12_confirmatory_gate_unresolved", report["blocker_codes"])
+        self.assertIn("schema_v13_confirmatory_gate_unresolved", report["blocker_codes"])
         self.assertIn("protocol_stage_not_confirmatory", report["blocker_codes"])
         self.assertIn("sesoi_not_frozen", report["blocker_codes"])
         self.assertIn("execution_authorization_not_granted", report["blocker_codes"])

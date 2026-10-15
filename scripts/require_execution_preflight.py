@@ -21,7 +21,7 @@ def _unique_pairs(pairs: list[tuple[str, Any]]) -> dict:
 
 
 def require_execution_preflight(path: Path) -> None:
-    """Fail closed: current schema v12 has no authenticated executable report."""
+    """Fail closed: current schema v13 has no authenticated executable report."""
     if not isinstance(path, Path) or not path.is_file():
         raise ValueError("execution preflight report is missing")
     raw = path.read_bytes()
@@ -37,6 +37,6 @@ def require_execution_preflight(path: Path) -> None:
             and report.get("schema_version") == 1
             and report.get("purpose") == "claim_mask_structural_cross_gate_preflight"):
         raise ValueError(
-            "schema-v12 cross-gate deliberately never grants execution; "
+            "schema-v13 cross-gate deliberately never grants execution; "
             "an authenticated, run-bound future gate is not implemented")
     raise ValueError("unsupported execution preflight schema; refusing inference")

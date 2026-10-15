@@ -6,7 +6,7 @@ H = "0" * 64
 G = "0" * 40
 def fixture():
     value = {
-        "schema_version": 12,
+        "schema_version": 13,
         "protocol_stage": "exploratory",
         "model": {"revision": G, "tokenizer_revision": G, "quant": "4bit", "dtype": "bfloat16", "attention_implementation": "sdpa"},
         "cohort": {"candidate_manifest_sha256": H, "eligible_manifest_sha256": H, "exclusion_manifest_sha256": H, "overlap_audit_sha256": H, "candidate_video_count": 2, "eligible_video_count": 2, "prerun_exclusion_count": 0, "analysis_unit_count": 2, "split_overlap_count": 0, "primary_population": "all_eligible_videos", "secondary_population": "baseline_correctness_strata"},
@@ -97,10 +97,8 @@ class TestClaimMaskProtocol(unittest.TestCase):
         x=fixture(); x["protocol_stage"]="confirmatory"
         self.assertIn("protocol_stage_invalid",validate(x)["failure_codes"])
 
-    def test_schema_v9_through_v11_are_rejected_after_v12_change(self):
-        x=fixture(); x["schema_version"]=9
-        self.assertIn("schema_version_invalid",validate(x)["failure_codes"])
-        for version in (10, 11):
+    def test_schema_v9_through_v12_are_rejected_after_v13_change(self):
+        for version in (9, 10, 11, 12):
             x=fixture(); x["schema_version"]=version
             self.assertIn("schema_version_invalid",validate(x)["failure_codes"])
 
@@ -382,6 +380,101 @@ class TestClaimMaskProtocol(unittest.TestCase):
                 x=fixture(); x["claim_review"][field]="1"*64
                 self.assertIn("primary_estimand_hash_mismatch",validate(x)["failure_codes"])
 
+    def test_primary_estimand_hash_binds_each_declared_component(self):
+        paths = (
+            ("model", "revision"), ("model", "tokenizer_revision"),
+            ("model", "quant"), ("model", "dtype"),
+            ("model", "attention_implementation"),
+            ("cohort", "eligible_manifest_sha256"),
+            ("cohort", "primary_population"),
+            ("inference_design", "target_kind"),
+            ("inference_design", "target_definition_sha256"),
+            ("inference_design", "selection_design"),
+            ("inference_design", "sampling_frame_sha256"),
+            ("inference_design", "selection_record_sha256"),
+            ("sampling", "policy"), ("sampling", "config_sha256"),
+            ("sampling", "uses_claim_for_selection"),
+            ("sampling", "num_frames"), ("sampling", "frame_size"),
+            ("sampling", "max_pixels"), ("sampling", "cap_pixels_per_frame"),
+            ("claim_review", "claim_manifest_sha256"),
+            ("claim_review", "mapping_sha256"),
+            ("claim_review", "review_record_sha256"),
+            ("claim_review", "mapping_unit"),
+            ("estimand", "answer_candidate_protocol_sha256"),
+            ("estimand", "gold_choice_manifest_sha256"),
+            ("estimand", "triplet_manifest_sha256"),
+            ("estimand", "score_kind"),
+            ("estimand", "baseline_correction"),
+            ("estimand", "target_definition"),
+            ("estimand", "margin_definition"),
+            ("intervention", "kind"), ("intervention", "selector_sha256"),
+            ("intervention", "control_sha256"),
+            ("intervention", "mask_transform_sha256"),
+            ("intervention", "minimum_selected_frame_count"),
+            ("intervention", "selected_condition"),
+            ("intervention", "control_condition"),
+            ("intervention", "selected_unit"),
+            ("intervention", "control_matching"),
+        )
+        baseline = fixture()
+        baseline_hash = compute_primary_estimand_sha256(baseline)
+        for path in paths:
+            with self.subTest(path=path):
+                changed = copy.deepcopy(baseline)
+                target = changed
+                for key in path[:-1]:
+                    target = target[key]
+                old = target[path[-1]]
+                if type(old) is int:
+                    target[path[-1]] = old + 1
+                elif type(old) is bool:
+                    target[path[-1]] = not old
+                else:
+                    target[path[-1]] = old + "_changed"
+                self.assertNotEqual(compute_primary_estimand_sha256(changed), baseline_hash)
+                self.assertIn("primary_estimand_hash_mismatch", validate(changed)["failure_codes"])
+
+    def test_inference_plan_hash_binds_each_declared_component(self):
+        paths = (
+            ("dependence_plan", "uncertainty_target"),
+            ("dependence_plan", "independence_unit"),
+            ("dependence_plan", "cluster_audit_status"),
+            ("dependence_plan", "cluster_unit"),
+            ("dependence_plan", "independent_cluster_count"),
+            ("dependence_plan", "cluster_audit_sha256"),
+            ("dependence_plan", "distributional_status"),
+            ("dependence_plan", "distributional_assumption"),
+            ("dependence_plan", "distributional_rationale_sha256"),
+            ("dependence_plan", "tail_sensitivity_plan_sha256"),
+            ("dependence_plan", "distributional_reviewed_at_utc"),
+            ("dependence_plan", "outcome_access_status"),
+            ("dependence_plan", "outcome_access_record_sha256"),
+            ("dependence_plan", "method_status"),
+            ("dependence_plan", "method"),
+            ("analysis", "primary_ci_method"),
+            ("analysis", "primary_contrast_count"),
+            ("analysis", "primary_multiplicity"),
+            ("analysis", "secondary_families"),
+            ("analysis", "secondary_adjustment"),
+            ("analysis", "secondary_hypothesis_manifest_sha256"),
+        )
+        baseline = fixture()
+        baseline_hash = compute_inference_plan_sha256(baseline)
+        for path in paths:
+            with self.subTest(path=path):
+                changed = copy.deepcopy(baseline)
+                target = changed
+                for key in path[:-1]:
+                    target = target[key]
+                old = target[path[-1]]
+                if type(old) is int:
+                    target[path[-1]] = old + 1
+                elif isinstance(old, list):
+                    target[path[-1]] = [*old, "changed"]
+                else:
+                    target[path[-1]] = (old or "unresolved") + "_changed"
+                self.assertNotEqual(compute_inference_plan_sha256(changed), baseline_hash)
+
     def test_primary_estimand_hash_rejects_non_utf8_surrogate_text(self):
         x=fixture(); x["model"]["quant"]="\ud800"
         result=validate(x)
@@ -418,7 +511,7 @@ class TestClaimMaskProtocol(unittest.TestCase):
         self.assertIn("runtime_fields_invalid",r["failure_codes"])
 
     def test_duplicate_json_key_is_rejected_without_echoing_input(self):
-        raw=json.dumps(fixture()).replace('"schema_version": 12', '"schema_version": 12, "schema_version": 12', 1)
+        raw=json.dumps(fixture()).replace('"schema_version": 13', '"schema_version": 13, "schema_version": 13', 1)
         with tempfile.TemporaryDirectory() as directory:
             path=Path(directory)/"duplicate.json"; path.write_text(raw, encoding="utf-8")
             stdout=io.StringIO()

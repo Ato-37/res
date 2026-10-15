@@ -2,7 +2,7 @@
 """CPU-only structural cross-gate report for claim-mask artifacts.
 
 This command never initializes a model or video processor and never grants
-execution authorization. Schema v12 is exploratory-only and SESOI remains
+execution authorization. Schema v13 is exploratory-only and SESOI remains
 unresolved, so even a synthetic structural pass is reported as blocked.
 """
 from __future__ import annotations
@@ -112,7 +112,7 @@ def preflight(paths: dict[str, Path]) -> dict:
         protocol_report = validate_protocol(protocol, hashlib.sha256(protocol_raw).hexdigest())
         components["protocol"] = _component(
             "passed" if _strict_pass(protocol_report, "structurally_valid", True) else "failed",
-            protocol_report, expected_schema_version=12)
+            protocol_report, expected_schema_version=13)
     except Exception:
         components["protocol"] = _component("error", error="component_audit_error")
     if components["protocol"]["status"] != "passed":
@@ -155,9 +155,9 @@ def preflight(paths: dict[str, Path]) -> dict:
     if components["data_rights_evidence"]["status"] != "passed":
         blockers.append("data_rights_evidence_structure_failed")
 
-    # Never treat structural validation as scientific readiness. v12 refuses
+    # Never treat structural validation as scientific readiness. v13 refuses
     # confirmatory labels by design; no CLI flag can override this stop.
-    blockers.append("schema_v12_confirmatory_gate_unresolved")
+    blockers.append("schema_v13_confirmatory_gate_unresolved")
     if not isinstance(protocol, dict) or protocol.get("protocol_stage") != "confirmatory":
         blockers.append("protocol_stage_not_confirmatory")
     analysis = protocol.get("analysis") if isinstance(protocol, dict) else None

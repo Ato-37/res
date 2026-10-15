@@ -1,4 +1,4 @@
-# Claim-linked evidence-frame mask protocol contract (schema v12)
+# Claim-linked evidence-frame mask protocol contract (schema v13)
 
 `scripts/validate_claim_mask_protocol.py` is a CPU-only, fail-closed structural
 validator for the exploratory design stage. The secondary-family multiplicity
@@ -9,7 +9,7 @@ Student-t interval over one contrast per video, assuming independent
 video-level contrasts, with sample SD and `df=n-1`; the primary decision rule
 compares the lower bound with the separately fixed SESOI. Family membership
 must be frozen before scoring. The SESOI is still
-not fixed, so schema v12 rejects a `confirmatory` stage.
+not fixed, so schema v13 rejects a `confirmatory` stage.
 Structural validity neither authenticates evidence nor authorizes inference.
 The frozen primary cohort must contain at least two eligible videos because
 the declared sample SD and `df=n-1` interval are undefined at `n=1`; the
@@ -17,7 +17,7 @@ validator rejects smaller cohorts. This is only a mathematical minimum, not a
 claim that two videos provide adequate precision or support the population
 assumptions.
 
-Schema v12 adds a distributional plan to the hashed inference declaration. A
+Schema v13 adds a distributional plan to the hashed inference declaration. A
 resolved Student-t method requires a reviewed declaration of either iid normal
 video-level differences or iid finite-variance differences, plus hashes for a
 pre-outcome rationale and tail-sensitivity plan. The t interval is exact under
@@ -63,7 +63,7 @@ One row per unique `video_id` prevents counting multiple questions from the
 same video as independent units, but does not establish independence across
 different videos. Videos may share a creator, recording event, series, or
 source lineage; whether such clusters occur in this cohort is unknown until
-appropriate metadata are audited. Schema v12 requires explicit
+appropriate metadata are audited. Schema v13 requires explicit
 `inference_design` and `dependence_plan` objects, including unresolved states,
 and binds target/cohort-selection into the primary-estimand hash and
 uncertainty/method declarations into a separate
@@ -205,7 +205,7 @@ margin-drop values without a separately justified estimand.
 ## Existing-runner compatibility
 
 [`necessity_choice_margin_test.py`](../scripts/necessity_choice_margin_test.py)
-is a legacy exploratory runner, not an implementation of schema v12. It shares
+is a legacy exploratory runner, not an implementation of schema v13. It shares
 the gold-versus-best-foil next-token margin, per-condition best-foil selection,
 pre-mask restricted-choice correctness, inclusive timestamp membership, and
 equal-count nearest temporal-rank control. It uses the existing grounding
@@ -216,12 +216,12 @@ rather than frozen pre-scoring exclusions in the cohort denominator. It
 currently declares the baseline-correct cohort as primary, reports bootstrap
 intervals and unadjusted sign-flip tests, and has no question-type secondary
 family. Preserve its historical outputs as pre-v12 legacy results; do not
-describe them as protocol-v12 results or use this runner unchanged for a future
-schema-v12 run. A future runner must score all
+describe them as protocol-v13 results or use this runner unchanged for a future
+schema-v13 run. A future runner must score all
 eligible videos for the primary population, use the fixed Student-t primary
 interval and frozen Holm secondary families, establish the independent claim
 mapping, and enforce/hash the current contract's mask-transform and
-nonempty-mask rules in a schema-v12-compatible runner. Before any model score
+nonempty-mask rules in a schema-v13-compatible runner. Before any model score
 call, it must compute assignments for the entire frozen eligible cohort. If
 any reviewed claim has zero sampled overlap or lacks an equal-count control,
 the runner must record a fixed-code cohort-level gate failure, score none of
@@ -235,17 +235,19 @@ helper deliberately preserves repeated indices for legacy parity; the
 preflight deduplicates and now explicitly rejects a clip when fewer than the
 requested number of distinct frames remain, before model scoring. The old
 scoring path may still fail when it cannot materialize the requested distinct
-frames. Schema v12 requires `F >= 2` so a sampled temporal rate and a distinct
-equal-count control can be defined. Any future schema-v12-compatible runner
-must freeze one cohort-wide `F` in the sampling-config hash and enforce the
-same requirement before any model score call. This shared helper does not by
-itself establish timestamp precision or contract compatibility. Preflight also
+frames. Schema v13 requires `F >= 2` so a sampled temporal rate and a distinct
+equal-count control can be defined. Any future schema-v13-compatible runner
+must freeze one cohort-wide `F` in the sampling configuration and its digest,
+verify agreement with the explicit sampling declarations in the protocol, and
+enforce the same requirement before any model score call. This shared helper
+does not by itself establish timestamp precision or contract compatibility.
+Preflight also
 requires a finite, positive source FPS from the video metadata; it does not
 substitute a conventional FPS when metadata is zero, missing, or non-finite,
 because that would silently change the time-to-frame
 mapping used for evidence intervals. A finite nominal FPS alone does not prove
 that decoded frame index divided by FPS equals media presentation time. Before
-any schema-v12 scoring run, the runner must obtain a validated presentation-time
+any schema-v13 scoring run, the runner must obtain a validated presentation-time
 map for the exact decoded sequence and exact frames passed to the model. The
 current sampler/control objective is based on sampled-frame rank, which
 corresponds to elapsed media time only when sampled PTS fit a uniform temporal
@@ -291,7 +293,7 @@ a model-output efficacy result, and does not retroactively alter historical
 scores ([Transformers 5.18 release notes](https://newreleases.io/project/pypi/transformers/release/5.18.0),
 [upstream Qwen fractional-position regression test](https://github.com/huggingface/transformers/blob/main/tests/models/qwen2_5_vl/test_modeling_qwen2_5_vl.py)).
 
-For the current rank-matched design, a future schema-v12 runner must fail the
+For the current rank-matched design, a future schema-v13 runner must fail the
 entire frozen cohort before scoring if any selected PTS sequence exceeds the
 predeclared uniform-grid tolerance, lacks complete/strictly ordered timestamps,
 or cannot be bound to the actual input pixels. It must derive and record the
@@ -344,7 +346,7 @@ existing video has passed calibration.
 
 The direct choice-margin scorer and its publisher currently refuse every
 preflight report before model loading, including a hand-written
-`ready`/`granted` JSON. The schema-v12 cross-gate deliberately emits
+`ready`/`granted` JSON. The schema-v13 cross-gate deliberately emits
 `blocked`/`not_granted` and cannot authorize execution. A future gate must use
 a revised, authenticated report schema that binds the exact eligible/sample
 manifests and model, sampling, and intervention configuration; it must require
@@ -404,6 +406,12 @@ implementation. `gold_choice_manifest_sha256` binds per-video gold labels;
 `triplet_manifest_sha256` binds full/selected/control assignments. Claim,
 mapping, review, and rights hashes refer to separate artifacts. These are
 declared references; the validator does not resolve or authenticate them.
+The primary-estimand hash also includes every explicit sampling declaration:
+policy, configuration digest, claim-independent selection flag, frame count,
+frame size, pixel cap, and per-frame pixel-cap flag. The configuration digest
+does not authenticate the referenced configuration bytes by itself; a future
+runner must resolve the exact config, verify its digest, and confirm that its
+values agree with these declarations before scoring.
 For claim review, `claim_manifest_sha256` refers to the exact frozen pre-review
 claim-input manifest bytes, including each private frozen claim text;
 `claim_text_sha256` is computed over exact UTF-8 bytes without normalization.
@@ -422,12 +430,12 @@ review index, item-rights ledger, and dataset-rights evidence index. It reads
 each file once, runs the structural checks against those exact byte snapshots,
 and emits only component statuses and fixed failure codes. Even if every
 structural component passes, it reports `overall_status=blocked` and
-`execution_authorization=not_granted`: schema v12 only permits exploratory
+`execution_authorization=not_granted`: schema v13 only permits exploratory
 protocols, and the claim-mask SESOI is unresolved. This tool does not initialize
 a model or video processor, authenticate human/legal evidence, or authorize a
 future run. Do not use its process exit code alone as an execution permission.
 It exits nonzero for every result, including when all structural components
-pass, because `overall_status` is always blocked under schema v12.
+pass, because `overall_status` is always blocked under schema v13.
 
 For NExT-GQA, the supplied temporal interval is a QA-pair-level answer-evidence
 annotation. It is not, by itself, a mapping for a later Qwen-generated
@@ -438,7 +446,7 @@ grounding criterion accepts any moment sufficient to reveal the answer; its
 appendix asks annotators to label all relevant moments when the same evidence
 recurs. A future claim-level protocol must state whether it maps one sufficient
 occurrence or all relevant occurrences, and reviewers must follow that rule.
-The schema-v12 hash declarations do not enforce these semantic requirements;
+The schema-v13 hash declarations do not enforce these semantic requirements;
 the independent human inspection of claim and video remains necessary, and a
 structural pass alone cannot establish the mapping or authorize inference.
 Use the blank [private human-review worksheet](claim_mask_human_review_worksheet.md)

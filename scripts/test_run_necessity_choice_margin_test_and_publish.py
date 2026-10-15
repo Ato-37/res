@@ -47,7 +47,7 @@ class AnalysisCommandTests(unittest.TestCase):
             self.assertIn('exit status 2', str(raised.exception))
             self.assertEqual(log_path.stat().st_mode & 0o777, 0o600)
 
-    def test_publisher_stops_on_v12_report_before_child_or_git_checks(self):
+    def test_publisher_stops_on_current_cross_gate_report_before_child_or_git_checks(self):
         repo = Path(__file__).resolve().parents[1]
         with tempfile.TemporaryDirectory(dir=repo, prefix='.test_preflight_') as directory:
             directory = Path(directory)

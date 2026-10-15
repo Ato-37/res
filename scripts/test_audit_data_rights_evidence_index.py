@@ -58,7 +58,7 @@ def fixture(applicability="applicable"):
     }
     index_raw = raw(index)
     protocol = {
-        "schema_version": 12,
+        "schema_version": 13,
         "cohort": {"eligible_manifest_sha256": hashlib.sha256(eligible_raw).hexdigest(),
                    "eligible_video_count": 2},
         "data_rights": {"scope": "synthetic study scope", "status": "verified",

@@ -481,3 +481,94 @@ after the AST test's name and scope description were made precise. `git diff
 --check` also passed. The suite emitted expected diagnostics from negative-path
 tests; overall exit status was zero. This verifies code/test integrity only,
 not rights, annotations, or faithfulness.
+
+### Gate-consumer and hash-binding audit — 15:36–15:38 JST
+
+An independent adversarial source review found no way for the current structural
+cross-gate or its scorer consumer to authorize inference. The producer always
+emits `blocked`/`not_granted` and exits 1; the consumer rejects every current
+schema/purpose report unconditionally (including fabricated `ready`/`granted`)
+and rejects all other schemas. The direct scorer and publisher call that
+consumer before model initialization. Duplicate JSON keys, non-finite constants,
+and malformed component contracts also fail closed. This is source-level
+evidence only; future execution authorization still needs a separate
+authenticated, run-bound format. The main agent independently verified these
+branches and the synthetic integration test in source.
+
+The protocol hash functions bind the declared primary-estimand and inference
+plan fields. Existing tests covered several mutations but not every leaf. Added
+table-driven tests for every leaf included in each canonical hash payload; the
+focused validator suite passes **52/52**, and the full suite passes
+**812/812** in 9.338 s. These checks show that each declared field changes its
+hash in the test fixture; they do not authenticate evidence referenced by the
+hashes or clear any scientific gate.
+
+### Synthetic PTS-to-Qwen processor integration — 15:36 JST
+
+Ran `.venv/bin/python scripts/audit_qwen_pts_to_processor_cpu.py` against a
+temporary lossless fixture and the pinned local processor/config revision
+`cc594898137f460bfe9f0759e9844b3ce807cfb5`. No project media, model weights,
+CUDA, QA, or annotation were used. The fixture decoder returned 7 CFR source
+frames at PTS 0–3000 with time base 1/1000; deterministic endpoint sampling
+selected 4/4 at source indices `[0,2,4,6]` and relative times `[0,1,2,3]`
+seconds. Distinct pixel signatures survived the Qwen utility; processor frame
+indices were `[0,1,2,3]`, FPS was 1, and the temporal grid was `[2,2,2]`.
+Installed Qwen RoPE temporal anchors `[15,19]` matched the fixed reference
+calculation exactly. A nonuniform VFR fixture and an 8-to-4 endpoint-sampled
+CFR fixture with nonuniform selected times were both rejected by the uniform-
+FPS gate. The independent auditor reproduced these temporal calculations and
+matched the runner, helper, checkpoint-config, and installed-source hashes.
+
+Artifact `results/qwen_pts_processor_cpu_audit_20261015_1536.json` has SHA-256
+`a921726c29d094be5a703c783e2dbad104782a8dca9c767496ee8bd420819760`; runner
+`scripts/audit_qwen_pts_to_processor_cpu.py` has SHA-256
+`a312a7b76ff0110f8c5485dd8d8aa512e8fa4868603c0773190e85295cfc24fd`. The
+artifact's `source_commit` was `3f1bdb145994c9e1dbd67bfadd9e3b97a3323181`.
+This synthetic result validates only the local PyAV-to-Qwen fixture boundary
+for this stack. It does not test production media/decoder equivalence, codec
+diversity, or annotation-player clock origin, so timing calibration remains
+blocked. It measures no answer accuracy, faithfulness, or semantic validity.
+
+At this checkpoint, direct faithfulness remains **0 requested / 0 effective /
+0 new effect estimates** for the five-hour window; no inference failures,
+exclusions, effect intervals, tests, or multiplicity results were generated.
+
+### Sampling-configuration hash gap and schema-v13 repair — 15:39 JST
+
+The independent hash audit found that `sampling.config_sha256` was in the
+primary-estimand hash, but the protocol's explicit policy, claim-selection
+flag, frame count, frame size, pixel cap, and per-frame-cap flag were not.
+Changing one of those declared values while leaving the digest field unchanged
+therefore left the primary hash unchanged. Since the exact sampled inputs are
+part of the estimand, that was an avoidable ambiguity. The digest alone also
+does not prove the referenced private configuration bytes match those declared
+values.
+
+Updated the canonical primary hash to include every explicit sampling field,
+and allowed strict JSON booleans in the canonical hash payload (without
+accepting integer aliases). Because this changes canonical hash semantics,
+the protocol and its cross-gate/audit consumers were consistently advanced
+from schema v12 to v13; v9–v12 inputs remain rejected. Updated current contract,
+SESOI template, research overview, runtime messages, and synthetic fixtures.
+The contract now requires a future runner to resolve the exact sampling
+configuration, verify its digest, and check agreement with the declarations.
+Historical v12 experiment entries remain unchanged.
+
+The table-driven tests now mutate every primary-estimand and inference-plan
+hash leaf. Each primary field mutation changes the computed digest and causes
+the validator to report a stale-hash mismatch; explicit sampling fields are
+included in that set. Focused validator, cross-gate, rights/review-audit, and
+publisher tests pass **91/91**. The full script suite passed **812/812** in
+8.328 s. An independent source audit verified every schema consumer and
+synthetic fixture now expects v13, all seven sampling fields are included in
+the hash, boolean values are canonical JSON booleans distinct from integers,
+and the cross-gate and scorer consumer remain fail-closed. It found one
+documentation sentence that mentioned only the sampling-config hash; that is
+corrected to require agreement between the digest and explicit declarations.
+`rg` found no active v12 schema consumer in scripts/docs; remaining v12
+references identify legacy history or tests that reject old versions.
+`git diff --check` passes. No test read protected sample/media data or used
+CUDA. SSS is not claimed while human, rights, timing, inferential-target, and
+SESOI gates remain unresolved. The cross-gate remains `blocked`/`not_granted`;
+the repair authorizes no inference and changes no experimental outcome.
+Faithfulness progress remains **0 requested / 0 effective / 0 new estimates**.

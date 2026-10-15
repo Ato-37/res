@@ -39,7 +39,9 @@ def compute_primary_estimand_sha256(value: dict) -> str | None:
             "eligible_manifest_sha256": c["eligible_manifest_sha256"],
             "primary_population": c["primary_population"],
             "inference_design": value["inference_design"],
-            "sampling_config_sha256": s["config_sha256"],
+            "sampling": {k: s[k] for k in ("policy", "config_sha256", "uses_claim_for_selection",
+                                             "num_frames", "frame_size", "max_pixels",
+                                             "cap_pixels_per_frame")},
             "claim_review": {k: value["claim_review"][k] for k in ("claim_manifest_sha256", "mapping_sha256", "review_record_sha256", "mapping_unit")},
             "answer_candidate_protocol_sha256": e["answer_candidate_protocol_sha256"],
             "gold_choice_manifest_sha256": e["gold_choice_manifest_sha256"],
@@ -85,6 +87,8 @@ def _valid_hash_payload(value):
         return True
     elif isinstance(value, str):
         return _text(value)
+    elif type(value) is bool:
+        return True
     return type(value) is int and value >= 0
 
 def validate(value: Any, input_sha256: str | None = None) -> dict:
@@ -93,7 +97,7 @@ def validate(value: Any, input_sha256: str | None = None) -> dict:
            "data_rights", "sampling", "estimand", "intervention", "analysis", "runtime"}
     if not isinstance(value, dict): return _summary({"protocol_not_object"}, input_sha256)
     if set(value) != req: f.add("protocol_schema_keys_invalid")
-    if type(value.get("schema_version")) is not int or value.get("schema_version") != 12: f.add("schema_version_invalid")
+    if type(value.get("schema_version")) is not int or value.get("schema_version") != 13: f.add("schema_version_invalid")
     stage = value.get("protocol_stage")
     # The estimand direction and secondary Holm families are selected, but the
     # SESOI is not fixed. This schema must not label a run confirmatory yet.
@@ -259,7 +263,7 @@ def _summary(f, digest):
     if digest is not None and not _sha(digest):
         failures.add("input_sha256_invalid")
         digest = None
-    return {"schema_version": 12, "structurally_valid": not failures, "failure_codes": sorted(failures),
+    return {"schema_version": 13, "structurally_valid": not failures, "failure_codes": sorted(failures),
             "semantic_validation": "not_machine_verifiable", "execution_authorization": "not_granted",
             **({"input_sha256": digest} if digest else {})}
 

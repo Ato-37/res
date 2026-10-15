@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Bind schema-v12 claim-review hashes to the private input, ledger, and review index.
+"""Bind schema-v13 claim-review hashes to the private input, ledger, and review index.
 
 This CPU-only audit verifies byte/hash and row-reference consistency. It does
 not determine whether claims are true, supported, independently reviewed, or
@@ -101,7 +101,7 @@ def audit(protocol: Any, protocol_raw: Any, eligible: Any, eligible_raw: Any,
             failures.add(f"{label}_byte_binding_invalid")
 
     if (not isinstance(protocol, dict) or type(protocol.get("schema_version")) is not int
-            or protocol.get("schema_version") != 12):
+            or protocol.get("schema_version") != 13):
         failures.add("protocol_schema_version_invalid")
     claim_review = protocol.get("claim_review") if isinstance(protocol, dict) else None
     required_claim_review = {

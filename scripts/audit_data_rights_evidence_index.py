@@ -2,7 +2,7 @@
 """Cross-check a private rights evidence index without judging legal truth.
 
 This CPU-only checker binds exact bytes and declared cohort/use scope across a
-schema-v12 protocol, eligible manifest, v2 item-rights ledger, and private
+schema-v13 protocol, eligible manifest, v2 item-rights ledger, and private
 evidence-index JSON. It reports no identifiers or private locators and never
 authorizes inference. Human review remains required for evidence authenticity,
 authority, applicability, permissions, and condition fulfillment.
@@ -106,7 +106,7 @@ def audit(protocol: Any, protocol_raw: Any, eligible: Any, eligible_raw: Any,
     rights = protocol.get("data_rights") if isinstance(protocol, dict) else None
     if (not isinstance(protocol, dict)
             or type(protocol.get("schema_version")) is not int
-            or protocol.get("schema_version") != 12):
+            or protocol.get("schema_version") != 13):
         failures.add("protocol_schema_version_invalid")
     if not isinstance(rights, dict):
         failures.add("protocol_rights_missing")
