@@ -819,6 +819,7 @@ non-finding. No project data, model, CUDA, or faithfulness outcomes were
 used. Direct faithfulness remains **0 requested / 0 effective / 0 new effect
 estimates**.
 
+
 ### Common alternative model-weight loader audit — 16:01–16:03 JST
 
 The earlier loader inventory recognized Hugging Face `.from_pretrained(...)`
@@ -1477,3 +1478,466 @@ selection cannot now be reverified without the protected private manifest.
 This provenance gap limits confidence in the historical result's full
 reproducibility even though the saved numerical summaries match their
 per-record outputs. No new experiment or effect estimate was produced.
+
+### Local NExT-GQA real-video GPU interval-margin pilot — 18:05 JST
+
+The user authorized local-only operations and asked to move quickly into real
+data. A counts-only local audit first found 85 previously unused test videos
+with usable QA/interval metadata. The new runner
+`scripts/run_nextgqa_gold_interval_margin_pilot.py` deterministically scans
+those candidates, caps the cohort at six videos, requires a 1 ms sampled-PTS
+uniformity gate and an equal-count non-evidence control, and freezes the QA,
+answer labels, sampled pixels/PTS, and mask positions before reading model
+scores. The outcome-blind preflight accepted 6/6 selected videos; the scan had
+51 decode attempts (45 timing rejections, 6 timing passes), zero decode errors,
+and zero selected videos lacking a mask/control pair. All six also passed Qwen
+processor geometry and pixel-order checks. The six are a deterministic timing-
+eligible subset, not a probability sample.
+
+The local-only GPU run used the pinned Qwen2.5-VL-7B-Instruct checkpoint
+`cc594898137f460bfe9f0759e9844b3ce807cfb5`, 4-bit weights, BF16 compute,
+CUDA 12.8, and the RTX 5070 Ti. It completed 18/18 requested forwards across
+full-video, black gold-interval-mask, and equal-count control-mask conditions
+for 6/6 videos, with zero failures. The fixed-cohort descriptive contrast was
+`control-mask gold-vs-best-foil log-margin − gold-interval-mask margin`:
+mean **+2.5833 nat**, sample SD **2.5195**, range **−0.25 to +7.00 nat**.
+The full condition selected the correct answer label in 4/6 cases under the
+restricted five-label next-token scoring rule. No inferential test, confidence
+interval, or population generalization was computed. The pilot took 177.74 s;
+peak allocated GPU memory was 7.76 GiB. The private derived JSON is kept only
+at `/tmp/nextgqa_gold_interval_result_20261015_1805.json` (0600); its hash is
+`8d577aa2601755f5e42f3a69d54dc9371b145a333c227a483b621c2880a57ed5`.
+The matching preflight JSON is also local-only and 0600. Runner SHA-256 is
+`eaaa9e2d3652ef7465f76efcfa42795f25f160cdd5e00acc7c2c920e5d5d53ac`, cohort
+SHA-256 is `a1cc3abd5d16b0dee357688606963f0bb2214ddd9058bc46bb6f38a9e23682ef`,
+and preflight file SHA-256 is
+`b8b3966afd52793bb186c1b829f0f62b4be3b8ce49a31df8d09c810ac0ee767b`.
+
+Interpretation is limited to an exploratory benchmark answer-margin response
+under these two masks. It is **not claim-specific explanation faithfulness**:
+no generated-claim grounding was evaluated, the user-confirmed human claim
+review is incomplete, and current direct faithfulness progress therefore
+remains **0 new samples / 0 new effect estimates**. The independent audit
+identified a further material limit: decoder PTS is relative to the first
+decoded frame and has not been independently calibrated to the annotation
+player/source-edit clock. Regularity of the 16 sampled PTS and agreement with
+dataset frame2time metadata do not alone establish that origin. Correction:
+the pilot itself did not read or hash `frame2time_test.json`; the cited
+proximity comes only from a separate 85-video census and is not a per-cohort
+clock calibration. Black masking
+can also produce out-of-distribution videos, and the best foil can change by
+condition. The positive mean is an observation on six videos, not evidence of
+causal localization or statistical significance.
+
+The local runner was hardened to bind score mode to the preflight schema,
+purpose, mode, runner and decoder hashes, candidate data hashes, exclusion
+manifest digest, frame/tolerance settings, checkpoint revision, and frozen
+cohort digest. It caps the cohort at six, checks host memory and free VRAM
+before every forward, and writes summaries exclusively with mode 0600. The
+complete repository test suite passes **843/843**, `py_compile` passes, and
+`git diff --check` passes. No raw data, video, per-sample identifiers, QA text,
+or model-generated text was placed in the result. No network publication was
+performed.
+
+Next: independently audit whether the six videos' gsub intervals and supplied
+frame2time vectors support a defensible annotation-clock mapping, then design a
+clock-robust interval membership sensitivity check before treating any mask
+contrast as interval evidence. Keep the new pilot exploratory and do not reopen
+the closed head/layer/alpha search. Continue separate claim-specific work only
+after human claim-to-interval review is complete.
+
+### Pilot cohort accounting correction and fixed-cohort replay — 18:20 JST
+
+An independent audit found that the first preflight's `requested_videos=85`
+and one limitation sentence did not reflect the runner's six-video cap. The
+runner stopped after the first six eligible videos in deterministic hash order;
+it decoded only the scanned prefix. The observed count decomposition is 85
+available candidates = 51 scanned + 34 unscanned; among the 51 scanned, 45
+failed the fixed 1 ms sampled-PTS regularity gate and six passed. The run had
+zero decode failures (51 = 45 + 6) and none of the six lacked an equal-count
+control. The initial private result's effect values are unchanged, but its
+preflight wording must not be read as a census of all 85 videos.
+
+The runner was corrected to report the cap, scanned/unscanned counts and exact
+first-six selection rule, and to state that it does not read `frame2time`.
+Score mode now also verifies preflight condition grids, installed package
+versions and the pinned model config hash, in addition to the previous input,
+cohort, runner/decoder, exclusion, and frame/tolerance bindings. It records
+that local-only use was user-authorized without claiming independent rights
+verification. The corrected preflight and a same-cohort GPU replay passed:
+6/6 triplets and 18/18 forwards, zero failures. Independently compared to the
+first run, all six per-video contrasts were exactly equal, so the mean/SD/range
+again equal +2.5833/2.5195/[−0.25,+7.00] nat. This is a technical replay of
+the same six videos, not an independent replication or added sample. Corrected
+replay SHA-256 is
+`d2e14a623af0491e91b86a589f5f5ba87a3dc864bd305f01f6e68ae5bbd3ad99`; its
+preflight SHA-256 is
+`b61b873ec5d10a45edd5b6f8eb1c96685e39592e9148e988230c3770eaff1448` and runner
+SHA-256 is `a528cc42303d64ead9bbddd8db67fda8c8c5c3ae1dc26e0c86d87841c3156250`.
+All three derived artifacts remain under `/tmp` with mode 0600. The full suite
+again passed 843/843.
+
+Direct claim-faithfulness progress remains **0 new samples / 0 new effect
+estimates**. The benchmark interval-margin observation is local, exploratory,
+and clock-unresolved; no generated explanation claims were tested. No internet
+publication occurred.
+
+### Frozen-cohort frame2time cross-check — 18:25 JST
+
+To inspect the open clock-alignment issue without another model run, added
+`scripts/audit_nextgqa_pilot_frame2time_alignment.py`. It reconstructs the
+corrected six-video cohort, verifies its frozen preflight/cohort hash and
+current runner hash, then emits only aggregate metadata counts under `/tmp`.
+All six selected videos had one unambiguous video-map key and a 32-point
+`frame2time` vector. For the seven gsub spans attached to the six selected
+questions, 7/7 overlapped at least one `frame2time` point and 7/7 overlapped at
+least one of the pilot's 16 sampled PTS. Across 96 nearest timestamp pairs,
+the frame2time-to-sampled-PTS distance had median **0.181 s**, p95 **0.469 s**,
+and maximum **0.700 s**. Input and cohort hashes are bound in the summary;
+no identifiers, QA, span values, paths, or media are emitted. Local artifact
+`/tmp/nextgqa_pilot_frame2time_alignment_20261015_1820.json` is mode 0600,
+SHA-256 `e7d9b32af824586fc72b79dd2a24f9714058570abebf8ae446c00c68894afbc8`;
+the audit script SHA-256 is
+`b7430a63441310402da771824c88c83064c7c9afcae136786abd521ea39274c5`.
+
+This confirms coarse overlap for this fixed cohort, not timestamp equality,
+pixel identity between the two grids, or a shared annotation-player/source
+edit. The 0.181 s median and 0.700 s maximum nearest-grid distances leave
+substantial temporal quantization; overlap of both grids can occur even when
+they select different frames. The interval-margin pilot therefore remains
+exploratory benchmark dependence, not claim-specific faithfulness or a
+confirmed evidence localization effect. Human claim review remains incomplete;
+direct faithfulness progress is still **0 new samples / 0 new effect estimates**.
+
+#### Full-frame PTS comparison for the same six videos — 18:35 JST
+
+The initial 16-sample comparison above had a large nearest-grid distance
+because it compared a 32-point metadata vector to only 16 pixels. Re-ran the
+same frozen cohort against every decoded frame PTS (median 571 frames/video).
+Across 192 `frame2time` values, nearest full-PTS error was median **8.2 ms**,
+p95 **16.2 ms**, maximum **188.5 ms**. Four videos had all 32 points within
+16.7 ms. In the remaining two, 31/32 points had median absolute residual
+about 6 ms; the sole ~188.5 ms residual was the final `frame2time` point in
+each. All seven gsub spans still overlapped both a supplied frame2time point
+and one of the pilot's sampled PTS. This supports close dataset-metadata to
+decoder-clock correspondence through most of each vector, while exposing an
+end-point exception; it still does not independently verify the annotation
+player/source edit. Counts-only artifact
+`/tmp/nextgqa_pilot_frame2time_alignment_20261015_1835.json` is mode 0600,
+SHA-256 `54220767890bc95cc45331437e5866c17b11b03ba6334741ad97a7029f3c58d1`;
+the updated audit script SHA-256 is
+`3a4e1005216cc07c5a3fd66c5cb9eb55527c31867adce36202ac7d734357689a`.
+
+### Fresh-cohort 50 ms timing and mask-fill sensitivity — 18:47 JST
+
+The separate full 85-video PTS census found a maximum 16-frame uniform-grid
+deviation of 46.7 ms. As an explicitly exploratory technical-sensitivity
+condition, the runner was changed from 1 ms to a fixed 50 ms tolerance and
+limited to the first ten eligible videos in deterministic order. A local-only
+private media-SHA exclusion file listed all six videos from the previous pilot;
+an independent cohort reconstruction reproduced the new cohort hash and found
+zero overlap with those six. This 50 ms rule was chosen after inspecting the
+timing census and is not a confirmatory sample rule.
+
+The outcome-blind preflight scanned 10/85 candidate videos: all ten passed the
+50 ms timing and interval/control checks; 75 candidates were not scanned. No
+prior pilot video appeared in the scanned prefix. The preflight fixed ten
+videos, 16 frames, five conditions, package/model-config hashes, and the
+exclusion-file hash. On the RTX 5070 Ti, Qwen2.5-VL-7B-Instruct (4-bit, BF16,
+CUDA 12.8) completed **50/50 forwards** (10 full condition sets) without
+failure. Peak allocated VRAM was **9.12 GiB**; available host RAM before model
+load was 11.24 GiB; total elapsed time was 119.98 s. Full-condition
+restricted-choice accuracy was 9/10. Result and preflight are local-only with
+mode 0600. Result SHA-256 is
+`c5a00dd2bcace8ffa4e28bd7d955642f81506a13cd73538390463a1e42a260ee`,
+preflight SHA-256 is
+`19647eb92f57c02c41235ed4f96af16683eb422d27cc05f44596f7fde355ad84`, and
+runner SHA-256 is `0df9bd45e6209fead3eb110c25cef27f40d6a80f81fedd837ab402cb00f7fc7c`.
+The private exclusion file's SHA-256 is
+`dac8fe8191940f3def6a4458c20e40919eb7e0b4751c7229ac17288f73a45d98`.
+
+The fixed-cohort black-fill contrast (equal-count control margin minus
+gold-interval-mask margin) had mean **+0.700 nat**, sample SD **1.120**, and
+range **−0.375 to +3.500**. Under the same videos and mask locations,
+radius-12 Gaussian blur produced mean **−0.0625 nat**, SD **0.737**, and range
+**−1.375 to +0.750**. The black gold-mask margin minus the blur gold-mask
+margin averaged **−0.475 nat** (SD **0.851**, range **−2.875 to approximately
+0**). No p-value, confidence interval, multiplicity correction, or population
+inference was computed. The best foil can change by condition.
+
+Observation: the direction and size of the interval-versus-control contrast
+changed substantially between black and blur fill on this selected cohort.
+The black-fill response is therefore not robust to this fill choice here. This
+does not identify whether OOD masking, genuine evidence dependence, foil
+switching, or another interaction caused the change. The 50 ms cohort is a
+post-census technical sensitivity analysis; both it and the initial six-video
+cohort are deterministic feasibility subsets. This remains benchmark
+answer-margin dependence, not claim-specific explanation faithfulness. Direct
+faithfulness progress remains **0 new samples / 0 new effect estimates**. No
+network publication occurred.
+
+#### Fresh 50 ms cohort repeat with the fixed five-condition grid — 18:52 JST
+
+To check whether the fill-sensitivity pattern above repeats without reusing its
+media, reconstructed its ten-video cohort from the private six-video exclusion
+manifest and verified the exact cohort hash before creating a new private
+exclusion list. Excluded media count is now 16 (six from the earlier 1 ms pilot
+plus ten from the first 50 ms cohort); the exclusion JSON is mode 0600 and has
+SHA-256 `5f66a9fdb1ae4ee74774484a103f7435a779e8bbe7825dbb0957a97d1b521f2c`.
+The third cohort selected ten fresh videos after scanning 22/85 candidates;
+63 remained unscanned. Every selected video met the same fixed 50 ms PTS rule
+and had an equal-count disjoint control. This is an exploratory repeat chosen
+after the earlier outcomes, not a confirmatory test or probability sample.
+
+The outcome-blind preflight passed for ten videos × 16 frames × five
+conditions, fixed cohort SHA-256
+`87e26d501dbe5406cd1a91bf9bc4b0eab0edfc9da0ec4d6b75c4fbfe8bdb988c`, and
+model/configuration bindings. Local GPU state before scoring showed 14.66 GiB
+free VRAM and 13.45 GiB host-available RAM. Qwen2.5-VL-7B-Instruct (4-bit,
+BF16, RTX 5070 Ti) completed **50/50 model forwards**, **10/10 full condition
+sets**, zero failures, in 132.18 s; peak allocated VRAM was **8.92 GiB**.
+Restricted-choice accuracy was 7/10. Result SHA-256 is
+`8cafb52c23c5fb560ca26224003c519614a02dc91446011966622720eeb9e037`,
+preflight SHA-256 is
+`efef602dbce56fc4fe3d1d2d75f833c6dc624b2192df4288fbd29f7f54cef634`, and
+the executed runner SHA-256 is
+`d476f0626a4b7d8e1c5b368d36a81a17a725a9264cad501cbdb3e34005c2b747`.
+The exact executed runner is archived privately under `/tmp` with mode 0600;
+the current source only corrects its descriptive docstring after that run.
+
+Independent record-level recomputation gives the black control-minus-gold
+interval margin **−0.400 nat**, sample SD **1.187**, range **−3.000 to +1.250**
+(4/10 positive); the matched blur contrast is **−0.400 nat**, SD **1.493**,
+range **−3.375 to +2.125** (5/10 positive). Their paired difference averaged
+approximately zero (**−0.00000008 nat**, SD **0.618**). The first fresh 50 ms
+cohort instead had black +0.700 nat and blur −0.0625 nat. The sign reversal
+between fresh cohorts means the earlier apparent fill sensitivity did not
+repeat; neither cohort supports a stable direction for this small deterministic
+sample. No p-value, CI, multiplicity correction, or population inference is
+claimed. Since each condition's margin uses its own best foil, the score can
+change through foil switching as well as gold-choice probability changes.
+
+#### Third-cohort clock audit — 18:55 JST
+
+Updated the local counts-only audit to bind the same private exclusion file and
+preflight cohort hash instead of silently reconstructing a different cohort.
+Across 320 `frame2time` points and every decoded PTS in ten videos (median
+1,434 frames/video), nearest-clock error was median **8.3 ms**, p95 **16.2 ms**,
+maximum **20.8 ms**. Fourteen of 15 gsub spans overlapped at least one
+`frame2time` point; 12/15 overlapped at least one of the pilot's 16 sampled
+PTS. This supports close metadata-to-decoder clock correspondence for the
+fixed sample, but the sparse model sampling misses 3 annotated spans and this
+does not establish annotation-player/source-edit calibration or claim
+semantics. Private audit output SHA-256 is
+`23bbeec7647fc5ac48229963d268b104cc958f6afe1a1ae39181b89bf5ae919f`.
+
+The source's stale description of a 1 ms / three-condition protocol was
+corrected after the run; the exact executed source is retained locally for
+provenance. A separate stale limitation sentence saying “first six” was also
+corrected to “first ten”; this is wording only and did not change selection or
+scoring behavior. Direct claim-specific faithfulness progress remains **0 new
+samples / 0 new effect estimates**. No network publication occurred.
+
+### Thirty-two-frame real-video extension — 19:10 JST
+
+The 10-video timing audit showed 14/15 annotated spans intersecting a
+32-frame endpoint-inclusive grid versus 12/15 at 16 frames in the initial
+sample (and full coverage at 64 frames). To see whether 32 frames can be run
+within local GPU memory, extended the real-video smoke and the interval-margin
+runner with explicit 16/32 frame configuration. A one-video 32-frame Qwen
+smoke passed with finite logits, 4,256 input tokens, 4.19 s forward time, and
+10.93 GiB peak allocated VRAM. Smoke artifact SHA-256 is
+`6197134fbd871a5107c3dff685ab0128cf885a4fbaec056280b441938705ad1a`.
+
+The 32-frame outcome-blind preflight selected the same ten media files as the
+16-frame third-cohort run (22/85 scanned, 63 unscanned); **9/10 exact
+video-question pairs matched**, while one question changed because the first
+eligible question depends on the frame grid. This was determined before the
+32-frame scores were read. The preflight froze 32 frames, five conditions,
+50 ms timing tolerance, and cohort hash
+`a6533afb092739d9020cf6aef5d830e6b9c661f638b9350d699dedf2ed99d49b`.
+Preflight SHA-256 is
+`cfa8e8822c076962a5fcf304f247bbfddc0c67102487c128148f9f63c1d12e60`.
+
+On the RTX 5070 Ti, Qwen2.5-VL-7B-Instruct (4-bit, BF16, eager attention)
+completed **50/50 forwards**, **10/10 full condition sets**, zero failures,
+in **245.76 s**. Peak allocated VRAM reached **14.31 GiB** of 15.89 GiB
+reported total; this is close to capacity and does not justify scaling the
+same eager-attention batch beyond 32 frames. Full-condition restricted-choice
+accuracy was 8/10. Result SHA-256 is
+`c2a0c052aaaa9ae69b4a4eea8d7746c5127223a3c0f4550e2d82a390ab954436`, and the
+exact run source (SHA-256
+`7c9392be10590c0d9c629485783694cc14c43381e77b0d143080e3973b5355f8`) is
+archived locally under `/tmp` with mode 0600.
+
+Independent record recomputation gives the black control-minus-interval
+margin **−0.313 nat**, SD **1.920**, range **−4.000 to +1.625** (6/10
+positive); the blur contrast is **−0.350 nat**, SD **1.919**, range **−3.375
+to +3.625** (3/10 positive). Their per-video paired difference averaged
+**+0.038 nat**, SD **1.075**, range **−2.000 to +1.875**. The 16-frame run
+on the same ten media had black −0.400 and blur −0.400, but one of ten
+questions differs; these means are descriptive and not a complete paired
+frame-count comparison. No test, interval, multiplicity correction, or
+population inference was performed. Effects remain benchmark QA-margin
+responses and do not measure explanation faithfulness.
+
+The bound 32-frame clock audit matched all ten video keys and frame2time
+vectors. Across 320 frame2time points and all decoded PTS, nearest-clock error
+was median **8.3 ms**, p95 **16.2 ms**, maximum **20.8 ms**. For the ten
+questions selected by the 32-frame rule, the 16-, 32-, and 64-frame grids
+intersected 11/15, 14/15, and 15/15 gsub spans respectively; all ten videos
+met the 50 ms uniform-grid criterion at each count. This is geometric
+coverage only; the 32-frame Qwen input intersected 14/15 spans, and no model
+score used 64 frames. Audit artifact SHA-256 is
+`b62aadc06dfed4aa39944d83561104bb6b7675352eee28fe5f2460a358d5eeef`.
+
+The current runner accepts `--frames 16|32`, records the count in its
+preflight/result binding, and no longer assumes the private exclusion file
+contains exactly six earlier media. The real-video smoke accepts explicit
+frame count and timing tolerance and creates mode-0600 outputs. Python
+compilation, `git diff --check`, and all **846/846** repository unit tests pass.
+The local result files remain private; nothing was published online. Direct
+claim-specific faithfulness progress remains **0 new samples / 0 new effect
+estimates**.
+
+#### Second fresh 32-frame cohort — 19:20 JST
+
+To see if the first 32-frame cohort's negative mean repeated, froze another
+outcome-blind cohort after excluding the previous 26 media hashes (the original
+six-video run and both ten-video 50 ms cohorts). The private exclusion file
+contains 26 unique SHA-256 values; its digest is
+`d894ace9bacce60fdbaf977aeea6e0becf1fd3edb7da1cc65798f311185406ec`.
+The preflight selected ten fresh videos after scanning 33/85 candidate videos;
+52 were unscanned. Twenty-three excluded media hashes were encountered in
+that scanned prefix before the ten eligible selections completed. All ten
+passed the 32-frame, 50 ms, equal-count control assignment and Qwen processor
+checks. Cohort SHA-256 is
+`c8eff325d2b1fbd551da8a9e87dc4b60a8f1ecca32afb4b7227497363d92076d`;
+preflight SHA-256 is
+`a71aa7534e34fd6b67aa57d681dd6922cd3f407d7db13acd4889663fa7d40f67`.
+
+The RTX 5070 Ti completed **50/50 forwards**, ten complete five-condition
+sets, with zero failures in **224.74 s**. Peak allocated VRAM was **14.64
+GiB**, leaving little headroom; do not increase this eager-attention frame
+count or parallelize GPU jobs. Full-condition restricted-choice accuracy was
+6/10. Result SHA-256 is
+`b710ecbd9ca703d710f813313f15fe7e1405b3a2e417d8e7206d3b392f13813d`; result
+mode is 0600 and it remains local.
+
+Independent record-level recomputation gives black control-minus-interval
+margin **+0.275 nat**, SD **1.684**, range **−2.375 to +4.250** (5/10
+positive); blur contrast **+0.088 nat**, SD **1.382**, range **−1.875 to
++3.500** (4/10 positive). Black-minus-blur contrast averaged **+0.188 nat**,
+SD **0.457**, range **−0.500 to +1.125**. This cohort's black estimate has
+the opposite sign from the previous 32-frame cohort (−0.313 nat); both are
+small, deterministic, exploratory samples with no p-value/CI or population
+claim. The sign instability is evidence against treating this particular
+benchmark-margin response as a stable effect. It is not a negative or positive
+claim-faithfulness result.
+
+The bound clock audit found 11/11 annotated spans intersected the actual
+32-frame sample grid (and also the hypothetical 16- and 64-frame uniform
+grids) for these selected questions. Across 320 frame2time points, median
+nearest full-PTS error was **9.2 ms**, p95 **16.2 ms**, maximum **151.6 ms**;
+the maximum was one final vector point, with the other points close to the
+decoder clock. The sampled-grid audit cannot calibrate the annotation-player
+source edit; one span in the prior cohort was missed by 32 frames, so 11/11 is
+specific to this newly selected set. Audit artifact SHA-256 is
+`03b40f107b114f5d68839f0566eecb6379bca037198277a2a370bf3868ec758f`.
+
+#### Research decision at this checkpoint
+
+Two exploratory 50 ms media cohorts contain 20 records scored at 16 frames.
+Two 32-frame runs add 20 score sets: one revisits the second cohort’s same ten
+media (9/10 questions match the 16-frame assignment), and one adds ten fresh
+media. Descriptive black-fill contrasts vary across these four run/cohort
+combinations (+0.700, −0.400, −0.313, +0.275 nat); the first value is the
+first 16-frame 50 ms cohort. Blur-fill contrasts also vary (−0.063, −0.400,
+−0.350, +0.088 nat). These are not independent identical replications
+because timing tolerance, frame count, and eligibility differ; do not pool
+them into a confirmatory estimate. No new GPU condition is
+justified until the claim-level target and review plan are established. Direct
+claim-specific faithfulness progress remains **0 new samples / 0 new effect
+estimates**. All data, source archives, and summaries stayed local; nothing was
+published online.
+
+### Full local test-video timing audit — 19:22 JST
+
+Expanded `scripts/audit_nextgqa_pts_alignment_local.py` to compare 4/8/16/32/64
+endpoint-inclusive frame-index grids under both 1 ms and 50 ms uniformity
+limits, report annotated-span coverage separately for each, and write its
+counts-only summary exclusively with mode 0600. Ran it over all **85/85**
+available distinct annotated local test videos (requested cap 100), with **0
+decode failures** and **643/643** valid gsub spans intersecting at least one
+fully decoded frame PTS. This is the full available local candidate set for
+that script's deterministic, manifest-excluded cohort, not all NExT-GQA videos
+globally.
+
+Frame2time metadata was close to the decoder clock: 2,712 timestamp points had
+nearest-PTS error median **8.5 ms**, p95 **16.7 ms**, maximum **33.3 ms**.
+Uniform-index sampling gave span-hit rates 274/643 (**42.6%**) at 4 frames,
+450/643 (**70.0%**) at 8, 584/643 (**90.8%**) at 16, 634/643 (**98.6%**) at
+32, and 643/643 (**100%**) at 64. Every video passed the post-census 50 ms
+uniform-grid criterion at all five sample counts; only 6/85 passed 1 ms at
+16 frames and 1/85 at 32 and 64. The 50 ms threshold remains an exploratory
+engineering tolerance selected after examining timing behavior, not a
+confirmatory rule. Span/frame overlap is geometric only and says nothing about
+whether pixels support the QA answer or a generated explanation.
+
+All-85 summary SHA-256 is
+`6b60f8c0787d4a509b25b54690d4d7a081114c1c29287d8d99d28f273dac49ab`; it is
+mode 0600 under `/tmp`. The output binds dataset input hashes and a private
+video-media fingerprint; no IDs, paths, QA text, intervals, or video data are
+written. Python compilation, `git diff --check`, and the full **846/846** unit
+suite passed after these changes.
+
+This establishes that 32-frame sampling captures most supplied temporal
+intervals geometrically in this local test set, while the 32-frame model run
+uses nearly all available VRAM and its small-cohort QA-margin sign changed
+across fresh selections. It supports neither a claim-specific faithfulness
+result nor a benefit from masking. The next useful experiment is not another
+unreviewed interval-margin repetition: define and review model-generated
+answer claims against the supplied spans on a frozen local cohort, then freeze
+an explicit claim-score/control estimand before any new GPU scoring. Per the
+user's 2026-10-15 directive, local-only protected-data analysis may proceed
+without a rights-verification gate; the rights status remains unverified and
+no data or result has been shared online. Direct faithfulness progress stays
+**0 new claim samples / 0 effect estimates**.
+
+#### Independent reproduction of full-cohort counts — 19:23 JST
+
+A separately written one-off CPU pass independently rebuilt the
+manifest-excluded candidate join from the local CSV/JSON files, decoded all 85
+videos with PyAV, and recomputed interval coverage and frame-grid hits without
+calling the audit's aggregation function. It reproduced 85 decoded videos,
+zero failures, 643 intervals, 643 full-PTS overlaps, 2,712 frame2time points,
+and exact 4/8/16/32/64-frame coverage counts of 274/450/584/634/643. It also
+reproduced 85/85 videos passing 50 ms at each count. Assertions compared these
+counts to the private report and all passed. This closes the primary numerical
+reproduction check for this geometric audit; it still does not verify
+annotation meaning or explanation faithfulness.
+
+#### Explicit frame2time end-of-video accounting — 19:25 JST
+
+The first full audit's 2,712-point error distribution excluded finite
+`frame2time` values after each video's final decoded presentation timestamp.
+Added explicit accounting and reran all 85 videos: 2,720/2,720 points were
+finite, none preceded the first PTS, and **8/2,720 (0.29%)** were after the
+last PTS. The largest endpoint excess was **421.1 ms**. The remaining 2,712
+in-range points retain median nearest-PTS error 8.5 ms, p95 16.7 ms, max
+33.3 ms. Thus the 151.6 ms endpoint residual in the fresh 32-frame cohort
+falls into this after-last-PTS category; it should not be described as a
+typical within-video clock error. This still does not prove how the annotator
+player/source edit was timed, and those eight endpoint values remain a data
+handling limitation rather than evidence of annotation error.
+
+The endpoint-explicit private audit SHA-256 is
+`aff43294b4eb66277d948ceefca4e0b0175d9988d6c9457d2e4ba824cf40e009`, mode
+0600. The summary continues to report span coverage separately from timestamp
+range validity. Python compilation, diff checks, and **846/846** tests pass.
+
+An independent direct pass over the same 85 local media and `frame2time`
+vectors also reproduced 2,720 finite points, zero negative/out-of-range-start
+values, eight values beyond the last decoded PTS, and the maximum **421.1 ms**
+excess. This reconciles the selected-cohort endpoint exception with the
+full-cohort in-range distribution.

@@ -170,7 +170,11 @@ These requirements govern all video-XAI validity/faithfulness work.
 - Never use destructive Git operations such as force-push or hard reset. Do not
   silently overwrite existing outputs; use a new path or stop safely.
 - Do not externally share raw, unprocessed, or identifiable video/images. Check
-  dataset and model license terms before use or redistribution.
+  dataset and model license terms before redistribution.
+- User directive (2026-10-15): user-authorized local-only protected-data/model
+  operations may proceed without a rights-verification gate. Keep the material
+  and derived outputs local, do not publish them, and state that rights status
+  remains unverified; this exception does not authorize redistribution.
 
 ### Remote result publication and inspection
 

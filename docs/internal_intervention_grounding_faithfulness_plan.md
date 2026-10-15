@@ -97,7 +97,7 @@ d(i) = D(E) − D(C)
 
 - Qwen2.5-VLはbfloat16を使用し、4-bit時もcompute dtypeをbfloat16とする。model revision、seed、GPU/software versions、sampling、条件、requested/effective n、失敗をmanifestに残す。
 - GPU長時間run前にsmokeを実施し、推定時間・VRAM・対象範囲を提示する。runごとにunique results pathを使い、結果と必要manifestだけをstageする。
-- 動画・元annotation・質問/選択肢本文・識別子・絶対path・credential・weightsはGitHubへ出さない。dataset/model licenseも確認する。
+- 動画・元annotation・質問/選択肢本文・識別子・絶対path・credential・weightsはGitHubへ出さない。ユーザー指示（2026-10-15）によりローカル限定の保護データ/モデル処理は権利確認ゲートなしで実施可能とする。権利状態は未確認のまま記録し、外部共有・再配布は行わない。
 - 次のどれかなら確認実験を停止し、設計を見直す：gold intervalとclaim不一致、chunk-to-time mapping不確定、matched control不成立、smoke不安定、必要標本確保不能。
 - 独立confirmationが成功しても、結論は指定Qwen2.5-VL版・NExT-GQA適格質問・prompt・sampling・介入・指標に限定する。他モデル・自然動画一般・長いCoTへの一般化は別検証を要する。
 
@@ -106,5 +106,5 @@ d(i) = D(E) − D(C)
 1. **完了（2026-10-09）**：counts-only CPU監査を実装・実行。validationは期間内interval 3,355件/3,358件、既使用動画を除いて567動画。testは構造的に有効なinterval 5,517件/5,553件（不正値36件）、既使用動画を除いて575動画。詳細は[監査ログ](../experiments/2026-10-09_temporal_grounding_data_audit.md)と公開済みsummaryを参照。
 2. **完了（2026-10-09）**：全CSV video IDでgsub/frame2time/video map keyが一致。duration/構造上有効なgold intervalの格子内包含率はvalidation 98.17% (3854/3926)、test 98.77% (6479/6560)。Qwen2.5-VL processorはsynthetic 8-frame CPU smokeでFPS・4 temporal grid steps・token数の整合を確認。詳細は[time-grid/Qwen記録](../experiments/2026-10-09_time_grid_and_qwen_mapping.md)と公開summaryを参照。実データ/Qwen token対応やgrounding効果の確認ではない。
 3. **完了（2026-10-09）**：公式Qwen2.5-VL-7B-Instructをrevision cc594898137f460bfe9f0759e9844b3ce807cfb5で取得し、合成4-frame・1-videoの4-bit attention forwardを完了。requested/effective 4/4、1/1サンプル、ピーク割当6.446 GiB。合成overlap値は破棄し、grounding結果とは扱わない。詳細は[forward smoke記録](../experiments/2026-10-09_round3_synthetic_qwen_forward.md)。
-4. 動画ごとのVidOR/YFCC利用条件と注釈の再利用条件を確認する。並行してTA-AE、CRA、Map the Flowの推定対象・介入・評価表を一次論文から比較し、重複しない問いが成立するまで実データpilotや介入方式の選定を行わない。hit-rateをfaithfulnessと呼ばない。
+4. **ローカルpilot完了（2026-10-15）**：ユーザーが権利ゲートをローカル実験の前提から外し、保護対象のローカルデータ読み取りと推論を許可。NExT-GQA実動画で16/32フレーム・黒塗り/ぼかし対照の探索的QA-marginを実行。効果符号はコホート間で反転し、claim-level faithfulness効果は0件。全85候補のPTS監査では32-frame interval hit 98.6%、64-frame 100%だが、幾何学的hit率でありfaithfulnessではない。権利状態は未確認、すべてローカル、公開なし。次はモデル生成claimの対象区間レビューとclaim-score/control estimandを固定してから実験する。hit-rateをfaithfulnessと呼ばない。詳細は[2026-10-15実験ログ](../experiments/2026-10-15_pdca_5h_followup.md)。
 5. Added literature gate (2026-10-09): CRA/TA-AE overlap with the broad goal; ICLR 2026 image-VLM intervention and the STEAR video-intervention preprint further narrow novelty. No intervention-method novelty claim is currently supported. Check annotation/claim fit, and consider a replication/generalization study with advisor input. See experiments/2026-10-09_round4_proxy_metric_audit.md.
