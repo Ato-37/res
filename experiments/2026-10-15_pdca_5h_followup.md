@@ -1162,29 +1162,6 @@ forward per condition cannot establish QA performance, sampling quality, or
 optimal frame count. Current faithfulness progress remains **0 requested / 0
 effective direct faithfulness samples / 0 new direct effect estimates**.
 
-### Workspace cleanup audit — 16:42 JST
-
-The user requested directory cleanup because generated code/results have
-accumulated. A read-only inventory found `results/` is a flat, Git-ignored
-working area (23 MiB at inspection) and `scripts/__pycache__/` contained 10 MiB
-of regenerable Python bytecode. I did not reorganize result paths because the
-standalone experiment CLIs and logs rely on `results/` filenames, and moving
-them would break reproducibility without reducing data volume. I removed only
-clearly disposable local items: the two failed pre-Qwen CPU attempts
-`claim_mask_real_video_processor_cpu_20261015_01/02.json` (both failures are
-already described above; passing `_03` remains); superseded first capacity
-preflight `_01.json` (the audited corrected preflight `_02` remains); exact
-byte-identical duplicate `qwen_temporal_position_repeatability_20261015_03.json`
-(identical to `_02`, same SHA-256); empty
-`qwen_gpu_utilization_20261015_03.csv`; and regenerated `scripts/__pycache__/`.
-The removals affect only ignored local artifacts, not tracked results or source
-data. An independent read-only inventory found other exact duplicate outputs,
-but several were adjacent to separate run IDs and no safe consolidation was
-needed for this active experiment; those and all confirmatory/source results
-remain untouched. The new successful GPU capacity artifact will supersede the
-temporary `_02` CPU preflight after its contents and provenance are recorded in
-the experiment log.
-
 ### Real-video temporal input capacity GPU sweep — 16:42–16:44 JST
 
 Ran the committed `76c4f0996081377b323f849c668a76dcb9b510fe` runner on the
@@ -1230,3 +1207,32 @@ hypothesis test, or multiplicity correction. Faithfulness progress remains **0
 requested / 0 effective direct faithfulness samples / 0 new direct effect
 estimates**. The final GPU artifact supersedes and permits removal of the
 temporary ignored CPU preflight summary `_02.json` after publication.
+
+### Workspace cleanup audit — 16:44–16:50 JST
+
+The user requested directory cleanup because generated code/results have
+accumulated. A read-only inventory found `results/` is a flat, Git-ignored
+working area (23 MiB at inspection) and `scripts/__pycache__/` contained 10 MiB
+of regenerable Python bytecode. I did not reorganize result paths because the
+standalone experiment CLIs and logs rely on `results/` filenames, and moving
+them would break reproducibility without reducing data volume. I removed only
+clearly disposable local items: the two failed pre-Qwen CPU attempts
+`claim_mask_real_video_processor_cpu_20261015_01/02.json` (both failures are
+already described above; passing `_03` remains); superseded first capacity
+preflight `_01.json` (the audited corrected preflight `_02` remains); exact
+byte-identical duplicate `qwen_temporal_position_repeatability_20261015_03.json`
+(identical to `_02`, same SHA-256); empty
+`qwen_gpu_utilization_20261015_03.csv`; and regenerated `scripts/__pycache__/`.
+The removals affect only ignored local artifacts, not tracked results or source
+data. An independent read-only inventory found other exact duplicate outputs,
+so I compared their hashes and checked repository references before cleanup.
+For exact duplicate untracked split/video-mapping summaries from 2026-10-14, I
+kept the `_03` files cited by the current experiment log and removed `_01/_02`
+duplicates; for thesis exports, I kept the `thesis_summary_final` CSV/SVG and
+removed byte-identical untracked alternate names. I retained the byte-identical
+tracked `necessity_choice_summary_ubuntu_20261006T042949Z_forest.svg` because
+it is a dated published result. Other separately numbered memory and GPU
+measurements remain because distinct hashes alone do not show redundancy. No
+confirmatory raw/source result was removed. The temporary `_02` CPU preflight
+was removed only after the audited GPU artifact, with matching embedded grids
+and counts, had been pushed and verified live.
