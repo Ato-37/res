@@ -1322,8 +1322,12 @@ the result directory layout. A read-only scan found four unreferenced standalone
 scripts. Independent review showed `analyze_necessity_mask.py` was the only
 legacy-schema analyzer with no tracked input artifact, tests, source imports,
 experiment-log references, or current thesis output; its one-sample t summary is
-not part of the current black/blur margin analysis pipeline. I removed that
-obsolete analyzer while keeping its historical Git version. The other three
+not part of the current black/blur margin analysis pipeline. I initially removed
+it, then checked the ignored local result area before considering cleanup done.
+That direct inventory found local `necessity_mask_confirm_heldout_v2.json` and
+`necessity_mask_smoke.json` files in the legacy schema. The analyzer is the
+available reproduction path for those local results, so I restored it in a
+follow-up commit. No local result or private input was removed. The other three
 unreferenced scripts remain because one is the only checkpoint-fetch helper,
 one is named in tracked host/guest memory result provenance, and one is the
 only synthetic MP4 encode/decode smoke whose source hash is recorded in past
