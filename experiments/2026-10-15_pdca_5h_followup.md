@@ -1941,3 +1941,41 @@ vectors also reproduced 2,720 finite points, zero negative/out-of-range-start
 values, eight values beyond the last decoded PTS, and the maximum **421.1 ms**
 excess. This reconciles the selected-cohort endpoint exception with the
 full-cohort in-range distribution.
+
+### Model-generated claim review packet feasibility — 19:40 JST
+
+After the margin branch stopped, used three outcome-blind fresh local videos
+(16 frames each; SHA-bound cohort
+`bbee8d470655abcd10a6912d69434768c1584ffca703d4b0a26eb9d7250accc5`) to
+test whether the model can supply one short answer claim and self-selected
+evidence-frame indices for human review. Qwen inference itself completed 3/3
+videos in each of three prompt-format attempts (about 24–28 s, peak 7.6 GiB),
+but structured-output reliability failed: JSON yielded 0/3 parseable records;
+the longer fixed-label retry yielded only 1/3 complete records; and the final
+short A/C/F-label retry parsed an answer and claim for 3/3 but returned no
+valid frame-index list for any sample. Two outputs were incomplete/irregular
+under that final protocol: two stopped after the answer/claim lines and the
+third repeated answer/claim labels. This is a verified generation-format
+engineering failure, not a semantic judgment about the claims.
+
+The last packet remains private at
+`/tmp/nextgqa_claim_review_packet_v3_20261015_1940.json`, mode 0600,
+SHA-256 `8530f1499ca66d603d95b74746f7d8608c6a1dfe257d0aa879ec010a8ddc70ba`.
+It retains raw text and local paths solely for authorized review; no generated
+text was emitted to the terminal or published. The earlier format attempts
+are also private mode-0600 files. No human review was performed, and no
+claim-specific faithfulness effect was computed. The next review can manually
+assess the three raw claims against their videos and NExT-GQA reference spans;
+self-reported frame indices are not reliable enough to define an intervention
+selector. If claim-level scoring continues, select evidence using an
+independently audited internal score or reviewer-mapped interval and preregister
+the control before collecting outcomes. Direct claim-faithfulness progress is
+still **0 new reviewed samples / 0 effect estimates**.
+
+Added `scripts/generate_nextgqa_claim_review_pilot.py` and parser regression
+tests. The runner records invalid output as invalid, retains the raw string
+privately, and never converts a missing frame list into a score. All **849/849**
+repository tests, Python compilation, and `git diff --check` passed after the
+allowlist classified this explicitly user-authorized local data pilot. This
+generation branch stops here; no further prompt tuning or effect analysis is
+justified from the same three videos.

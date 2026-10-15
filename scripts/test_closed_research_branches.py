@@ -63,7 +63,13 @@ EXPECTED_BRANCH_CODES = {
     "grounding_check.py": "legacy_grounding_check",
     "run_faithfulness_validation_pilot.py": "legacy_head_faithfulness_pilot",
 }
-GATE_CONTROLLED_LOADERS = {"necessity_choice_margin_test.py"}
+GATE_CONTROLLED_LOADERS = {
+    "necessity_choice_margin_test.py",
+    "run_nextgqa_gold_interval_margin_pilot.py",
+}
+USER_AUTHORIZED_LOCAL_DATA_PILOTS = {
+    "generate_nextgqa_claim_review_pilot.py",
+}
 ALLOWED_ENGINEERING_LOADERS = {
     "audit_legacy_video_time_metadata.py",
     "audit_qwen_claim_tokenization_cpu.py",
@@ -71,6 +77,7 @@ ALLOWED_ENGINEERING_LOADERS = {
     "run_dataset_video_gpu_smoke.py",
     "run_claim_mask_real_video_gpu_smoke.py",
     "run_claim_mask_real_video_capacity_sweep.py",
+    "run_nextgqa_real_video_gpu_smoke.py",
     "run_qwen_frozen_teacher_forcing_gpu_smoke.py",
     "run_qwen_sequence_length_numerics_gpu_diagnostic.py",
     "run_qwen_temporal_position_gpu_check.py",
@@ -148,7 +155,8 @@ class ClosedResearchBranchGuardTests(unittest.TestCase):
                    for node in ast.walk(tree)):
                 discovered.add(path.name)
         expected = (set(GUARDED_ENTRYPOINTS) & discovered
-                    | GATE_CONTROLLED_LOADERS | ALLOWED_ENGINEERING_LOADERS)
+                    | GATE_CONTROLLED_LOADERS | ALLOWED_ENGINEERING_LOADERS
+                    | USER_AUTHORIZED_LOCAL_DATA_PILOTS)
         self.assertEqual(discovered, expected)
 
     def test_other_common_weight_loaders_are_explicitly_classified(self):
@@ -160,7 +168,7 @@ class ClosedResearchBranchGuardTests(unittest.TestCase):
             if _weight_loader_calls(tree):
                 discovered.add(path.name)
         expected = (set(GUARDED_ENTRYPOINTS) | GATE_CONTROLLED_LOADERS
-                    | ALLOWED_ENGINEERING_LOADERS)
+                    | ALLOWED_ENGINEERING_LOADERS | USER_AUTHORIZED_LOCAL_DATA_PILOTS)
         self.assertLessEqual(discovered, expected)
 
     def test_common_loader_aliases_are_detected(self):
