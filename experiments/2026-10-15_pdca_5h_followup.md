@@ -767,3 +767,88 @@ The next useful work is an independent audit of this comparison against the
 repository's frozen estimand and cited primary-source claims, then continue
 with independent executable gate/reproducibility work. Do not start GPU
 scoring or revise the primary metric based on this post-hoc literature scan.
+
+### Bounded search for closer video-temporal faithfulness studies — 16:00–16:02 JST
+
+An independent primary-source scan looked for work closer to the full
+claim-interval and frame-intervention design. [Javadov et al. (arXiv
+v2)](https://arxiv.org/html/2609.07596v2), whose record reports acceptance at
+the VLM4RWD NeurIPS 2026 workshop, elicits VLM self-reports about modality
+dependence and compares them with executed modality ablation/restoration
+behavior. This establishes behavioral testing of self-explanations as a
+neighboring direction; its interventions are modality/view-level, and its
+outcomes are answer agreement/change and sufficiency measures rather than
+claim-span masking or gold-vs-foil margins. [Cao et al. (arXiv
+v2)](https://arxiv.org/html/2608.03160v2) hold a user-provided temporal-order
+claim fixed and alter event order or sampling offset. Crucially, at a fixed
+frame budget their paper also compares removing the event frames with removing
+the same number of other frames. This is a close video-temporal evidence
+control precedent and rules out a broad claim to be first to test fixed-claim
+responses under temporal evidence removal with a matched-count frame control.
+The claim is user-supplied, however; its intervention does not mask a
+reviewed interval in a model-generated explanation, and its outcomes are
+claim-acceptance/correction/sycophancy rates rather than a gold-answer
+log-margin contrast.
+
+Other adjacent sources include [Song et al.](https://arxiv.org/abs/2609.00830v1)
+(arXiv record identifies EMNLP 2026), which evaluates attention-ranked
+visual-token ablation through comprehensiveness/sufficiency;
+[EG-VQA](https://arxiv.org/abs/2606.24797v2), which scores temporal/semantic
+alignment of predicted textual evidence; [Evidence-Backed Video
+QA](https://arxiv.org/abs/2607.11862), with answers plus temporal
+segments/masklets (arXiv record lists ECCV 2026); and
+[CausalPhys](https://arxiv.org/abs/2606.05966v1), which compares video/image
+QA rationales to expert-annotated causal graphs (arXiv record reports KDD
+2026 acceptance). [Kumar's timestamp-citation verifier](https://arxiv.org/abs/2608.15574v1)
+is an auxiliary preprint on checking answer claims against cited frames, not a
+direct intervention test of the generator. The withdrawn
+[step-level grounding-faithfulness preprint](https://arxiv.org/abs/2603.06828v2)
+was excluded as evidence for a supported result.
+
+The limited search found no single study combining a model-generated,
+reviewed answer claim's temporal interval, claim-frame masking, equal-count
+rank-matched temporal control, and condition-specific gold-versus-best-foil
+teacher-forced margin contrast. This is a bounded search result, not a
+systematic review or proof of novelty/priority. It supports keeping claims
+narrow and requiring advisor-level related-work review before any novelty
+statement. No protocol or metric was changed.
+
+The independent reviewer checked the source pages and paper descriptions and
+explicitly distinguished verified estimands from the bounded-search
+non-finding. No project data, model, CUDA, or faithfulness outcomes were
+used. Direct faithfulness remains **0 requested / 0 effective / 0 new effect
+estimates**.
+
+### Common alternative model-weight loader audit — 16:01–16:03 JST
+
+The earlier loader inventory recognized Hugging Face `.from_pretrained(...)`
+calls but did not test common alternative weight APIs. Extended
+`scripts/test_closed_research_branches.py` to classify `torch.load`,
+`torch.jit.load`, safetensors `load_file`/`safe_open`, and `load_state_dict`,
+including straightforward direct-import aliases. The current source scan found
+31 `.from_pretrained`-using scripts: 17 retired real-data inference CLIs
+stopped by the early guard, one direct scorer controlled by the fail-closed
+preflight consumer, and 13 allowlisted engineering/runtime diagnostics. No
+additional alternative weight-loading API was found in active scripts.
+
+The first focused tests exposed a flaw in the new detector's handling of
+unaliased dotted imports (`import torch.jit` and `import safetensors.torch`):
+it incorrectly treated the submodule as the name Python binds. Corrected the
+binding normalization and added regression fixtures for those forms plus
+`from safetensors.torch import load_file`. The independent code reviewer
+confirmed the reported alias gap is closed and found no further critical
+alias defect. The helper remains a static, syntax-based inventory: it does
+not follow assignment aliases, star imports, dynamic imports, `getattr`, or
+custom loader wrappers, and suffix-matching `load_state_dict` can conservatively
+flag unrelated objects with the same method name. Independent source review is
+still required for those patterns.
+
+Focused guard tests pass **6/6**; the full CPU script suite passes
+**828/828** in 9.130 s. `py_compile` and `git diff --check` pass. Test fixture
+diagnostics and Transformers deprecation warnings were non-failing. No model
+weights, project data, or CUDA were used. This expands future regression
+coverage but does not authorize or execute any inference. Faithfulness remains
+**0 requested / 0 effective / 0 new estimates**.
+
+The reviewed guard-inventory test source SHA-256 is
+`cc386b9f7e36d5bbc46dbf69ec5b7f6e4e8f14e377c5ba6c70b70024b963de15`.

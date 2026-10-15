@@ -82,6 +82,55 @@ ALLOWED_ENGINEERING_LOADERS = {
 SYNTHETIC_CPU_MODEL_CONSTRUCTORS = {
     "audit_qwen_cache_positions_cpu.py": "Qwen2_5_VLForConditionalGeneration",
 }
+WEIGHT_LOADER_APIS = {
+    "torch.load",
+    "torch.jit.load",
+    "torch.load_state_dict",
+    "safetensors.torch.load_file",
+    "safetensors.torch.safe_open",
+    "safetensors.safe_open",
+}
+
+
+def _dotted_name(node):
+    if isinstance(node, ast.Name):
+        return node.id
+    if isinstance(node, ast.Attribute):
+        prefix = _dotted_name(node.value)
+        return f"{prefix}.{node.attr}" if prefix else None
+    return None
+
+
+def _weight_loader_calls(tree):
+    """Find common weight-loading APIs, including direct import aliases."""
+    aliases = {}
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Import):
+            for item in node.names:
+                if item.name in {"torch", "torch.jit", "safetensors", "safetensors.torch"}:
+                    # Without `as`, Python binds only the root package name:
+                    # `import torch.jit` makes `torch` refer to `torch`.
+                    bound_name = item.asname or item.name.split(".")[0]
+                    aliases[bound_name] = item.name if item.asname else item.name.split(".")[0]
+        elif isinstance(node, ast.ImportFrom):
+            module = node.module or ""
+            if module in {"torch", "torch.jit", "safetensors", "safetensors.torch"}:
+                for item in node.names:
+                    aliases[item.asname or item.name] = f"{module}.{item.name}"
+
+    found = set()
+    for node in ast.walk(tree):
+        if not isinstance(node, ast.Call):
+            continue
+        name = _dotted_name(node.func)
+        if not name:
+            continue
+        root, dot, suffix = name.partition(".")
+        canonical = f"{aliases.get(root, root)}{dot}{suffix}"
+        if (canonical in WEIGHT_LOADER_APIS or name.endswith(".from_pretrained")
+                or name.endswith(".load_state_dict")):
+            found.add(canonical)
+    return found
 
 
 class ClosedResearchBranchGuardTests(unittest.TestCase):
@@ -99,6 +148,35 @@ class ClosedResearchBranchGuardTests(unittest.TestCase):
         expected = (set(GUARDED_ENTRYPOINTS) & discovered
                     | GATE_CONTROLLED_LOADERS | ALLOWED_ENGINEERING_LOADERS)
         self.assertEqual(discovered, expected)
+
+    def test_other_common_weight_loaders_are_explicitly_classified(self):
+        discovered = set()
+        for path in (REPO / "scripts").glob("*.py"):
+            if path.name.startswith("test_"):
+                continue
+            tree = ast.parse(path.read_text(encoding="utf-8"))
+            if _weight_loader_calls(tree):
+                discovered.add(path.name)
+        expected = (set(GUARDED_ENTRYPOINTS) | GATE_CONTROLLED_LOADERS
+                    | ALLOWED_ENGINEERING_LOADERS)
+        self.assertLessEqual(discovered, expected)
+
+    def test_common_loader_aliases_are_detected(self):
+        examples = (
+            "import torch as t\nt.load('weights.pt')",
+            "import torch.jit\ntorch.jit.load('weights.pt')",
+            "from torch import load as read_weights\nread_weights('weights.pt')",
+            "import safetensors.torch as st\nst.load_file('weights.safetensors')",
+            "import safetensors.torch\nsafetensors.torch.load_file('weights.safetensors')",
+            "import safetensors.torch\nsafetensors.torch.safe_open('weights.safetensors')",
+            "from safetensors.torch import load_file as read_weights\nread_weights('weights.safetensors')",
+            "from safetensors import safe_open as open_weights\nopen_weights('weights.safetensors')",
+            "model.load_state_dict(state)",
+        )
+        for source in examples:
+            with self.subTest(source=source):
+                self.assertTrue(_weight_loader_calls(ast.parse(source)))
+        self.assertFalse(_weight_loader_calls(ast.parse("json.load(stream)")))
 
     def test_every_list_referencing_a_retired_cli_is_guarded(self):
         retired = set(GUARDED_ENTRYPOINTS)
