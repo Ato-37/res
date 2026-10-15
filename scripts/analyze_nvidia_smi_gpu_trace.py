@@ -13,6 +13,13 @@ from pathlib import Path
 import subprocess
 import statistics
 
+EXPECTED_SOURCE_FILES = {
+    "run_qwen_temporal_position_gpu_check.py",
+    "qwen_temporal_geometry.py",
+    "video_time_mapping.py",
+    "run_dataset_video_gpu_smoke.py",
+}
+
 
 def sha256_bytes(data: bytes) -> str:
     return hashlib.sha256(data).hexdigest()
@@ -71,7 +78,8 @@ def verify_source_commit(repo: Path, source_commit: str, source_hashes: dict) ->
                       cwd=repo, stdout=subprocess.DEVNULL,
                       stderr=subprocess.DEVNULL).returncode != 0:
         raise ValueError("source_commit_not_ancestor")
-    if not isinstance(source_hashes, dict) or not source_hashes:
+    if (not isinstance(source_hashes, dict)
+            or set(source_hashes) != EXPECTED_SOURCE_FILES):
         raise ValueError("source_hashes_invalid")
     for name, expected in source_hashes.items():
         if (not isinstance(name, str) or Path(name).name != name
@@ -99,6 +107,8 @@ def summarize(trace: bytes, run_summary: dict, run_manifest: dict,
     source_commit = run_summary.get("source_commit")
     execution = run_manifest.get("execution")
     gpu = run_summary.get("gpu_resources")
+    model_revision = run_summary.get("model_revision")
+    model_config_sha256 = run_summary.get("model_config_sha256")
     if (run_summary.get("purpose") != "synthetic_subsecond_temporal_position_regression_check"
             or type(run_summary.get("schema_version")) is not int
             or run_summary.get("schema_version") != 1
@@ -107,8 +117,12 @@ def summarize(trace: bytes, run_summary: dict, run_manifest: dict,
             or len(run_summary["raw_run_sha256"]) != 64
             or any(c not in "0123456789abcdef" for c in run_summary["raw_run_sha256"])
             or run_manifest.get("raw_run_sha256") != run_summary.get("raw_run_sha256")
-            or run_manifest.get("model_revision") != run_summary.get("model_revision")
-            or run_manifest.get("model_config_sha256") != run_summary.get("model_config_sha256")
+            or not isinstance(model_revision, str) or len(model_revision) != 40
+            or any(c not in "0123456789abcdef" for c in model_revision)
+            or run_manifest.get("model_revision") != model_revision
+            or not isinstance(model_config_sha256, str) or len(model_config_sha256) != 64
+            or any(c not in "0123456789abcdef" for c in model_config_sha256)
+            or run_manifest.get("model_config_sha256") != model_config_sha256
             or run_manifest.get("fixture") != "synthetic_subsecond"
             or not isinstance(source_commit, str) or len(source_commit) != 40
             or any(char not in "0123456789abcdef" for char in source_commit)

@@ -1,8 +1,12 @@
 import unittest
 import hashlib
 import json
+import subprocess
+from pathlib import Path
 
-from analyze_nvidia_smi_gpu_trace import read_trace, summarize
+from analyze_nvidia_smi_gpu_trace import (
+    EXPECTED_SOURCE_FILES, read_trace, sha256_bytes, summarize, verify_source_commit,
+)
 
 
 def trace_rows():
@@ -21,7 +25,7 @@ def source_artifacts():
         "raw_run_sha256": "b" * 64,
         "model_revision": "c" * 40,
         "model_config_sha256": "d" * 64,
-        "source_sha256": {"run_qwen_temporal_position_gpu_check.py": "e" * 64},
+        "source_sha256": {name: "e" * 64 for name in EXPECTED_SOURCE_FILES},
         "synthetic_video": {"frames": 40},
         "sample_counts": {"requested": 1, "effective": 1, "failures": 0},
         "forward_counts": {"requested": 3, "effective": 3},
@@ -103,6 +107,23 @@ class NvidiaSmiTraceTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "run_interval_invalid"):
             summarize(trace_rows(), run, manifest, summary_raw,
                       manifest_raw, "results/source.json")
+
+    def test_verifies_exact_source_set_against_git_ancestor_blobs(self):
+        repo = Path(__file__).resolve().parents[1]
+        commit = subprocess.check_output(
+            ["git", "rev-parse", "HEAD"], cwd=repo, text=True).strip()
+        hashes = {
+            name: sha256_bytes(subprocess.check_output(
+                ["git", "show", f"{commit}:scripts/{name}"], cwd=repo))
+            for name in EXPECTED_SOURCE_FILES
+        }
+        verify_source_commit(repo, commit, hashes)
+        with self.assertRaisesRegex(ValueError, "source_hashes_invalid"):
+            verify_source_commit(repo, commit, {next(iter(hashes)): next(iter(hashes.values()))})
+        changed = dict(hashes)
+        changed[next(iter(changed))] = "0" * 64
+        with self.assertRaisesRegex(ValueError, "source_commit_hash_mismatch"):
+            verify_source_commit(repo, commit, changed)
 
 
 if __name__ == "__main__":
