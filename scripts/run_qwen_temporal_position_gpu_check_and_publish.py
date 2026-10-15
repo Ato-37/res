@@ -110,7 +110,9 @@ def derive_public_summary(raw: dict, raw_sha256: str) -> dict:
             )
             if (not isinstance(memory, dict) or set(memory) != set(memory_fields)
                     or any(type(memory.get(key)) is not int or memory[key] <= 0
-                           for key in memory_fields)
+                           for key in memory_fields if key != "cuda_free_bytes")
+                    or type(memory.get("cuda_free_bytes")) is not int
+                    or memory["cuda_free_bytes"] < 0
                     or memory["allocated_bytes"] > memory["reserved_bytes"]
                     or memory["peak_allocated_bytes"] < memory["allocated_bytes"]
                     or memory["peak_reserved_bytes"] < memory["reserved_bytes"]
@@ -278,9 +280,15 @@ def _verify_reusable_raw(raw: dict, raw_path: Path, repo: Path, current_commit: 
                 or not isinstance(expected, str) or len(expected) != 64
                 or any(char not in "0123456789abcdef" for char in expected)):
             raise ValueError("reusable raw run source hash entry is malformed")
-        source = repo / "scripts" / name
-        if not source.is_file() or hashlib.sha256(source.read_bytes()).hexdigest() != expected:
-            raise ValueError("reusable raw run source files differ from current checkout")
+        try:
+            source_at_run = subprocess.check_output(
+                ["git", "show", f"{source_commit}:scripts/{name}"], cwd=repo,
+                stderr=subprocess.DEVNULL,
+            )
+        except subprocess.CalledProcessError as error:
+            raise ValueError("reusable raw run source file is absent from source commit") from error
+        if hashlib.sha256(source_at_run).hexdigest() != expected:
+            raise ValueError("reusable raw run source files differ from recorded source commit")
     return source_commit
 
 

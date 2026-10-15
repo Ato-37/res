@@ -180,8 +180,9 @@ class PublishSummaryTests(unittest.TestCase):
             "video_time_mapping.py",
             "run_dataset_video_gpu_smoke.py",
         }
-        v1_hashes = {name: hashlib.sha256((repo / "scripts" / name).read_bytes()).hexdigest()
-                     for name in v1_names}
+        v1_hashes = {name: hashlib.sha256(subprocess.check_output(
+            ["git", "show", f"{current}:scripts/{name}"], cwd=repo)).hexdigest()
+            for name in v1_names}
         names = {
             "run_qwen_temporal_position_gpu_check.py",
             "qwen_temporal_geometry.py",
@@ -189,8 +190,9 @@ class PublishSummaryTests(unittest.TestCase):
             "run_dataset_video_gpu_smoke.py",
             "run_qwen_temporal_position_gpu_check_and_publish.py",
         }
-        hashes = {name: hashlib.sha256((repo / "scripts" / name).read_bytes()).hexdigest()
-                  for name in names}
+        hashes = {name: hashlib.sha256(subprocess.check_output(
+            ["git", "show", f"{current}:scripts/{name}"], cwd=repo)).hexdigest()
+            for name in names}
 
         with tempfile.NamedTemporaryFile(
             prefix=".qwen_temporal_position_raw_test_", suffix=".json", dir=repo / "results"
@@ -241,6 +243,14 @@ class PublishSummaryTests(unittest.TestCase):
                          "2026-10-15T03:00:01+00:00")
         self.assertEqual(result["gpu_resources"]["forwards"][2]["completed_utc"],
                          "2026-10-15T03:00:04+00:00")
+
+    def test_zero_cuda_free_memory_is_valid_and_retained(self):
+        raw = valid_raw()
+        raw["conditions"][0]["allocator_memory"]["cuda_free_bytes"] = 0
+        result = derive_public_summary(raw, "1" * 64)
+        self.assertEqual(
+            result["gpu_resources"]["forwards"][0]["allocator_memory"]["cuda_free_bytes"], 0
+        )
 
     def test_legacy_v1_summary_remains_reusable_without_allocator_counters(self):
         raw = valid_raw()
