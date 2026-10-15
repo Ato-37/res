@@ -684,3 +684,86 @@ data-rights section still described the earlier limitation and did not mention
 schema-v2 per-video binding. Corrected that summary and checked the worksheet
 and current contract statements against the implementation. This is a
 documentation consistency repair; it changes no result or gate.
+
+### Related-work audit: video and intervention-based explanation faithfulness — 15:56–16:00 JST
+
+Reviewed primary papers to check whether current framing overstates what the
+proposed claim-to-span mask contrast can establish. This is a literature
+comparison, not evidence about Qwen2.5-VL on this project's data. The review
+covered the especially close visual counterfactual CCT study ([Menzat et al.,
+arXiv:2609.06704v1](https://arxiv.org/abs/2609.06704v1), whose arXiv record
+reports acceptance to Findings of EMNLP 2026), CCT
+([Siegel et al., ACL 2024](https://aclanthology.org/2024.acl-short.49/)),
+EDCT ([arXiv:2510.00047v1](https://arxiv.org/abs/2510.00047v1)), EDCT-Bench
+([arXiv:2609.17953v1](https://arxiv.org/abs/2609.17953v1)), INFACT
+([arXiv:2603.11481v1](https://arxiv.org/abs/2603.11481v1)), FIFA
+([Findings of ACL 2026](https://aclanthology.org/2026.findings-acl.555/)),
+and *Causality Matters: How Temporal Information Emerges in Video Language
+Models* ([AAAI 2026](https://ojs.aaai.org/index.php/AAAI/article/view/37856)).
+The arXiv links are pinned to the reviewed versions. Menzat et al.'s arXiv
+record reports conference acceptance, while EDCT, EDCT-Bench, and INFACT are
+identified as arXiv preprints here.
+
+The papers operationalize different questions. Menzat et al. adapt CT/CCT to
+single-object image removals on A-OKVQA and SNLI-VE: vCCT relates mention of an
+edited object to the size of a candidate-normalized answer-distribution shift,
+and includes no-op reconstruction controls. This is a close precedent for
+behavioral explanation-faithfulness testing in VLMs, so the general idea of
+testing whether visual evidence cited by an explanation tracks intervention
+impact is not new. Its reported evaluation is image-based and uses edited
+objects, explanation mentions, and distribution shifts rather than a
+video-temporal claim interval, equal-count rank-matched frame-mask control,
+and the project's frozen gold-versus-condition-specific-best-foil margin
+contrast (the selected foil can differ across conditions). These
+differences motivate only a possible distinct operational question; they do
+not support a novelty or priority claim. Siegel et al.'s NLP CCT experiments
+insert adjectives or adverbs into input text, then relate changes in the full
+label distribution to whether the explanation mentions the inserted words.
+EDCT and its 2026 benchmark use image edits tied to cited concepts and assess
+answer/explanation consistency. EDCT-Bench comprises 300 manually curated
+image-question pairs; its human edit-validity and CCS comparison covers a
+128-intervention validation subset, not all 300 pairs. INFACT probes video-level
+temporal reliability with evidence corruption and temporal shuffling or
+reversal; the authors characterize these operators as proxies and do not
+claim that they localize the cues driving a particular answer. FIFA assesses
+video-text factual-support consistency by extracting atomic/event facts from
+generated text, verifying them with a VideoQA model, and aggregating support
+through a dependency graph. The AAAI paper studies model-internal temporal
+pathways under positional-encoding and sequence interventions. None of these
+observations supplies a measurement for this project's model/data or resolves
+the validity of its planned human claim mappings.
+
+The project's possible operational distinction in the frozen proposal is a
+reviewer-checked answer claim fixed before scoring and mapped to an interval,
+then a teacher-forced gold-versus-condition-specific-best-foil log-margin
+contrast between masking that interval's
+sampled frames and masking an equal-count temporally rank-matched control.
+This would measure a post-hoc input-intervention behavior contrast under a
+particular mask and score. It would not establish that the generated claim
+faithfully reports the model's internal reasoning, prove the claim true, or
+identify a causal mechanism. It is narrower than a full output-distribution
+shift measure; the best-foil competitor may differ by condition, and masking
+may create out-of-distribution inputs. The direct
+visual CCT precedent substantially narrows any plausible contribution to the
+video-temporal estimand and its controls; that difference alone does not
+establish priority or novelty. Keep the primary protocol frozen and make no
+novelty claim until a broader related-work and advisor review is complete.
+The human, rights,
+timing, target/SESOI, and authenticated-run gates remain unresolved; therefore
+no scoring follows from this literature review.
+
+An independent audit corrected three wording issues: EDCT-Bench's human
+validation is limited to a 128-intervention subset; the reviewed NLP CCT
+experiments insert adjectives/adverbs rather than using an unspecified text
+perturbation; and FIFA is described as video-text factual-support consistency
+rather than as a factual-precision-only metric. Versioned arXiv citations
+were pinned above. The auditor agreed that the stated difference from the
+frozen estimand and the no-novelty conclusion are appropriately limited.
+
+Faithfulness progress remains **0 requested / 0 effective / 0 new direct
+effect estimates** in this window. No cohort, exclusions, inference failures,
+effect interval, hypothesis test, or multiplicity result was generated here.
+The next useful work is an independent audit of this comparison against the
+repository's frozen estimand and cited primary-source claims, then continue
+with independent executable gate/reproducibility work. Do not start GPU
+scoring or revise the primary metric based on this post-hoc literature scan.
