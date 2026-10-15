@@ -332,7 +332,15 @@ Use the blank private
 [annotation-clock calibration worksheet](annotation_clock_calibration_worksheet.md)
 to prepare the human, outcome-blind clock mapping record. It does not supply
 measurements or clear the gate until all frozen eligible items pass the
-prespecified calibration rule.
+prespecified calibration rule. The worksheet separates anchors used to fit an
+offset/drift mapping from disjoint, preselected held-out validation anchors: fit
+residuals alone cannot establish out-of-sample mapping accuracy. Freeze the
+anchor counts and temporal coverage, mapping direction/function, fit and
+uncertainty methods, and validation tolerance before measuring; evaluate held-
+out residuals without refitting. Held-out anchors are not necessarily
+statistically independent within a video; any uncertainty model must justify
+its dependence assumptions. This is a protocol safeguard, not a claim that any
+existing video has passed calibration.
 
 The direct choice-margin scorer and its publisher currently refuse every
 preflight report before model loading, including a hand-written

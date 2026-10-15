@@ -26,7 +26,11 @@ scoring.
 | Calibration method and mapping-function specification/hash | |
 | Tolerance and its pre-outcome justification/evidence hash | |
 | Acceptance rule covering offset, drift, residual, and uncertainty | |
-| Required independent reviewer role and blinding procedure | |
+| Required fit-anchor count/coverage rule and pre-outcome rationale | |
+| Required held-out validation-anchor count/coverage rule and rationale | |
+| Mapping direction, units, fit algorithm, and uncertainty calculation | |
+| Calibration analyst and separate validation reviewer roles | |
+| Validation-value withholding/freeze procedure | |
 
 ## Per-item private calibration record
 
@@ -34,7 +38,20 @@ Create one record for every item required by the frozen cohort. Keep actual
 identifiers, paths, locator strings, timestamps, anchor values, and frame
 images private. Bind each row to private evidence hashes; avoid a hash cycle by
 having the evidence index reference the completed row only after that row is
-frozen.
+frozen. Before measuring any anchor, freeze disjoint calibration-fit and
+held-out validation-anchor sets (or deterministic, outcome-blind selection rules) and
+their temporal coverage. The calibration analyst receives only fit pairs and
+freezes the mapping function and coefficients first. A separate validator
+then records or releases the held-out pairs and evaluates residuals without
+refitting. Do not use a good fit residual as a substitute for held-out
+validation: an affine offset/drift fit can make its own fit anchors look exact,
+especially when only two anchors determine its two coefficients. The minimum
+counts, spacing rule, fit algorithm, uncertainty method, role separation, and
+acceptance threshold must be justified and frozen before measurements; this
+worksheet does not choose them.
+Held-out means excluded from fitting; it does not imply that anchor errors
+within one video are statistically independent. Do not apply an independent,
+identically distributed uncertainty model without a separate justification.
 
 | Field | Record privately |
 |---|---|
@@ -49,9 +66,13 @@ frozen.
 | Sampled source-frame indices and ordered pixel-buffer hashes | |
 | Binding from each measured anchor to the exact decoded frame/pixel hash | |
 | Prespecified visual/synchronization anchor method and private evidence reference/hash | |
-| Paired annotation-clock and decoder-time anchor measurements (private table/reference) | |
-| Fitted mapping rule, offset, drift, residuals, and uncertainty (private values) | |
-| Maximum absolute mapping error and frozen tolerance comparison | |
+| Fit-anchor table/reference/hash, coverage, and count | |
+| Held-out validation-anchor table/reference/hash, coverage, and count | |
+| Fit/validation role-separation and freeze-order evidence reference/hash | |
+| Fitted mapping rule and coefficients, calculated from fit anchors only | |
+| Fit residuals (diagnostic only; not acceptance evidence) | |
+| Held-out validation residuals, maximum absolute error, and frozen tolerance comparison | |
+| Prespecified uncertainty calculation and its validation result | |
 | Outcome data, gold answers, and model scores not accessed before freeze? | yes / no / unknown |
 | Independent reviewer role, review time (UTC), and review-record hash | |
 | Item result | pass / fail / unresolved |

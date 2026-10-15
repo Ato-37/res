@@ -332,3 +332,30 @@ clarification: **809/809 passed in 8.044 seconds**; `py_compile` and `git diff
 non-failing upstream processor deprecation warnings appeared. No GPU model was
 loaded and no GPU work ran during this CPU test-suite run; the separate GPU
 smoke above is recorded independently.
+
+### Outcome-blind annotation-clock calibration design audit — 15:22 JST
+
+The annotation-clock worksheet previously requested offset, drift, residuals,
+and uncertainty but did not distinguish anchors used to fit the map from
+anchors used to validate it. This leaves a measurement-design ambiguity: an
+affine offset/drift map fit from two anchors can match those same two anchors
+exactly, which does not establish accuracy at other times. Updated the private
+worksheet and protocol contract to require disjoint, preselected fit and
+validation anchor sets with frozen temporal coverage; the mapping and
+coefficients must be frozen before validation values are examined, and
+validation residuals cannot be used to refit. Counts, spacing, mapping form,
+uncertainty method, and tolerance remain decisions that must be justified and
+frozen before measurement; this change does not invent values for them.
+
+This is a protocol design repair only. The worksheet remains blank, no media or
+private calibration record was opened, and no item has passed clock
+calibration. It does not unlock the gate. Direct faithfulness progress remains
+0 requested / 0 effective / 0 estimates. No GPU run follows from this design
+change.
+
+An independent auditor confirmed that this does not set a sample-count or
+tolerance value and preserves all execution refusals. The review caught a
+wording risk: disjoint anchors within one video are not thereby statistically
+independent. Updated the worksheet and contract to call them held-out anchors
+and to require any uncertainty calculation to justify its within-video
+dependence assumptions.
