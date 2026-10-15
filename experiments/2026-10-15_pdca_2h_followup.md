@@ -415,10 +415,16 @@ The private mode-0600 aggregate is
 SHA-256 `23b94de072152fd084b21986a4e956080ee6608b98c388802dfba6e8e69be73c`).
 The runner hash is `a75e5242ed7e15db52dfef57cee32a51f5c07e55c7c0f648a6a85a07e6286254`.
 The artifact contains no media identity/path, QA text, generated text, or raw
-media. QA text and gold interval were not supplied to the model; no answer,
-grounding, or faithfulness score was computed. An independent audit of runner
-and artifact is in progress. This is the first verified NExT-GQA real-video
-CUDA path result in this window, but remains an execution smoke only.
+media. However, deterministic candidate selection does read the QA's location
+interval and duration to validate annotation eligibility; those values are
+neither supplied to the model nor used to select the sampled frames. No QA
+question/answer text or generated text is used or saved, and no answer,
+grounding, or faithfulness score is computed. The sampled PTS/pixel hashes are
+stable linkage fingerprints, so the artifact remains local-only. The
+independent audit confirmed the run facts and noted that the result does not
+carry an explicit checkpoint hash; the runner pins a local model revision.
+This is the first verified NExT-GQA real-video CUDA path result in this window,
+but remains an execution smoke only.
 
 ### Faithfulness progress at 22:30 JST
 
@@ -432,3 +438,68 @@ CUDA path result in this window, but remains an execution smoke only.
   generated claims and review interface can be independently validated while
   preserving the blind. Use the remaining window for a distinct protocol or
   data-validity check; do not repeat identical GPU forwards to inflate usage.
+
+## 22:33 JST checkpoint — frame2time versus decoded PTS (same frozen cohort)
+
+Elapsed **58m35s / 2h**; deadline **23:34:23 JST** (**1h00m48s remain**). I
+extended the private source-clock diagnostic to read only `frame2time_test`
+vectors for the three lineage-frozen video IDs and compare each listed time to
+the nearest decoded relative PTS. It did not access `gsub.location`, QA text,
+answers, claims, or video pixels as review evidence. Each video had 32 monotonic
+frame2time points. Median nearest-PTS residuals were 0.0100 s, 0.00885 s, and
+0.00885 s; maxima were 0.0200 s, 0.0162 s, and 0.0162 s. These maxima are at
+or below half a frame interval for the respective CFR streams, consistent with
+nearest-frame quantization. The comparison uses PTS relative to the first
+decoded frame; one file's absolute first PTS is 0.04 s, so these residuals do
+not validate the container's absolute timeline.
+
+Private output: `/tmp/nextgqa_candidate_clock_extent_frame2time_20261015_2233.json`,
+mode 0600, 3,063 bytes, SHA-256
+`56261af2b8997a95f292fda5d952f46171887080fd3c73d0019a5f70478e11b6`.
+This is a frame-grid-to-decoder timestamp consistency check, not frame identity
+validation, source-player calibration, human claim support, or an interval
+mask efficacy result. This first output was superseded by the fully audited
+rerun below, which also records nearest-PTS collisions and points outside the
+decoded PTS range. The output explicitly keeps `annotation_clock_calibrated`
+false. Its terminal duration uses the preceding PTS interval as an
+extrapolation.
+
+### Faithfulness progress at 22:33 JST
+
+- Direct claim-specific faithfulness remains **0/3 human-reviewed, 0/3 scored,
+  0 effects**. The only CUDA run remains one 4-frame generic-prompt forward;
+  no QA or faithfulness outcome was measured.
+- Real-data support now includes 3/3 media lineage, 3/3 full decodes, and 32
+  frame2time-to-nearest-PTS points per video with residuals no larger than one
+  half-frame interval in this cohort. That supports a narrow geometric
+  consistency statement only; human visual anchors and source-player identity
+  are still missing.
+- Continue with independent audit and provenance completeness for the GPU
+  artifact, then use remaining time on a prespecified data-validity check.
+
+## 22:36 JST checkpoint — audited geometry counts and regression suite
+
+Elapsed **1h01m21s / 2h**; deadline **23:34:23 JST** (**58m39s remain**). After
+independent review, the frame2time audit now reports duplicate timestamp count,
+nearest-PTS index collision count, and points outside the decoded PTS range
+separately. The six focused tests cover exact rational median/max residuals,
+synthetic VFR timestamps, duplicate and nearest-index collisions, range overflow,
+and rejection of empty, decreasing, boolean, string, negative, NaN, and infinite
+points. The independent auditor rechecked the revised helper/tests and found the
+earlier ambiguity resolved.
+
+Final private result from this version:
+`/tmp/nextgqa_candidate_clock_extent_frame2time_20261015_2238.json`, mode 0600,
+3,211 bytes, SHA-256
+`65cfdc108e9e2a5d3e7d1796df953c49184f61a54fd56b7398f359b69385689f`;
+runner SHA-256 `ca435f4b80eb7e61160070c000fe2bf1732cbf407a394061cbec62cb75182c26`.
+The three videos each contain 32 monotonic mapping points; all points lie
+within the first/last decoded PTS range and none collide onto the same nearest
+decoded PTS index. Median/max nearest residuals are unchanged from the prior
+checkpoint. This is a descriptive result for three selected clips, with no
+population uncertainty interval and no claim of exact frame identity.
+
+The repository CPU suite passes **885/885** after these changes; compileall and
+`git diff --check` pass. Expected failure-path messages and transformer
+deprecation notices appeared in the test stream, but the suite exited zero.
+Direct faithfulness evidence remains **0/3 reviewed, 0/3 scored, 0 effects**.

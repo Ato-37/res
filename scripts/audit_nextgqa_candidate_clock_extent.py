@@ -167,6 +167,33 @@ def _read_candidate_durations(path: Path, candidate_ids: set[str]) -> dict[str, 
     return result
 
 
+def _frame2time_diagnostics(points: Any, decoded_relative_pts: list[Fraction]) -> dict:
+    if (not decoded_relative_pts or not isinstance(points, list) or not points
+            or any(isinstance(value, bool) or not isinstance(value, (int, float))
+                   or not math.isfinite(float(value)) or float(value) < 0
+                   for value in points)):
+        raise ValueError("dataset_frame2time_invalid")
+    frame_times = [Fraction(str(value)) for value in points]
+    if any(right < left for left, right in zip(frame_times, frame_times[1:])):
+        raise ValueError("dataset_frame2time_nonmonotonic")
+    nearest_indices = [min(range(len(decoded_relative_pts)),
+                           key=lambda index: abs(point - decoded_relative_pts[index]))
+                       for point in frame_times]
+    errors = [abs(point - decoded_relative_pts[index])
+              for point, index in zip(frame_times, nearest_indices)]
+    return {
+        "point_count": len(frame_times),
+        "strictly_increasing": all(b > a for a, b in zip(frame_times, frame_times[1:])),
+        "duplicate_point_count": len(frame_times) - len(set(frame_times)),
+        "outside_decoded_pts_range_count": sum(
+            point < decoded_relative_pts[0] or point > decoded_relative_pts[-1]
+            for point in frame_times),
+        "nearest_decoded_pts_collision_count": len(nearest_indices) - len(set(nearest_indices)),
+        "nearest_residual_median": statistics.median(errors),
+        "nearest_residual_max": max(errors),
+    }
+
+
 def _ratio(value: Fraction) -> list[int]:
     return [value.numerator, value.denominator]
 
@@ -179,7 +206,8 @@ def _git_head(repo: Path) -> str | None:
         return None
 
 
-def summarize_media(path: Path, dataset_duration: Any, expected_source_sha256: str) -> dict:
+def summarize_media(path: Path, dataset_duration: Any, expected_source_sha256: str,
+                   frame2time: Any) -> dict:
     if (isinstance(dataset_duration, bool)
             or not isinstance(dataset_duration, (int, float))
             or not math.isfinite(float(dataset_duration))
@@ -202,6 +230,7 @@ def summarize_media(path: Path, dataset_duration: Any, expected_source_sha256: s
     deltas = [right - left for left, right in zip(times, times[1:])]
     last_frame_duration = deltas[-1]
     decoded_extent = times[-1] + last_frame_duration
+    frame2time_stats = _frame2time_diagnostics(frame2time, times)
     return {
         "source_sha256": source_sha,
         "source_size_bytes": source_size,
@@ -220,6 +249,15 @@ def summarize_media(path: Path, dataset_duration: Any, expected_source_sha256: s
         "dataset_duration_seconds": _ratio(annotated_duration),
         "last_pts_plus_previous_pts_interval_seconds": _ratio(decoded_extent),
         "dataset_minus_decoded_extent_seconds": _ratio(annotated_duration - decoded_extent),
+        "frame2time_point_count": frame2time_stats["point_count"],
+        "frame2time_strictly_increasing": frame2time_stats["strictly_increasing"],
+        "frame2time_duplicate_point_count": frame2time_stats["duplicate_point_count"],
+        "frame2time_outside_decoded_pts_range_count": frame2time_stats["outside_decoded_pts_range_count"],
+        "frame2time_nearest_pts_collision_count": frame2time_stats["nearest_decoded_pts_collision_count"],
+        "frame2time_nearest_decoded_pts_median_error_seconds": _ratio(
+            frame2time_stats["nearest_residual_median"]),
+        "frame2time_nearest_decoded_pts_max_error_seconds": _ratio(
+            frame2time_stats["nearest_residual_max"]),
     }
 
 
@@ -249,6 +287,7 @@ def audit(manifest: dict, manifest_raw: bytes, expected_manifest_sha256: str,
     if hashes != manifest.get("dataset_inputs_sha256"):
         raise ValueError("dataset_input_hash_mismatch")
     mapping, _ = _read_json(dataset / "map_vid_vidorID.json")
+    frame2time, _ = _read_json(dataset / "frame2time_test.json")
     records = manifest["records"]
     candidate_ids = {row.get("dataset_video_id") for row in records if isinstance(row, dict)}
     durations = _read_candidate_durations(dataset / "gsub_test.json", candidate_ids)
@@ -275,7 +314,8 @@ def audit(manifest: dict, manifest_raw: bytes, expected_manifest_sha256: str,
             raise ValueError("dataset_duration_missing")
         if not SHA256.fullmatch(str(row["video_sha256"])):
             raise ValueError("source_media_hash_mismatch_or_duplicate")
-        summary = summarize_media(media, durations[vid], row["video_sha256"])
+        points = frame2time.get(vid)
+        summary = summarize_media(media, durations[vid], row["video_sha256"], points)
         media_sha = summary["source_sha256"]
         if media_sha in seen_hashes:
             raise ValueError("source_media_hash_mismatch_or_duplicate")
@@ -318,12 +358,23 @@ def audit(manifest: dict, manifest_raw: bytes, expected_manifest_sha256: str,
             row["dataset_duration_seconds"] for row in summaries),
         "duration_difference_seconds": sorted(
             row["dataset_minus_decoded_extent_seconds"] for row in summaries),
+        "frame2time_points_per_video": sorted(row["frame2time_point_count"] for row in summaries),
+        "frame2time_nearest_pts_median_errors_seconds": sorted(
+            row["frame2time_nearest_decoded_pts_median_error_seconds"] for row in summaries),
+        "frame2time_nearest_pts_max_errors_seconds": sorted(
+            row["frame2time_nearest_decoded_pts_max_error_seconds"] for row in summaries),
+        "frame2time_outside_decoded_pts_range_counts": sorted(
+            row["frame2time_outside_decoded_pts_range_count"] for row in summaries),
+        "frame2time_nearest_pts_collision_counts": sorted(
+            row["frame2time_nearest_pts_collision_count"] for row in summaries),
         "rgb_size_counts": dict(sorted(Counter(
             f"{row['rgb_size'][0]}x{row['rgb_size'][1]}" for row in summaries).items())),
         "interpretation_limit": (
             "The terminal extent extrapolates the preceding PTS interval; it is not a decoded "
             "terminal-frame duration. Whole-second duration agreement cannot identify source-player "
-            "origin, seek behavior, edit alignment, drift, or annotation-clock calibration."
+            "origin, seek behavior, edit alignment, drift, or annotation-clock calibration. "
+            "Frame2time nearest-PTS residuals are geometric clock-consistency checks only; they "
+            "do not prove frame identity or source-player/annotation calibration."
         ),
         "execution_authorization": "not_granted",
     }

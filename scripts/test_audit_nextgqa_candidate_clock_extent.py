@@ -6,11 +6,31 @@ import tempfile
 import unittest
 
 from audit_nextgqa_claim_packet_lineage import DATASET_KEYS
-from audit_nextgqa_candidate_clock_extent import audit, _read_candidate_durations
+from audit_nextgqa_candidate_clock_extent import (
+    audit, _frame2time_diagnostics, _read_candidate_durations,
+)
 from audit_qwen_pts_to_processor_cpu import encode_fixture
 
 
 class CandidateClockExtentTests(unittest.TestCase):
+    def test_frame2time_diagnostics_fractional_vfr_nearest_collisions_and_range(self):
+        stats = _frame2time_diagnostics(
+            [0, 0.02, 0.02, 0.10, 0.20],
+            [Fraction(0), Fraction(1, 25), Fraction(1, 10), Fraction(7, 50)],
+        )
+        self.assertEqual(stats["point_count"], 5)
+        self.assertEqual(stats["duplicate_point_count"], 1)
+        self.assertEqual(stats["outside_decoded_pts_range_count"], 1)
+        self.assertEqual(stats["nearest_decoded_pts_collision_count"], 2)
+        self.assertEqual(stats["nearest_residual_median"], Fraction(1, 50))
+        self.assertEqual(stats["nearest_residual_max"], Fraction(3, 50))
+
+    def test_frame2time_diagnostics_rejects_invalid_points(self):
+        for points in (None, [], [True], ["0"], [-0.1], [0.1, 0.0],
+                       [float("nan")], [float("inf")]):
+            with self.subTest(points=points), self.assertRaises(ValueError):
+                _frame2time_diagnostics(points, [Fraction(0), Fraction(1, 25)])
+
     def test_duration_reader_skips_annotation_span_payloads(self):
         with tempfile.TemporaryDirectory() as td:
             path = Path(td) / "gsub.json"
@@ -34,7 +54,7 @@ class CandidateClockExtentTests(unittest.TestCase):
         dataset.mkdir(parents=True)
         video_root = root / "videos"
         video_root.mkdir()
-        mapping, gsub, rows = {}, {}, []
+        mapping, gsub, frame2time, rows = {}, {}, {}, []
         for index, pts in enumerate(((100, 102, 104, 106, 108),
                                      (0, 3, 6, 9, 12), (0, 2, 4, 6, 8))):
             vid = f"synthetic-video-id-{index}"
@@ -50,6 +70,7 @@ class CandidateClockExtentTests(unittest.TestCase):
             ).hexdigest()
             mapping[vid] = relative
             gsub[vid] = {"duration": 2, "location": {"hidden": "not exported"}}
+            frame2time[vid] = [float(Fraction(value - pts[0], 10)) for value in pts]
             rows.append({
                 "video_id": "video-" + media_sha, "claim_id": claim_id,
                 "dataset_question_id": f"qid-{index}", "dataset_video_id": vid,
@@ -60,7 +81,7 @@ class CandidateClockExtentTests(unittest.TestCase):
         (dataset / "test.csv").write_text("synthetic fixture only\n")
         (dataset / "gsub_test.json").write_text(json.dumps(gsub))
         (dataset / "map_vid_vidorID.json").write_text(json.dumps(mapping))
-        (dataset / "frame2time_test.json").write_text("{}")
+        (dataset / "frame2time_test.json").write_text(json.dumps(frame2time))
         dataset_hashes = {key: hashlib.sha256((dataset / key).read_bytes()).hexdigest()
                           for key in DATASET_KEYS}
         manifest = {
@@ -88,6 +109,8 @@ class CandidateClockExtentTests(unittest.TestCase):
         self.assertEqual(report["decoded_frame_counts"], [5, 5, 5])
         self.assertEqual(report["pts_strictly_increasing_count"], 3)
         self.assertEqual(report["codec_counts"], {"ffv1": 3})
+        self.assertEqual(report["frame2time_points_per_video"], [5, 5, 5])
+        self.assertEqual(report["frame2time_nearest_pts_max_errors_seconds"], [[0, 1]] * 3)
         self.assertEqual(report["execution_authorization"], "not_granted")
         self.assertFalse(report["annotation_clock_calibrated"])
         self.assertIn("preceding PTS interval", report["interpretation_limit"])
