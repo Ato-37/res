@@ -1,0 +1,135 @@
+{
+  "compute_dtype": "bfloat16",
+  "cuda_version": "12.8",
+  "fixed_vs_legacy_v517_sensitivity": {
+    "bitwise_equal": false,
+    "jensen_shannon_divergence_nats": 5.364671653634131e-05,
+    "maximum_absolute_logit_difference": 0.5625,
+    "mean_absolute_logit_difference": 0.0735418051481247,
+    "top1_equal": true
+  },
+  "fixture": "deterministic synthetic pixels; no project media or annotations",
+  "forward_counts": {
+    "effective": 3,
+    "requested": 3
+  },
+  "gpu_resources": {
+    "device": "NVIDIA GeForce RTX 5070 Ti",
+    "forwards": [
+      {
+        "allocator_memory": {
+          "allocated_bytes": 6264900608,
+          "cuda_free_bytes": 8855224320,
+          "cuda_total_bytes": 17066033152,
+          "peak_allocated_bytes": 6487772160,
+          "peak_reserved_bytes": 6813646848,
+          "reserved_bytes": 6813646848
+        },
+        "completed_utc": "2026-10-15T04:10:20.320198+00:00",
+        "condition": "native_auto",
+        "forward_seconds": 1.7391922410024563,
+        "peak_allocated_gib": 6.042208671569824,
+        "started_utc": "2026-10-15T04:10:18.581012+00:00"
+      },
+      {
+        "allocator_memory": {
+          "allocated_bytes": 6264900608,
+          "cuda_free_bytes": 8869904384,
+          "cuda_total_bytes": 17066033152,
+          "peak_allocated_bytes": 6488258560,
+          "peak_reserved_bytes": 6798966784,
+          "reserved_bytes": 6798966784
+        },
+        "completed_utc": "2026-10-15T04:10:20.976837+00:00",
+        "condition": "explicit_native_noop",
+        "forward_seconds": 0.49786180299997795,
+        "peak_allocated_gib": 6.042661666870117,
+        "started_utc": "2026-10-15T04:10:20.478985+00:00"
+      },
+      {
+        "allocator_memory": {
+          "allocated_bytes": 6264900608,
+          "cuda_free_bytes": 8869904384,
+          "cuda_total_bytes": 17066033152,
+          "peak_allocated_bytes": 6488258560,
+          "peak_reserved_bytes": 6798966784,
+          "reserved_bytes": 6798966784
+        },
+        "completed_utc": "2026-10-15T04:10:21.716348+00:00",
+        "condition": "legacy_v517_reference",
+        "forward_seconds": 0.5921535149973352,
+        "peak_allocated_gib": 6.042661666870117,
+        "started_utc": "2026-10-15T04:10:21.124211+00:00"
+      }
+    ],
+    "free_before_gib": 14.6572265625,
+    "total_gib": 15.89398193359375
+  },
+  "host_memory": {
+    "available_after_bytes": 12414599168,
+    "available_before_bytes": 13822054400,
+    "process_peak_rss_bytes": 13096534016,
+    "total_after_bytes": 16302923776,
+    "total_before_bytes": 16302923776
+  },
+  "installed_model_source_sha256": "1b7a2a6403d309cdfe1ba31184708ed1a9f14b0ffd8e5bd4992f05a699e4f630",
+  "installed_processor_source_sha256": "dcecc3dff4ebb07c58e66923f1d62c73edee1edf572d27947c27ee5f5f2e654f",
+  "installed_vision_utils_source_sha256": "f3710ced8ffe735da57d08cf5236cf9d326ff646ed1bdad2e62593a7801adc33",
+  "limitations": [
+    "Synthetic engineering regression only; no faithfulness, QA, or semantic-validity evidence.",
+    "One deterministic sample has no uncertainty interval or inferential test.",
+    "No raw frames, model outputs, dataset labels, or per-item information are published."
+  ],
+  "model": "Qwen/Qwen2.5-VL-7B-Instruct",
+  "model_config_sha256": "77d9ec7321cc572e3579e2c84799c9cadaded63c49ce93b101733349fc330c43",
+  "model_revision": "cc594898137f460bfe9f0759e9844b3ce807cfb5",
+  "purpose": "synthetic_subsecond_temporal_position_regression_check",
+  "quantization": "4bit",
+  "raw_run_sha256": "93f37e63885a6caeec4247fa43c3926021ff1381b759cb6d31fc8470ad42e3fd",
+  "sample_counts": {
+    "effective": 1,
+    "failures": 0,
+    "requested": 1
+  },
+  "schema_version": 2,
+  "seed": 20261012,
+  "source_commit": "48e4f240a95a935e010757de399dad08f7f6ce55",
+  "source_sha256": {
+    "qwen_temporal_geometry.py": "a0d455fd43f1ccdd5335676abedc2c85df8096ae962bbedff3b4b952ee3fd118",
+    "run_dataset_video_gpu_smoke.py": "a9801b139e4a9a8c590193a3c9fb4b14242463f3728eabf6555652c409464539",
+    "run_qwen_temporal_position_gpu_check.py": "7c9f07f364228cf5fc0872f33b80ba3c3abeb2d45240204c893fe4356d06b870",
+    "run_qwen_temporal_position_gpu_check_and_publish.py": "e5f21c1fd6a030ff237fb95ce02c8696b739df2538431581d24febbe77edecb7",
+    "video_time_mapping.py": "01711ac0f20770530239cf98ffb719c7f9e6f416f8c416aaf48da9543b091089"
+  },
+  "synthetic_video": {
+    "changed_position_id_entries": 0,
+    "fractional_temporal_anchors": [
+      15,
+      16
+    ],
+    "frames": 4,
+    "grid_thw": [
+      2,
+      32,
+      32
+    ],
+    "legacy_v517_temporal_anchors": [
+      15,
+      15
+    ],
+    "native_matches_fractional_reference": true,
+    "native_temporal_anchors": [
+      15,
+      16
+    ],
+    "sampled_fps": 2.6666666666666665,
+    "seconds_per_grid": 0.75
+  },
+  "versions": {
+    "bitsandbytes": "0.50.2",
+    "opencv-python-headless": "5.0.0.93",
+    "qwen-vl-utils": "0.0.14",
+    "torch": "2.11.0+cu128",
+    "transformers": "5.18.0"
+  }
+}
