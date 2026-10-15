@@ -585,3 +585,11 @@ rights recording and execution authorization. This verifies structural guard
 behavior only; it does not clear those gates. The final frame2time and two GPU
 artifact hashes were re-read and match their recorded values. The claim review
 worksheet remains mode 0600 and 0/3 complete.
+
+Additional claim-ledger, private-review-index, clock-extent, and cross-gate
+preflight regressions passed **51/51**. These tests cover hash binding,
+row reconciliation, omission of private values from summaries, invalid-span
+rejection, and the invariant that even a structurally complete preflight stays
+blocked without execution authorization. They are synthetic/structural tests,
+not human review or empirical faithfulness evidence. A scoped local commit
+`f716ca7` records this checkpoint; no remote fetch or push was performed.
