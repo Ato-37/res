@@ -5,7 +5,8 @@ import subprocess
 from pathlib import Path
 
 from analyze_nvidia_smi_gpu_trace import (
-    EXPECTED_SOURCE_FILES, read_trace, sha256_bytes, summarize, verify_source_commit,
+    EXPECTED_SOURCE_FILES, EXPECTED_SOURCE_FILES_V2, read_trace, sha256_bytes,
+    summarize, verify_source_commit,
 )
 
 
@@ -161,6 +162,19 @@ class NvidiaSmiTraceTests(unittest.TestCase):
         changed[next(iter(changed))] = "0" * 64
         with self.assertRaisesRegex(ValueError, "source_commit_hash_mismatch"):
             verify_source_commit(repo, commit, changed)
+
+    def test_verifies_v2_source_set_including_publisher(self):
+        repo = Path(__file__).resolve().parents[1]
+        commit = subprocess.check_output(
+            ["git", "rev-parse", "HEAD"], cwd=repo, text=True).strip()
+        hashes = {
+            name: sha256_bytes(subprocess.check_output(
+                ["git", "show", f"{commit}:scripts/{name}"], cwd=repo))
+            for name in EXPECTED_SOURCE_FILES_V2
+        }
+        verify_source_commit(repo, commit, hashes, schema_version=2)
+        with self.assertRaisesRegex(ValueError, "source_hashes_invalid"):
+            verify_source_commit(repo, commit, hashes, schema_version=3)
 
 
 if __name__ == "__main__":

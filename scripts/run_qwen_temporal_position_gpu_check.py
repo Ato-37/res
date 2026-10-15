@@ -335,6 +335,19 @@ def main():
                 with torch.inference_mode():
                     out=model(**batch,**kw,use_cache=False,output_attentions=False,logits_to_keep=1)
                 torch.cuda.synchronize()
+                # Sample allocator and device counters at the same synchronized
+                # point while the forward output is still resident on-device.
+                # Allocated and reserved have different PyTorch allocator scopes;
+                # mem_get_info is CUDA-device-wide and is not process-attributed.
+                cuda_free_bytes, cuda_total_bytes = torch.cuda.mem_get_info()
+                allocator_memory = {
+                    'allocated_bytes': int(torch.cuda.memory_allocated()),
+                    'peak_allocated_bytes': int(torch.cuda.max_memory_allocated()),
+                    'reserved_bytes': int(torch.cuda.memory_reserved()),
+                    'peak_reserved_bytes': int(torch.cuda.max_memory_reserved()),
+                    'cuda_free_bytes': int(cuda_free_bytes),
+                    'cuda_total_bytes': int(cuda_total_bytes),
+                }
                 values=out.logits[0,-1].detach().float().cpu()
                 if not bool(torch.isfinite(values).all()):
                     raise RuntimeError('Nonfinite next-token logits')
@@ -344,6 +357,7 @@ def main():
                 conditions.append({'condition':name,'finite_logits':True,
                     'forward_seconds':time.monotonic()-begin,
                     'peak_allocated_gib':torch.cuda.max_memory_allocated()/1024**3,
+                    'allocator_memory':allocator_memory,
                     'started_utc':forward_started,'completed_utc':forward_completed})
                 logits.append(values); del out
         finally:
@@ -379,14 +393,14 @@ def main():
         purpose=('real_video_temporal_position_runtime_regression_check'
             if args.fixture=='noaa' else 'synthetic_subsecond_temporal_position_regression_check')
         source_files=[Path(__file__).name,'qwen_temporal_geometry.py','video_time_mapping.py',
-            'run_dataset_video_gpu_smoke.py']
+            'run_dataset_video_gpu_smoke.py','run_qwen_temporal_position_gpu_check_and_publish.py']
         if args.fixture=='noaa':
             source_files += ['grounding_check.py']
         host_after = host_memory_snapshot()
         peak_rss = process_peak_rss_bytes()
         completed=datetime.now(timezone.utc).isoformat()
         result={
-            'schema_version':1,'purpose':purpose,'fixture':args.fixture,
+            'schema_version':2,'purpose':purpose,'fixture':args.fixture,
             'started_utc':started,'completed_utc':completed,
             'elapsed_seconds':time.monotonic()-timer,
             'host_memory':{

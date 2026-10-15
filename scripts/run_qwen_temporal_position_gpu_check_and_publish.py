@@ -27,6 +27,8 @@ def sha256_bytes(value: bytes) -> str:
 
 def derive_public_summary(raw: dict, raw_sha256: str) -> dict:
     """Validate synthetic-only scope and retain minimum derived diagnostics."""
+    if type(raw.get("schema_version")) is not int or raw["schema_version"] not in (1, 2):
+        raise ValueError("unsupported raw-run schema version")
     if raw.get("fixture") != "synthetic_subsecond":
         raise ValueError("only the synthetic_subsecond fixture may be published")
     if raw.get("effective_frames") not in (4, 16, 32, 40) or raw.get("requested_frames") != raw.get("effective_frames"):
@@ -100,6 +102,29 @@ def derive_public_summary(raw: dict, raw_sha256: str) -> dict:
             "forward_seconds": seconds,
             "peak_allocated_gib": peak,
         }
+        if raw.get("schema_version") == 2:
+            memory = row.get("allocator_memory")
+            memory_fields = (
+                "allocated_bytes", "peak_allocated_bytes", "reserved_bytes",
+                "peak_reserved_bytes", "cuda_free_bytes", "cuda_total_bytes",
+            )
+            if (not isinstance(memory, dict) or set(memory) != set(memory_fields)
+                    or any(type(memory.get(key)) is not int or memory[key] <= 0
+                           for key in memory_fields)
+                    or memory["allocated_bytes"] > memory["reserved_bytes"]
+                    or memory["peak_allocated_bytes"] < memory["allocated_bytes"]
+                    or memory["peak_reserved_bytes"] < memory["reserved_bytes"]
+                    or memory["peak_allocated_bytes"] > memory["peak_reserved_bytes"]
+                    or memory["peak_allocated_bytes"] > memory["cuda_total_bytes"]
+                    or memory["peak_reserved_bytes"] > memory["cuda_total_bytes"]
+                    or memory["cuda_free_bytes"] > memory["cuda_total_bytes"]):
+                raise ValueError("invalid per-forward CUDA allocator/device memory counters")
+            if not math.isclose(
+                peak, memory["peak_allocated_bytes"] / 1024**3,
+                rel_tol=1e-12, abs_tol=1e-12,
+            ):
+                raise ValueError("inconsistent per-forward allocated-memory summaries")
+            forward["allocator_memory"] = dict(memory)
         start_raw, end_raw = row.get("started_utc"), row.get("completed_utc")
         if start_raw is not None or end_raw is not None:
             try:
@@ -135,7 +160,7 @@ def derive_public_summary(raw: dict, raw_sha256: str) -> dict:
             or host["available_before_bytes"] < 8 * 1024**3):
         raise ValueError("invalid host memory preflight or process RSS diagnostics")
     return {
-        "schema_version": 1,
+        "schema_version": raw.get("schema_version", 1),
         "purpose": "synthetic_subsecond_temporal_position_regression_check",
         "fixture": "deterministic synthetic pixels; no project media or annotations",
         "source_commit": raw["source_commit"],
@@ -244,6 +269,8 @@ def _verify_reusable_raw(raw: dict, raw_path: Path, repo: Path, current_commit: 
         "video_time_mapping.py",
         "run_dataset_video_gpu_smoke.py",
     }
+    if raw.get("schema_version") == 2:
+        expected_names.add("run_qwen_temporal_position_gpu_check_and_publish.py")
     if not isinstance(hashes, dict) or set(hashes) != expected_names:
         raise ValueError("reusable raw run source hash set is incomplete or unexpected")
     for name, expected in hashes.items():

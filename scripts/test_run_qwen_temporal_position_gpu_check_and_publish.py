@@ -15,6 +15,7 @@ from run_qwen_temporal_position_gpu_check_and_publish import (
 
 def valid_raw():
     return {
+        "schema_version": 2,
         "fixture": "synthetic_subsecond",
         "failures": 0,
         "effective_samples": 1,
@@ -32,6 +33,14 @@ def valid_raw():
         "conditions": [
             {"condition": name, "finite_logits": True, "forward_seconds": 2.0,
              "peak_allocated_gib": 8.0,
+             "allocator_memory": {
+                 "allocated_bytes": 1024**3,
+                 "peak_allocated_bytes": 8 * 1024**3,
+                 "reserved_bytes": 3 * 1024**3,
+                 "peak_reserved_bytes": 9 * 1024**3,
+                 "cuda_free_bytes": 10 * 1024**3,
+                 "cuda_total_bytes": 16 * 1024**3,
+             },
              "started_utc": f"2026-10-15T03:00:0{i+1}+00:00",
              "completed_utc": f"2026-10-15T03:00:0{i+2}+00:00"}
             for i, name in enumerate(("native_auto", "explicit_native_noop", "legacy_v517_reference"))
@@ -85,6 +94,8 @@ class PublishSummaryTests(unittest.TestCase):
             manifest_created_utc="2026-10-15T03:01:00Z",
         )
         self.assertEqual(manifest["schema_version"], 2)
+        self.assertEqual(public["schema_version"], 2)
+        self.assertEqual(public["gpu_resources"]["forwards"][0]["allocator_memory"]["reserved_bytes"], 3 * 1024**3)
         self.assertEqual(manifest["execution"]["mode"], "fresh_synthetic_gpu_run")
         self.assertEqual(manifest["runner_started_utc"], raw["started_utc"])
         self.assertEqual(manifest["runner_completed_utc"], raw["completed_utc"])
@@ -163,11 +174,20 @@ class PublishSummaryTests(unittest.TestCase):
         repo = Path(__file__).resolve().parents[1]
         current = subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=repo, text=True).strip()
         import hashlib
+        v1_names = {
+            "run_qwen_temporal_position_gpu_check.py",
+            "qwen_temporal_geometry.py",
+            "video_time_mapping.py",
+            "run_dataset_video_gpu_smoke.py",
+        }
+        v1_hashes = {name: hashlib.sha256((repo / "scripts" / name).read_bytes()).hexdigest()
+                     for name in v1_names}
         names = {
             "run_qwen_temporal_position_gpu_check.py",
             "qwen_temporal_geometry.py",
             "video_time_mapping.py",
             "run_dataset_video_gpu_smoke.py",
+            "run_qwen_temporal_position_gpu_check_and_publish.py",
         }
         hashes = {name: hashlib.sha256((repo / "scripts" / name).read_bytes()).hexdigest()
                   for name in names}
@@ -175,7 +195,9 @@ class PublishSummaryTests(unittest.TestCase):
         with tempfile.NamedTemporaryFile(
             prefix=".qwen_temporal_position_raw_test_", suffix=".json", dir=repo / "results"
         ) as handle:
-            raw = {"source_commit": current, "source_sha256": hashes}
+            raw = {"schema_version": 1, "source_commit": current, "source_sha256": v1_hashes}
+            self.assertEqual(_verify_reusable_raw(raw, Path(handle.name), repo, current), current)
+            raw = {"schema_version": 2, "source_commit": current, "source_sha256": hashes}
             self.assertEqual(_verify_reusable_raw(raw, Path(handle.name), repo, current), current)
             raw["source_sha256"]["run_qwen_temporal_position_gpu_check.py"] = "0" * 64
             with self.assertRaisesRegex(ValueError, "source files differ"):
@@ -219,6 +241,15 @@ class PublishSummaryTests(unittest.TestCase):
                          "2026-10-15T03:00:01+00:00")
         self.assertEqual(result["gpu_resources"]["forwards"][2]["completed_utc"],
                          "2026-10-15T03:00:04+00:00")
+
+    def test_legacy_v1_summary_remains_reusable_without_allocator_counters(self):
+        raw = valid_raw()
+        raw["schema_version"] = 1
+        for row in raw["conditions"]:
+            row.pop("allocator_memory")
+        result = derive_public_summary(raw, "1" * 64)
+        self.assertEqual(result["schema_version"], 1)
+        self.assertNotIn("allocator_memory", result["gpu_resources"]["forwards"][0])
 
     def test_derives_32_frame_capacity_summary(self):
         raw = valid_raw()
@@ -280,8 +311,25 @@ class PublishSummaryTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "invalid per-forward"):
             derive_public_summary(raw, "1" * 64)
         raw = valid_raw()
-        raw["conditions"][0]["peak_allocated_gib"] = 17
+        raw["gpu_total_gib"] = 7
+        raw["gpu_free_before_gib"] = 6
         with self.assertRaisesRegex(ValueError, "exceeds GPU total"):
+            derive_public_summary(raw, "1" * 64)
+        raw = valid_raw()
+        raw["conditions"][0]["allocator_memory"]["reserved_bytes"] = 512
+        with self.assertRaisesRegex(ValueError, "CUDA allocator/device"):
+            derive_public_summary(raw, "1" * 64)
+        raw = valid_raw()
+        raw["conditions"][0]["allocator_memory"]["private_path"] = "/sensitive/local/path"
+        with self.assertRaisesRegex(ValueError, "CUDA allocator/device"):
+            derive_public_summary(raw, "1" * 64)
+        raw = valid_raw()
+        raw["conditions"][0]["allocator_memory"]["peak_allocated_bytes"] = 3 * 1024**3
+        with self.assertRaisesRegex(ValueError, "inconsistent per-forward allocated"):
+            derive_public_summary(raw, "1" * 64)
+        raw = valid_raw()
+        raw["schema_version"] = 3
+        with self.assertRaisesRegex(ValueError, "schema version"):
             derive_public_summary(raw, "1" * 64)
         raw = valid_raw()
         raw["conditions"][0]["started_utc"] = "2026-10-15T12:00:01+09:00"

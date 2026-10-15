@@ -19,6 +19,9 @@ EXPECTED_SOURCE_FILES = {
     "video_time_mapping.py",
     "run_dataset_video_gpu_smoke.py",
 }
+EXPECTED_SOURCE_FILES_V2 = EXPECTED_SOURCE_FILES | {
+    "run_qwen_temporal_position_gpu_check_and_publish.py",
+}
 
 
 def sha256_bytes(data: bytes) -> str:
@@ -90,13 +93,16 @@ def summarize_metrics(rows: list[dict]) -> dict:
     return metrics
 
 
-def verify_source_commit(repo: Path, source_commit: str, source_hashes: dict) -> None:
+def verify_source_commit(repo: Path, source_commit: str, source_hashes: dict,
+                         schema_version: int = 1) -> None:
     if subprocess.run(["git", "merge-base", "--is-ancestor", source_commit, "HEAD"],
                       cwd=repo, stdout=subprocess.DEVNULL,
                       stderr=subprocess.DEVNULL).returncode != 0:
         raise ValueError("source_commit_not_ancestor")
+    expected_files = (EXPECTED_SOURCE_FILES if schema_version == 1
+                      else EXPECTED_SOURCE_FILES_V2 if schema_version == 2 else set())
     if (not isinstance(source_hashes, dict)
-            or set(source_hashes) != EXPECTED_SOURCE_FILES):
+            or set(source_hashes) != expected_files):
         raise ValueError("source_hashes_invalid")
     for name, expected in source_hashes.items():
         if (not isinstance(name, str) or Path(name).name != name
@@ -128,7 +134,7 @@ def summarize(trace: bytes, run_summary: dict, run_manifest: dict,
     model_config_sha256 = run_summary.get("model_config_sha256")
     if (run_summary.get("purpose") != "synthetic_subsecond_temporal_position_regression_check"
             or type(run_summary.get("schema_version")) is not int
-            or run_summary.get("schema_version") != 1
+            or run_summary.get("schema_version") not in (1, 2)
             or run_summary.get("fixture") != "deterministic synthetic pixels; no project media or annotations"
             or not isinstance(run_summary.get("raw_run_sha256"), str)
             or len(run_summary["raw_run_sha256"]) != 64
@@ -288,7 +294,8 @@ def main(argv: list[str] | None = None) -> int:
     run_manifest = json.loads(run_manifest_raw)
     report = summarize(trace_raw, run, run_manifest, run_raw, run_manifest_raw,
                        run_path.relative_to(repo).as_posix())
-    verify_source_commit(repo, report["source_commit"], run.get("source_sha256"))
+    verify_source_commit(repo, report["source_commit"], run.get("source_sha256"),
+                         schema_version=run.get("schema_version", 1))
     report["source_run"]["summary_path"] = run_path.relative_to(repo).as_posix()
     output = Path(str(prefix) + ".json")
     manifest = Path(str(prefix) + "_run_manifest.json")
