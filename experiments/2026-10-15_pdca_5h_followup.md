@@ -887,3 +887,56 @@ L_bestfoil,claimmask)`. For the synthetic example, the gold contribution is
 `+1.3` nat. The reviewer confirmed that `S_full` cancels, the primary score,
 cohort, and hypotheses remain unchanged, and the added decomposition is
 interpretive only.
+
+### Independent execution-gate and timing-path audit — 16:05–16:09 JST
+
+Two independent source-only reviews examined the pre-scoring gates and
+repository-defined scoring entrypoints. I then checked the cited source paths
+and ran the three focused CPU suites. The audits found no repository-defined
+claim-mask CLI path that can reach real-data scoring under the current
+protocol. In particular, `require_execution_preflight.py` accepts no report:
+it rejects both the current schema-v1 cross-gate report and unknown/future
+schemas, including a fabricated `ready`/`granted` document. The direct scorer
+calls it before reading the sample file or initializing the video processor
+and model. The publisher checks it before invoking its analysis runner.
+The publisher's earlier existence check may inspect a path, but does not read
+sample contents or score them.
+
+The schema-v13 cross-gate remains fixed to `blocked` /
+`not_granted`, even when structural components pass. The synthetic timing
+preflight is not connected to that gate or the scorer and also returns
+`execution_authorization=not_granted`; its pixel hashes are input witnesses,
+not authenticated evidence from a production decode. The timing helpers and
+prior PyAV→processor synthetic integration establish only that synthetic
+code-path behavior, not source-video PTS, annotation-clock calibration, or
+production pixel identity. Human claim review, per-item media/annotation
+rights, inferential target/dependence/SESOI, production PTS/pixel provenance,
+and an authenticated run-bound gate therefore remain separate blockers.
+
+The source-level audits did not inspect protected untracked data, execute
+inference, or run tests. My independent verification ran
+`PYTHONPATH=scripts .venv/bin/python -m unittest
+test_require_execution_preflight test_preflight_claim_mask_gates
+test_preflight_claim_mask_timing -v`: **25/25 passed in 3.102 s**. These tests
+cover fabricated/unsupported reports, the scorer's stop-before-sample-read
+behavior, structural cross-gate refusal, and synthetic timing failure cases.
+This is executable-gate verification only; it supplies no model or
+faithfulness result. The audited source hashes are:
+
+| File | SHA-256 |
+|---|---|
+| `scripts/require_execution_preflight.py` | `48154e66a769a6a49eccbe0f22a29b08bb4b9cd52abb53912062261bfa5f4cd5` |
+| `scripts/necessity_choice_margin_test.py` | `66342b9169af203437ff14c526753af10e249d110da41d175d43a4b86cb3cffe` |
+| `scripts/run_necessity_choice_margin_test_and_publish.py` | `936e43c7020ba4ccaeaa8ebeb889ff1cf14c5a8930bffaa6abf80cfcbb4b679d` |
+| `scripts/preflight_claim_mask_gates.py` | `45cf2005926e1922e477fd5ad549514e4d0af089659272a96e10541daa1bb328` |
+| `scripts/preflight_claim_mask_timing.py` | `1a3c9a02071334400438e01c3347dbfebecf1050595d25a9b52f5c259e698f15` |
+| `scripts/presentation_time_utils.py` | `9aa1e737f985cffc781a0667d2e4cccb1e7bd1d8222aac743e55a5c3fd52f093` |
+| `scripts/validate_claim_mask_protocol.py` | `1b4c072ca19624d303dd7c4bda7a2becc937f17a64cc08781289d83c5410319e` |
+
+The remaining boundary is explicit: these checks establish behavior of the
+current repository CLIs and tests, not a security boundary against arbitrary
+Python code, manual model use, or future code changes. Do not implement a
+permissive grant schema until the upstream scientific and evidence gates are
+actually resolved. Faithfulness remains **0 requested / 0 effective / 0 new
+direct effect estimates**; no GPU workload was scientifically justified by
+this audit.
