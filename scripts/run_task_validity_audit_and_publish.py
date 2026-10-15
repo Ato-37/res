@@ -5,6 +5,7 @@ import json
 from pathlib import Path
 import subprocess
 import sys
+from closed_research_branch import reject_inference
 
 
 def run(command, repo):
@@ -59,6 +60,8 @@ def main():
     parser.add_argument('--quant', choices=['4bit', '8bit', 'none'], default='4bit')
     parser.add_argument('--seed', type=int, default=0)
     args = parser.parse_args()
+    reject_inference(parser, 'legacy_evidence_probe_task_validity',
+                     'real-media QA scoring is outside the current gated protocol')
     repo = Path(__file__).resolve().parents[1]
     paths = {name: (repo / value).resolve() for name, value in {
         'samples': args.samples_file, 'probe': args.probe_results,

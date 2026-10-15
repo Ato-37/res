@@ -359,3 +359,36 @@ wording risk: disjoint anchors within one video are not thereby statistically
 independent. Updated the worksheet and contract to call them held-out anchors
 and to require any uncertainty calculation to justify its within-video
 dependence assumptions.
+
+### Independent task-validity route audit — 15:27 JST
+
+An earlier audit summary said `audit_evidence_probe_task_validity.py` could
+still score NExT-GQA. Rechecking current source showed that the scorer itself
+already stops immediately after argument parsing, before reading its sample,
+probe, annotation, or map files or loading a processor/model. The remaining
+gap was its publisher wrapper: `run_task_validity_audit_and_publish.py` first
+resolved and checked input paths and read local Git identity before launching
+the already-closed child. It could not reach inference or publication because
+the child failed, but this violated the intended early-stop boundary and could
+expose private paths in local diagnostics.
+
+Added the same branch stop to the publisher immediately after parsing and
+registered it in the guard-order inventory. A runtime invocation with
+nonexistent input files exited with the expected argparse status 2 and
+`blocked[legacy_evidence_probe_task_validity]`; the designated output was not
+created. The focused branch inventory passes **3/3**, including checks that all
+27 registered retired CLIs have the expected stop before file/model/process
+side effects. No sample, probe, or media contents were read and no inference
+ran. The independent source audit confirmed the updated guard, and also notes
+that the allowlisted engineering scripts `spike_test_attention.py` and
+`spike_test_video_attention.py` can accept arbitrary local image/video prompts
+for 3B generation/attention smoke without a rights preflight. They do not
+produce research faithfulness scores; if the policy later expands to prohibit
+all arbitrary real-media model forwards, that scope needs an explicit gate.
+This audit made no such scope change.
+
+Faithfulness remains **0 requested / 0 effective / 0 new effect estimates**
+for this window. No metric, cohort, intervention, exclusions, failures, CI,
+significance test, or multiplicity-adjusted result was generated. This route
+closure is operational hardening, not scientific evidence. The broader
+claim-mask no-go remains unchanged.
