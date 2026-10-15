@@ -503,3 +503,85 @@ The repository CPU suite passes **885/885** after these changes; compileall and
 `git diff --check` pass. Expected failure-path messages and transformer
 deprecation notices appeared in the test stream, but the suite exited zero.
 Direct faithfulness evidence remains **0/3 reviewed, 0/3 scored, 0 effects**.
+
+## 22:37 JST checkpoint — 16-frame real-video CUDA smoke
+
+Elapsed **1h02m18s / 2h**; deadline **23:34:23 JST** (**57m42s remain**). A
+second, distinct NExT-GQA video passed the pinned-Qwen CUDA smoke with 16
+sampled frames and the CLI's fixed 50 ms uniform-grid tolerance. This clip's
+2,525 decoded source frames yielded Qwen temporal grid `[8,24,44]` and 2,144
+input tokens. The single CUDA forward took 3.1482 s, returned finite logits,
+and measured 7.2068 GiB peak allocated memory after model loading; reported
+elapsed time was 17.8212 s, with 14.6572 GiB free at preflight. The runner's
+elapsed timer starts after imports, CUDA preflight, and candidate enumeration,
+then includes timing-candidate decoding, processor/model setup, and forward;
+it is not total CLI wall time. Peak allocated tracking resets after model load,
+so it includes resident model allocations and the forward high-water mark but
+excludes transient model-load peak and is not reserved/total VRAM. There were no
+timing rejections (1 inspected, 1 selected). Compared with the earlier
+4-frame run, this checks a different actual clip, a fourfold requested frame
+count, and a larger processor input. These two small smoke runs are not a
+controlled model-quality or efficacy comparison, and memory values exclude
+any transient peak during model loading because peak tracking was reset after
+loading.
+
+The private mode-0600 artifact is
+`/tmp/nextgqa_real_video_gpu_smoke16_20261015_2240.json` (1,632 bytes,
+SHA-256 `7d6bf4586e80e6baf67efc77059bfaed8b94ef8dd1a13a0f1a90ba0e3746b0f0`);
+it is bound to the same runner SHA as the four-frame result. The fixed 50 ms
+tolerance controls only this smoke's candidate eligibility and must not be
+reused as the gold-span, annotation-clock, or faithfulness tolerance. QA
+questions, generated text, answers, and scores were not used or stored; as in
+the first smoke, location/duration metadata contributes to candidate
+eligibility but not model input or temporal selection. Independent artifact
+audit is pending.
+
+### Faithfulness progress at 22:37 JST
+
+- Direct claim-specific evidence: **0/3 reviewed, 0/3 scored, 0 effects**.
+- Actual GPU path: **two distinct videos**, one 4-frame and one 16-frame run;
+  both had one finite-logit forward. Allocated-memory observations were
+  6.042/7.207 GiB under their respective inputs. This supports only those two
+  runtime configurations, not efficacy or a general peak-memory bound.
+- Continue with the independent audit and protocol/data checks until the
+  23:34:23 JST deadline. Do not infer that 50 ms is an acceptable temporal
+  calibration limit from this smoke.
+
+## 22:39 JST checkpoint — independent related-work audit
+
+Elapsed **1h05m18s / 2h**; deadline **23:34:23 JST** (**54m42s remain**).
+An independent primary-source review found several close precedents, so broad
+priority claims such as “first video explanation faithfulness” or “first
+temporal intervention” are not supportable. NExT-GQA already has human temporal
+labels and joint QA/grounding work ([CVPR 2024](https://openaccess.thecvf.com/content/CVPR2024/html/Xiao_Can_I_Trust_Your_Answer_Visually_Grounded_Video_Question_Answering_CVPR_2024_paper.html));
+causal grounding alignment has been studied on NExT-GQA ([CVPR 2025 CRA](https://openaccess.thecvf.com/content/CVPR2025/html/Chen_Cross-modal_Causal_Relation_Alignment_for_Video_Question_Grounding_CVPR_2025_paper.html));
+and temporal claim deference has been tested with event-order and sampling
+interventions ([Caved or Convinced](https://arxiv.org/abs/2608.03160)). Other
+adjacent work tests explanation-derived visual edits ([EDCT-Bench](https://arxiv.org/abs/2609.17953)),
+or video-model activation interventions for hallucination reduction ([TA-AE, NeurIPS 2025](https://proceedings.neurips.cc/paper_files/paper/2025/hash/5683583b88da51c79d2eb263f295286e-Abstract-Conference.html)).
+These works have different outcomes and intervention targets; this short scan
+is positioning evidence, not a systematic review.
+
+The narrow candidate distinction is a post-hoc behavioral dependence measure:
+for a human-verified mapping between a model-generated answer claim and a
+reported temporal interval, compare the fixed claim's gold-versus-best-foil
+log-margin drop under that interval mask against a rank-matched temporal control
+mask. This particular combination's priority is unresolved. Even a future
+positive estimate would not demonstrate hidden-reasoning faithfulness, claim
+truth, or causal mechanism; temporal mask OOD effects and semantic differences
+between target/control intervals remain alternative explanations. Direct
+claim-specific faithfulness evidence is still **0/3 reviewed, 0/3 scored, 0
+effects**.
+
+The reviewer worksheet remains **0/3 reviewed**. Thus no claim-mask scoring
+should run yet. Continue independent protocol and implementation validation;
+do not substitute model-generated labels or geometric timestamp checks for the
+required human mapping.
+
+The protocol validator's focused regression suite passed **52/52** on this
+checkpoint, including fail-closed checks for incomplete human review, unresolved
+SESOI/inference design, uncalibrated execution, and the distinction between
+rights recording and execution authorization. This verifies structural guard
+behavior only; it does not clear those gates. The final frame2time and two GPU
+artifact hashes were re-read and match their recorded values. The claim review
+worksheet remains mode 0600 and 0/3 complete.
