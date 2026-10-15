@@ -983,3 +983,22 @@ uncertainty concerns simulation error only. These outputs do not establish
 real-cohort interval coverage, dependence, SESOI, or an appropriate inference
 method. Faithfulness remains **0 requested / 0 effective / 0 new direct
 effect estimates**.
+
+### Overview/contract consistency and committed artifact provenance — 16:12–16:14 JST
+
+Updated the high-level research overview to state the frozen primary's
+interpretive limit: because each condition selects its own best foil, a
+positive gold-vs-foil margin difference can include gold-score decline,
+best-foil-score increase, or both. The overview now points to the protocol
+contract and this log for the derivation. No score, cohort, estimand, or result
+changed.
+
+As a final provenance cross-check for the tail-sensitivity audit, the
+committed result blob at `84959ba0251130204fc810448e958e8a4ebb759d`
+(`Bind tail simulation dependency provenance`, 2026-10-15 12:20:58 JST) has
+the same SHA-256 as the local artifact:
+`182f3a8763ec7b0c4e80da610eba080dab4cefe2a3ecd9fe1a9da967c564e786`.
+The generator and its directly imported dependency also match the hashes
+embedded in that artifact. This explanatory update changes no measurement;
+faithfulness remains **0 requested / 0 effective / 0 new direct effect
+estimates**.
