@@ -1,0 +1,116 @@
+{
+  "current_window_min_median_max_gib": {
+    "guest.cgroup_anon": {
+      "max": 0.581,
+      "median": 0.571,
+      "min": 0.558
+    },
+    "guest.cgroup_current": {
+      "max": 13.612,
+      "median": 13.599,
+      "min": 13.586
+    },
+    "guest.cgroup_file": {
+      "max": 12.877,
+      "median": 12.877,
+      "min": 12.877
+    },
+    "guest.cgroup_swap_current": {
+      "max": 0.828,
+      "median": 0.828,
+      "min": 0.826
+    },
+    "guest.mem_available": {
+      "max": 14.035,
+      "median": 14.024,
+      "min": 14.011
+    },
+    "host.host_commit": {
+      "max": 37.228,
+      "median": 37.085,
+      "min": 36.926
+    },
+    "host.host_free": {
+      "max": 3.149,
+      "median": 3.011,
+      "min": 2.679
+    },
+    "host.vmmem_wss": {
+      "max": 14.606,
+      "median": 14.604,
+      "min": 14.556
+    }
+  },
+  "errors": {
+    "guest": 0,
+    "host": 0
+  },
+  "intervals": {
+    "guest_interval_seconds": 1.0,
+    "host_post_query_wait_seconds": 5.0
+  },
+  "limits": [
+    "same host/session, two short windows, no inferential uncertainty",
+    "host physical free changed while vmmemWSL WSS was nearly constant; this does not identify the varying host component",
+    "process working set and host free have different accounting scopes",
+    "resource diagnostic only, no model/data/faithfulness scores",
+    "host commit charge is not physical RAM use; prior-window cgroup swap was not recorded as a time series"
+  ],
+  "local_trace_sha256": "91c4378785ae582563c9473179a19a051b033b3c075ad10a39bdfc126c2f7208",
+  "median_change_second_minus_first_gib": {
+    "guest.cgroup_anon": 0.065,
+    "guest.cgroup_current": 0.146,
+    "guest.cgroup_file": 0.074,
+    "guest.mem_available": -0.073,
+    "host.host_commit": 0.224,
+    "host.host_free": -0.368,
+    "host.vmmem_wss": 0.006
+  },
+  "prior_window_min_median_max_gib": {
+    "guest.cgroup_anon": {
+      "max": 0.514,
+      "median": 0.506,
+      "min": 0.5
+    },
+    "guest.cgroup_current": {
+      "max": 13.468,
+      "median": 13.453,
+      "min": 13.446
+    },
+    "guest.cgroup_file": {
+      "max": 12.81,
+      "median": 12.803,
+      "min": 12.803
+    },
+    "guest.mem_available": {
+      "max": 14.103,
+      "median": 14.097,
+      "min": 14.079
+    },
+    "host.host_commit": {
+      "max": 36.971,
+      "median": 36.861,
+      "min": 36.647
+    },
+    "host.host_free": {
+      "max": 3.599,
+      "median": 3.379,
+      "min": 3.278
+    },
+    "host.vmmem_wss": {
+      "max": 14.602,
+      "median": 14.598,
+      "min": 14.598
+    }
+  },
+  "purpose": "repeat a paired five-minute idle Windows/WSL memory baseline with the reusable aggregate sampler",
+  "requested_seconds": 300,
+  "rows": {
+    "guest": 300,
+    "host": 45
+  },
+  "run_id": "20261015_1411",
+  "schema_version": 1,
+  "source_script_sha256": "981fd4c70a80fa748926b0592825577e37d9f1827d93cd0fd43fd7eab39b353b",
+  "units": "binary GiB (bytes / 2^30)"
+}
