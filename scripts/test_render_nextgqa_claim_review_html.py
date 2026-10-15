@@ -1,10 +1,15 @@
 import json
 import hashlib
+import contextlib
+import io
+import os
+import stat
+import tempfile
 import unittest
 from pathlib import Path
 
 from build_nextgqa_claim_mapping_packet import apply_review_policy, build
-from render_nextgqa_claim_review_html import render
+from render_nextgqa_claim_review_html import main, render
 from test_build_nextgqa_claim_mapping_packet import encode, packet
 
 
@@ -57,6 +62,7 @@ class RenderNextgqaClaimReviewHtmlTests(unittest.TestCase):
         self.assertIn("execution_authorization", page)
         self.assertIn("not_granted", page)
         self.assertIn("crypto.subtle.digest", page)
+        self.assertIn("1 ms精度の測定を意味しません", page)
         self.assertIn("video.muted=true", page)
         self.assertNotIn("/private/video-", page)
 
@@ -112,6 +118,30 @@ class RenderNextgqaClaimReviewHtmlTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "lineage_row_binding_invalid"):
             render(payload, raw, bad_lineage, bad_lineage_raw,
                    hashlib.sha256(bad_lineage_raw).hexdigest())
+
+    def test_cli_requires_private_inputs_and_writes_exclusive_private_page(self):
+        payload, worksheet_raw, lineage, lineage_raw = self.payload()
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            worksheet = root / "worksheet.json"
+            manifest = root / "lineage.json"
+            output = root / "review.html"
+            worksheet.write_bytes(worksheet_raw)
+            manifest.write_bytes(lineage_raw)
+            os.chmod(worksheet, 0o600); os.chmod(manifest, 0o600)
+            args = ["--input", str(worksheet), "--lineage-manifest", str(manifest),
+                    "--expected-lineage-sha256", hashlib.sha256(lineage_raw).hexdigest(),
+                    "--output", str(output), "--user-authorized-local-only"]
+            self.assertEqual(main(args), 0)
+            self.assertEqual(stat.S_IMODE(output.stat().st_mode), 0o600)
+            self.assertIn("Safe claim 0", output.read_text())
+            with contextlib.redirect_stderr(io.StringIO()), self.assertRaises(SystemExit):
+                main(args)
+            output.unlink()
+            os.chmod(manifest, 0o644)
+            with contextlib.redirect_stderr(io.StringIO()), self.assertRaises(SystemExit):
+                main(args)
+            self.assertFalse(output.exists())
 
 
 if __name__ == "__main__":

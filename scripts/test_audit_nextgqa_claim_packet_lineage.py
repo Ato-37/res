@@ -1,11 +1,15 @@
 import csv
+import contextlib
 import hashlib
+import io
 import json
+import os
+import stat
 import tempfile
 import unittest
 from pathlib import Path
 
-from audit_nextgqa_claim_packet_lineage import DATASET_KEYS, audit
+from audit_nextgqa_claim_packet_lineage import DATASET_KEYS, audit, main
 from test_build_nextgqa_claim_mapping_packet import packet
 
 
@@ -68,6 +72,29 @@ class AuditNextgqaClaimPacketLineageTests(unittest.TestCase):
             Path(value["records"][0]["local_video_path"]).write_bytes(b"tampered")
             with self.assertRaisesRegex(ValueError, "source_video_hash_mismatch_or_duplicate"):
                 audit(value, raw, repo, video_root)
+
+    def test_cli_requires_private_packet_and_writes_exclusive_manifest(self):
+        with tempfile.TemporaryDirectory() as td:
+            value, raw, repo, video_root = self.fixture(Path(td))
+            packet_path = Path(td) / "packet.json"
+            output = Path(td) / "lineage.json"
+            packet_path.write_bytes(raw); os.chmod(packet_path, 0o600)
+            args = ["--packet", str(packet_path), "--repo", str(repo),
+                    "--video-root", str(video_root), "--output", str(output),
+                    "--user-authorized-local-only"]
+            with contextlib.redirect_stdout(io.StringIO()):
+                self.assertEqual(main(args), 0)
+            self.assertEqual(stat.S_IMODE(output.stat().st_mode), 0o600)
+            manifest = json.loads(output.read_bytes())
+            self.assertEqual(manifest["effective_records"], 3)
+            self.assertEqual(manifest["status"], "metadata_lineage_crosschecked")
+            with contextlib.redirect_stderr(io.StringIO()), self.assertRaises(SystemExit):
+                main(args)
+            output.unlink()
+            os.chmod(packet_path, 0o644)
+            with contextlib.redirect_stderr(io.StringIO()), self.assertRaises(SystemExit):
+                main(args)
+            self.assertFalse(output.exists())
 
 
 if __name__ == "__main__":

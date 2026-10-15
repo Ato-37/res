@@ -33,6 +33,24 @@ class ClaimMaskVideoDecoderTests(unittest.TestCase):
         self.assertEqual(meta["execution_authorization"], "not_granted")
         verify_sampled_frame_pixels(frames, meta)
 
+    def test_nonzero_pts_origin_is_normalized_only_within_media_and_bound_to_pixels(self):
+        with tempfile.TemporaryDirectory() as temp:
+            path = Path(temp) / "offset_origin.mkv"
+            encode_fixture(path, pts=(100, 102, 104, 106, 108),
+                           time_base=Fraction(1, 10))
+            frames, meta = decode_sampled_video(
+                path, num_frames=3, uniform_tolerance_seconds=Fraction(0))
+        sampled = meta["sampled_frames"]
+        self.assertEqual(meta["decoded_time_base"], [1, 1000])
+        self.assertEqual([row["pts"] for row in sampled], [10000, 10400, 10800])
+        self.assertEqual([row["decoded_frame_index"] for row in sampled], [0, 2, 4])
+        self.assertEqual([row["relative_presentation_time"] for row in sampled],
+                         [[0, 1], [2, 5], [4, 5]])
+        self.assertEqual(meta["timestamp_origin"], "first_decoded_presentation_timestamp")
+        self.assertFalse(meta["annotation_clock_calibrated"])
+        self.assertEqual(meta["execution_authorization"], "not_granted")
+        verify_sampled_frame_pixels(frames, meta)
+
     def test_irregular_sampled_pts_fail_frozen_uniform_grid(self):
         with tempfile.TemporaryDirectory() as temp:
             path = self.make_video(temp, [0, 1, 3, 4, 6])

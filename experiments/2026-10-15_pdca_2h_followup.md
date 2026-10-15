@@ -231,3 +231,124 @@ permissions remain untested; no reviewer export exists.
   the existing timing/calibration implementation and its stated limits. Do not
   inspect gold spans before claim mapping or represent metadata checks as
   faithfulness evidence.
+
+## 22:13 JST checkpoint — PTS-origin boundary and real-file cadence
+
+Elapsed **39m09s / 2h**; deadline **23:34:23 JST** (80m51s remain). A separate
+CPU-only metadata pass over the same three local source videos found H.264
+streams at 25 fps or 30000/1001 fps, with decoded frame counts 1615 or 2697.
+Thus the frame cadence is roughly 33–40 ms; the review page now says its
+0.001-second entry granularity is storage precision, not 1 ms visual evidence
+resolution. The updated private page is
+`/tmp/nextgqa_claim_review_20261015_2214.html`, mode 0600, 18,191 bytes, SHA-256
+`336d543f813dfa9c0b3149166cea04bde149dda9cd8eeeb15acc375b68931fd9`.
+
+Added one synthetic lossless Matroska fixture test through the production
+two-pass PyAV decoder. Requested PTS `(100,102,104,106,108)` at exact time base
+`1/10` are preserved as sampled PTS `[10000,10400,10800]` with decoded time
+base `1/1000`; the selected frame indices are `[0,2,4]` and relative times are
+`[0,2/5,4/5]` seconds. Pixel hashes verify the selected RGB buffers. The test
+also confirms the adapter labels its origin as the first decoded presentation
+timestamp, keeps `annotation_clock_calibrated=false`, and leaves execution
+authorization `not_granted`. An independent source review reran all 11 decoder
+tests and found no issue. This closes a synthetic PTS-origin plumbing case; it
+does not calibrate the source player's clock or validate semantic evidence.
+Focused timing suites pass **28/28**; full CPU suite passes **875/875**.
+
+### Faithfulness progress at 22:13 JST
+
+- **Direct evidence remains 0/3 human-reviewed, 0/3 scored, 0 effect estimates.**
+  No Qwen model forward or GPU inference was run in this checkpoint.
+- **Real-data checks:** 3/3 source-media/hash and CSV/video-key/question
+  metadata bindings verified; 3 videos' codec cadence inspected. These are
+  media provenance/timing-readiness checks, not faithfulness scores.
+- **Independent audit:** source-manifest SHA is required at both the Python API
+  and CLI boundaries; unsigned-manifest substitution, duplicate keys, path
+  traversal (including backslashes), schema mismatch, and handoff tampering are
+  rejected by tests. The independent auditor found the CLI/API checks closed;
+  the checksum still depends on keeping the independently recorded digest
+  separate from the input file.
+- **Remaining gates:** no browser is installed in this runtime, human review is
+  incomplete, media rights are unverified, player-to-decoder anchors and
+  held-out clock calibration are absent, and SESOI/inference target remain
+  unresolved. No result was published. The user was offered the local review
+  page to complete the human stage; continue independent CPU/protocol audit
+  while awaiting a response.
+
+## 22:16 JST checkpoint — decoder pass on the three source videos
+
+Elapsed **42m07s / 2h**; deadline **23:34:23 JST** (77m53s remain). A
+metadata-only, full-frame CPU decode through the production PyAV first-pass
+routine succeeded on the three local source files. Their frame counts were
+1615, 2697, and 2697; all timestamps were strictly increasing, all streams were
+H.264, and every within-video frame delta was constant: 1/25 s for the first
+and 1001/30000 s for the other two. Relative decoded durations were 1614/25 s
+and 337337/3750 s. The decoder saw RGB source dimensions corresponding to
+480x360, 640x360, and 640x480. No frames were shown or saved; no QA, gold span,
+claim text, or model score was read by this diagnostic.
+
+The three Python CLIs now also have synthetic integration tests for private
+input modes, mode-0600 exclusive outputs, overwrite rejection, and the
+non-authorizing audit status. Focused reviewer/handoff/lineage CLI checks pass.
+The new PTS-origin fixture's exact PTS and time base are asserted, not just a
+nonzero-origin inequality. The independent source auditor reproduced the
+actual-video counts and rational timestamp facts without opening annotations
+or rendering video content. It also verified all three media SHA-256 values
+against the frozen lineage manifest and found zero decode failures. The first
+PTS is 1000 for the 1/25000-time-base file and 0 for the two 1/30000 files.
+This concrete offset shows why normalizing each stream to its first decoded PTS
+does not itself map the media clock to the HTML/source annotation player's zero
+point.
+
+### Faithfulness progress at 22:16 JST
+
+- **Direct metric progress:** still **0/3 human-reviewed, 0/3 scored, 0 effect
+  estimates**; no GPU inference or faithfulness metric ran in this window.
+- **Actual data:** local question/video/source hash binding 3/3; all three
+  source files decode and have monotonic constant-rate PTS through the pinned
+  PyAV pass. This narrows a media/decoder feasibility risk only; it does not
+  align the source-player clock, establish claim support, produce a mask, or
+  estimate faithfulness.
+- **Protocol decision:** no sampling tolerance or timestamp-origin conversion
+  was selected from these observed videos. The annotation/player-to-decoder
+  map still requires pre-outcome fit and held-out visual anchors, independent
+  validation, and a frozen acceptance rule. Therefore these results do not
+  unlock GPU scoring.
+- **Open work:** source browser playback remains unavailable here, and
+  independent human review is still incomplete. Continue with remaining CLI and
+  protocol checks until the recorded 23:34:23 JST deadline unless the user
+  explicitly changes the scope.
+
+## 22:18 JST checkpoint — dataset duration metadata versus decoded extent
+
+Elapsed **44m25s / 2h**; deadline **23:34:23 JST** (75m35s remain). For the same
+three lineage-verified videos, I read only each matched `gsub_test` duration
+field and compared it with `last_relative_PTS + one exact decoded-frame
+interval`. Dataset durations were 65, 90, and 90 seconds; the decoded extent
+estimates were 64.6 and 89.9899 seconds, leaving differences 0.4 and 0.0101
+seconds. All differences fit whole-second rounding, but this agreement cannot
+identify subsecond origin, player seek behavior, edit boundaries, drift, or
+annotation timestamp semantics. It does not calibrate the clock and does not
+expose QA spans or answers.
+
+The independent audit confirmed the media hashes still match the lineage
+manifest for all three files and independently reproduced frame counts,
+rational time bases, constant frame intervals, durations, and monotonicity with
+zero decode failures. The full CPU suite now passes **879/879** after CLI
+privacy/overwrite tests and exact nonzero-PTS assertions. `compileall` and
+`git diff --check` pass. These remain provenance and decoder diagnostics, not
+faithfulness observations.
+
+### Faithfulness progress at 22:18 JST
+
+- **Direct evaluation:** **0/3 reviewed, 0/3 scored, 0 effect estimates**; no
+  direct faithfulness metric or model forward was run this window.
+- **Real-data progress:** the candidate set's question/video/hash binding,
+  full-frame decode, and coarse duration consistency are verified. A 0.4 s
+  first-file offset between rounded dataset duration and decoded extent is
+  compatible with rounding; it cannot choose an exact offset correction.
+- **Next discriminating step:** an independent human must map the frozen claims
+  to visible video intervals while blind to QA seeds and scores. Separately,
+  freeze fit/held-out visual anchors and an acceptance rule to calibrate the
+  source-player clock. Until these are done, no GPU scoring run can test the
+  intended claim-mask effect.

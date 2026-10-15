@@ -2,9 +2,14 @@ import hashlib
 import json
 import unittest
 import copy
+import contextlib
+import io
+import os
+import stat
+import tempfile
 from pathlib import Path
 
-from audit_nextgqa_review_handoff import audit
+from audit_nextgqa_review_handoff import audit, main
 from build_nextgqa_claim_mapping_packet import apply_review_policy, build
 from test_build_nextgqa_claim_mapping_packet import encode, packet
 from test_render_nextgqa_claim_review_html import RenderNextgqaClaimReviewHtmlTests
@@ -135,6 +140,29 @@ class AuditNextgqaReviewHandoffTests(unittest.TestCase):
                 self.assertEqual(result["status"], "invalid")
                 self.assertEqual(result["execution_authorization"], "not_granted")
                 self.assertIn("frozen_worksheet_invalid", result["failure_codes"])
+
+    def test_cli_writes_only_private_audit_summary(self):
+        values = handoff()
+        worksheet, worksheet_raw, lineage, lineage_raw, review, review_raw, index, index_raw = values
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            files = [root / name for name in ("worksheet.json", "lineage.json",
+                                               "review.json", "index.json")]
+            raws = [worksheet_raw, lineage_raw, review_raw, index_raw]
+            for path, raw in zip(files, raws, strict=True):
+                path.write_bytes(raw); os.chmod(path, 0o600)
+            output = root / "audit.json"
+            args = ["--worksheet", str(files[0]), "--lineage-manifest", str(files[1]),
+                    "--review-payload", str(files[2]), "--review-index", str(files[3]),
+                    "--expected-lineage-sha256", hashlib.sha256(lineage_raw).hexdigest(),
+                    "--output", str(output)]
+            self.assertEqual(main(args), 0)
+            self.assertEqual(stat.S_IMODE(output.stat().st_mode), 0o600)
+            report = json.loads(output.read_bytes())
+            self.assertEqual(report["status"], "unvalidated_handoff_structurally_valid")
+            self.assertEqual(report["execution_authorization"], "not_granted")
+            with contextlib.redirect_stderr(io.StringIO()), self.assertRaises(SystemExit):
+                main(args)
 
 
 if __name__ == "__main__":
