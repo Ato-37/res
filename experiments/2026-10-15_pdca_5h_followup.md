@@ -1380,3 +1380,43 @@ The human claim-review artifact remains incomplete, so current direct
 faithfulness progress is unchanged at **0 new samples / 0 new effect
 estimates**. These papers guide protocol design; they are not measurements on
 this project's model or data.
+
+### Clarification: NExT-QA versus NExT-GQA and prior evidence — 17:27 JST
+
+A user pointed out that NextQA may supply evidence intervals. The precise
+distinction is that the original NExT-QA release documents question-answer
+annotations, while the NExT-GQA extension adds per-question temporal spans in
+`gsub_val.json` and `gsub_test.json`. The official NExT-GQA README shows the
+video-ID/question-ID keyed span format. This repository already contains a
+counts-only temporal-annotation audit (3,358/3,358 validation and 5,553/5,553
+test QA rows joined to gsub) and previously ran NExT-GQA interval-based
+necessity-mask experiments. Thus it was incorrect to say that no such
+interval-annotated data or prior real-video measurements exist.
+
+The prior 60-item NExT-GQA necessity-mask study is evidence of a limited
+operational answer-margin response to annotated-interval masking, not a new
+result in this follow-up and not proof that generated explanations faithfully
+represent model reasoning. Its all-item estimates were black mask +0.296 nat
+(95% bootstrap CI [−0.046,+0.615]) and blur +0.360 nat ([−0.035,+0.721]);
+the intervals include zero. The baseline-correct subset (n=37) had black
++0.334 nat ([+0.111,+0.581]) and blur +0.456 nat ([+0.172,+0.760]), but these
+are subgroup estimates without multiplicity correction, and the cohort is
+selected by baseline correctness. Mask-fill OOD, interval-to-token mapping,
+and the distinction between QA evidence intervals and claim-specific spans
+remain limits. Do not present these as a new independent confirmation.
+
+The independent source audit also found that E-VQA's paper includes a
+200-sample evidentiality diagnostic: pixelate annotated evidence masks versus
+same-procedure random non-evidence regions, then compare QA-accuracy drops.
+The literature review was corrected to describe this intervention and its
+boundary: it tests selective QA dependence on annotated regions, not a fixed
+generated-claim-to-interval margin estimand. Targeted CPU contract checks
+passed 24/24 after setting `PYTHONPATH=scripts`; the first invocation without
+that repository import path failed at test discovery and ran no tests.
+
+The local NExT-GQA tree and private sample manifests remain unopened in this
+check, in accordance with the repository's protected-data instruction. The
+tracked source, public README, prior logs, and published derived results
+establish that the annotation format and evaluation path exist. Further work
+should resume from those existing outputs and the open temporal-token mapping
+question, rather than repeating the completed sample.

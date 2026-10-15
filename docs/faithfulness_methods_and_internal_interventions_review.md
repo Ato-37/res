@@ -106,7 +106,7 @@ GPU前に必要なこと:
 
 **INFACT: A Diagnostic Benchmark for Induced Faithfulness and Factuality Hallucinations in Video-LLMs** — [Yangjunqi et al., ACL 2026](https://aclanthology.org/2026.acl-long.2062/)。実・合成動画9,800問で、Base、視覚劣化、証拠corruption、時間順序介入を分ける。正解が変わらない想定の介入はResist Rate、順序が正解に必要な項目のshuffle/reversalはTemporal Sensitivity Scoreで評価する。Base精度だけでは誘導条件での信頼性を示さない、という診断は本研究の回答marginとfaithfulnessを分ける必要性を補強する。これは回答が動画に依存するかの信頼性評価であり、自由記述claimがモデル判断の根拠を忠実に表すかを直接検証する指標ではない。同論文はlabel-preserving operatorについて、200例/条件を3名のblind annotatorで監査している。
 
-**Evidence-Backed Video Question Answering** — [Wang et al., ECCV 2026](https://arxiv.org/abs/2607.11862)。答えに時間区間とdense tracked maskletsを添える課題と、人手確認付きST-Evidenceを提案する。モデル出力と証拠の照合を可能にする点で近いが、予測された証拠のgrounding精度は、説明claimへの選択的依存や説明の内部faithfulnessとは別の性質である。
+**Evidence-Backed Video Question Answering** — [Wang et al., ECCV 2026](https://arxiv.org/abs/2607.11862)。答えに時間区間とdense tracked maskletsを添える課題と、人手確認付きST-Evidenceを提案する。さらに200件の診断では、注釈された証拠maskと同手続きのランダム非証拠領域をpixelateし、QA精度の低下を比較する。これは根拠領域への入力介入を含む点で本研究に近い。一方、その介入は生成説明中の固定claimと区間の対応、gold-vs-foil marginに対する選択的効果を直接評価するものではなく、予測証拠のgrounding精度やQA依存性から説明の内部faithfulnessを結論できない。
 
 **EDCT-Bench** — [Ding et al., arXiv:2609.17953](https://arxiv.org/abs/2609.17953)。画像VLMの説明から視覚概念を抽出し、検証した最小編集を適用して回答と説明の一貫性を測る。説明由来の介入という点は近いが、現時点ではarXiv preprintであり、画像向けの編集・判定を時間構造のある動画へそのまま移せない。論文自身も、モデルごとの説明から介入を選ぶことで難度が変わり得ることと、より多くのhuman-verified記述・介入による確認を課題として挙げる。
 
