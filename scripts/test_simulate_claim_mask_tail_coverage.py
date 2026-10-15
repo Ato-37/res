@@ -1,6 +1,10 @@
 import math
+import hashlib
 import unittest
+from pathlib import Path
 
+import simulate_claim_mask_cluster_coverage as cluster_simulator
+import simulate_claim_mask_tail_coverage as tail_simulator
 from simulate_claim_mask_tail_coverage import (
     DISTRIBUTIONS,
     simulate_condition,
@@ -48,6 +52,11 @@ class TailCoverageSimulationTests(unittest.TestCase):
                          {key(r): r for r in b["conditions"]})
         self.assertEqual(len(a["conditions"]), 12)
         self.assertEqual(a["grid_config"]["total_simulated_datasets"], 1200)
+        dependency = Path(cluster_simulator.__file__).resolve()
+        self.assertEqual(a["source_dependencies_sha256"][dependency.name],
+                         hashlib.sha256(dependency.read_bytes()).hexdigest())
+        runner = Path(tail_simulator.__file__).resolve()
+        self.assertEqual(a["source_sha256"], hashlib.sha256(runner.read_bytes()).hexdigest())
         self.assertIn("infinite fourth moment", a["data_generation"]["component_distributions"][
             "student_t3_unit_variance"])
 

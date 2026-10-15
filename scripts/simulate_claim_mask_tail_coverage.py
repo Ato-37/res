@@ -17,6 +17,7 @@ import numpy as np
 import scipy
 from scipy.stats import t
 
+import simulate_claim_mask_cluster_coverage as _cluster_simulator
 from simulate_claim_mask_cluster_coverage import (
     ICC_GRID,
     LAYOUTS,
@@ -24,6 +25,7 @@ from simulate_claim_mask_cluster_coverage import (
     _wilson_interval,
 )
 
+_CLUSTER_SIMULATOR_PATH = Path(_cluster_simulator.__file__).resolve()
 
 DISTRIBUTIONS = ("normal", "student_t5_unit_variance", "student_t3_unit_variance")
 
@@ -173,6 +175,10 @@ def simulate_grid(*, repetitions: int = 20_000, seed: int = 20261015,
         "software_versions": {"python": platform.python_version(),
                               "numpy": np.__version__, "scipy": scipy.__version__},
         "source_sha256": hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),
+        "source_dependencies_sha256": {
+            _CLUSTER_SIMULATOR_PATH.name: hashlib.sha256(
+                _CLUSTER_SIMULATOR_PATH.read_bytes()).hexdigest(),
+        },
         "conditions": conditions,
         "limitations": [
             "Synthetic sensitivity only; component distributions, ICCs and cluster counts are not estimated from project data.",
