@@ -1,0 +1,123 @@
+{
+  "annotation_clock_calibrated": false,
+  "annotation_or_qa_used": false,
+  "attention_implementation": "eager",
+  "attention_layers": 28,
+  "compute_dtype": "bfloat16",
+  "credit": "NOAA Ocean Exploration",
+  "cuda_version": "12.8",
+  "decode_frame_count": 8992,
+  "decoded_pts_sequence_sha256": "8e200f54eae4ad74ca358eb23be8011f798f6e4dd25cf386095968482bf6ec00",
+  "effective_frames": 4,
+  "effective_videos": 1,
+  "elapsed_seconds": 72.03469728899654,
+  "faithfulness_effect_estimate": null,
+  "finite_attentions": true,
+  "finite_logits": true,
+  "forward_seconds": 5.268899065995356,
+  "gpu": "NVIDIA GeForce RTX 5070 Ti",
+  "gpu_free_before_gib": 14.6572265625,
+  "gpu_total_gib": 15.89398193359375,
+  "grid_thw": [
+    2,
+    24,
+    44
+  ],
+  "input_tokens": 560,
+  "limitations": [
+    "One real video, four sparse frames, one forward, no treatment/control or answer labels.",
+    "No claim-level effect, confidence interval, significance test, or faithfulness conclusion.",
+    "PTS is relative to the first decoded frame; annotation clock is uncalibrated.",
+    "The sampled uniform-grid tolerance is frozen for this one-video feasibility check only."
+  ],
+  "media_description": "fixed NOAA EX2503 dive03 public-domain source; 300-second clip",
+  "media_sha256": "13ab1d0e12d9c6b9e776890d123f363c12c572d52d1f58464b57a2e98667f126",
+  "model": "Qwen/Qwen2.5-VL-7B-Instruct",
+  "model_revision": "cc594898137f460bfe9f0759e9844b3ce807cfb5",
+  "pass1_decoded_rgb_sequence_sha256": "1bb6bd2b2e92119dfc10d45cfe6c7328bdb0752b7b1a95ea28d554a63d16354c",
+  "peak_allocated_gib": 6.647227764129639,
+  "privacy": "No raw media, QA/answer text, generated text, absolute local path, or personal identifier.",
+  "purpose": "real_video_pyav_to_qwen_gpu_path_smoke",
+  "quantization": "4bit",
+  "requested_frames": 4,
+  "requested_videos": 1,
+  "sample_fps": [
+    10000,
+    999999
+  ],
+  "sampled_frames": [
+    {
+      "decoded_frame_index": 0,
+      "pts": 0,
+      "relative_presentation_time": [
+        0,
+        1
+      ],
+      "rgb_pixel_sha256": "b565d618ae9b8a916ee0c85f9c37e681d5fe7716a0033df81d24276355978109",
+      "rgb_size": [
+        640,
+        360
+      ]
+    },
+    {
+      "decoded_frame_index": 2997,
+      "pts": 2999997,
+      "relative_presentation_time": [
+        999999,
+        10000
+      ],
+      "rgb_pixel_sha256": "2cd97a8db0316d848e99a090cf648a45c1f98fd94f959208d229a094e394ea82",
+      "rgb_size": [
+        640,
+        360
+      ]
+    },
+    {
+      "decoded_frame_index": 5994,
+      "pts": 5999994,
+      "relative_presentation_time": [
+        999999,
+        5000
+      ],
+      "rgb_pixel_sha256": "05df57d9cd13e125c91adf55b03940ae9fa148e9783b6477fc8f4d352a3bd3c2",
+      "rgb_size": [
+        640,
+        360
+      ]
+    },
+    {
+      "decoded_frame_index": 8991,
+      "pts": 8999991,
+      "relative_presentation_time": [
+        2999997,
+        10000
+      ],
+      "rgb_pixel_sha256": "d804db9eb69a489569578258624f3ae01e5e5204ffd0bfc301b5de9bdf15a2de",
+      "rgb_size": [
+        640,
+        360
+      ]
+    }
+  ],
+  "schema_version": 1,
+  "seconds_per_grid": 199.9998016357422,
+  "seed": 20261015,
+  "source_commit": "43add2b1aba9a89c626bba0c5401ead979ebf88f",
+  "source_sha256": {
+    "decoder": "c0226f23aa073317a34d982a40cdf199820e502ce6ae992f8fc19082991f6516",
+    "runner": "12be80b9d2661d213856c1ee1159a70fae4d462f393ceb295539c9def8961e43"
+  },
+  "started_utc": "2026-10-15T07:28:45.583989+00:00",
+  "status": "passed",
+  "uniform_tolerance_seconds": [
+    1,
+    1000
+  ],
+  "versions": {
+    "bitsandbytes": "0.50.2",
+    "qwen-vl-utils": "0.0.14",
+    "torch": "2.11.0+cu128",
+    "transformers": "5.18.0"
+  },
+  "video_tokens": 528
+}

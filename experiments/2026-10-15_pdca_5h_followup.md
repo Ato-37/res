@@ -1002,3 +1002,121 @@ The generator and its directly imported dependency also match the hashes
 embedded in that artifact. This explanatory update changes no measurement;
 faithfulness remains **0 requested / 0 effective / 0 new direct effect
 estimates**.
+
+### Two-pass PyAV sampled-frame adapter and independent re-audit — 16:17–16:21 JST
+
+Implemented `scripts/claim_mask_video_decoder.py` as a reusable, non-authorizing
+video decode adapter. It decodes one video stream twice, requires valid unique
+monotonic presentation timestamps and stable time base/pixel specification,
+chooses endpoint-inclusive uniform decoded-frame indices, and refuses sampled
+PTS grids outside the caller's declared tolerance. The second pass returns the
+RGB PIL frame buffers after checking every PTS and the selected frame pixel
+hashes against pass one. A separate boundary helper rechecks those frame
+buffers immediately before a caller passes them onward. Metadata explicitly
+states that annotation-clock calibration is false and execution authorization
+is `not_granted`.
+
+An independent review found that hashing a path and reopening it for each pass
+could bind the source digest to different bytes if the path target changed
+between decodes. The implementation now opens one seekable file handle, hashes
+that handle before/after, and seeks/reuses it for both PyAV passes. A synthetic
+regression test replaces the path after pass one and confirms that both passes
+still decode the pinned original object and that its source hash is recorded.
+The RGB sequence digest metadata key is explicitly named
+`pass1_decoded_rgb_sequence_sha256`; pass two verifies all timestamps and the
+selected inference frames, rather than claiming to hash-compare every frame's
+pixels across both passes.
+
+The independent re-audit confirmed the path-replacement repair and all seven
+adapter tests. Remaining limits: in-place hostile mutation and restoration of
+the same inode during decoding is not prevented; global cohort preflight and
+one frozen tolerance across all items belong to a future caller; no production
+annotation-clock calibration or Qwen scoring path is connected. No protected
+manifests/media were opened, and no model or GPU was used. The combined
+decoder/PTS/processor boundary tests passed **24/24**; the full script test
+suite passed **835/835 in 9.678 s**. Faithfulness remains **0 requested / 0
+effective / 0 new direct effect estimates**. This is a provenance and temporal
+measurement repair validated only on synthetic media, not a faithfulness
+result or evidence that real-video sampling is correct.
+
+### Real-video PyAV→Qwen CPU/GPU feasibility experiment — 16:23–16:30 JST
+
+In response to the user's explicit direction to perform an experiment with real
+video and to set aside rights/inferential-design gates for this exploratory
+work, fixed the already locally retained NOAA EX2503 dive03 source before
+outcomes. The clip is public-domain per the prior verified NOAA source record;
+this run used no dataset QA, answer text, annotation, or human-attestation
+claim. It is an input-path feasibility experiment, not an efficacy test.
+
+Added `scripts/run_claim_mask_real_video_gpu_smoke.py`. The runner verifies the
+fixed media digest both before decode and against the digest of the same pinned
+file handle used by PyAV, decodes twice, checks all 8,992 displayed-frame PTS,
+and selects four endpoint-inclusive frames on a uniform grid with a frozen
+1 ms tolerance. It passes those exact PIL buffers through the installed Qwen
+video utility and processor, verifies returned frame count/order metadata,
+FPS, total frame count, mean-color ordering signatures, video-token/grid
+count, expected temporal-grid size, and seconds-per-grid. Mean-color signatures
+are an ordering diagnostic that can collide; they are not an exact or
+cryptographic pixel-identity proof after Qwen preprocessing. Annotation-clock
+calibration remains false. The GPU branch then performs one Qwen forward with
+finite logits and all attention layers, with no generation or scored answer.
+
+Two initial CPU-only CLI attempts failed due runner defects (an unconditional
+CUDA tensor transfer, then a model-token reference before model loading); both
+left only privacy-safe failed-attempt records. After fixing those defects, the
+real-video CPU processor preflight passed: 1/1 video, 4/4 frames, 8,992 source
+frames, processor grid `[2,24,44]`, 528 video tokens, and
+`seconds_per_grid=199.9998016357422`. The fixed source media SHA-256 is
+`13ab1d0e12d9c6b9e776890d123f363c12c572d52d1f58464b57a2e98667f126`.
+
+The bounded GPU run used RTX 5070 Ti, CUDA 12.8, torch 2.11.0+cu128, BF16,
+4-bit quantization, eager attention, and the pinned Qwen2.5-VL-7B revision
+`cc594898137f460bfe9f0759e9844b3ce807cfb5`. Pre-run free VRAM was 14,875 MiB.
+It completed **1/1 video, 4/4 frames, 28/28 finite attention layers**, finite
+logits, grid `[2,24,44]`, 528 video tokens, peak CUDA allocation **6.647 GiB**,
+and **72.0 seconds** elapsed including the full two-pass CPU decode and model
+load. Output is `results/claim_mask_real_video_gpu_smoke_20261015_01.json`,
+SHA-256 `ee7020b3cc5f9a55defa5c3824d3cf2d45134d0e9684d8377fcce9b3915ad327`.
+Both source hashes embedded in the output independently match the runner and
+decoder files. The artifact contains no absolute local paths, raw media,
+annotations, QA, generated text, or answer-level scores. CPU preflight summary
+is `results/claim_mask_real_video_processor_cpu_20261015_03.json`, SHA-256
+`f2d43900b487c1028a3a91de2ca6f36250adcc2be34ab9243e46c36395966b81`.
+Post-run independent artifact audit is pending.
+
+This establishes that this fixed real video traverses the new PyAV→Qwen path
+and produces numerically finite tensors under this four-frame configuration.
+It does not establish semantic frame correctness, annotation alignment,
+grounding, QA accuracy, intervention behavior, faithfulness, or generality.
+There is no treatment/control contrast and therefore no effect estimate,
+confidence interval, hypothesis test, or multiplicity correction. Current
+window faithfulness progress remains **0 requested / 0 effective direct
+faithfulness samples / 0 new direct effect estimates**; the one real video is a
+technical feasibility input, not an effect-estimation sample.
+
+The independent artifact reviewer recomputed the frame-index/time mapping and
+token count, confirmed artifact SHA-256 and embedded source hashes, and found
+no raw media, annotation, answer, generated text, or absolute path. The
+measured forward itself was 5.269 seconds. The runner's `gpu_free_before_gib`
+is 14.6572 GiB (Torch CUDA memory API); a separate `nvidia-smi` sample
+immediately before launch showed 14,875 MiB. These are separate reads taken at
+different instants, differing by about 135 MiB, and are not treated as the
+same snapshot. PyAV/FFmpeg versions and decoded time-base/deviation are not
+embedded in this first GPU artifact; source hashes and the separately audited
+CPU preflight bind its code path, but those fields should be added if this
+runner is extended. The tracked HEAD at launch was
+`43add2b1aba9a89c626bba0c5401ead979ebf88f`; the newly added runner/decoder
+were untracked at that instant and are bound by their embedded SHA-256 values,
+listed here pending their scoped commit:
+
+| Source | SHA-256 at run |
+|---|---|
+| `scripts/claim_mask_video_decoder.py` | `c0226f23aa073317a34d982a40cdf199820e502ce6ae992f8fc19082991f6516` |
+| `scripts/run_claim_mask_real_video_gpu_smoke.py` | `12be80b9d2661d213856c1ee1159a70fae4d462f393ceb295539c9def8961e43` |
+
+An initial full test discovery found two expected-list omissions in the static
+closed-branch loader guard because the new engineering runner had not yet been
+classified. Added it to the guard's allowed engineering loaders (without
+changing any closed research branch); the focused guard passed **6/6** and the
+full script suite then passed **835/835 in 9.171 s**. The previous full run's
+two guard failures therefore reflect this missing classification, now fixed.

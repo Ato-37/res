@@ -1,0 +1,30 @@
+{
+  "annotation_clock_calibrated": false,
+  "annotation_or_qa_used": false,
+  "decode_frame_count": 8992,
+  "effective_frames": 4,
+  "effective_videos": 1,
+  "faithfulness_effect_estimate": null,
+  "grid_thw": [
+    2,
+    24,
+    44
+  ],
+  "media_sha256": "13ab1d0e12d9c6b9e776890d123f363c12c572d52d1f58464b57a2e98667f126",
+  "privacy": "No raw media, QA/answer text, generated text, absolute local path, or personal identifier.",
+  "purpose": "real_video_pyav_to_qwen_processor_cpu_preflight",
+  "requested_frames": 4,
+  "requested_videos": 1,
+  "sample_fps": [
+    10000,
+    999999
+  ],
+  "schema_version": 1,
+  "seconds_per_grid": 199.9998016357422,
+  "source_sha256": {
+    "decoder": "c0226f23aa073317a34d982a40cdf199820e502ce6ae992f8fc19082991f6516",
+    "runner": "12be80b9d2661d213856c1ee1159a70fae4d462f393ceb295539c9def8961e43"
+  },
+  "status": "passed",
+  "video_tokens": 528
+}
