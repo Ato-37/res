@@ -426,3 +426,52 @@ commit `448de214f2c98e4d66a91425fd181625760e9fd7`; a live elevated
 `b4ef19f8dd8fdeda47e1b79cfdfda9f5d15738eb237701386027fff293b32005`;
 `scripts/test_closed_research_branches.py` —
 `15eabd62bb0ef66d0855765a92c90624ac05c3b0ef9398636a0192c5e677876a`.
+
+### NExT-GQA rights-lineage source check — 15:32 JST
+
+Rechecked the public primary pages named by the private rights worksheet. The
+NExT-GQA README says its test/validation questions are subsets of NExT-QA and
+represents temporal spans in seconds, with a separate frame-id-to-seconds map
+([NExT-GQA dataset README](https://github.com/doc-doc/NExT-GQA/blob/main/datasets/nextgqa/README.md)).
+The NExT-QA README says its videos come from VidOR and links annotations to
+video paths using an ID map; its repository MIT text explicitly names software
+and associated documentation files, not a blanket license for video media or
+all annotations ([NExT-QA README](https://github.com/doc-doc/NExT-QA/blob/main/README.md),
+[NExT-QA LICENSE](https://github.com/doc-doc/NExT-QA/blob/main/LICENSE)).
+VidOR describes its videos as unprocessed YFCC100M items and exposes distinct
+YFCC IDs, video hashes, and paths ([VidOR project page](https://xdshang.github.io/docs/vidor.html)).
+The Multimedia Commons/YFCC page states that dataset access is subject to a
+Webscope License Agreement and each original media item follows the
+creator/uploader's Creative Commons selection in item metadata
+([YFCC100M Core Dataset](https://multimediacommons.wordpress.com/yfcc100m-core-dataset/)).
+
+These mutable public pages corroborate the worksheet's multi-edge lineage and
+separate annotation/software, media-license, and dataset-access reviews. They
+do not identify the exact local cohort items, establish which YFCC records or
+current files match them, prove any item license's scope/conditions, or verify
+whether the relevant agreement was accepted/applicable. No local cohort,
+archive, sample manifest, or media was opened. The private rights state remains
+unresolved and scoring remains `no_go`; this source check contributes zero
+faithfulness samples or effects.
+
+### Retired-child publisher inventory regression test — 15:35 JST
+
+The publisher gap suggests a testable inventory invariant: any Python list
+command that names a retired inference CLI must be in the early-stop guard
+inventory itself. Added an AST regression that scans all non-test scripts for
+such command lists and requires the caller to be a guarded entrypoint. This
+would have caught `run_task_validity_audit_and_publish.py` before the runtime
+audit; it also automatically checks the existing evidence-control and head
+publishers. The focused guard suite passes **4/4**. It detects literal script
+paths in Python list commands, not dynamic imports, aliases, shell-built
+commands, or arbitrary loader APIs; the separate model-loader inventory and
+source review remain necessary.
+
+The 15:32 source check did not resolve a single NExT-GQA video's license or
+agreement applicability. NExT-GQA's seconds/frame-id documentation still does
+not calibrate annotation-player time to the production decoded PTS origin.
+Therefore rights, human claim mapping, inferential target/SESOI, and timing
+remain independent blocking gates. Direct faithfulness this window remains
+**0 requested / 0 effective / 0 new effect estimates**. The cumulative closed
+head-confirmation result is still 79/79, −0.0756329 nat, 95% t CI
+[−0.1577747, +0.0065089], and is not part of this window's progress.

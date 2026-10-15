@@ -100,6 +100,29 @@ class ClosedResearchBranchGuardTests(unittest.TestCase):
                     | GATE_CONTROLLED_LOADERS | ALLOWED_ENGINEERING_LOADERS)
         self.assertEqual(discovered, expected)
 
+    def test_every_list_command_targeting_a_retired_cli_is_guarded(self):
+        retired = set(GUARDED_ENTRYPOINTS)
+        for path in (REPO / "scripts").glob("*.py"):
+            if path.name.startswith("test_"):
+                continue
+            tree = ast.parse(path.read_text(encoding="utf-8"))
+            for node in ast.walk(tree):
+                if not isinstance(node, ast.List):
+                    continue
+                targets = {
+                    Path(value).name
+                    for value in (child.value for child in ast.walk(node)
+                                  if isinstance(child, ast.Constant)
+                                  and isinstance(child.value, str))
+                    if value.startswith("scripts/") and value.endswith(".py")
+                }
+                if targets & retired:
+                    self.assertIn(
+                        path.name, GUARDED_ENTRYPOINTS,
+                        f"{path.name} launches retired CLI(s) {sorted(targets & retired)} "
+                        "without its own early-stop guard",
+                    )
+
     def test_known_random_config_model_constructor_is_classified_synthetic_cpu(self):
         discovered = set()
         for filename, constructor in SYNTHETIC_CPU_MODEL_CONSTRUCTORS.items():
