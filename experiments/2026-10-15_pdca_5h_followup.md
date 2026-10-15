@@ -572,3 +572,34 @@ CUDA. SSS is not claimed while human, rights, timing, inferential-target, and
 SESOI gates remain unresolved. The cross-gate remains `blocked`/`not_granted`;
 the repair authorizes no inference and changes no experimental outcome.
 Faithfulness progress remains **0 requested / 0 effective / 0 new estimates**.
+
+### Exact sampling-config cross-gate binding — 15:43–15:45 JST
+
+Followed the hash audit's remaining limitation by adding the CPU-only
+`audit_claim_sampling_config.py` component to the schema-v13 cross-gate. It
+checks the SHA-256 of the exact configuration bytes and strict-type equality
+between the parsed config and each explicit protocol sampling value. A hash
+match alone, value match alone, bool/int substitution, wrong schema, malformed
+JSON, or duplicate-key config cannot be treated as a passed component. The
+report emits only fixed status/error codes and always retains
+`execution_authorization=not_granted`.
+
+Synthetic tests verify exact match, byte-only mismatch, declaration mismatch,
+bool/int mismatch, wrong-version refusal, and integrated cross-gate failure.
+Focused tests pass **12/12**; the complete standalone script suite passes
+**818/818** in 8.405 s. `--help`, Python byte-compilation, and
+`git diff --check` pass. This does not read any project config/media or
+authenticate rights/review evidence; future runners still have to use the
+same exact private config and independently satisfy every gate. Direct
+faithfulness remains **0 requested / 0 effective / 0 new estimates**.
+
+An independent second audit found no cross-gate bypass and confirmed the test
+suite covers the raw-byte/parser boundary. It noted that the first direct
+value-mismatch unit test paired changed parsed values with old raw bytes; I
+repaired it to serialize the changed values and update the protocol digest,
+then assert that the value mismatch is still reported without a hash mismatch.
+Integrated tests now also prove duplicate-key and non-finite sampling JSON is
+rejected generically. The focused cross-gate/config suite passes **13/13** and
+the full suite after these test changes passes **819/819** in 8.037 s. The
+auditor independently inspected this correction and confirmed the gap is
+closed. Authorization remains blocked; no data or CUDA was used.

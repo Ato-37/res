@@ -26,14 +26,20 @@ def write_json(path, value):
 class ClaimMaskGatePreflightTests(unittest.TestCase):
     def paths_and_protocol(self, root):
         protocol = protocol_fixture()
+        sampling_config = {key: value for key, value in protocol["sampling"].items()
+                           if key != "config_sha256"}
+        sampling_raw = write_json(Path(root) / "sampling-config-work.json", sampling_config)
+        protocol["sampling"]["config_sha256"] = hashlib.sha256(sampling_raw).hexdigest()
+        protocol["estimand"]["primary_estimand_sha256"] = compute_primary_estimand_sha256(protocol)
         names = {
             "protocol": "protocol.json", "eligible_manifest": "eligible.json",
             "claim_input_manifest": "claim-input.json", "claim_mapping_ledger": "claim-ledger.json",
             "claim_review_index": "claim-review-index.json", "item_rights_ledger": "item-rights.json",
-            "data_rights_index": "data-rights-index.json",
+            "data_rights_index": "data-rights-index.json", "sampling_config": "sampling-config.json",
         }
         values = {key: {} for key in names}
         values["protocol"] = protocol
+        values["sampling_config"] = sampling_config
         paths = {}
         for key, name in names.items():
             path = Path(root) / name
@@ -44,6 +50,10 @@ class ClaimMaskGatePreflightTests(unittest.TestCase):
     def fully_bound_synthetic_paths(self, root):
         claim_parts = list(claim_review_fixture())
         protocol = protocol_fixture()
+        sampling_config = {key: value for key, value in protocol["sampling"].items()
+                           if key != "config_sha256"}
+        sampling_raw = write_json(Path(root) / "sampling-config-work.json", sampling_config)
+        protocol["sampling"]["config_sha256"] = hashlib.sha256(sampling_raw).hexdigest()
         eligible, _eligible_raw, rights, _rights_raw = item_rights_fixture()
         eligible_raw = write_json(Path(root) / "eligible-work.json", eligible)
         rights["eligible_manifest_sha256"] = hashlib.sha256(eligible_raw).hexdigest()
@@ -117,7 +127,7 @@ class ClaimMaskGatePreflightTests(unittest.TestCase):
             "protocol": protocol, "eligible_manifest": eligible,
             "claim_input_manifest": claim_input, "claim_mapping_ledger": claim_parts[5],
             "claim_review_index": claim_parts[7], "item_rights_ledger": rights,
-            "data_rights_index": evidence_index,
+            "data_rights_index": evidence_index, "sampling_config": sampling_config,
         }
         paths = {}
         for key, value in values.items():
@@ -145,6 +155,19 @@ class ClaimMaskGatePreflightTests(unittest.TestCase):
         self.assertIn("protocol_stage_not_confirmatory", report["blocker_codes"])
         self.assertIn("sesoi_not_frozen", report["blocker_codes"])
         self.assertIn("execution_authorization_not_granted", report["blocker_codes"])
+
+    def test_sampling_config_hash_and_declared_values_are_cross_gated(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            paths = self.fully_bound_synthetic_paths(tmp)
+            config = json.loads(paths["sampling_config"].read_text(encoding="utf-8"))
+            config["num_frames"] = 32
+            write_json(paths["sampling_config"], config)
+            report = preflight(paths)
+        component = report["components"]["sampling_config"]
+        self.assertEqual(component["status"], "failed")
+        self.assertIn("sampling_config_binding_failed", report["blocker_codes"])
+        self.assertEqual(report["execution_authorization"], "not_granted")
+        self.assertEqual(report["overall_status"], "blocked")
 
     @patch("preflight_claim_mask_gates.audit_data_rights", side_effect=RuntimeError("private detail"))
     @patch("preflight_claim_mask_gates.audit_item_rights")
@@ -174,7 +197,18 @@ class ClaimMaskGatePreflightTests(unittest.TestCase):
     def test_malformed_input_returns_generic_blocked_report(self):
         with tempfile.TemporaryDirectory() as tmp:
             paths, _ = self.paths_and_protocol(tmp)
-            paths["protocol"].write_text('{"duplicate": 1, "duplicate": 2}', encoding="utf-8")
+            paths["sampling_config"].write_text(
+                '{"num_frames": 16, "num_frames": 16}', encoding="utf-8")
+            report = preflight(paths)
+        self.assertEqual(report["structural_checks_status"], "failed")
+        self.assertEqual(report["execution_authorization"], "not_granted")
+        self.assertEqual(report["blocker_codes"], ["private_input_invalid"])
+
+    def test_nonfinite_sampling_config_returns_generic_blocked_report(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            paths, _ = self.paths_and_protocol(tmp)
+            paths["sampling_config"].write_text(
+                '{"num_frames": 1e999}', encoding="utf-8")
             report = preflight(paths)
         self.assertEqual(report["structural_checks_status"], "failed")
         self.assertEqual(report["execution_authorization"], "not_granted")
@@ -220,6 +254,7 @@ class ClaimMaskGatePreflightTests(unittest.TestCase):
                     ("--claim-review-index", "claim_review_index"),
                     ("--item-rights-ledger", "item_rights_ledger"),
                     ("--data-rights-index", "data_rights_index"),
+                    ("--sampling-config", "sampling_config"),
                 ):
                     args.extend((option, str(paths[key])))
                 output = io.StringIO()

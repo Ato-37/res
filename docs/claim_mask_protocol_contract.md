@@ -426,9 +426,12 @@ claim-ledger validators or the human semantic review. It always returns
 
 `scripts/preflight_claim_mask_gates.py` is a CPU-only cross-gate diagnostic for
 the protocol, eligible manifest, claim-input manifest, claim ledger, claim
-review index, item-rights ledger, and dataset-rights evidence index. It reads
-each file once, runs the structural checks against those exact byte snapshots,
-and emits only component statuses and fixed failure codes. Even if every
+review index, item-rights ledger, dataset-rights evidence index, and the exact
+sampling-configuration JSON. It checks that the raw configuration digest
+matches the protocol and that each explicit sampling value has the same strict
+JSON type and value. It reads each file once, runs the structural checks
+against those exact byte snapshots, and emits only component statuses and
+fixed failure codes. Even if every
 structural component passes, it reports `overall_status=blocked` and
 `execution_authorization=not_granted`: schema v13 only permits exploratory
 protocols, and the claim-mask SESOI is unresolved. This tool does not initialize

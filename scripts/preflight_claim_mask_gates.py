@@ -15,6 +15,7 @@ from pathlib import Path
 from typing import Any
 
 from audit_claim_review_evidence_index import audit as audit_claim_review
+from audit_claim_sampling_config import audit as audit_sampling_config
 from audit_data_rights_evidence_index import audit as audit_data_rights
 from audit_item_rights_manifest import audit as audit_item_rights
 from validate_claim_mask_protocol import validate as validate_protocol
@@ -96,7 +97,7 @@ def preflight(paths: dict[str, Path]) -> dict:
     components: dict[str, dict] = {}
     blockers: list[str] = []
     required = {"protocol", "eligible_manifest", "claim_input_manifest", "claim_mapping_ledger",
-                "claim_review_index", "item_rights_ledger", "data_rights_index"}
+                "claim_review_index", "item_rights_ledger", "data_rights_index", "sampling_config"}
     if set(paths) != required or any(not isinstance(path, Path) for path in paths.values()):
         return _blocked_result({"inputs": _component("error", error="input_paths_invalid")}, ["input_paths_invalid"])
     try:
@@ -117,6 +118,17 @@ def preflight(paths: dict[str, Path]) -> dict:
         components["protocol"] = _component("error", error="component_audit_error")
     if components["protocol"]["status"] != "passed":
         blockers.append("protocol_validation_failed")
+
+    try:
+        sampling_report = audit_sampling_config(
+            protocol, values["sampling_config"], raws["sampling_config"])
+        components["sampling_config"] = _component(
+            "passed" if _strict_pass(sampling_report, "structural_status", "passed") else "failed",
+            sampling_report)
+    except Exception:
+        components["sampling_config"] = _component("error", error="component_audit_error")
+    if components["sampling_config"]["status"] != "passed":
+        blockers.append("sampling_config_binding_failed")
 
     try:
         claim_report = audit_claim_review(
@@ -171,7 +183,7 @@ def preflight(paths: dict[str, Path]) -> dict:
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     for name in ("protocol", "eligible-manifest", "claim-input-manifest", "claim-mapping-ledger",
-                 "claim-review-index", "item-rights-ledger", "data-rights-index"):
+                 "claim-review-index", "item-rights-ledger", "data-rights-index", "sampling-config"):
         parser.add_argument("--" + name, required=True, type=Path)
     args = parser.parse_args(argv)
     paths = {
@@ -181,6 +193,7 @@ def main(argv: list[str] | None = None) -> int:
         "claim_review_index": args.claim_review_index,
         "item_rights_ledger": args.item_rights_ledger,
         "data_rights_index": args.data_rights_index,
+        "sampling_config": args.sampling_config,
     }
     report = preflight(paths)
     print(json.dumps(report, sort_keys=True))
