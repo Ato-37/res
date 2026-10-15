@@ -22,6 +22,12 @@ class ClaimOutputParserTests(unittest.TestCase):
         self.assertFalse(parsed["valid"])
         self.assertIsNone(parsed["claim"])
 
+    def test_answer_and_claim_without_frame_selection_are_invalid(self):
+        parsed = parse_claim_output("A=B\nC=A person opens the cabinet.", 16)
+        self.assertFalse(parsed["valid"])
+        self.assertEqual(parsed["answer_letter"], "B")
+        self.assertEqual(parsed["claim"], "A person opens the cabinet.")
+
 
 if __name__ == "__main__":
     unittest.main()

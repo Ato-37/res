@@ -1973,9 +1973,12 @@ the control before collecting outcomes. Direct claim-faithfulness progress is
 still **0 new reviewed samples / 0 effect estimates**.
 
 Added `scripts/generate_nextgqa_claim_review_pilot.py` and parser regression
-tests. The runner records invalid output as invalid, retains the raw string
-privately, and never converts a missing frame list into a score. All **849/849**
-repository tests, Python compilation, and `git diff --check` passed after the
-allowlist classified this explicitly user-authorized local data pilot. This
-generation branch stops here; no further prompt tuning or effect analysis is
-justified from the same three videos.
+tests. The v3 artifact's `status=passed` only meant generation completed; its
+parsed fields show 0/3 full records, so it must be treated as a partial review
+packet. Corrected the runner so future outputs report `partial` when any
+answer/claim/frame-index field is missing, retains the raw string privately,
+and never converts a missing frame list into a score. All **850/850**
+repository tests, Python compilation, and `git diff --check` pass after the
+loader allowlist classified this explicitly user-authorized local data pilot.
+This generation branch stops here; no further prompt tuning or effect analysis
+is justified from the same three videos.

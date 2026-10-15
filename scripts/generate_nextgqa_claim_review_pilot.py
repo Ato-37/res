@@ -221,10 +221,11 @@ def main() -> None:
         torch.cuda.empty_cache()
 
     torch.cuda.synchronize()
+    structured_count = sum(record["generated_parsed"]["valid"] for record in records)
     payload = {
         "schema_version": 1,
         "purpose": "private_local_nextgqa_model_generated_claim_review_packet",
-        "status": "passed",
+        "status": "passed" if structured_count == len(records) else "partial",
         "started_utc": started_utc,
         "source_commit": subprocess.check_output(
             ["git", "rev-parse", "HEAD"], cwd=repo, text=True).strip(),
@@ -236,6 +237,7 @@ def main() -> None:
         "cohort_sha256": cohort_hash,
         "requested_videos": args.n,
         "effective_videos": len(records),
+        "fully_structured_claim_records": structured_count,
         "candidate_video_count": meta["candidate_video_count"],
         "candidate_videos_scanned": counts["candidate_scan_count"],
         "candidate_videos_unscanned": meta["candidate_video_count"] - counts["candidate_scan_count"],
@@ -261,9 +263,10 @@ def main() -> None:
         "records": records,
     }
     write_private_json_exclusive(output, payload)
-    print(f"Private claim review pilot passed: {len(records)}/{args.n} videos, "
-          f"frames={args.frames}, elapsed={payload['elapsed_seconds']:.1f}s; "
-          f"output={output.name}; no faithfulness score computed")
+    print(f"Private claim review pilot {payload['status']}: {len(records)}/{args.n} videos, "
+          f"structured={structured_count}/{len(records)}, frames={args.frames}, "
+          f"elapsed={payload['elapsed_seconds']:.1f}s; output={output.name}; "
+          "no faithfulness score computed")
 
 
 if __name__ == "__main__":
