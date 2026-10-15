@@ -1,0 +1,114 @@
+{
+  "analysis": "descriptive_synthetic_qwen_temporal_capacity_scaling",
+  "comparisons": [
+    {
+      "forward_time_ratios": {
+        "explicit_native_noop": 3.2753776638320358,
+        "legacy_v517_reference": 3.865245490508997,
+        "native_auto": 1.8809500075720698
+      },
+      "frame_count_ratio": 4.0,
+      "from_frames": 4,
+      "peak_allocated_memory_ratios": {
+        "explicit_native_noop": 1.1806600654336439,
+        "legacy_v517_reference": 1.1806600654336439,
+        "native_auto": 1.1807563155855338
+      },
+      "to_frames": 16
+    },
+    {
+      "forward_time_ratios": {
+        "explicit_native_noop": 2.1214228049017643,
+        "legacy_v517_reference": 1.939399686673117,
+        "native_auto": 1.8468811733512582
+      },
+      "frame_count_ratio": 2.0,
+      "from_frames": 16,
+      "peak_allocated_memory_ratios": {
+        "explicit_native_noop": 1.4918347578191435,
+        "legacy_v517_reference": 1.4918347578191435,
+        "native_auto": 1.4918379526196957
+      },
+      "to_frames": 32
+    }
+  ],
+  "conditions": [
+    {
+      "artifact_name": "qwen_temporal_position_synthetic_4frame_20261015_02.json",
+      "artifact_sha256": "20da352d3f1d58e29fb22636902c3bc782af3997689501e89abb1d6193125cbc",
+      "forwards": {
+        "explicit_native_noop": {
+          "forward_seconds": 0.40157929099950707,
+          "peak_allocated_gib": 6.042661666870117
+        },
+        "legacy_v517_reference": {
+          "forward_seconds": 0.37930047899862984,
+          "peak_allocated_gib": 6.042661666870117
+        },
+        "native_auto": {
+          "forward_seconds": 1.2668433059952804,
+          "peak_allocated_gib": 6.042208671569824
+        }
+      },
+      "frames": 4,
+      "free_before_gib": 14.6572265625,
+      "runner_source_sha256": "adb95dfa41dd9e433d8057ca503a0a75370771799c7c3273b4c08bbb2dc56424",
+      "source_commit": "2722d356425c408251cc77bf0df5aff667b06535",
+      "video_tokens": 512
+    },
+    {
+      "artifact_name": "qwen_temporal_position_synthetic_16frame_20261015_02.json",
+      "artifact_sha256": "a1988adde635afe9615b0ec0eb09d4fba1bee694c976cd32d8c08e299c7a32e8",
+      "forwards": {
+        "explicit_native_noop": {
+          "forward_seconds": 1.3153238399972906,
+          "peak_allocated_gib": 7.134329319000244
+        },
+        "legacy_v517_reference": {
+          "forward_seconds": 1.4660894659973565,
+          "peak_allocated_gib": 7.134329319000244
+        },
+        "native_auto": {
+          "forward_seconds": 2.3828689260044484,
+          "peak_allocated_gib": 7.134376049041748
+        }
+      },
+      "frames": 16,
+      "free_before_gib": 14.6572265625,
+      "runner_source_sha256": "adb95dfa41dd9e433d8057ca503a0a75370771799c7c3273b4c08bbb2dc56424",
+      "source_commit": "ddc3da13e50a50174c919c16a49316bab5d7ccd0",
+      "video_tokens": 2048
+    },
+    {
+      "artifact_name": "qwen_temporal_position_synthetic_32frame_20261015_01.json",
+      "artifact_sha256": "6d4b07f461e5a2fef9422898424e1c7a1754c9c7e3cd7f15cb04d2aac965b3ae",
+      "forwards": {
+        "explicit_native_noop": {
+          "forward_seconds": 2.790357990001212,
+          "peak_allocated_gib": 10.643240451812744
+        },
+        "legacy_v517_reference": {
+          "forward_seconds": 2.8433334509900305,
+          "peak_allocated_gib": 10.643240451812744
+        },
+        "native_auto": {
+          "forward_seconds": 4.400875758001348,
+          "peak_allocated_gib": 10.643332958221436
+        }
+      },
+      "frames": 32,
+      "free_before_gib": 14.6572265625,
+      "runner_source_sha256": "59f77c07c13b882144235a9feacb88ee786795bb72ee754125beffc0fe5fb4a2",
+      "source_commit": "168b303afebab98f3e3260d260886924f190393c",
+      "video_tokens": 4096
+    }
+  ],
+  "limitations": [
+    "One run per frame count/condition; time ratios are descriptive and have no uncertainty interval.",
+    "Input frame content differs across sizes; warmup, order, and runtime noise are uncontrolled.",
+    "Peak values are PyTorch allocated memory, not whole-device use or remaining free VRAM.",
+    "Runner source hashes are reported per artifact; inspect any difference before treating ratios as directly comparable.",
+    "Synthetic engineering diagnostics only; no QA, faithfulness, or semantic evidence is measured."
+  ],
+  "schema_version": 1
+}
