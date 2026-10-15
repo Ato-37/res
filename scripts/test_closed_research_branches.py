@@ -61,9 +61,39 @@ EXPECTED_BRANCH_CODES = {
     "grounding_check.py": "legacy_grounding_check",
     "run_faithfulness_validation_pilot.py": "legacy_head_faithfulness_pilot",
 }
+GATE_CONTROLLED_LOADERS = {"necessity_choice_margin_test.py"}
+ALLOWED_ENGINEERING_LOADERS = {
+    "audit_legacy_video_time_metadata.py",
+    "audit_qwen_claim_tokenization_cpu.py",
+    "audit_qwen_pts_to_processor_cpu.py",
+    "run_dataset_video_gpu_smoke.py",
+    "run_qwen_frozen_teacher_forcing_gpu_smoke.py",
+    "run_qwen_sequence_length_numerics_gpu_diagnostic.py",
+    "run_qwen_temporal_position_gpu_check.py",
+    "run_qwen_video_batch_throughput_gpu_smoke.py",
+    "run_qwen_video_cache_gpu_smoke.py",
+    "smoke_qwen_video_time_alignment.py",
+    "spike_test_attention.py",
+    "spike_test_video_attention.py",
+}
 
 
 class ClosedResearchBranchGuardTests(unittest.TestCase):
+    def test_every_model_loader_cli_has_an_explicit_gate_or_diagnostic_class(self):
+        discovered = set()
+        for path in (REPO / "scripts").glob("*.py"):
+            if path.name.startswith("test_"):
+                continue
+            tree = ast.parse(path.read_text(encoding="utf-8"))
+            if any(isinstance(node, ast.Call)
+                   and isinstance(node.func, ast.Attribute)
+                   and node.func.attr == "from_pretrained"
+                   for node in ast.walk(tree)):
+                discovered.add(path.name)
+        expected = (set(GUARDED_ENTRYPOINTS) & discovered
+                    | GATE_CONTROLLED_LOADERS | ALLOWED_ENGINEERING_LOADERS)
+        self.assertEqual(discovered, expected)
+
     def test_every_retired_cli_stops_immediately_after_argument_parsing(self):
         for filename in GUARDED_ENTRYPOINTS:
             with self.subTest(script=filename):

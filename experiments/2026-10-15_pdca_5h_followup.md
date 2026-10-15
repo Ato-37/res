@@ -174,3 +174,110 @@ fixture failure-status JSON lines are expected test outputs. No test accessed
 protected sample/media files or initialized CUDA. The current experiment
 overview now links this follow-up log separately from the earlier same-date
 PDCA record.
+
+### Model-loader inventory closure — 15:08 JST
+
+The fixed 26-entry guard list protects known retired CLIs but alone would not
+flag a new model-loader script added later. Added a source-level inventory test
+that scans every non-test Python script for `from_pretrained` calls and
+requires explicit classification. It finds 30 loader scripts in this checkout:
+17 retired scoring CLIs covered by the early-stop guard, the separate direct
+choice-margin scorer covered by the execution-preflight consumer, and 12
+allowlisted engineering/runtime diagnostics. The diagnostics are processor
+boundary checks or label-free runtime/numerical smoke tools; the independent
+scope audit found no QA, grounding, or faithfulness scoring claim in them.
+The inventory and guard-order tests pass 2/2. This protects against silent
+unclassified additions; it is a static source inventory, not a semantic proof
+that future diagnostic changes preserve their scope. Faithfulness remains
+0/0/0 for this window.
+
+The new loader inventory test and all existing standalone tests passed
+**806/806** in 8.450 seconds. Non-failing legacy processor deprecation
+warnings and synthetic failure-path status lines appeared as expected. The
+previous B=1/B=2 batch-shape branch is not being reopened: its same-clip
+near-tie sensitivity and explicit stop are recorded in
+`experiments/2026-10-15_pdca_3h.md` and
+`experiments/2026-10-14_pdca_9h_gpu_cache.md`; additional repeats would not
+answer a new question. Consequently no CUDA work is run in this follow-up.
+
+The independent reviewer completed the loader-classification audit: all 17
+retired loaders are in the guard inventory, the direct choice-margin loader
+is preflight-controlled, and the 12 other loaders are documented engineering
+diagnostics. No omitted direct scorer or overblocked reusable/synthetic path
+was found. Two generic `spike_test_*attention.py` tools accept arbitrary media
+and prompts, so their docstrings now explicitly restrict use to media cleared
+for local processing and state that they report only attention wiring/resource
+use, not QA, grounding, or faithfulness. The overview carries the same approved-
+media caveat. These doc-only clarifications add no experimental evidence.
+
+A separate design-support review confirmed the inventory test closes the
+current direct-loader gap and preserves the diagnostic paths. Its AST scan
+only detects syntactic `.from_pretrained(...)` calls; aliased/custom loader
+wrappers or non-Hugging-Face inference APIs are outside its guarantee, and no
+such current bypass was found in the scanned scripts. A single unified
+filename-to-class mapping would be a minor maintainability improvement, but
+there is no present mismatch; defer that refactor rather than add churn to the
+verified guard set.
+
+### WSL memory snapshot — 15:11 JST
+
+A read-only snapshot found WSL `MemTotal` 15,920,824 KiB, `MemAvailable`
+14,625,288 KiB, 1.2 GiB displayed used, and 2.6 GiB buff/cache. The visible
+cgroup had `memory.current` 3,568,611,328 bytes, `memory.max=max`, and all
+`memory.events` counters (including OOM) at zero. Its `memory.stat` attributed
+about 2.53 GiB to file cache and 0.67 GiB to anonymous memory; memory PSI
+`avg10/avg60/avg300` was zero. The process table showed no model process.
+This demonstrates that this WSL workload was not using 30/32 GiB at this
+checkpoint; it cannot identify other Windows processes or total host use.
+No GPU process was launched. Direct faithfulness progress remains 0/0/0.
+
+### Claim-review and rights gate boundary audit — 15:13 JST
+
+The primary source review of `audit_claim_review_evidence_index.py` confirms
+that it byte-binds the eligible, claim-input, mapping, and review-index files;
+checks exact video coverage, unique review-record hashes, model/run/claim
+references, and requires the protocol to declare review completed before
+scoring. It explicitly returns `semantic_validation=not_machine_verifiable`
+and `execution_authorization=not_granted`. This cannot establish that a human
+actually reviewed the evidence, that the reviewer was independent or
+qualified, or that a claim is visually supported. Those require examining the
+private evidence and a trustworthy human attestation.
+
+The primary source review of `audit_data_rights_evidence_index.py` confirms
+separate byte/hash and exact-coverage checks for annotation terms, per-item
+media conditions, and dataset access-agreement evidence, with intended uses
+required to be permitted. It too always reports `execution_authorization=
+not_granted`; its `structural_status=passed` is not a license opinion or
+evidence authenticity check. The current fail-closed consumer rejects even a
+fabricated ready structural report, so neither structural auditor can unlock
+inference. No structural bypass was found in this pass; reviewer authority,
+underlying source authenticity, actual license scope, and a human review remain
+unresolved upstream gates. No private ledgers or media were opened. Faithfulness
+remains 0 requested / 0 effective samples / 0 estimates.
+
+An independent source-level audit additionally confirmed the known rights-index
+boundary: the contract explicitly says the media/conditions bundle hash and
+locator are syntax/count checked but not resolved or compared with each row's
+`conditions_record_sha256`; it likewise documents that agreement locators are
+not rehashed. This is not an undisclosed execution bypass, because the report
+never authorizes and the current consumer rejects every schema-v12 report. A
+future stronger evidence-binding revision could add per-record hashes and
+verified file resolution, but that requires a private evidence-bundle interface
+and human review procedure; adding fields without actual evidence resolution
+would create false assurance. Defer implementation until that interface is
+specified.
+
+A second independent reviewer found no material structural bypass, and
+corroborated the documented limit: these audits do not open locator targets or
+prove semantic claim support, media identity, actual blinded/independent review,
+reviewer authority, license applicability/condition fulfillment, or real-world
+event ordering. The review specifically checked strict boolean review
+declarations, claim/model/run bindings, row-level rights/use decisions, and
+agreement applicability branches. Structural checks remain provenance aids,
+not human review substitutes.
+
+The complete standalone suite was rerun after the loader-inventory and doc
+updates: **806/806 passed in 8.190 seconds**; `py_compile` and `git diff
+--check` also passed. Only fixture-driven expected failure messages and
+non-failing upstream processor deprecation warnings appeared. No model/media
+was loaded and no GPU work ran.

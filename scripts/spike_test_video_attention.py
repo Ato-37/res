@@ -7,6 +7,9 @@ the added frames cost versus the single-image test.
 
 Usage:
     python scripts/spike_test_video_attention.py --video path/to/clip.mp4 --num-frames 4
+
+This is only a wiring/resource check, not QA, grounding, or faithfulness
+evaluation. Use only video media cleared for local processing.
 """
 
 import argparse

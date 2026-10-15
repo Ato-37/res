@@ -2,8 +2,8 @@
 mode, run one image + one text prompt through it, and report whether
 output_attentions works plus how much GPU memory it used.
 
-This is a wiring/feasibility check, not a real experiment. Run it before
-touching video or the 7B model on the RTX5090 box.
+This is only a wiring/resource check, not QA, grounding, or faithfulness
+evaluation. Use only image media cleared for local processing.
 
 Usage:
     python scripts/spike_test_attention.py --image path/to/image.jpg --prompt "What is in this image?"
