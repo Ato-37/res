@@ -704,14 +704,26 @@ Thus these two smokes form a same-video runtime comparison, although each has
 only one forward and neither measures task quality.
 
 The 16-frame run used 2,144 tokens and took 3.148 s for the forward; the
-64-frame run used 8,480 tokens and took 62.139 s. Frame/token count increased
-4x while this pair's forward time increased 19.7x. This one-clip result is a
-rough upper-load feasibility observation, not a stable scaling law; long
-sequence attention costs may grow superlinearly, and WSL/allocator telemetry
-remains anomalous. The 64-frame actual driver sample reached near-full VRAM and
-100% compute utilization; the 16-frame run did not have a synchronized driver
-time series. Use the 64-frame result to avoid planning a large workload from
-the 16-frame forward time alone.
+64-frame run used 8,480 tokens and took 62.139 s. Frames increased exactly 4x,
+tokens increased 3.96x, and this pair's forward time increased 19.74x. This
+one-clip result is a rough upper-load feasibility observation, not a stable
+scaling law; long sequence attention costs may grow superlinearly, and
+WSL/allocator telemetry remains anomalous. The 64-frame actual driver sample
+reached near-full VRAM and 100% compute utilization; the 16-frame run did not
+have a synchronized driver time series. Use the 64-frame result to avoid
+planning a large workload from the 16-frame forward time alone.
+
+An independent CPU-only audit reproduced the current deterministic source
+selection, 2,525 decoded frames, and the PTS/RGB sequence digests for both
+private artifacts. The current re-selection has the same source-file hash at
+16 and 64 frames. The summaries themselves do not contain that file hash, so
+the historical source identity is bound by matching decoded-stream digests
+plus current re-selection, not by a source hash embedded in each artifact.
+The 16- and 64-frame summaries also use different runner hashes because the
+latter adds post-forward telemetry; this comparison is one forward per
+condition, no timing replicates, and only the 64-frame run has sampled driver
+monitoring. It therefore supports only a same-decoded-stream feasibility
+comparison, not a robust scaling law or task-quality result.
 
 The memory snapshot's timestamp marks the end of collection, after the
 `mem_get_info` call; the output contains no synchronized `nvidia-smi` PID/time
@@ -729,3 +741,42 @@ contributing to high “used” percentages, but it does not identify which host
 dashboard's numerator is being viewed or establish memory-pressure history
 outside this namespace. The WSL view exposes 15 GiB here, not the machine's
 reported 32 GiB physical capacity.
+
+## 23:02 JST checkpoint — 32-frame real-video load point
+
+Elapsed **1h27m40s / 2h**; deadline **23:34:23 JST** (**32m20s remain**). I
+ran the existing Qwen2.5-VL-7B 4-bit/BF16 smoke on one deterministic, eligible
+local NExT-GQA video, using 32/32 sampled frames at 50 ms uniform-grid
+tolerance. It decoded 2,525 source frames, used 4,256 input tokens, produced
+grid `[16,24,44]`, finite logits, and took 8.477 s for the forward (84.024 s
+total elapsed, including setup). The mode-0600 artifact is
+`/tmp/nextgqa_real_video_gpu_smoke32_20261015_2300.json`, SHA-256
+`39e3b80fd083ffbf193e21ad6b950bd5e960bb16bd7a4733cd12c79a7e8e7311`; it is
+bound to runner SHA
+`cd2c60f96083eecb6e226cc18e9111c7a1820558cf28536d074b6a731d894076`.
+
+The run used CUDA device 0 of 1. PyTorch peak allocated was 10.933 GiB and
+peak/current reserved was 12.725 GiB; current allocated was 5.897 GiB. The
+same-process CUDA driver counters reported 1.585 GiB free of 15.894 GiB total.
+The allocator snapshot had 137 segments and 5.897 GiB allocated, consistent
+with its current allocated counter. Unlike the 64-frame runs, this point does
+not show an allocator total above physical capacity. This is still a single
+run and does not resolve why the 64-frame allocator totals exceeded device
+capacity. The 32-frame input is a load/feasibility point only: no QA answer,
+claim text, interval score, or faithfulness effect was computed.
+
+Independent audit of the prior 16/64 comparison corrected the token ratio to
+3.96x (not exactly 4x); the frame ratio is exactly 4x and forward-time ratio
+19.74x. It also flags that source-file hash is not embedded in both historical
+summaries, although independent current re-selection and matched full decoded
+PTS/RGB digests support same-source-stream identity. The runner versions differ
+because 64-frame telemetry was added after the 16-frame run. Direct
+claim-specific faithfulness remains **0/3 human-reviewed, 0/3 scored, 0
+effects**. The CPU regression suite subsequently passed **885/885**.
+
+## User pause — 23:03 JST
+
+The user explicitly paused this PDCA window at **23:03:08 JST**, after
+**1h28m45s** of the requested 2 hours. The requested window is therefore
+**incomplete**; 31m15s remained. Do not resume this window unless the user
+asks.
