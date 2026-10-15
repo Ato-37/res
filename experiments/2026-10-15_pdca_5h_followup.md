@@ -1312,3 +1312,35 @@ or faithfulness estimate. This remains a feasibility measurement on one video
 and is not evidence for temporal evidence quality, answer validity, or
 faithfulness. The current session still has **0 direct faithfulness samples
 and 0 direct faithfulness effect estimates**.
+
+### Follow-up repository cleanup — 17:06 JST
+
+Rechecked the repository after the earlier cleanup. All 279 tracked files in
+`results/` have distinct SHA-256 hashes; no exact duplicate remains. The flat
+paths are referenced by experiment logs and standalone runners, so I retained
+the result directory layout. A read-only scan found four unreferenced standalone
+scripts. Independent review showed `analyze_necessity_mask.py` was the only
+legacy-schema analyzer with no tracked input artifact, tests, source imports,
+experiment-log references, or current thesis output; its one-sample t summary is
+not part of the current black/blur margin analysis pipeline. I removed that
+obsolete analyzer while keeping its historical Git version. The other three
+unreferenced scripts remain because one is the only checkpoint-fetch helper,
+one is named in tracked host/guest memory result provenance, and one is the
+only synthetic MP4 encode/decode smoke whose source hash is recorded in past
+results. Regenerable cache files under the private untracked `NExT-GQA/` tree
+were left untouched. After this cleanup, no additional safe tracked deletion
+was identified. Faithfulness progress remains **0 new direct samples / 0 new
+direct effect estimates**; the retained prior studies have their distinct
+limits described above.
+
+The full CPU unittest suite passed **843/843** after removal; `pytest` is not
+installed in this `.venv`, so verification used the repository's unittest
+discovery command. A separate metadata-only profile of the three already-local
+NOAA source files found all had the same 8,992-frame 640×360 yuv420p stream,
+time base `1/30000`, exact CFR PTS increment `1001/30000`, and
+`30000/1001` average rate. Their media SHA-256 values matched the recorded
+allowlist. Because the additional clips provide no distinct source-format or
+PTS challenge and would still be only engineering feasibility, no extra GPU
+capacity run was justified by this check. It would not add a faithfulness
+measurement. This decision is outcome-blind and does not inspect QA or review
+data.
