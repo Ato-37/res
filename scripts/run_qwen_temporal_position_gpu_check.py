@@ -43,8 +43,8 @@ def make_synthetic_subsecond_fixture(frame_count=4):
     """Create deterministic PIL frames and hash their ordered pixel bytes."""
     from PIL import Image
 
-    if frame_count not in (4, 16, 32):
-        raise ValueError('Synthetic fixture frame_count must be 4, 16, or 32')
+    if frame_count not in (4, 16, 32, 40):
+        raise ValueError('Synthetic fixture frame_count must be 4, 16, 32, or 40')
     frame_size = 224
     legacy_four = ((17, 43, 89), (61, 97, 131), (109, 151, 173), (197, 211, 229))
     colors = legacy_four + tuple(
@@ -74,8 +74,7 @@ def validate_synthetic_subsecond_geometry(
         raise RuntimeError('Synthetic subsecond timestamps changed from the fixed fixture')
     if not math.isclose(float(sampled_fps), SYNTHETIC_SUBSECOND_FPS, rel_tol=0, abs_tol=1e-12):
         raise RuntimeError('Synthetic subsecond sample FPS changed from the fixed fixture')
-    if len(grid_thw) != 3 or int(grid_thw[0]) != frame_count // 2:
-        raise RuntimeError(f'Synthetic processor temporal grid must be {frame_count // 2}, got {grid_thw}')
+    validate_synthetic_grid(grid_thw, frame_count)
     if not math.isclose(float(seconds_per_grid), 0.75, rel_tol=0, abs_tol=1e-6):
         raise RuntimeError(f'Synthetic second_per_grid_ts must be 0.75, got {seconds_per_grid}')
     native = tuple(int(value) for value in native_temporal_anchors)
@@ -97,6 +96,16 @@ def validate_synthetic_subsecond_geometry(
     if native not in (expected_legacy, expected_fractional):
         raise RuntimeError(
             f'Installed temporal anchors match neither legacy nor fixed formula: {native}'
+        )
+
+
+def validate_synthetic_grid(grid_thw, frame_count):
+    """Require the exact fixed spatial and temporal processor geometry."""
+    if (not isinstance(grid_thw, (list, tuple)) or len(grid_thw) != 3
+            or any(type(value) is not int for value in grid_thw)
+            or list(grid_thw) != [frame_count // 2, 32, 32]):
+        raise RuntimeError(
+            f'Synthetic processor grid must be [{frame_count // 2}, 32, 32], got {grid_thw}'
         )
 
 
@@ -175,7 +184,7 @@ def main():
     parser.add_argument('--output',required=True)
     parser.add_argument('--fixture',choices=('noaa','synthetic_subsecond'),default='noaa',
         help='Input fixture; noaa preserves existing behavior (default)')
-    parser.add_argument('--synthetic-frame-count',type=int,choices=(4,16,32),default=4,
+    parser.add_argument('--synthetic-frame-count',type=int,choices=(4,16,32,40),default=4,
         help='Synthetic fixture frame count; ignored for NOAA')
     args = parser.parse_args()
     repo = Path(__file__).resolve().parents[1]
@@ -200,8 +209,9 @@ def main():
     if not torch.cuda.is_available() or not torch.cuda.is_bf16_supported():
         parser.error('CUDA/BF16 required; no CPU fallback')
     free,total = torch.cuda.mem_get_info()
-    if free<12*1024**3:
-        parser.error('At least 12 GiB free VRAM required')
+    required_free_gib = 14 if args.fixture == 'synthetic_subsecond' and args.synthetic_frame_count == 40 else 12
+    if free<required_free_gib*1024**3:
+        parser.error(f'At least {required_free_gib} GiB free VRAM required')
     random.seed(20261012); torch.manual_seed(20261012); torch.cuda.manual_seed_all(20261012)
     started=datetime.now(timezone.utc).isoformat(); timer=time.monotonic()
     RUN_PROGRESS['stage']='extraction_and_model_load'
@@ -237,6 +247,8 @@ def main():
         batch=processor(text=[text],images=images,videos=[tensor],video_metadata=[metadata],
             do_sample_frames=False,cap_pixels_per_frame=True,padding=True,return_tensors='pt').to('cuda')
         grid=batch['video_grid_thw'][0].tolist()
+        if args.fixture == 'synthetic_subsecond':
+            validate_synthetic_grid(grid, expected_frame_count)
         merge=int(processor.video_processor.merge_size)
         positions=(batch['input_ids'][0]==model.config.video_token_id).nonzero(as_tuple=True)[0].tolist()
         if positions!=list(range(positions[0],positions[-1]+1)):

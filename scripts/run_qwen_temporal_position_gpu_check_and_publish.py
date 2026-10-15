@@ -29,8 +29,8 @@ def derive_public_summary(raw: dict, raw_sha256: str) -> dict:
     """Validate synthetic-only scope and retain minimum derived diagnostics."""
     if raw.get("fixture") != "synthetic_subsecond":
         raise ValueError("only the synthetic_subsecond fixture may be published")
-    if raw.get("effective_frames") not in (4, 16, 32) or raw.get("requested_frames") != raw.get("effective_frames"):
-        raise ValueError("only the validated 4-, 16-, or 32-frame synthetic fixture may be published")
+    if raw.get("effective_frames") not in (4, 16, 32, 40) or raw.get("requested_frames") != raw.get("effective_frames"):
+        raise ValueError("only the validated 4-, 16-, 32-, or 40-frame synthetic fixture may be published")
     frame_count = raw["effective_frames"]
     grid = raw.get("grid_thw")
     if (not isinstance(grid, list) or len(grid) != 3
@@ -232,7 +232,7 @@ def main(argv=None):
         "--output-prefix",
         help="unique filename prefix directly under results/ (defaults to UTC timestamp)",
     )
-    parser.add_argument("--synthetic-frame-count", type=int, choices=(4, 16, 32), default=4)
+    parser.add_argument("--synthetic-frame-count", type=int, choices=(4, 16, 32, 40), default=4)
     parser.add_argument(
         "--reuse-raw",
         type=Path,

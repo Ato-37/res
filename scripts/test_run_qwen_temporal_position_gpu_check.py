@@ -12,6 +12,7 @@ from run_qwen_temporal_position_gpu_check import (
     legacy_pretruncate_position_ids,
     make_synthetic_subsecond_fixture,
     validate_synthetic_subsecond_geometry,
+    validate_synthetic_grid,
     assert_fractional_float32_compatibility,
 )
 
@@ -50,9 +51,27 @@ class FractionalPrecisionGateTests(unittest.TestCase):
             expected_frames=32,
         )
 
+    def test_synthetic_40_frame_geometry_is_deterministic_and_complete(self):
+        frames, timestamps, fps, digest = make_synthetic_subsecond_fixture(40)
+        again = make_synthetic_subsecond_fixture(40)
+        self.assertEqual((len(frames), len(timestamps)), (40, 40))
+        self.assertEqual(timestamps, [i / fps for i in range(40)])
+        self.assertEqual((digest, timestamps, fps), (again[3], again[1], again[2]))
+        anchors = [15 + int(i * 0.75 * 2) for i in range(20)]
+        validate_synthetic_subsecond_geometry(
+            timestamps, fps, (20, 32, 32), 0.75, anchors, anchors, 2,
+            expected_frames=40,
+        )
+
     def test_synthetic_fixture_rejects_unsupported_frame_count(self):
-        with self.assertRaisesRegex(ValueError, 'must be 4, 16, or 32'):
+        with self.assertRaisesRegex(ValueError, 'must be 4, 16, 32, or 40'):
             make_synthetic_subsecond_fixture(8)
+
+    def test_synthetic_grid_requires_fixed_spatial_geometry(self):
+        validate_synthetic_grid([20, 32, 32], 40)
+        for grid in ([20, 31, 32], [20, 32, 33], [19, 32, 32], [True, 32, 32]):
+            with self.subTest(grid=grid), self.assertRaisesRegex(RuntimeError, "grid must be"):
+                validate_synthetic_grid(grid, 40)
 
     def test_legacy_reference_reconstructs_integer_pretruncate_without_touching_other_rows(self):
         native = (
@@ -99,6 +118,52 @@ class FractionalPrecisionGateTests(unittest.TestCase):
 
 @unittest.skipUnless(MODEL_PATH.is_dir(), "pinned processor/config are not cached")
 class SyntheticSubsecondProcessorTests(unittest.TestCase):
+    def test_actual_processor_40_frame_geometry_without_weights(self):
+        os.environ["HF_HUB_OFFLINE"] = "1"
+        os.environ["TRANSFORMERS_OFFLINE"] = "1"
+        from qwen_vl_utils import process_vision_info
+        from transformers import AutoConfig, AutoProcessor
+        from transformers.models.qwen2_5_vl.modeling_qwen2_5_vl import Qwen2_5_VLModel
+
+        frames, timestamps, fps, _ = make_synthetic_subsecond_fixture(40)
+        processor = AutoProcessor.from_pretrained(str(MODEL_PATH), local_files_only=True,
+            min_pixels=256 * 28 * 28, max_pixels=256 * 28 * 28)
+        config = AutoConfig.from_pretrained(str(MODEL_PATH), local_files_only=True)
+        messages = [{"role": "user", "content": [
+            {"type": "video", "video": frames, "sample_fps": fps},
+            {"type": "text", "text": "Describe the visible scene briefly."},
+        ]}]
+        text = processor.apply_chat_template(messages, tokenize=False, add_generation_prompt=True)
+        images, videos = process_vision_info(messages, return_video_metadata=True)
+        tensor, metadata = videos[0]
+        self.assertEqual(metadata["frames_indices"], list(range(40)))
+        self.assertEqual([i / metadata["fps"] for i in metadata["frames_indices"]], timestamps)
+        batch = processor(text=[text], images=images, videos=[tensor], video_metadata=[metadata],
+            do_sample_frames=False, cap_pixels_per_frame=True, padding=True, return_tensors="pt")
+        grid = batch["video_grid_thw"][0].tolist()
+        seconds = float(batch["second_per_grid_ts"][0])
+        self.assertEqual(grid, [20, 32, 32])
+        self.assertAlmostEqual(seconds, 0.75, places=6)
+
+        class ModelGeometryMethods:
+            get_rope_index = Qwen2_5_VLModel.get_rope_index
+            get_vision_position_ids = Qwen2_5_VLModel.get_vision_position_ids
+
+        model = ModelGeometryMethods()
+        model.config = SimpleNamespace(vision_config=config.vision_config)
+        native, _ = model.get_rope_index(input_ids=batch["input_ids"],
+            mm_token_type_ids=batch["mm_token_type_ids"], video_grid_thw=batch["video_grid_thw"],
+            second_per_grid_ts=batch["second_per_grid_ts"], attention_mask=batch["attention_mask"])
+        positions = (batch["input_ids"][0] == processor.video_token_id).nonzero(as_tuple=True)[0].tolist()
+        merge = int(processor.video_processor.merge_size)
+        tokens_per_step = (grid[1] // merge) * (grid[2] // merge)
+        anchors = [int(native[0, 0, positions[0] + i * tokens_per_step]) for i in range(grid[0])]
+        expected = [anchors[0] + int(i * seconds * int(config.vision_config.tokens_per_second))
+                    for i in range(20)]
+        self.assertEqual(anchors, expected)
+        validate_synthetic_subsecond_geometry(timestamps, fps, grid, seconds,
+            anchors, anchors, int(config.vision_config.tokens_per_second), expected_frames=40)
+
     def test_actual_processor_32_frame_geometry_without_weights(self):
         os.environ["HF_HUB_OFFLINE"] = "1"
         os.environ["TRANSFORMERS_OFFLINE"] = "1"

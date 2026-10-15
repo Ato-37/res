@@ -130,6 +130,18 @@ class PublishSummaryTests(unittest.TestCase):
         self.assertEqual(result["synthetic_video"]["frames"], 32)
         self.assertEqual(result["synthetic_video"]["grid_thw"], [16, 32, 32])
 
+    def test_derives_40_frame_capacity_summary(self):
+        raw = valid_raw()
+        raw["effective_frames"] = raw["requested_frames"] = 40
+        raw["grid_thw"] = [20, 32, 32]
+        raw["native_temporal_anchors"] = [15 + int(i * 0.75 * 2) for i in range(20)]
+        raw["fractional_temporal_anchors"] = list(raw["native_temporal_anchors"])
+        raw["legacy_v517_temporal_anchors"] = [15] * 20
+        raw["changed_position_id_entries"] = 0
+        result = derive_public_summary(raw, "1" * 64)
+        self.assertEqual(result["synthetic_video"]["frames"], 40)
+        self.assertEqual(result["synthetic_video"]["grid_thw"], [20, 32, 32])
+
     def test_refuses_real_media_fixture(self):
         raw = valid_raw()
         raw["fixture"] = "noaa"
