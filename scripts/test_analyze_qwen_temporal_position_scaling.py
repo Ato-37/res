@@ -22,7 +22,7 @@ def summary(frames, scale):
         "compute_dtype": "bfloat16",
         "source_commit": "c" * 40,
         "source_sha256": {
-            "run_qwen_temporal_position_gpu_check.py": ("d" if frames == 32 else "e") * 64,
+            "run_qwen_temporal_position_gpu_check.py": ("d" if frames in (32, 40) else "e") * 64,
             "qwen_temporal_geometry.py": "f" * 64,
             "video_time_mapping.py": "0" * 64,
             "run_dataset_video_gpu_smoke.py": "1" * 64,
@@ -51,7 +51,7 @@ def summary(frames, scale):
 
 
 class QwenTemporalPositionScalingTests(unittest.TestCase):
-    def write_inputs(self, root, sizes=(4, 16, 32)):
+    def write_inputs(self, root, sizes=(4, 16, 32, 40)):
         paths = []
         for size in sizes:
             path = root / f"{size}.json"
@@ -62,22 +62,22 @@ class QwenTemporalPositionScalingTests(unittest.TestCase):
     def test_reproduces_adjacent_ratios_and_binds_inputs(self):
         with tempfile.TemporaryDirectory() as temp:
             result = analyze(self.write_inputs(Path(temp)))
-        self.assertEqual([row["frames"] for row in result["conditions"]], [4, 16, 32])
-        self.assertEqual([row["video_tokens"] for row in result["conditions"]], [512, 2048, 4096])
+        self.assertEqual([row["frames"] for row in result["conditions"]], [4, 16, 32, 40])
+        self.assertEqual([row["video_tokens"] for row in result["conditions"]], [512, 2048, 4096, 5120])
         self.assertNotEqual(result["conditions"][0]["runner_source_sha256"],
                             result["conditions"][2]["runner_source_sha256"])
         self.assertAlmostEqual(result["comparisons"][0]["forward_time_ratios"]["native_auto"], 4.0)
-        self.assertAlmostEqual(result["comparisons"][1]["peak_allocated_memory_ratios"]["native_auto"], 2.0)
+        self.assertAlmostEqual(result["comparisons"][2]["peak_allocated_memory_ratios"]["native_auto"], 1.25)
         self.assertIn("One run per frame count", result["limitations"][0])
         self.assertIn("Runner source hashes are reported", result["limitations"][3])
 
     def test_rejects_incomplete_or_duplicate_frame_count(self):
         with tempfile.TemporaryDirectory() as temp:
             root = Path(temp)
-            paths = self.write_inputs(root, (4, 16))
+            paths = self.write_inputs(root, (4, 16, 32))
             with self.assertRaisesRegex(ValueError, "exactly one"):
                 analyze(paths)
-            paths = self.write_inputs(root, (4, 16, 16))
+            paths = self.write_inputs(root, (4, 16, 32, 32))
             with self.assertRaisesRegex(ValueError, "duplicate"):
                 analyze(paths)
 
@@ -85,17 +85,17 @@ class QwenTemporalPositionScalingTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temp:
             root = Path(temp)
             paths = self.write_inputs(root)
-            d = summary(32, 32)
+            d = summary(40, 40)
             d["gpu_resources"]["device"] = "NVIDIA Other"
             paths[-1].write_text(json.dumps(d), encoding="utf-8")
             with self.assertRaisesRegex(ValueError, "differs"):
                 analyze(paths)
-            d = summary(32, 32)
+            d = summary(40, 40)
             d["sample_counts"]["requested"] = True
             paths[-1].write_text(json.dumps(d), encoding="utf-8")
             with self.assertRaisesRegex(ValueError, "counts"):
                 analyze(paths)
-            d = summary(32, 32)
+            d = summary(40, 40)
             d["source_sha256"]["qwen_temporal_geometry.py"] = "2" * 64
             paths[-1].write_text(json.dumps(d), encoding="utf-8")
             with self.assertRaisesRegex(ValueError, "source differs"):
@@ -105,12 +105,12 @@ class QwenTemporalPositionScalingTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temp:
             root = Path(temp)
             paths = self.write_inputs(root)
-            d = summary(32, 32)
+            d = summary(40, 40)
             d["synthetic_video"]["native_temporal_anchors"][4] += 1
             paths[-1].write_text(json.dumps(d), encoding="utf-8")
             with self.assertRaisesRegex(ValueError, "anchors"):
                 analyze(paths)
-            d = summary(32, 32)
+            d = summary(40, 40)
             d["gpu_resources"]["forwards"][0]["forward_seconds"] = float("nan")
             paths[-1].write_text(json.dumps(d), encoding="utf-8")
             with self.assertRaisesRegex(ValueError, "resource"):

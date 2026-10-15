@@ -9,7 +9,7 @@ from pathlib import Path
 
 
 CONDITIONS = ("native_auto", "explicit_native_noop", "legacy_v517_reference")
-FRAME_COUNTS = (4, 16, 32)
+FRAME_COUNTS = (4, 16, 32, 40)
 
 
 def _read(path: Path) -> tuple[dict, str]:
@@ -116,7 +116,7 @@ def _validate_summary(data: dict) -> tuple[int, dict]:
 
 def analyze(paths: list[Path]) -> dict:
     if len(paths) != len(FRAME_COUNTS):
-        raise ValueError("exactly one 4-, 16-, and 32-frame artifact is required")
+        raise ValueError("exactly one 4-, 16-, 32-, and 40-frame artifact is required")
     rows = []
     seen = set()
     for path in paths:
@@ -175,8 +175,8 @@ def analyze(paths: list[Path]) -> dict:
 
 def main(argv=None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("artifacts", nargs=3, type=Path,
-                        help="one each of the 4-, 16-, and 32-frame published summaries")
+    parser.add_argument("artifacts", nargs=4, type=Path,
+                        help="one each of the 4-, 16-, 32-, and 40-frame published summaries")
     parser.add_argument("--output", required=True, type=Path)
     args = parser.parse_args(argv)
     if args.output.exists():
