@@ -1,0 +1,13 @@
+{
+  "schema_version": 1,
+  "policy_id": "nextgqa_claim_review_v1",
+  "purpose": "pre_outcome_human_claim_to_video_mapping",
+  "review_scope": "Exactly the three frozen model-generated feasibility candidates in the input packet; retain all three in the denominator. This is not a confirmatory inferential cohort and does not authorize scoring.",
+  "occurrence_policy": "all_relevant_occurrences",
+  "display_procedure": "A human reviewer independently verifies each row against the separately frozen cohort and private source-lineage manifest before opening it, then checks the selected file's SHA-256 and watches the full source video at normal speed with audio muted and subtitles/captions hidden. The reviewer may replay or scrub, but records evidence from visible video frames only. The display player and version are recorded in the private review record.",
+  "permitted_evidence": "Visible source-video pixels only; audio, subtitles, captions, metadata, QA gold answer, QA seed intervals, and model outcome scores are not evidence and remain hidden during mapping.",
+  "support_rule": "A claim is supported only if every material factual component is visibly established by one or more localizable video moments. Partial, contradicted, unsupported, ambiguous, or unlocalizable claims fail the frozen full-cohort review gate; do not invent or borrow intervals.",
+  "interval_rule": "Record every distinct visually sufficient occurrence as a separate positive-duration interval in source-video player seconds, with inclusive endpoints rounded to the nearest millisecond. Do not merge disjoint occurrences or select a subset. After mapping is frozen, the claim-linked mask is the union of sampled frames overlapping any listed interval. Decoder PTS calibration and any disjoint-control selection are separate protocol gates and are not established by this review.",
+  "failure_rule": "Any item without a fully supported claim, verified source identity, complete review, at least one valid interval, or a valid equal-count disjoint temporal control is recorded as a failure; retain the frozen denominator and do not substitute or silently exclude items.",
+  "review_order": "Freeze this policy and the exact claim-input and cohort manifests before viewing any item. A human reviewer independent of claim generation and scoring reviews all three eligible items without gold answers, QA seed intervals, or outcome scores. Freeze and hash the completed mapping before any separate QA-seed comparison or score access. Human attestation remains required."
+}
