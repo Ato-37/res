@@ -160,10 +160,11 @@ def main() -> int:
     output_directory = Path("/tmp") if args.smoke_samples else results
     host_path = output_directory / f"wsl_windows_memory_tail_{args.run_id}_host.jsonl"
     guest_path = output_directory / f"wsl_windows_memory_tail_{args.run_id}_guest.csv"
-    runner_prefix = f"qwen_temporal_position_allocator_memory_32f_{args.run_id}"
-    runner_path = results / f"{runner_prefix}.json"
+    runner_basename = f"qwen_temporal_position_allocator_memory_32f_{args.run_id}"
+    runner_prefix = f"results/{runner_basename}"
+    runner_path = results / f"{runner_basename}.json"
     for path in (host_path, guest_path, runner_path,
-                 results / f"{runner_prefix}_run_manifest.json"):
+                 results / f"{runner_basename}_run_manifest.json"):
         if path.exists():
             raise SystemExit(f"refusing to overwrite existing output: {path.name}")
     if not shutil_which_powershell():
