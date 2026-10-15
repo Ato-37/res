@@ -152,3 +152,25 @@ including the original 17, and focused gate/inventory tests pass 6/6 after that
 hardening. Nine loader guards are also byte-compiled. This remains protocol
 safety work: no model was loaded, no data scored, and direct faithfulness stays
 0 requested / 0 effective / 0 estimates.
+
+### Cross-gate to scorer integration check — 15:06 JST
+
+A remaining verification seam was that the synthetic cross-gate test proved all
+component structures could pass while the report remained blocked, and the
+scorer consumer separately rejected schema-v1 reports, but no single test
+connected those two assertions. Extended the fully synthetic integration test
+to write its structurally complete cross-gate report and pass it to the scorer
+preflight consumer. It is rejected with the explicit non-authorizing-schema
+reason; no private or real cohort inputs are involved. The focused integration
+test passes. This supports the fail-closed property across report production
+and consumption, but still does not authenticate human/legal evidence or
+authorize scoring. Faithfulness progress: 0 requested / 0 effective / 0
+estimates in this window.
+
+The integrated cross-gate assertion and current-log link passed the full
+standalone script suite: **805/805** in 7.853 seconds. Transformers emitted
+three non-failing deprecation warnings in legacy test fixtures; the existing
+fixture failure-status JSON lines are expected test outputs. No test accessed
+protected sample/media files or initialized CUDA. The current experiment
+overview now links this follow-up log separately from the earlier same-date
+PDCA record.

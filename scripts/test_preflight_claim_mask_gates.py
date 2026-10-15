@@ -8,6 +8,7 @@ from pathlib import Path
 from unittest.mock import patch
 
 from preflight_claim_mask_gates import main, preflight
+from require_execution_preflight import require_execution_preflight
 from build_claim_input_manifest import build as build_claim_input
 from test_audit_claim_review_evidence_index import fixture as claim_review_fixture, REVISION
 from test_audit_item_rights_manifest import fixture as item_rights_fixture
@@ -133,6 +134,10 @@ class ClaimMaskGatePreflightTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             paths = self.fully_bound_synthetic_paths(tmp)
             report = preflight(paths)
+            report_path = Path(tmp) / "cross-gate-report.json"
+            report_path.write_text(json.dumps(report), encoding="utf-8")
+            with self.assertRaisesRegex(ValueError, "deliberately never grants execution"):
+                require_execution_preflight(report_path)
         self.assertEqual(report["overall_status"], "blocked")
         self.assertEqual(report["structural_checks_status"], "passed")
         self.assertEqual(report["execution_authorization"], "not_granted")
