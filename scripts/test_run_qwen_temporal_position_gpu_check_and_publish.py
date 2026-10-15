@@ -201,6 +201,8 @@ class PublishSummaryTests(unittest.TestCase):
             self.assertEqual(_verify_reusable_raw(raw, Path(handle.name), repo, current), current)
             raw = {"schema_version": 2, "source_commit": current, "source_sha256": hashes}
             self.assertEqual(_verify_reusable_raw(raw, Path(handle.name), repo, current), current)
+            raw = {"schema_version": 3, "source_commit": current, "source_sha256": hashes}
+            self.assertEqual(_verify_reusable_raw(raw, Path(handle.name), repo, current), current)
             raw["source_sha256"]["run_qwen_temporal_position_gpu_check.py"] = "0" * 64
             with self.assertRaisesRegex(ValueError, "source files differ"):
                 _verify_reusable_raw(raw, Path(handle.name), repo, current)
@@ -243,6 +245,27 @@ class PublishSummaryTests(unittest.TestCase):
                          "2026-10-15T03:00:01+00:00")
         self.assertEqual(result["gpu_resources"]["forwards"][2]["completed_utc"],
                          "2026-10-15T03:00:04+00:00")
+
+    def test_schema3_requires_allocator_snapshot_inside_forward_window(self):
+        raw = valid_raw()
+        raw["schema_version"] = 3
+        for index, row in enumerate(raw["conditions"], start=1):
+            row["allocator_snapshot_utc"] = f"2026-10-15T03:00:{index + 1:02d}+00:00"
+        result = derive_public_summary(raw, "1" * 64)
+        self.assertEqual(result["schema_version"], 3)
+        self.assertEqual(
+            result["gpu_resources"]["forwards"][0]["allocator_snapshot_utc"],
+            "2026-10-15T03:00:02+00:00",
+        )
+        raw["conditions"][0]["allocator_snapshot_utc"] = "2026-10-15T03:00:00+00:00"
+        with self.assertRaisesRegex(ValueError, "allocator snapshot UTC timestamp"):
+            derive_public_summary(raw, "1" * 64)
+
+    def test_schema3_requires_snapshot_timestamp(self):
+        raw = valid_raw()
+        raw["schema_version"] = 3
+        with self.assertRaisesRegex(ValueError, "allocator snapshot UTC timestamp"):
+            derive_public_summary(raw, "1" * 64)
 
     def test_zero_cuda_free_memory_is_valid_and_retained(self):
         raw = valid_raw()
@@ -338,7 +361,7 @@ class PublishSummaryTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "inconsistent per-forward allocated"):
             derive_public_summary(raw, "1" * 64)
         raw = valid_raw()
-        raw["schema_version"] = 3
+        raw["schema_version"] = 4
         with self.assertRaisesRegex(ValueError, "schema version"):
             derive_public_summary(raw, "1" * 64)
         raw = valid_raw()

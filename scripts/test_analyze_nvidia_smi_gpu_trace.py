@@ -2,6 +2,7 @@ import unittest
 import hashlib
 import json
 import subprocess
+from datetime import datetime
 from pathlib import Path
 
 from analyze_nvidia_smi_gpu_trace import (
@@ -128,6 +129,25 @@ class NvidiaSmiTraceTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "forward_interval_has_no_samples"):
             summarize(trace_rows(), run, manifest, summary_raw,
                       manifest_raw, "results/source.json")
+
+    def test_schema3_requires_utc_allocator_snapshot_inside_forward(self):
+        run, manifest, summary_raw, manifest_raw = source_artifacts()
+        run["schema_version"] = 3
+        for row in run["gpu_resources"]["forwards"]:
+            start = datetime.fromisoformat(row["started_utc"])
+            end = datetime.fromisoformat(row["completed_utc"])
+            row["allocator_snapshot_utc"] = (start + (end - start) / 2).isoformat()
+        report = summarize(trace_rows(), run, manifest, summary_raw,
+                           manifest_raw, "results/source.json")
+        self.assertEqual(report["trace"]["forward_union_samples"], 3)
+        for bad in ("2026-10-15T12:00:02+09:00", "not-a-time",
+                    "2026-10-15T03:00:01+00:00", None):
+            broken = json.loads(json.dumps(run))
+            broken["gpu_resources"]["forwards"][0]["allocator_snapshot_utc"] = bad
+            with self.subTest(bad=bad), self.assertRaisesRegex(
+                    ValueError, "allocator_snapshot_invalid"):
+                summarize(trace_rows(), broken, manifest, summary_raw,
+                          manifest_raw, "results/source.json")
         run, manifest, summary_raw, manifest_raw = source_artifacts()
         run["gpu_resources"]["forwards"][0]["started_utc"] = "2026-10-15T03:00:02.000"
         with self.assertRaisesRegex(ValueError, "forward_interval_invalid"):
@@ -173,8 +193,9 @@ class NvidiaSmiTraceTests(unittest.TestCase):
             for name in EXPECTED_SOURCE_FILES_V2
         }
         verify_source_commit(repo, commit, hashes, schema_version=2)
+        verify_source_commit(repo, commit, hashes, schema_version=3)
         with self.assertRaisesRegex(ValueError, "source_hashes_invalid"):
-            verify_source_commit(repo, commit, hashes, schema_version=3)
+            verify_source_commit(repo, commit, {next(iter(hashes)): next(iter(hashes.values()))}, schema_version=3)
 
 
 if __name__ == "__main__":

@@ -348,6 +348,7 @@ def main():
                     'cuda_free_bytes': int(cuda_free_bytes),
                     'cuda_total_bytes': int(cuda_total_bytes),
                 }
+                allocator_snapshot_utc = datetime.now(timezone.utc).isoformat()
                 values=out.logits[0,-1].detach().float().cpu()
                 if not bool(torch.isfinite(values).all()):
                     raise RuntimeError('Nonfinite next-token logits')
@@ -358,6 +359,7 @@ def main():
                     'forward_seconds':time.monotonic()-begin,
                     'peak_allocated_gib':torch.cuda.max_memory_allocated()/1024**3,
                     'allocator_memory':allocator_memory,
+                    'allocator_snapshot_utc':allocator_snapshot_utc,
                     'started_utc':forward_started,'completed_utc':forward_completed})
                 logits.append(values); del out
         finally:
@@ -400,7 +402,7 @@ def main():
         peak_rss = process_peak_rss_bytes()
         completed=datetime.now(timezone.utc).isoformat()
         result={
-            'schema_version':2,'purpose':purpose,'fixture':args.fixture,
+            'schema_version':3,'purpose':purpose,'fixture':args.fixture,
             'started_utc':started,'completed_utc':completed,
             'elapsed_seconds':time.monotonic()-timer,
             'host_memory':{

@@ -27,7 +27,7 @@ def sha256_bytes(value: bytes) -> str:
 
 def derive_public_summary(raw: dict, raw_sha256: str) -> dict:
     """Validate synthetic-only scope and retain minimum derived diagnostics."""
-    if type(raw.get("schema_version")) is not int or raw["schema_version"] not in (1, 2):
+    if type(raw.get("schema_version")) is not int or raw["schema_version"] not in (1, 2, 3):
         raise ValueError("unsupported raw-run schema version")
     if raw.get("fixture") != "synthetic_subsecond":
         raise ValueError("only the synthetic_subsecond fixture may be published")
@@ -102,7 +102,7 @@ def derive_public_summary(raw: dict, raw_sha256: str) -> dict:
             "forward_seconds": seconds,
             "peak_allocated_gib": peak,
         }
-        if raw.get("schema_version") == 2:
+        if raw.get("schema_version") >= 2:
             memory = row.get("allocator_memory")
             memory_fields = (
                 "allocated_bytes", "peak_allocated_bytes", "reserved_bytes",
@@ -128,7 +128,7 @@ def derive_public_summary(raw: dict, raw_sha256: str) -> dict:
                 raise ValueError("inconsistent per-forward allocated-memory summaries")
             forward["allocator_memory"] = dict(memory)
         start_raw, end_raw = row.get("started_utc"), row.get("completed_utc")
-        if start_raw is not None or end_raw is not None:
+        if start_raw is not None or end_raw is not None or raw.get("schema_version") >= 3:
             try:
                 start = datetime.fromisoformat(start_raw)
                 end = datetime.fromisoformat(end_raw)
@@ -140,6 +140,16 @@ def derive_public_summary(raw: dict, raw_sha256: str) -> dict:
                 raise ValueError("invalid per-forward UTC interval")
             forward["started_utc"] = start.isoformat()
             forward["completed_utc"] = end.isoformat()
+            if raw.get("schema_version") >= 3:
+                try:
+                    snapshot = datetime.fromisoformat(row.get("allocator_snapshot_utc"))
+                except (TypeError, ValueError) as error:
+                    raise ValueError("invalid allocator snapshot UTC timestamp") from error
+                if (snapshot.tzinfo is None
+                        or snapshot.utcoffset() != timezone.utc.utcoffset(snapshot)
+                        or not start <= snapshot <= end):
+                    raise ValueError("invalid allocator snapshot UTC timestamp")
+                forward["allocator_snapshot_utc"] = snapshot.isoformat()
         forward_diagnostics.append(forward)
     gpu_total = raw.get("gpu_total_gib")
     gpu_free = raw.get("gpu_free_before_gib")
@@ -271,7 +281,7 @@ def _verify_reusable_raw(raw: dict, raw_path: Path, repo: Path, current_commit: 
         "video_time_mapping.py",
         "run_dataset_video_gpu_smoke.py",
     }
-    if raw.get("schema_version") == 2:
+    if raw.get("schema_version") >= 2:
         expected_names.add("run_qwen_temporal_position_gpu_check_and_publish.py")
     if not isinstance(hashes, dict) or set(hashes) != expected_names:
         raise ValueError("reusable raw run source hash set is incomplete or unexpected")
