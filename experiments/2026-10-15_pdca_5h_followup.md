@@ -1120,3 +1120,67 @@ classified. Added it to the guard's allowed engineering loaders (without
 changing any closed research branch); the focused guard passed **6/6** and the
 full script suite then passed **835/835 in 9.171 s**. The previous full run's
 two guard failures therefore reflect this missing classification, now fixed.
+
+### Fixed-spatial 4/8/16-frame real-video capacity sweep — in progress
+
+To estimate whether the actual-video path can safely process longer temporal
+inputs, added `scripts/run_claim_mask_real_video_capacity_sweep.py`. This is a
+resource-feasibility diagnostic on the same fixed NOAA clip and pinned Qwen
+revision. It performs one model load and one forward for each of 4, 8, and 16
+endpoint-inclusive frames, in ascending order; uses 4-bit/BF16, fixed per-frame
+pixel limits, does not request attention outputs, does not generate text, and
+disables KV caching. It has predeclared host-memory and free-VRAM guards, and
+requires at least 6 GiB free VRAM before the 16-frame condition. A failure
+records only the stage and completed safe summaries. No QA, annotation,
+treatment/control, or faithfulness score is read or produced.
+
+An independent source audit found two missing guards before GPU execution:
+the runner now rejects spatial-grid differences across conditions and checks
+host available memory before every forward after model loading. The sampler
+tolerance is fixed at half the source CFR frame period (1001/60000 s) solely to
+allow frame-index quantization in this capacity diagnostic; it must not be
+reused as a claim-mask measurement tolerance. Focused CPU tests pass 4/4.
+
+The real-video CPU preflight passed all three conditions: each decoded 8,992
+source frames; effective sample counts were 4/4, 8/8, 16/16; all spatial grids
+were `[24,44]`; temporal grids were 2/4/8; and Qwen video-token counts were
+528/1,056/2,112. Per-condition decode+CPU processor preparation took 31.06,
+30.51, and 30.68 seconds. Maximum sampled-grid deviations were 0, 14.3, and
+13.3 ms, within the frozen 16.68 ms diagnostic tolerance. Result:
+`results/claim_mask_real_video_capacity_preflight_20261015_02.json`, SHA-256
+`641afde174166f939aca3f0437192f27627b97bfa7ce3531497cd9ac92881d08`; the
+runner SHA-256 at preflight was
+`43fd3e8f1f2e60ebe3848bf5ec1be832fe2d92bb39e1b4c47665da8d3c902f89`.
+These data confirm processor/grid consistency only. The bounded GPU resource
+sweep is the next action; runtime, VRAM scaling, and 16-frame feasibility are
+not yet observed. User-authorized per-command elevation will be used for the
+GPU command after source commit and live resource recheck.
+
+This branch measures input/resource feasibility, not relevance or explanation
+faithfulness. Frame count is not evidence coverage, and one clip with one
+forward per condition cannot establish QA performance, sampling quality, or
+optimal frame count. Current faithfulness progress remains **0 requested / 0
+effective direct faithfulness samples / 0 new direct effect estimates**.
+
+### Workspace cleanup audit — 16:42 JST
+
+The user requested directory cleanup because generated code/results have
+accumulated. A read-only inventory found `results/` is a flat, Git-ignored
+working area (23 MiB at inspection) and `scripts/__pycache__/` contained 10 MiB
+of regenerable Python bytecode. I did not reorganize result paths because the
+standalone experiment CLIs and logs rely on `results/` filenames, and moving
+them would break reproducibility without reducing data volume. I removed only
+clearly disposable local items: the two failed pre-Qwen CPU attempts
+`claim_mask_real_video_processor_cpu_20261015_01/02.json` (both failures are
+already described above; passing `_03` remains); superseded first capacity
+preflight `_01.json` (the audited corrected preflight `_02` remains); exact
+byte-identical duplicate `qwen_temporal_position_repeatability_20261015_03.json`
+(identical to `_02`, same SHA-256); empty
+`qwen_gpu_utilization_20261015_03.csv`; and regenerated `scripts/__pycache__/`.
+The removals affect only ignored local artifacts, not tracked results or source
+data. An independent read-only inventory found other exact duplicate outputs,
+but several were adjacent to separate run IDs and no safe consolidation was
+needed for this active experiment; those and all confirmatory/source results
+remain untouched. The new successful GPU capacity artifact will supersede the
+temporary `_02` CPU preflight after its contents and provenance are recorded in
+the experiment log.

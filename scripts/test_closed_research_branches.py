@@ -70,6 +70,7 @@ ALLOWED_ENGINEERING_LOADERS = {
     "audit_qwen_pts_to_processor_cpu.py",
     "run_dataset_video_gpu_smoke.py",
     "run_claim_mask_real_video_gpu_smoke.py",
+    "run_claim_mask_real_video_capacity_sweep.py",
     "run_qwen_frozen_teacher_forcing_gpu_smoke.py",
     "run_qwen_sequence_length_numerics_gpu_diagnostic.py",
     "run_qwen_temporal_position_gpu_check.py",
