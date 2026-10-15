@@ -9,14 +9,14 @@
     ],
     "dataset_scope": "NExT-GQA independent confirmation cohort",
     "estimate_nat": -0.07563291033612023,
-    "intervention": "top-4 gradient\u00d7activation heads attenuated at alpha=0.5",
+    "intervention": "top-4 gradient×activation heads attenuated at alpha=0.5",
     "metric": "mean(target margin drop minus mean matched-control margin drop), one independent video per sample",
     "model": "Qwen/Qwen2.5-VL-7B-Instruct",
     "n_effective": 79,
     "n_failures": 0,
     "n_requested": 79,
     "practical_threshold_nat": 0.25,
-    "status": "\u76f4\u63a5\u8a55\u4fa1\u6e08\u307f",
+    "status": "直接評価済み",
     "threshold_supported": false
   },
   "limitations": [
@@ -45,10 +45,10 @@
       "n_effective": 60
     },
     "interpretation": "mask sensitivity with imperfect content/control matching; not a direct explanation-faithfulness effect",
-    "status": "\u88dc\u52a9\u8a3a\u65ad\u306e\u307f"
+    "status": "補助診断のみ"
   },
   "unresolved_gates": {
-    "new_faithfulness_confirmation": "\u672a\u5b9f\u65bd",
+    "new_faithfulness_confirmation": "未実施",
     "noaa_human_attestation": {
       "artifact_sha256": "6542dc7d1e13d9f7ae7754d78d3ac9abe74f86ebd1b81956e4df667430386bfa",
       "items": 6,

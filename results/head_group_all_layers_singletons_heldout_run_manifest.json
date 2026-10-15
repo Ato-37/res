@@ -1,15 +1,14 @@
 {
   "script": "run_all_layer_and_publish.py",
   "created_utc": "2026-10-03T13:03:10.042175+00:00",
-  "samples_file": "data/nextgqa_samples_confirm_heldout.json",
   "n_samples": 25,
   "layers": "all",
   "groups": "singletons",
   "gpu_command": [
-    "/home/ato121/res/.venv/bin/python",
-    "/home/ato121/res/scripts/head_group_activation_patching.py",
+    "[redacted-local-path]",
+    "[redacted-local-path]",
     "--samples-file",
-    "/home/ato121/res/data/nextgqa_samples_confirm_heldout.json",
+    "[redacted-local-path]",
     "--n-samples",
     "25",
     "--layers",
@@ -21,7 +20,7 @@
     "--self-check",
     "--strict-grounding",
     "--output",
-    "/home/ato121/res/results/head_group_all_layers_singletons_heldout.json"
+    "[redacted-local-path]"
   ],
   "analysis": "results/head_group_all_layers_singletons_heldout_analysis.json",
   "git_user_name": "Ato-37",

@@ -122,27 +122,22 @@
   "failures": [
     {
       "id": "6",
-      "video": "/home/ato121/nextgqa_sample/NExTVideo/1011/4181802718.mp4",
       "error": "RuntimeError('Could not construct evidence/control swaps: evidence=[], control=[]')"
     },
     {
       "id": "10",
-      "video": "/home/ato121/nextgqa_sample/NExTVideo/1018/3594312388.mp4",
       "error": "RuntimeError('Could not construct evidence/control swaps: evidence=[116, 139, 162, 186, 209, 232, 255, 278, 302, 325], control=[]')"
     },
     {
       "id": "15",
-      "video": "/home/ato121/nextgqa_sample/NExTVideo/1008/4997304873.mp4",
       "error": "RuntimeError('Could not construct evidence/control swaps: evidence=[32, 63, 95, 127, 159, 190, 222, 254, 286, 317, 349, 381, 413, 444], control=[]')"
     },
     {
       "id": "21",
-      "video": "/home/ato121/nextgqa_sample/NExTVideo/1155/4226033751.mp4",
       "error": "RuntimeError('Could not construct evidence/control swaps: evidence=[87, 153, 197, 262, 306, 328], control=[]')"
     },
     {
       "id": "23",
-      "video": "/home/ato121/nextgqa_sample/NExTVideo/1015/3584252430.mp4",
       "error": "RuntimeError('Could not construct evidence/control swaps: evidence=[23, 46, 69, 92, 115, 138, 161, 183], control=[]')"
     }
   ],

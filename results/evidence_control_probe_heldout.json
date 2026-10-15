@@ -1,7 +1,6 @@
 {
   "schema_version": 1,
   "script": "evidence_control_probe.py",
-  "samples_file": "/home/ato121/res/data/nextgqa_samples_evidence_control_heldout.json",
   "model": "Qwen/Qwen2.5-VL-7B-Instruct",
   "quant": "4bit",
   "dtype": "bfloat16",
@@ -29,34 +28,23 @@
   "failures": [
     {
       "id": "30",
-      "video": "/home/ato121/nextgqa_sample/NExTVideo/0082/10400848434.mp4",
       "error": "RuntimeError('Cannot construct matched one-frame perturbations: evidence=[0, 25, 50, 75, 100, 125, 150, 175, 199, 224, 249, 274, 299, 324, 349], non_evidence=1')"
     },
     {
       "id": "32",
-      "video": "/home/ato121/nextgqa_sample/NExTVideo/0084/4273509832.mp4",
       "error": "RuntimeError('Cannot construct matched one-frame perturbations: evidence=[], non_evidence=16')"
     },
     {
       "id": "34",
-      "video": "/home/ato121/nextgqa_sample/NExTVideo/1026/3312292397.mp4",
       "error": "RuntimeError('Cannot construct matched one-frame perturbations: evidence=[], non_evidence=16')"
     },
     {
       "id": "57",
-      "video": "/home/ato121/nextgqa_sample/NExTVideo/1006/8316861265.mp4",
       "error": "RuntimeError('Cannot construct matched one-frame perturbations: evidence=[0, 124, 248, 372, 497, 621, 745, 869, 993, 1117, 1241, 1365, 1490, 1614, 1738], non_evidence=1')"
     }
   ],
   "records": [
     {
-      "sample_id": "0",
-      "grounding": [
-        [
-          3.1,
-          9.3
-        ]
-      ],
       "sampled_indices": [
         0,
         40,
@@ -134,13 +122,6 @@
       "edited_positions_per_intervention": 1
     },
     {
-      "sample_id": "1",
-      "grounding": [
-        [
-          10.5,
-          11.9
-        ]
-      ],
       "sampled_indices": [
         0,
         30,
@@ -215,17 +196,6 @@
       "edited_positions_per_intervention": 1
     },
     {
-      "sample_id": "2",
-      "grounding": [
-        [
-          17.7,
-          20.6
-        ],
-        [
-          34.5,
-          40.5
-        ]
-      ],
       "sampled_indices": [
         0,
         119,
@@ -302,13 +272,6 @@
       "edited_positions_per_intervention": 1
     },
     {
-      "sample_id": "3",
-      "grounding": [
-        [
-          13.7,
-          17.0
-        ]
-      ],
       "sampled_indices": [
         0,
         109,
@@ -383,13 +346,6 @@
       "edited_positions_per_intervention": 1
     },
     {
-      "sample_id": "4",
-      "grounding": [
-        [
-          14.5,
-          16.7
-        ]
-      ],
       "sampled_indices": [
         0,
         37,
@@ -465,13 +421,6 @@
       "edited_positions_per_intervention": 1
     },
     {
-      "sample_id": "5",
-      "grounding": [
-        [
-          12.6,
-          16.6
-        ]
-      ],
       "sampled_indices": [
         0,
         91,
@@ -546,13 +495,6 @@
       "edited_positions_per_intervention": 1
     },
     {
-      "sample_id": "6",
-      "grounding": [
-        [
-          24.6,
-          31.0
-        ]
-      ],
       "sampled_indices": [
         0,
         50,
@@ -630,13 +572,6 @@
       "edited_positions_per_intervention": 1
     },
     {
-      "sample_id": "7",
-      "grounding": [
-        [
-          10.2,
-          14.0
-        ]
-      ],
       "sampled_indices": [
         0,
         43,
@@ -712,13 +647,6 @@
       "edited_positions_per_intervention": 1
     },
     {
-      "sample_id": "8",
-      "grounding": [
-        [
-          15.7,
-          19.9
-        ]
-      ],
       "sampled_indices": [
         0,
         76,
@@ -793,13 +721,6 @@
       "edited_positions_per_intervention": 1
     },
     {
-      "sample_id": "9",
-      "grounding": [
-        [
-          0.1,
-          37
-        ]
-      ],
       "sampled_indices": [
         0,
         74,
@@ -887,21 +808,6 @@
       "edited_positions_per_intervention": 1
     },
     {
-      "sample_id": "10",
-      "grounding": [
-        [
-          10.3,
-          13.7
-        ],
-        [
-          25.0,
-          37.2
-        ],
-        [
-          73.1,
-          76.4
-        ]
-      ],
       "sampled_indices": [
         0,
         162,
@@ -979,13 +885,6 @@
       "edited_positions_per_intervention": 1
     },
     {
-      "sample_id": "11",
-      "grounding": [
-        [
-          7.0,
-          13.5
-        ]
-      ],
       "sampled_indices": [
         0,
         34,
@@ -1065,13 +964,6 @@
       "edited_positions_per_intervention": 1
     },
     {
-      "sample_id": "12",
-      "grounding": [
-        [
-          13.8,
-          20.0
-        ]
-      ],
       "sampled_indices": [
         0,
         70,
@@ -1148,13 +1040,6 @@
       "edited_positions_per_intervention": 1
     },
     {
-      "sample_id": "13",
-      "grounding": [
-        [
-          32.1,
-          37.4
-        ]
-      ],
       "sampled_indices": [
         0,
         78,
@@ -1230,13 +1115,6 @@
       "edited_positions_per_intervention": 1
     },
     {
-      "sample_id": "14",
-      "grounding": [
-        [
-          22.0,
-          28.1
-        ]
-      ],
       "sampled_indices": [
         0,
         83,
@@ -1313,13 +1191,6 @@
       "edited_positions_per_intervention": 1
     },
     {
-      "sample_id": "15",
-      "grounding": [
-        [
-          35.6,
-          56.9
-        ]
-      ],
       "sampled_indices": [
         0,
         180,
@@ -1397,25 +1268,6 @@
       "edited_positions_per_intervention": 1
     },
     {
-      "sample_id": "16",
-      "grounding": [
-        [
-          4.5,
-          7.5
-        ],
-        [
-          10.2,
-          13.5
-        ],
-        [
-          19.7,
-          22.7
-        ],
-        [
-          26.6,
-          28.7
-        ]
-      ],
       "sampled_indices": [
         0,
         67,
@@ -1493,13 +1345,6 @@
       "edited_positions_per_intervention": 1
     },
     {
-      "sample_id": "17",
-      "grounding": [
-        [
-          16.7,
-          20.8
-        ]
-      ],
       "sampled_indices": [
         0,
         74,
@@ -1575,13 +1420,6 @@
       "edited_positions_per_intervention": 1
     },
     {
-      "sample_id": "18",
-      "grounding": [
-        [
-          8.4,
-          10.2
-        ]
-      ],
       "sampled_indices": [
         0,
         55,
@@ -1656,13 +1494,6 @@
       "edited_positions_per_intervention": 1
     },
     {
-      "sample_id": "19",
-      "grounding": [
-        [
-          13.7,
-          17.2
-        ]
-      ],
       "sampled_indices": [
         0,
         41,
@@ -1738,13 +1569,6 @@
       "edited_positions_per_intervention": 1
     },
     {
-      "sample_id": "20",
-      "grounding": [
-        [
-          0.0,
-          12.1
-        ]
-      ],
       "sampled_indices": [
         0,
         64,
@@ -1824,13 +1648,6 @@
       "edited_positions_per_intervention": 1
     },
     {
-      "sample_id": "21",
-      "grounding": [
-        [
-          4.2,
-          8.1
-        ]
-      ],
       "sampled_indices": [
         0,
         76,
@@ -1906,13 +1723,6 @@
       "edited_positions_per_intervention": 1
     },
     {
-      "sample_id": "22",
-      "grounding": [
-        [
-          0.1,
-          4.1
-        ]
-      ],
       "sampled_indices": [
         0,
         56,
@@ -1988,13 +1798,6 @@
       "edited_positions_per_intervention": 1
     },
     {
-      "sample_id": "23",
-      "grounding": [
-        [
-          0.5,
-          3.7
-        ]
-      ],
       "sampled_indices": [
         0,
         23,
@@ -2072,25 +1875,6 @@
       "edited_positions_per_intervention": 1
     },
     {
-      "sample_id": "24",
-      "grounding": [
-        [
-          15.9,
-          19.5
-        ],
-        [
-          22.8,
-          26.6
-        ],
-        [
-          29.9,
-          33.9
-        ],
-        [
-          37.2,
-          40.8
-        ]
-      ],
       "sampled_indices": [
         0,
         97,
@@ -2169,13 +1953,6 @@
       "edited_positions_per_intervention": 1
     },
     {
-      "sample_id": "25",
-      "grounding": [
-        [
-          1.2,
-          75.3
-        ]
-      ],
       "sampled_indices": [
         0,
         151,
@@ -2263,13 +2040,6 @@
       "edited_positions_per_intervention": 1
     },
     {
-      "sample_id": "26",
-      "grounding": [
-        [
-          3.4,
-          9.2
-        ]
-      ],
       "sampled_indices": [
         0,
         20,
@@ -2351,13 +2121,6 @@
       "edited_positions_per_intervention": 1
     },
     {
-      "sample_id": "27",
-      "grounding": [
-        [
-          0.0,
-          5.1
-        ]
-      ],
       "sampled_indices": [
         0,
         49,
@@ -2435,13 +2198,6 @@
       "edited_positions_per_intervention": 1
     },
     {
-      "sample_id": "28",
-      "grounding": [
-        [
-          9.4,
-          22.4
-        ]
-      ],
       "sampled_indices": [
         0,
         90,
@@ -2519,13 +2275,6 @@
       "edited_positions_per_intervention": 1
     },
     {
-      "sample_id": "29",
-      "grounding": [
-        [
-          34.9,
-          43.8
-        ]
-      ],
       "sampled_indices": [
         0,
         95,
@@ -2601,13 +2350,6 @@
       "edited_positions_per_intervention": 1
     },
     {
-      "sample_id": "31",
-      "grounding": [
-        [
-          0.1,
-          3.2
-        ]
-      ],
       "sampled_indices": [
         0,
         21,
@@ -2683,13 +2425,6 @@
       "edited_positions_per_intervention": 1
     },
     {
-      "sample_id": "33",
-      "grounding": [
-        [
-          15.8,
-          20.6
-        ]
-      ],
       "sampled_indices": [
         0,
         54,
@@ -2766,13 +2501,6 @@
       "edited_positions_per_intervention": 1
     },
     {
-      "sample_id": "35",
-      "grounding": [
-        [
-          8.4,
-          11.9
-        ]
-      ],
       "sampled_indices": [
         0,
         43,
@@ -2849,13 +2577,6 @@
       "edited_positions_per_intervention": 1
     },
     {
-      "sample_id": "36",
-      "grounding": [
-        [
-          46.0,
-          51.3
-        ]
-      ],
       "sampled_indices": [
         0,
         128,
@@ -2930,13 +2651,6 @@
       "edited_positions_per_intervention": 1
     },
     {
-      "sample_id": "37",
-      "grounding": [
-        [
-          1.1,
-          8.3
-        ]
-      ],
       "sampled_indices": [
         0,
         53,
@@ -3014,13 +2728,6 @@
       "edited_positions_per_intervention": 1
     },
     {
-      "sample_id": "38",
-      "grounding": [
-        [
-          55.5,
-          60
-        ]
-      ],
       "sampled_indices": [
         0,
         121,
@@ -3095,13 +2802,6 @@
       "edited_positions_per_intervention": 1
     },
     {
-      "sample_id": "39",
-      "grounding": [
-        [
-          -0.0,
-          4.8
-        ]
-      ],
       "sampled_indices": [
         0,
         27,
@@ -3181,29 +2881,6 @@
       "edited_positions_per_intervention": 1
     },
     {
-      "sample_id": "40",
-      "grounding": [
-        [
-          4.2,
-          7.1
-        ],
-        [
-          34.7,
-          37.4
-        ],
-        [
-          42.4,
-          44.7
-        ],
-        [
-          49.7,
-          52.8
-        ],
-        [
-          70.6,
-          73.3
-        ]
-      ],
       "sampled_indices": [
         0,
         151,
@@ -3281,13 +2958,6 @@
       "edited_positions_per_intervention": 1
     },
     {
-      "sample_id": "41",
-      "grounding": [
-        [
-          3.2,
-          10.5
-        ]
-      ],
       "sampled_indices": [
         0,
         28,
@@ -3369,13 +3039,6 @@
       "edited_positions_per_intervention": 1
     },
     {
-      "sample_id": "42",
-      "grounding": [
-        [
-          68.2,
-          75
-        ]
-      ],
       "sampled_indices": [
         0,
         150,
@@ -3450,13 +3113,6 @@
       "edited_positions_per_intervention": 1
     },
     {
-      "sample_id": "43",
-      "grounding": [
-        [
-          40.7,
-          60.7
-        ]
-      ],
       "sampled_indices": [
         0,
         130,
@@ -3534,13 +3190,6 @@
       "edited_positions_per_intervention": 1
     },
     {
-      "sample_id": "44",
-      "grounding": [
-        [
-          9.3,
-          13.9
-        ]
-      ],
       "sampled_indices": [
         0,
         46,
@@ -3617,13 +3266,6 @@
       "edited_positions_per_intervention": 1
     },
     {
-      "sample_id": "45",
-      "grounding": [
-        [
-          30.2,
-          33.6
-        ]
-      ],
       "sampled_indices": [
         0,
         56,
@@ -3699,13 +3341,6 @@
       "edited_positions_per_intervention": 1
     },
     {
-      "sample_id": "46",
-      "grounding": [
-        [
-          30.0,
-          34.2
-        ]
-      ],
       "sampled_indices": [
         0,
         103,
@@ -3780,13 +3415,6 @@
       "edited_positions_per_intervention": 1
     },
     {
-      "sample_id": "47",
-      "grounding": [
-        [
-          37.1,
-          40.3
-        ]
-      ],
       "sampled_indices": [
         0,
         97,
@@ -3861,13 +3489,6 @@
       "edited_positions_per_intervention": 1
     },
     {
-      "sample_id": "48",
-      "grounding": [
-        [
-          16.2,
-          23.2
-        ]
-      ],
       "sampled_indices": [
         0,
         49,
@@ -3945,13 +3566,6 @@
       "edited_positions_per_intervention": 1
     },
     {
-      "sample_id": "49",
-      "grounding": [
-        [
-          5.6,
-          23.2
-        ]
-      ],
       "sampled_indices": [
         0,
         130,
@@ -4029,13 +3643,6 @@
       "edited_positions_per_intervention": 1
     },
     {
-      "sample_id": "50",
-      "grounding": [
-        [
-          24.5,
-          26.9
-        ]
-      ],
       "sampled_indices": [
         0,
         54,
@@ -4111,13 +3718,6 @@
       "edited_positions_per_intervention": 1
     },
     {
-      "sample_id": "51",
-      "grounding": [
-        [
-          3.6,
-          7.4
-        ]
-      ],
       "sampled_indices": [
         0,
         22,
@@ -4196,13 +3796,6 @@
       "edited_positions_per_intervention": 1
     },
     {
-      "sample_id": "52",
-      "grounding": [
-        [
-          43.3,
-          55.6
-        ]
-      ],
       "sampled_indices": [
         0,
         124,
@@ -4279,13 +3872,6 @@
       "edited_positions_per_intervention": 1
     },
     {
-      "sample_id": "53",
-      "grounding": [
-        [
-          16.4,
-          25.5
-        ]
-      ],
       "sampled_indices": [
         0,
         71,
@@ -4363,13 +3949,6 @@
       "edited_positions_per_intervention": 1
     },
     {
-      "sample_id": "54",
-      "grounding": [
-        [
-          12.7,
-          14.5
-        ]
-      ],
       "sampled_indices": [
         0,
         29,
@@ -4445,13 +4024,6 @@
       "edited_positions_per_intervention": 1
     },
     {
-      "sample_id": "55",
-      "grounding": [
-        [
-          0.1,
-          7.3
-        ]
-      ],
       "sampled_indices": [
         0,
         29,
@@ -4531,13 +4103,6 @@
       "edited_positions_per_intervention": 1
     },
     {
-      "sample_id": "56",
-      "grounding": [
-        [
-          4.9,
-          9.4
-        ]
-      ],
       "sampled_indices": [
         0,
         25,
@@ -4617,13 +4182,6 @@
       "edited_positions_per_intervention": 1
     },
     {
-      "sample_id": "58",
-      "grounding": [
-        [
-          15.3,
-          16.9
-        ]
-      ],
       "sampled_indices": [
         0,
         30,
@@ -4698,13 +4256,6 @@
       "edited_positions_per_intervention": 1
     },
     {
-      "sample_id": "59",
-      "grounding": [
-        [
-          33.0,
-          38.6
-        ]
-      ],
       "sampled_indices": [
         0,
         77,

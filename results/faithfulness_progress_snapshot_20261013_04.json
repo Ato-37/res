@@ -9,14 +9,14 @@
     ],
     "dataset_scope": "NExT-GQA independent confirmation cohort",
     "estimate_nat": -0.07563291033612023,
-    "intervention": "top-4 gradient\u00d7activation heads attenuated at alpha=0.5",
+    "intervention": "top-4 gradient×activation heads attenuated at alpha=0.5",
     "metric": "mean(target margin drop minus mean matched-control margin drop), one independent video per sample",
     "model": "Qwen/Qwen2.5-VL-7B-Instruct",
     "n_effective": 79,
     "n_failures": 0,
     "n_requested": 79,
     "practical_threshold_nat": 0.25,
-    "status": "\u76f4\u63a5\u8a55\u4fa1\u6e08\u307f",
+    "status": "直接評価済み",
     "threshold_supported": false
   },
   "engineering_smokes": {
@@ -26,7 +26,7 @@
       "interpretation": "preprocessing reproducibility smoke; not direct explanation faithfulness",
       "n_effective": 3,
       "primary_mean_nat": -4.237517714500427e-08,
-      "status": "\u88dc\u52a9\u8a3a\u65ad\u306e\u307f"
+      "status": "補助診断のみ"
     },
     "cap_blur": {
       "artifact_sha256": "0d5b32c902a3b66a394831ab6344af7b3b81e76d9ce05051f60ea14820035c6e",
@@ -34,28 +34,28 @@
       "interpretation": "preprocessing reproducibility smoke; not direct explanation faithfulness",
       "n_effective": 3,
       "primary_mean_nat": -0.5000000740401447,
-      "status": "\u88dc\u52a9\u8a3a\u65ad\u306e\u307f"
+      "status": "補助診断のみ"
     },
     "grounding_mask": {
       "all_mean_nat": -4.811833302179972e-08,
       "artifact_sha256": "7ae51d747e009a29b7f65c42a490b76b4b85352e07e3130c58d68a927220fdfc",
       "interpretation": "engineering smoke; not direct explanation faithfulness",
       "n_effective": 3,
-      "status": "\u88dc\u52a9\u8a3a\u65ad\u306e\u307f"
+      "status": "補助診断のみ"
     },
     "grounding_mask_black_blur_pair": {
       "artifact_sha256": "5f8fa13d782d4d79577800fe39a85775cb776aca5fe5d31afbe5118f1bdcf558",
       "interpretation": "mask-fill engineering/OOD sensitivity; not direct explanation faithfulness",
       "n_effective_each": 3,
       "paired_blur_minus_black_primary_mean_nat": -0.5000000316649675,
-      "status": "\u88dc\u52a9\u8a3a\u65ad\u306e\u307f"
+      "status": "補助診断のみ"
     },
     "head_intervention": {
       "artifact_sha256": "3079736eb9e3853736274ac2068a002fafaf8db56caef3aa4e819ff3c37ab0f8",
       "interpretation": "engineering reproducibility smoke; not confirmatory",
       "mean_selective_nat": -0.024999999999999998,
       "n_effective": 3,
-      "status": "\u88dc\u52a9\u8a3a\u65ad\u306e\u307f"
+      "status": "補助診断のみ"
     }
   },
   "limitations": [
@@ -84,10 +84,10 @@
       "n_effective": 60
     },
     "interpretation": "mask sensitivity with imperfect content/control matching; not a direct explanation-faithfulness effect",
-    "status": "\u88dc\u52a9\u8a3a\u65ad\u306e\u307f"
+    "status": "補助診断のみ"
   },
   "unresolved_gates": {
-    "new_faithfulness_confirmation": "\u672a\u5b9f\u65bd",
+    "new_faithfulness_confirmation": "未実施",
     "noaa_human_attestation": {
       "artifact_sha256": "6542dc7d1e13d9f7ae7754d78d3ac9abe74f86ebd1b81956e4df667430386bfa",
       "items": 6,

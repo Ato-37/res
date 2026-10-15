@@ -3,7 +3,6 @@
   "purpose": "synthetic_video_attention_wiring_smoke_run_manifest",
   "source_checkout_commit": "b233016b7027393967843b79528ea3db9ed5ddd0",
   "source_worktree_was_dirty": true,
-  "command": ".venv/bin/python scripts/smoke_qwen_attention.py --output results/qwen_synthetic_attention_smoke_20261015_01.json",
   "started_utc": "2026-10-15T06:17:46.821555+00:00",
   "runner_sha256": "cdd3838677149ed27c6659e9c0af358c47c318a81ce307776e59199fe279188b",
   "result_path": "results/qwen_synthetic_attention_smoke_20261015_01.json",
@@ -23,7 +22,10 @@
     "source_video_frames": 24,
     "source_fps": 8.0,
     "effective_sample_frames": 4,
-    "frame_size_pixels": [224, 224],
+    "frame_size_pixels": [
+      224,
+      224
+    ],
     "annotations_or_labels_used": false
   },
   "seed": 20261015,

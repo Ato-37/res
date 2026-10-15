@@ -1,7 +1,6 @@
 {
   "schema_version": 1,
   "script": "evidence_control_choice_confirmation.py",
-  "samples_file": "/home/ato121/res/data/nextgqa_samples_choice_confirmation_heldout.json",
   "model": "Qwen/Qwen2.5-VL-7B-Instruct",
   "quant": "4bit",
   "dtype": "bfloat16",
@@ -15,18 +14,12 @@
   "n_effective": 57,
   "failures": [
     {
-      "sample_id": "3201948915:6",
-      "video": "/home/ato121/nextgqa_sample/NExTVideo/1165/3201948915.mp4",
       "error": "RuntimeError('Cannot construct matched interventions; evidence=[], non_evidence=16')"
     },
     {
-      "sample_id": "4226455621:0",
-      "video": "/home/ato121/nextgqa_sample/NExTVideo/1020/4226455621.mp4",
       "error": "RuntimeError('Cannot construct matched interventions; evidence=[], non_evidence=16')"
     },
     {
-      "sample_id": "3593365697:1",
-      "video": "/home/ato121/nextgqa_sample/NExTVideo/1018/3593365697.mp4",
       "error": "RuntimeError('Cannot construct matched interventions; evidence=[], non_evidence=16')"
     }
   ],
@@ -81,9 +74,6 @@
   ],
   "records": [
     {
-      "sample_id": "5780852028:6",
-      "video_id": "5780852028",
-      "qid": "6",
       "question_type": "TN",
       "sampled_indices": [
         0,
@@ -169,9 +159,6 @@
       ]
     },
     {
-      "sample_id": "9046447320:11",
-      "video_id": "9046447320",
-      "qid": "11",
       "question_type": "TN",
       "sampled_indices": [
         0,
@@ -262,9 +249,6 @@
       ]
     },
     {
-      "sample_id": "2493035685:0",
-      "video_id": "2493035685",
-      "qid": "0",
       "question_type": "CW",
       "sampled_indices": [
         0,
@@ -349,9 +333,6 @@
       ]
     },
     {
-      "sample_id": "4845929158:2",
-      "video_id": "4845929158",
-      "qid": "2",
       "question_type": "CW",
       "sampled_indices": [
         0,
@@ -439,9 +420,6 @@
       ]
     },
     {
-      "sample_id": "8044317011:3",
-      "video_id": "8044317011",
-      "qid": "3",
       "question_type": "CW",
       "sampled_indices": [
         0,
@@ -526,9 +504,6 @@
       ]
     },
     {
-      "sample_id": "2814476910:9",
-      "video_id": "2814476910",
-      "qid": "9",
       "question_type": "TN",
       "sampled_indices": [
         0,
@@ -613,9 +588,6 @@
       ]
     },
     {
-      "sample_id": "4127483344:3",
-      "video_id": "4127483344",
-      "qid": "3",
       "question_type": "TC",
       "sampled_indices": [
         0,
@@ -701,9 +673,6 @@
       ]
     },
     {
-      "sample_id": "3541006618:4",
-      "video_id": "3541006618",
-      "qid": "4",
       "question_type": "TN",
       "sampled_indices": [
         0,
@@ -791,9 +760,6 @@
       ]
     },
     {
-      "sample_id": "5498789102:8",
-      "video_id": "5498789102",
-      "qid": "8",
       "question_type": "CW",
       "sampled_indices": [
         0,
@@ -878,9 +844,6 @@
       ]
     },
     {
-      "sample_id": "3028133743:7",
-      "video_id": "3028133743",
-      "qid": "7",
       "question_type": "CH",
       "sampled_indices": [
         0,
@@ -967,9 +930,6 @@
       ]
     },
     {
-      "sample_id": "5750350083:2",
-      "video_id": "5750350083",
-      "qid": "2",
       "question_type": "CW",
       "sampled_indices": [
         0,
@@ -1057,9 +1017,6 @@
       ]
     },
     {
-      "sample_id": "9528960175:10",
-      "video_id": "9528960175",
-      "qid": "10",
       "question_type": "CW",
       "sampled_indices": [
         0,
@@ -1149,9 +1106,6 @@
       ]
     },
     {
-      "sample_id": "6320611157:9",
-      "video_id": "6320611157",
-      "qid": "9",
       "question_type": "CW",
       "sampled_indices": [
         0,
@@ -1239,9 +1193,6 @@
       ]
     },
     {
-      "sample_id": "10128261054:8",
-      "video_id": "10128261054",
-      "qid": "8",
       "question_type": "TN",
       "sampled_indices": [
         0,
@@ -1334,9 +1285,6 @@
       ]
     },
     {
-      "sample_id": "3727471969:1",
-      "video_id": "3727471969",
-      "qid": "1",
       "question_type": "TN",
       "sampled_indices": [
         0,
@@ -1422,9 +1370,6 @@
       ]
     },
     {
-      "sample_id": "5445670939:2",
-      "video_id": "5445670939",
-      "qid": "2",
       "question_type": "CH",
       "sampled_indices": [
         0,
@@ -1516,9 +1461,6 @@
       ]
     },
     {
-      "sample_id": "6243919243:5",
-      "video_id": "6243919243",
-      "qid": "5",
       "question_type": "TN",
       "sampled_indices": [
         0,
@@ -1605,9 +1547,6 @@
       ]
     },
     {
-      "sample_id": "5655025043:6",
-      "video_id": "5655025043",
-      "qid": "6",
       "question_type": "TN",
       "sampled_indices": [
         0,
@@ -1693,9 +1632,6 @@
       ]
     },
     {
-      "sample_id": "5481728773:8",
-      "video_id": "5481728773",
-      "qid": "8",
       "question_type": "TN",
       "sampled_indices": [
         0,
@@ -1780,9 +1716,6 @@
       ]
     },
     {
-      "sample_id": "9231896269:5",
-      "video_id": "9231896269",
-      "qid": "5",
       "question_type": "CH",
       "sampled_indices": [
         0,
@@ -1870,9 +1803,6 @@
       ]
     },
     {
-      "sample_id": "12764453004:6",
-      "video_id": "12764453004",
-      "qid": "6",
       "question_type": "TC",
       "sampled_indices": [
         0,
@@ -1958,9 +1888,6 @@
       ]
     },
     {
-      "sample_id": "3842638015:7",
-      "video_id": "3842638015",
-      "qid": "7",
       "question_type": "TN",
       "sampled_indices": [
         0,
@@ -2046,9 +1973,6 @@
       ]
     },
     {
-      "sample_id": "4834895241:5",
-      "video_id": "4834895241",
-      "qid": "5",
       "question_type": "CW",
       "sampled_indices": [
         0,
@@ -2133,9 +2057,6 @@
       ]
     },
     {
-      "sample_id": "11506594895:7",
-      "video_id": "11506594895",
-      "qid": "7",
       "question_type": "TN",
       "sampled_indices": [
         0,
@@ -2220,9 +2141,6 @@
       ]
     },
     {
-      "sample_id": "3491310026:5",
-      "video_id": "3491310026",
-      "qid": "5",
       "question_type": "CH",
       "sampled_indices": [
         0,
@@ -2308,9 +2226,6 @@
       ]
     },
     {
-      "sample_id": "8105331297:12",
-      "video_id": "8105331297",
-      "qid": "12",
       "question_type": "TC",
       "sampled_indices": [
         0,
@@ -2395,9 +2310,6 @@
       ]
     },
     {
-      "sample_id": "8208916209:6",
-      "video_id": "8208916209",
-      "qid": "6",
       "question_type": "TN",
       "sampled_indices": [
         0,
@@ -2483,9 +2395,6 @@
       ]
     },
     {
-      "sample_id": "7712814656:6",
-      "video_id": "7712814656",
-      "qid": "6",
       "question_type": "CH",
       "sampled_indices": [
         0,
@@ -2571,9 +2480,6 @@
       ]
     },
     {
-      "sample_id": "5194023015:1",
-      "video_id": "5194023015",
-      "qid": "1",
       "question_type": "CW",
       "sampled_indices": [
         0,
@@ -2664,9 +2570,6 @@
       ]
     },
     {
-      "sample_id": "4421898163:7",
-      "video_id": "4421898163",
-      "qid": "7",
       "question_type": "TN",
       "sampled_indices": [
         0,
@@ -2753,9 +2656,6 @@
       ]
     },
     {
-      "sample_id": "4254626112:0",
-      "video_id": "4254626112",
-      "qid": "0",
       "question_type": "CW",
       "sampled_indices": [
         0,
@@ -2841,9 +2741,6 @@
       ]
     },
     {
-      "sample_id": "3089060111:3",
-      "video_id": "3089060111",
-      "qid": "3",
       "question_type": "TN",
       "sampled_indices": [
         0,
@@ -2928,9 +2825,6 @@
       ]
     },
     {
-      "sample_id": "4265336268:3",
-      "video_id": "4265336268",
-      "qid": "3",
       "question_type": "CW",
       "sampled_indices": [
         0,
@@ -3016,9 +2910,6 @@
       ]
     },
     {
-      "sample_id": "13887487955:8",
-      "video_id": "13887487955",
-      "qid": "8",
       "question_type": "TC",
       "sampled_indices": [
         0,
@@ -3105,9 +2996,6 @@
       ]
     },
     {
-      "sample_id": "4484729539:8",
-      "video_id": "4484729539",
-      "qid": "8",
       "question_type": "TC",
       "sampled_indices": [
         0,
@@ -3192,9 +3080,6 @@
       ]
     },
     {
-      "sample_id": "8111513362:6",
-      "video_id": "8111513362",
-      "qid": "6",
       "question_type": "TN",
       "sampled_indices": [
         0,
@@ -3279,9 +3164,6 @@
       ]
     },
     {
-      "sample_id": "4823383982:2",
-      "video_id": "4823383982",
-      "qid": "2",
       "question_type": "CW",
       "sampled_indices": [
         0,
@@ -3367,9 +3249,6 @@
       ]
     },
     {
-      "sample_id": "6813372954:1",
-      "video_id": "6813372954",
-      "qid": "1",
       "question_type": "TC",
       "sampled_indices": [
         0,
@@ -3455,9 +3334,6 @@
       ]
     },
     {
-      "sample_id": "7742310064:6",
-      "video_id": "7742310064",
-      "qid": "6",
       "question_type": "CW",
       "sampled_indices": [
         0,
@@ -3545,9 +3421,6 @@
       ]
     },
     {
-      "sample_id": "2836465095:3",
-      "video_id": "2836465095",
-      "qid": "3",
       "question_type": "CH",
       "sampled_indices": [
         0,
@@ -3636,9 +3509,6 @@
       ]
     },
     {
-      "sample_id": "3329878386:6",
-      "video_id": "3329878386",
-      "qid": "6",
       "question_type": "CH",
       "sampled_indices": [
         0,
@@ -3724,9 +3594,6 @@
       ]
     },
     {
-      "sample_id": "5969368435:5",
-      "video_id": "5969368435",
-      "qid": "5",
       "question_type": "CW",
       "sampled_indices": [
         0,
@@ -3811,9 +3678,6 @@
       ]
     },
     {
-      "sample_id": "12078592673:5",
-      "video_id": "12078592673",
-      "qid": "5",
       "question_type": "TN",
       "sampled_indices": [
         0,
@@ -3899,9 +3763,6 @@
       ]
     },
     {
-      "sample_id": "4885355005:3",
-      "video_id": "4885355005",
-      "qid": "3",
       "question_type": "CW",
       "sampled_indices": [
         0,
@@ -3987,9 +3848,6 @@
       ]
     },
     {
-      "sample_id": "5873037185:4",
-      "video_id": "5873037185",
-      "qid": "4",
       "question_type": "CW",
       "sampled_indices": [
         0,
@@ -4077,9 +3935,6 @@
       ]
     },
     {
-      "sample_id": "2530293734:3",
-      "video_id": "2530293734",
-      "qid": "3",
       "question_type": "CW",
       "sampled_indices": [
         0,
@@ -4166,9 +4021,6 @@
       ]
     },
     {
-      "sample_id": "6625133293:6",
-      "video_id": "6625133293",
-      "qid": "6",
       "question_type": "CW",
       "sampled_indices": [
         0,
@@ -4255,9 +4107,6 @@
       ]
     },
     {
-      "sample_id": "2822110402:8",
-      "video_id": "2822110402",
-      "qid": "8",
       "question_type": "TC",
       "sampled_indices": [
         0,
@@ -4355,9 +4204,6 @@
       ]
     },
     {
-      "sample_id": "9371342049:0",
-      "video_id": "9371342049",
-      "qid": "0",
       "question_type": "CW",
       "sampled_indices": [
         0,
@@ -4452,9 +4298,6 @@
       ]
     },
     {
-      "sample_id": "10149430394:3",
-      "video_id": "10149430394",
-      "qid": "3",
       "question_type": "CW",
       "sampled_indices": [
         0,
@@ -4543,9 +4386,6 @@
       ]
     },
     {
-      "sample_id": "4315349265:1",
-      "video_id": "4315349265",
-      "qid": "1",
       "question_type": "TC",
       "sampled_indices": [
         0,
@@ -4632,9 +4472,6 @@
       ]
     },
     {
-      "sample_id": "2935869403:5",
-      "video_id": "2935869403",
-      "qid": "5",
       "question_type": "TC",
       "sampled_indices": [
         0,
@@ -4719,9 +4556,6 @@
       ]
     },
     {
-      "sample_id": "11576401024:2",
-      "video_id": "11576401024",
-      "qid": "2",
       "question_type": "TN",
       "sampled_indices": [
         0,
@@ -4810,9 +4644,6 @@
       ]
     },
     {
-      "sample_id": "10305881544:1",
-      "video_id": "10305881544",
-      "qid": "1",
       "question_type": "CW",
       "sampled_indices": [
         0,
@@ -4897,9 +4728,6 @@
       ]
     },
     {
-      "sample_id": "2956081853:5",
-      "video_id": "2956081853",
-      "qid": "5",
       "question_type": "TN",
       "sampled_indices": [
         0,
@@ -4985,9 +4813,6 @@
       ]
     },
     {
-      "sample_id": "4544425606:8",
-      "video_id": "4544425606",
-      "qid": "8",
       "question_type": "CW",
       "sampled_indices": [
         0,
@@ -5073,9 +4898,6 @@
       ]
     },
     {
-      "sample_id": "5856167780:7",
-      "video_id": "5856167780",
-      "qid": "7",
       "question_type": "CH",
       "sampled_indices": [
         0,

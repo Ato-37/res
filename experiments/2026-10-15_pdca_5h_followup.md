@@ -1435,3 +1435,20 @@ annotation, or protected untracked file was opened or changed in this cleanup.
 Git history was not rewritten, so earlier commits may still contain the
 removed artifact; current-branch deletion limits future exposure without
 force-pushing or altering published history.
+
+### Tracked result privacy audit — 17:32 JST
+
+A value-redacting scanner over all 265 tracked `results/*.json` files found 33
+with sample/video/question identifiers or local paths. Affected artifacts
+spanned older evidence-control, head-group, and necessity-mask outputs and
+their run manifests; another 12 files had path-only diagnostics. Rewrote 45
+tracked JSON artifacts to remove those identifiers, QA/annotation payload
+fields, absolute/home paths, and raw command arrays while preserving aggregate
+summaries, run counts, numerical per-item score records where available, and
+non-local configuration. No protected untracked files were read or changed.
+The result-consumer test suite still passes 843/843, including the thesis
+summary and faithfulness snapshot consumers. A second scan found zero
+remaining identity-key, numeric sample-ID-key, or absolute/home-path signals
+among the 265 tracked result JSONs. `git diff --check` passes. Git history was
+not rewritten; old published commits retain their original bytes, while the
+current branch removes the avoidable identifiers and paths.

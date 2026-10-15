@@ -1,25 +1,10 @@
 {
   "script": "run_evidence_control_choice_confirmation_and_publish.py",
   "created_utc": "2026-10-05T11:59:14.055356+00:00",
-  "samples_file": "data/nextgqa_samples_choice_confirmation_smoke.json",
   "output": "results/evidence_control_choice_confirmation_smoke.json",
   "quant": "4bit",
   "seed": 20261005,
   "placebo_repeats": 5,
-  "command": [
-    "/home/ato121/res/.venv/bin/python",
-    "/home/ato121/res/scripts/evidence_control_choice_confirmation.py",
-    "--samples-file",
-    "/home/ato121/res/data/nextgqa_samples_choice_confirmation_smoke.json",
-    "--output",
-    "/home/ato121/res/results/evidence_control_choice_confirmation_smoke.json",
-    "--quant",
-    "4bit",
-    "--seed",
-    "20261005",
-    "--placebo-repeats",
-    "5"
-  ],
   "git_user_name": "Ato-37",
   "git_user_email": "taketo373373@gmail.com"
 }

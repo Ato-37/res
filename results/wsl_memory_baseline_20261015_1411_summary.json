@@ -45,10 +45,6 @@
     "guest": 0,
     "host": 0
   },
-  "intervals": {
-    "guest_interval_seconds": 1.0,
-    "host_post_query_wait_seconds": 5.0
-  },
   "limits": [
     "same host/session, two short windows, no inferential uncertainty",
     "host physical free changed while vmmemWSL WSS was nearly constant; this does not identify the varying host component",

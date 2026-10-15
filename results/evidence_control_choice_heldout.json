@@ -1,9 +1,8 @@
 {
   "schema_version": 1,
   "script": "evidence_control_choice_probe.py",
-  "samples_file": "/home/ato121/res/data/nextgqa_samples_evidence_control_heldout.json",
-  "probe_results": "/home/ato121/res/results/evidence_control_probe_heldout.json",
-  "choice_audit": "/home/ato121/res/results/evidence_probe_task_validity_audit.json",
+  "probe_results": "[redacted-local-path]",
+  "choice_audit": "[redacted-local-path]",
   "model": "Qwen/Qwen2.5-VL-7B-Instruct",
   "quant": "4bit",
   "dtype": "bfloat16",
@@ -53,7 +52,6 @@
   },
   "records": [
     {
-      "sample_id": "0",
       "question_type": "CW",
       "baseline_choice_correct": true,
       "gold_choice_index": 2,
@@ -116,7 +114,6 @@
       ]
     },
     {
-      "sample_id": "1",
       "question_type": "CW",
       "baseline_choice_correct": true,
       "gold_choice_index": 2,
@@ -179,7 +176,6 @@
       ]
     },
     {
-      "sample_id": "2",
       "question_type": "CH",
       "baseline_choice_correct": false,
       "gold_choice_index": 1,
@@ -242,7 +238,6 @@
       ]
     },
     {
-      "sample_id": "3",
       "question_type": "CW",
       "baseline_choice_correct": true,
       "gold_choice_index": 0,
@@ -305,7 +300,6 @@
       ]
     },
     {
-      "sample_id": "4",
       "question_type": "CH",
       "baseline_choice_correct": false,
       "gold_choice_index": 1,
@@ -368,7 +362,6 @@
       ]
     },
     {
-      "sample_id": "5",
       "question_type": "TN",
       "baseline_choice_correct": false,
       "gold_choice_index": 1,
@@ -431,7 +424,6 @@
       ]
     },
     {
-      "sample_id": "6",
       "question_type": "CW",
       "baseline_choice_correct": true,
       "gold_choice_index": 1,
@@ -494,7 +486,6 @@
       ]
     },
     {
-      "sample_id": "7",
       "question_type": "CW",
       "baseline_choice_correct": true,
       "gold_choice_index": 3,
@@ -557,7 +548,6 @@
       ]
     },
     {
-      "sample_id": "8",
       "question_type": "CW",
       "baseline_choice_correct": true,
       "gold_choice_index": 2,
@@ -620,7 +610,6 @@
       ]
     },
     {
-      "sample_id": "9",
       "question_type": "CW",
       "baseline_choice_correct": false,
       "gold_choice_index": 4,
@@ -683,7 +672,6 @@
       ]
     },
     {
-      "sample_id": "10",
       "question_type": "TC",
       "baseline_choice_correct": true,
       "gold_choice_index": 2,
@@ -746,7 +734,6 @@
       ]
     },
     {
-      "sample_id": "11",
       "question_type": "CH",
       "baseline_choice_correct": false,
       "gold_choice_index": 3,
@@ -809,7 +796,6 @@
       ]
     },
     {
-      "sample_id": "12",
       "question_type": "CW",
       "baseline_choice_correct": true,
       "gold_choice_index": 0,
@@ -872,7 +858,6 @@
       ]
     },
     {
-      "sample_id": "13",
       "question_type": "TC",
       "baseline_choice_correct": true,
       "gold_choice_index": 2,
@@ -935,7 +920,6 @@
       ]
     },
     {
-      "sample_id": "14",
       "question_type": "CW",
       "baseline_choice_correct": true,
       "gold_choice_index": 3,
@@ -998,7 +982,6 @@
       ]
     },
     {
-      "sample_id": "15",
       "question_type": "CH",
       "baseline_choice_correct": true,
       "gold_choice_index": 3,
@@ -1061,7 +1044,6 @@
       ]
     },
     {
-      "sample_id": "16",
       "question_type": "CW",
       "baseline_choice_correct": true,
       "gold_choice_index": 2,
@@ -1124,7 +1106,6 @@
       ]
     },
     {
-      "sample_id": "17",
       "question_type": "TN",
       "baseline_choice_correct": true,
       "gold_choice_index": 3,
@@ -1187,7 +1168,6 @@
       ]
     },
     {
-      "sample_id": "18",
       "question_type": "CW",
       "baseline_choice_correct": true,
       "gold_choice_index": 1,
@@ -1250,7 +1230,6 @@
       ]
     },
     {
-      "sample_id": "19",
       "question_type": "TC",
       "baseline_choice_correct": true,
       "gold_choice_index": 2,
@@ -1313,7 +1292,6 @@
       ]
     },
     {
-      "sample_id": "20",
       "question_type": "CH",
       "baseline_choice_correct": true,
       "gold_choice_index": 1,
@@ -1376,7 +1354,6 @@
       ]
     },
     {
-      "sample_id": "21",
       "question_type": "TC",
       "baseline_choice_correct": false,
       "gold_choice_index": 2,
@@ -1439,7 +1416,6 @@
       ]
     },
     {
-      "sample_id": "22",
       "question_type": "CW",
       "baseline_choice_correct": true,
       "gold_choice_index": 3,
@@ -1502,7 +1478,6 @@
       ]
     },
     {
-      "sample_id": "23",
       "question_type": "CW",
       "baseline_choice_correct": true,
       "gold_choice_index": 2,
@@ -1565,7 +1540,6 @@
       ]
     },
     {
-      "sample_id": "24",
       "question_type": "CW",
       "baseline_choice_correct": true,
       "gold_choice_index": 2,
@@ -1628,7 +1602,6 @@
       ]
     },
     {
-      "sample_id": "25",
       "question_type": "TC",
       "baseline_choice_correct": true,
       "gold_choice_index": 3,
@@ -1691,7 +1664,6 @@
       ]
     },
     {
-      "sample_id": "26",
       "question_type": "CW",
       "baseline_choice_correct": true,
       "gold_choice_index": 3,
@@ -1754,7 +1726,6 @@
       ]
     },
     {
-      "sample_id": "27",
       "question_type": "CW",
       "baseline_choice_correct": true,
       "gold_choice_index": 0,
@@ -1817,7 +1788,6 @@
       ]
     },
     {
-      "sample_id": "28",
       "question_type": "CW",
       "baseline_choice_correct": true,
       "gold_choice_index": 1,
@@ -1880,7 +1850,6 @@
       ]
     },
     {
-      "sample_id": "29",
       "question_type": "CW",
       "baseline_choice_correct": true,
       "gold_choice_index": 3,
@@ -1943,7 +1912,6 @@
       ]
     },
     {
-      "sample_id": "31",
       "question_type": "CW",
       "baseline_choice_correct": true,
       "gold_choice_index": 2,
@@ -2006,7 +1974,6 @@
       ]
     },
     {
-      "sample_id": "33",
       "question_type": "TN",
       "baseline_choice_correct": true,
       "gold_choice_index": 0,
@@ -2069,7 +2036,6 @@
       ]
     },
     {
-      "sample_id": "35",
       "question_type": "CW",
       "baseline_choice_correct": false,
       "gold_choice_index": 3,
@@ -2132,7 +2098,6 @@
       ]
     },
     {
-      "sample_id": "36",
       "question_type": "TC",
       "baseline_choice_correct": true,
       "gold_choice_index": 4,
@@ -2195,7 +2160,6 @@
       ]
     },
     {
-      "sample_id": "37",
       "question_type": "TC",
       "baseline_choice_correct": false,
       "gold_choice_index": 4,
@@ -2258,7 +2222,6 @@
       ]
     },
     {
-      "sample_id": "38",
       "question_type": "CW",
       "baseline_choice_correct": true,
       "gold_choice_index": 4,
@@ -2321,7 +2284,6 @@
       ]
     },
     {
-      "sample_id": "39",
       "question_type": "CW",
       "baseline_choice_correct": true,
       "gold_choice_index": 1,
@@ -2384,7 +2346,6 @@
       ]
     },
     {
-      "sample_id": "40",
       "question_type": "CW",
       "baseline_choice_correct": true,
       "gold_choice_index": 1,
@@ -2447,7 +2408,6 @@
       ]
     },
     {
-      "sample_id": "41",
       "question_type": "CW",
       "baseline_choice_correct": false,
       "gold_choice_index": 4,
@@ -2510,7 +2470,6 @@
       ]
     },
     {
-      "sample_id": "42",
       "question_type": "TC",
       "baseline_choice_correct": true,
       "gold_choice_index": 3,
@@ -2573,7 +2532,6 @@
       ]
     },
     {
-      "sample_id": "43",
       "question_type": "CH",
       "baseline_choice_correct": false,
       "gold_choice_index": 0,
@@ -2636,7 +2594,6 @@
       ]
     },
     {
-      "sample_id": "44",
       "question_type": "TN",
       "baseline_choice_correct": true,
       "gold_choice_index": 4,
@@ -2699,7 +2656,6 @@
       ]
     },
     {
-      "sample_id": "45",
       "question_type": "TN",
       "baseline_choice_correct": true,
       "gold_choice_index": 0,
@@ -2762,7 +2718,6 @@
       ]
     },
     {
-      "sample_id": "46",
       "question_type": "CW",
       "baseline_choice_correct": false,
       "gold_choice_index": 2,
@@ -2825,7 +2780,6 @@
       ]
     },
     {
-      "sample_id": "47",
       "question_type": "TN",
       "baseline_choice_correct": true,
       "gold_choice_index": 2,
@@ -2888,7 +2842,6 @@
       ]
     },
     {
-      "sample_id": "48",
       "question_type": "CW",
       "baseline_choice_correct": false,
       "gold_choice_index": 2,
@@ -2951,7 +2904,6 @@
       ]
     },
     {
-      "sample_id": "49",
       "question_type": "CW",
       "baseline_choice_correct": true,
       "gold_choice_index": 0,
@@ -3014,7 +2966,6 @@
       ]
     },
     {
-      "sample_id": "50",
       "question_type": "TN",
       "baseline_choice_correct": true,
       "gold_choice_index": 2,
@@ -3077,7 +3028,6 @@
       ]
     },
     {
-      "sample_id": "51",
       "question_type": "CH",
       "baseline_choice_correct": true,
       "gold_choice_index": 3,
@@ -3140,7 +3090,6 @@
       ]
     },
     {
-      "sample_id": "52",
       "question_type": "TC",
       "baseline_choice_correct": false,
       "gold_choice_index": 2,
@@ -3203,7 +3152,6 @@
       ]
     },
     {
-      "sample_id": "53",
       "question_type": "TN",
       "baseline_choice_correct": true,
       "gold_choice_index": 1,
@@ -3266,7 +3214,6 @@
       ]
     },
     {
-      "sample_id": "54",
       "question_type": "CH",
       "baseline_choice_correct": true,
       "gold_choice_index": 4,
@@ -3329,7 +3276,6 @@
       ]
     },
     {
-      "sample_id": "55",
       "question_type": "TC",
       "baseline_choice_correct": true,
       "gold_choice_index": 2,
@@ -3392,7 +3338,6 @@
       ]
     },
     {
-      "sample_id": "56",
       "question_type": "CW",
       "baseline_choice_correct": false,
       "gold_choice_index": 3,
@@ -3455,7 +3400,6 @@
       ]
     },
     {
-      "sample_id": "58",
       "question_type": "CH",
       "baseline_choice_correct": true,
       "gold_choice_index": 4,
@@ -3518,7 +3462,6 @@
       ]
     },
     {
-      "sample_id": "59",
       "question_type": "TN",
       "baseline_choice_correct": true,
       "gold_choice_index": 3,

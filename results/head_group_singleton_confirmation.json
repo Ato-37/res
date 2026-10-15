@@ -1,6 +1,5 @@
 {
   "script": "head_group_activation_patching.py",
-  "samples_file": "/home/ato121/res/data/nextgqa_samples_singleton_confirmation.json",
   "model": "Qwen/Qwen2.5-VL-7B-Instruct",
   "quant": "4bit",
   "dtype": "bfloat16",
@@ -111,49 +110,35 @@
   "failures": [
     {
       "id": "4",
-      "video": "/home/ato121/nextgqa_sample/NExTVideo/1007/4578166923.mp4",
       "error": "RuntimeError('Could not construct evidence/control swaps: evidence=[], control=[]')"
     },
     {
       "id": "5",
-      "video": "/home/ato121/nextgqa_sample/NExTVideo/0049/3377976885.mp4",
       "error": "RuntimeError('Could not construct evidence/control swaps: evidence=[110, 132, 154, 175, 197, 219], control=[]')"
     },
     {
       "id": "19",
-      "video": "/home/ato121/nextgqa_sample/NExTVideo/1106/9023339404.mp4",
       "error": "RuntimeError('Could not construct evidence/control swaps: evidence=[400, 533, 667, 800, 933, 1067, 1200, 1333, 1733, 1867], control=[]')"
     },
     {
       "id": "20",
-      "video": "/home/ato121/nextgqa_sample/NExTVideo/1016/4458449046.mp4",
       "error": "RuntimeError('Could not construct evidence/control swaps: evidence=[36, 72, 107, 143, 179, 215, 251, 286, 322], control=[]')"
     },
     {
       "id": "26",
-      "video": "/home/ato121/nextgqa_sample/NExTVideo/1052/6257273545.mp4",
       "error": "RuntimeError('Could not construct evidence/control swaps: evidence=[], control=[]')"
     },
     {
       "id": "27",
-      "video": "/home/ato121/nextgqa_sample/NExTVideo/1103/3510222236.mp4",
       "error": "RuntimeError('Could not construct evidence/control swaps: evidence=[110, 132, 154, 175, 197, 219], control=[]')"
     },
     {
       "id": "31",
-      "video": "/home/ato121/nextgqa_sample/NExTVideo/1105/4775972536.mp4",
       "error": "RuntimeError('Could not construct evidence/control swaps: evidence=[59, 118, 177, 236, 295, 354, 413, 473, 532, 591, 650, 709, 768, 827, 886], control=[]')"
     }
   ],
   "records": [
     {
-      "sample_id": "0",
-      "grounding": [
-        [
-          61.9,
-          65.7
-        ]
-      ],
       "sampled_indices": [
         0,
         178,
@@ -3575,13 +3560,6 @@
       }
     },
     {
-      "sample_id": "1",
-      "grounding": [
-        [
-          3.2,
-          6.2
-        ]
-      ],
       "sampled_indices": [
         0,
         29,
@@ -7007,13 +6985,6 @@
       }
     },
     {
-      "sample_id": "2",
-      "grounding": [
-        [
-          3.3,
-          8.7
-        ]
-      ],
       "sampled_indices": [
         0,
         118,
@@ -10437,13 +10408,6 @@
       }
     },
     {
-      "sample_id": "3",
-      "grounding": [
-        [
-          6.6,
-          10.7
-        ]
-      ],
       "sampled_indices": [
         0,
         54,
@@ -13867,13 +13831,6 @@
       }
     },
     {
-      "sample_id": "6",
-      "grounding": [
-        [
-          28.5,
-          32.5
-        ]
-      ],
       "sampled_indices": [
         0,
         73,
@@ -17297,13 +17254,6 @@
       }
     },
     {
-      "sample_id": "7",
-      "grounding": [
-        [
-          0.1,
-          3.6
-        ]
-      ],
       "sampled_indices": [
         0,
         58,
@@ -20725,13 +20675,6 @@
       }
     },
     {
-      "sample_id": "8",
-      "grounding": [
-        [
-          8.6,
-          11.6
-        ]
-      ],
       "sampled_indices": [
         0,
         23,
@@ -24157,13 +24100,6 @@
       }
     },
     {
-      "sample_id": "9",
-      "grounding": [
-        [
-          24.7,
-          27
-        ]
-      ],
       "sampled_indices": [
         0,
         55,
@@ -27585,13 +27521,6 @@
       }
     },
     {
-      "sample_id": "10",
-      "grounding": [
-        [
-          7.2,
-          11.7
-        ]
-      ],
       "sampled_indices": [
         0,
         26,
@@ -31021,13 +30950,6 @@
       }
     },
     {
-      "sample_id": "11",
-      "grounding": [
-        [
-          6.4,
-          8.6
-        ]
-      ],
       "sampled_indices": [
         0,
         23,
@@ -34451,13 +34373,6 @@
       }
     },
     {
-      "sample_id": "12",
-      "grounding": [
-        [
-          4.9,
-          9.4
-        ]
-      ],
       "sampled_indices": [
         0,
         68,
@@ -37881,13 +37796,6 @@
       }
     },
     {
-      "sample_id": "13",
-      "grounding": [
-        [
-          28.8,
-          31.2
-        ]
-      ],
       "sampled_indices": [
         0,
         82,
@@ -41309,13 +41217,6 @@
       }
     },
     {
-      "sample_id": "14",
-      "grounding": [
-        [
-          0.1,
-          5.8
-        ]
-      ],
       "sampled_indices": [
         0,
         44,
@@ -44741,13 +44642,6 @@
       }
     },
     {
-      "sample_id": "15",
-      "grounding": [
-        [
-          6.7,
-          11.8
-        ]
-      ],
       "sampled_indices": [
         0,
         29,
@@ -48179,17 +48073,6 @@
       }
     },
     {
-      "sample_id": "16",
-      "grounding": [
-        [
-          12.4,
-          18.2
-        ],
-        [
-          30.1,
-          33.7
-        ]
-      ],
       "sampled_indices": [
         0,
         74,
@@ -51615,17 +51498,6 @@
       }
     },
     {
-      "sample_id": "17",
-      "grounding": [
-        [
-          0.1,
-          5.3
-        ],
-        [
-          17.1,
-          21.6
-        ]
-      ],
       "sampled_indices": [
         0,
         46,
@@ -55057,13 +54929,6 @@
       }
     },
     {
-      "sample_id": "18",
-      "grounding": [
-        [
-          3.8,
-          10.2
-        ]
-      ],
       "sampled_indices": [
         0,
         180,
@@ -58485,13 +58350,6 @@
       }
     },
     {
-      "sample_id": "21",
-      "grounding": [
-        [
-          0.0,
-          6.0
-        ]
-      ],
       "sampled_indices": [
         0,
         54,
@@ -61919,13 +61777,6 @@
       }
     },
     {
-      "sample_id": "22",
-      "grounding": [
-        [
-          23.0,
-          40.6
-        ]
-      ],
       "sampled_indices": [
         0,
         180,
@@ -65351,13 +65202,6 @@
       }
     },
     {
-      "sample_id": "23",
-      "grounding": [
-        [
-          33.4,
-          37.9
-        ]
-      ],
       "sampled_indices": [
         0,
         90,
@@ -68779,13 +68623,6 @@
       }
     },
     {
-      "sample_id": "24",
-      "grounding": [
-        [
-          43.9,
-          49.5
-        ]
-      ],
       "sampled_indices": [
         0,
         119,
@@ -72207,13 +72044,6 @@
       }
     },
     {
-      "sample_id": "25",
-      "grounding": [
-        [
-          7.7,
-          12.7
-        ]
-      ],
       "sampled_indices": [
         0,
         25,
@@ -75645,13 +75475,6 @@
       }
     },
     {
-      "sample_id": "28",
-      "grounding": [
-        [
-          0.8,
-          3.5
-        ]
-      ],
       "sampled_indices": [
         0,
         60,
@@ -79073,13 +78896,6 @@
       }
     },
     {
-      "sample_id": "29",
-      "grounding": [
-        [
-          14.6,
-          16.9
-        ]
-      ],
       "sampled_indices": [
         0,
         74,
@@ -82501,13 +82317,6 @@
       }
     },
     {
-      "sample_id": "30",
-      "grounding": [
-        [
-          9.9,
-          12
-        ]
-      ],
       "sampled_indices": [
         0,
         25,
@@ -85933,13 +85742,6 @@
       }
     },
     {
-      "sample_id": "32",
-      "grounding": [
-        [
-          0.2,
-          4.0
-        ]
-      ],
       "sampled_indices": [
         0,
         84,
@@ -89361,33 +89163,6 @@
       }
     },
     {
-      "sample_id": "33",
-      "grounding": [
-        [
-          11.0,
-          12.0
-        ],
-        [
-          21.1,
-          22.8
-        ],
-        [
-          33.5,
-          35.6
-        ],
-        [
-          41.8,
-          44.7
-        ],
-        [
-          51.1,
-          51.6
-        ],
-        [
-          57.6,
-          59.5
-        ]
-      ],
       "sampled_indices": [
         0,
         142,
@@ -92809,13 +92584,6 @@
       }
     },
     {
-      "sample_id": "34",
-      "grounding": [
-        [
-          7.4,
-          10.8
-        ]
-      ],
       "sampled_indices": [
         0,
         47,

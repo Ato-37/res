@@ -1,15 +1,14 @@
 {
   "script": "run_all_layer_and_publish.py",
   "created_utc": "2026-10-05T09:21:59.165795+00:00",
-  "samples_file": "data/nextgqa_samples_singleton_confirmation.json",
   "n_samples": 35,
   "layers": "3,5,7,9,12",
   "groups": "singletons",
   "gpu_command": [
-    "/home/ato121/res/.venv/bin/python",
-    "/home/ato121/res/scripts/head_group_activation_patching.py",
+    "[redacted-local-path]",
+    "[redacted-local-path]",
     "--samples-file",
-    "/home/ato121/res/data/nextgqa_samples_singleton_confirmation.json",
+    "[redacted-local-path]",
     "--n-samples",
     "35",
     "--layers",
@@ -21,7 +20,7 @@
     "--self-check",
     "--strict-grounding",
     "--output",
-    "/home/ato121/res/results/head_group_singleton_confirmation.json"
+    "[redacted-local-path]"
   ],
   "analysis": "results/head_group_singleton_confirmation_analysis.json",
   "git_user_name": "Ato-37",

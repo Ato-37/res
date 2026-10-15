@@ -1,7 +1,6 @@
 {
   "script": "run_task_validity_audit_and_publish.py",
   "created_utc": "2026-10-05T11:22:06.375434+00:00",
-  "samples_file": "data/nextgqa_samples_evidence_control_heldout.json",
   "probe_results": "results/evidence_control_probe_heldout.json",
   "test_csv": "NExT-GQA/datasets/nextgqa/test.csv",
   "map_json": "NExT-GQA/datasets/nextgqa/map_vid_vidorID.json",
@@ -9,26 +8,6 @@
   "n_samples": null,
   "quant": "4bit",
   "seed": 0,
-  "command": [
-    "/home/ato121/res/.venv/bin/python",
-    "/home/ato121/res/scripts/audit_evidence_probe_task_validity.py",
-    "--samples-file",
-    "/home/ato121/res/data/nextgqa_samples_evidence_control_heldout.json",
-    "--probe-results",
-    "/home/ato121/res/results/evidence_control_probe_heldout.json",
-    "--test-csv",
-    "/home/ato121/res/NExT-GQA/datasets/nextgqa/test.csv",
-    "--map-json",
-    "/home/ato121/res/NExT-GQA/datasets/nextgqa/map_vid_vidorID.json",
-    "--gsub-json",
-    "/home/ato121/res/NExT-GQA/datasets/nextgqa/gsub_test.json",
-    "--output",
-    "/home/ato121/res/results/evidence_probe_task_validity_audit.json",
-    "--quant",
-    "4bit",
-    "--seed",
-    "0"
-  ],
   "git_user_name": "Ato-37",
   "git_user_email": "taketo373373@gmail.com"
 }

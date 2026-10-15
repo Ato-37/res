@@ -162,7 +162,7 @@
   "limitations": [
     "Synthetic CFR/VFR only; no project media, model weights, CUDA, QA, or annotations.",
     "PTS origin is the first decoded frame and is not calibrated to annotation-player time.",
-    "This verifies the local PyAV\u2192Qwen processor fixture boundary, not production decoder equivalence.",
+    "This verifies the local PyAV→Qwen processor fixture boundary, not production decoder equivalence.",
     "No faithfulness, answer accuracy, or semantic evidence validity is measured."
   ]
 }

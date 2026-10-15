@@ -1,7 +1,6 @@
 {
   "schema_version": 1,
   "script": "necessity_choice_margin_test.py",
-  "samples_file": "/home/ato121/res/data/nextgqa_samples_necessity_choice_replication_heldout.json",
   "model": "Qwen/Qwen2.5-VL-7B-Instruct",
   "quant": "4bit",
   "dtype": "bfloat16",
@@ -69,9 +68,6 @@
   ],
   "records": [
     {
-      "sample_id": "4286880949:7",
-      "video_id": "4286880949",
-      "qid": "7",
       "question_type": "TN",
       "sampled_indices": [
         0,
@@ -136,9 +132,6 @@
       "selective_necessity_margin_drop": 3.3527612686157227e-08
     },
     {
-      "sample_id": "2774457371:9",
-      "video_id": "2774457371",
-      "qid": "9",
       "question_type": "TN",
       "sampled_indices": [
         0,
@@ -209,9 +202,6 @@
       "selective_necessity_margin_drop": 0.12500005960464478
     },
     {
-      "sample_id": "8150513082:4",
-      "video_id": "8150513082",
-      "qid": "4",
       "question_type": "CW",
       "sampled_indices": [
         0,
@@ -276,9 +266,6 @@
       "selective_necessity_margin_drop": -0.3749999972060323
     },
     {
-      "sample_id": "7303386938:0",
-      "video_id": "7303386938",
-      "qid": "0",
       "question_type": "CH",
       "sampled_indices": [
         0,
@@ -345,9 +332,6 @@
       "selective_necessity_margin_drop": 0.12499994039535522
     },
     {
-      "sample_id": "5221530771:6",
-      "video_id": "5221530771",
-      "qid": "6",
       "question_type": "TN",
       "sampled_indices": [
         0,
@@ -410,9 +394,6 @@
       "selective_necessity_margin_drop": -0.12499996647238731
     },
     {
-      "sample_id": "3969677780:7",
-      "video_id": "3969677780",
-      "qid": "7",
       "question_type": "TC",
       "sampled_indices": [
         0,
@@ -475,9 +456,6 @@
       "selective_necessity_margin_drop": 0.3750000596046448
     },
     {
-      "sample_id": "6577341237:9",
-      "video_id": "6577341237",
-      "qid": "9",
       "question_type": "TC",
       "sampled_indices": [
         0,
@@ -544,9 +522,6 @@
       "selective_necessity_margin_drop": -0.2499999850988388
     },
     {
-      "sample_id": "5589529025:4",
-      "video_id": "5589529025",
-      "qid": "4",
       "question_type": "TC",
       "sampled_indices": [
         0,
@@ -617,9 +592,6 @@
       "selective_necessity_margin_drop": 2.7500000474974513
     },
     {
-      "sample_id": "8029969533:7",
-      "video_id": "8029969533",
-      "qid": "7",
       "question_type": "CH",
       "sampled_indices": [
         0,
@@ -682,9 +654,6 @@
       "selective_necessity_margin_drop": 0.1250000298023224
     },
     {
-      "sample_id": "3992773451:1",
-      "video_id": "3992773451",
-      "qid": "1",
       "question_type": "TC",
       "sampled_indices": [
         0,
@@ -747,9 +716,6 @@
       "selective_necessity_margin_drop": 0.3750000596046448
     },
     {
-      "sample_id": "3804458046:1",
-      "video_id": "3804458046",
-      "qid": "1",
       "question_type": "CW",
       "sampled_indices": [
         0,
@@ -814,9 +780,6 @@
       "selective_necessity_margin_drop": -0.12499997019767761
     },
     {
-      "sample_id": "8028122153:7",
-      "video_id": "8028122153",
-      "qid": "7",
       "question_type": "TC",
       "sampled_indices": [
         0,
@@ -879,9 +842,6 @@
       "selective_necessity_margin_drop": 0.6250000912696123
     },
     {
-      "sample_id": "5579224246:4",
-      "video_id": "5579224246",
-      "qid": "4",
       "question_type": "CW",
       "sampled_indices": [
         0,
@@ -944,9 +904,6 @@
       "selective_necessity_margin_drop": 5.960464477539063e-08
     },
     {
-      "sample_id": "5904456747:1",
-      "video_id": "5904456747",
-      "qid": "1",
       "question_type": "TN",
       "sampled_indices": [
         0,
@@ -1011,9 +968,6 @@
       "selective_necessity_margin_drop": 0.5000003356253728
     },
     {
-      "sample_id": "5441902119:5",
-      "video_id": "5441902119",
-      "qid": "5",
       "question_type": "TP",
       "sampled_indices": [
         0,
@@ -1080,9 +1034,6 @@
       "selective_necessity_margin_drop": 3.3750001192092896
     },
     {
-      "sample_id": "2440996945:5",
-      "video_id": "2440996945",
-      "qid": "5",
       "question_type": "TC",
       "sampled_indices": [
         0,
@@ -1147,9 +1098,6 @@
       "selective_necessity_margin_drop": 0.375
     },
     {
-      "sample_id": "2589833495:1",
-      "video_id": "2589833495",
-      "qid": "1",
       "question_type": "CW",
       "sampled_indices": [
         0,
@@ -1214,9 +1162,6 @@
       "selective_necessity_margin_drop": 2.9802322387695312e-08
     },
     {
-      "sample_id": "10488004303:5",
-      "video_id": "10488004303",
-      "qid": "5",
       "question_type": "CW",
       "sampled_indices": [
         0,
@@ -1289,9 +1234,6 @@
       "selective_necessity_margin_drop": -1.6249998956918716
     },
     {
-      "sample_id": "5647715900:7",
-      "video_id": "5647715900",
-      "qid": "7",
       "question_type": "CW",
       "sampled_indices": [
         0,
@@ -1354,9 +1296,6 @@
       "selective_necessity_margin_drop": -0.12499991105869412
     },
     {
-      "sample_id": "2965378944:7",
-      "video_id": "2965378944",
-      "qid": "7",
       "question_type": "CH",
       "sampled_indices": [
         0,
@@ -1423,9 +1362,6 @@
       "selective_necessity_margin_drop": 0.624999500643753
     },
     {
-      "sample_id": "5460127828:1",
-      "video_id": "5460127828",
-      "qid": "1",
       "question_type": "CW",
       "sampled_indices": [
         0,
@@ -1488,9 +1424,6 @@
       "selective_necessity_margin_drop": -0.24999988079071045
     },
     {
-      "sample_id": "8617546237:4",
-      "video_id": "8617546237",
-      "qid": "4",
       "question_type": "TC",
       "sampled_indices": [
         0,
@@ -1557,9 +1490,6 @@
       "selective_necessity_margin_drop": 0.3750000074505806
     },
     {
-      "sample_id": "3728184329:0",
-      "video_id": "3728184329",
-      "qid": "0",
       "question_type": "CW",
       "sampled_indices": [
         0,
@@ -1628,9 +1558,6 @@
       "selective_necessity_margin_drop": -0.8749999937135726
     },
     {
-      "sample_id": "2506141110:0",
-      "video_id": "2506141110",
-      "qid": "0",
       "question_type": "TC",
       "sampled_indices": [
         0,
@@ -1693,9 +1620,6 @@
       "selective_necessity_margin_drop": -0.24999991059303284
     },
     {
-      "sample_id": "6071633426:5",
-      "video_id": "6071633426",
-      "qid": "5",
       "question_type": "TC",
       "sampled_indices": [
         0,
@@ -1760,9 +1684,6 @@
       "selective_necessity_margin_drop": -5.750000145286322
     },
     {
-      "sample_id": "3501167063:1",
-      "video_id": "3501167063",
-      "qid": "1",
       "question_type": "CW",
       "sampled_indices": [
         0,
@@ -1831,9 +1752,6 @@
       "selective_necessity_margin_drop": 0.375
     },
     {
-      "sample_id": "4522298433:5",
-      "video_id": "4522298433",
-      "qid": "5",
       "question_type": "TC",
       "sampled_indices": [
         0,
@@ -1900,9 +1818,6 @@
       "selective_necessity_margin_drop": 0.25
     },
     {
-      "sample_id": "2399811629:3",
-      "video_id": "2399811629",
-      "qid": "3",
       "question_type": "TN",
       "sampled_indices": [
         0,
@@ -1973,9 +1888,6 @@
       "selective_necessity_margin_drop": 0.3750001788139343
     },
     {
-      "sample_id": "3381752581:7",
-      "video_id": "3381752581",
-      "qid": "7",
       "question_type": "CW",
       "sampled_indices": [
         0,
@@ -2040,9 +1952,6 @@
       "selective_necessity_margin_drop": 1.1250000194413587
     },
     {
-      "sample_id": "5600915537:9",
-      "video_id": "5600915537",
-      "qid": "9",
       "question_type": "TN",
       "sampled_indices": [
         0,
@@ -2111,9 +2020,6 @@
       "selective_necessity_margin_drop": 0.374999591964297
     },
     {
-      "sample_id": "5353486947:4",
-      "video_id": "5353486947",
-      "qid": "4",
       "question_type": "TC",
       "sampled_indices": [
         0,
@@ -2178,9 +2084,6 @@
       "selective_necessity_margin_drop": 0.24999986356124282
     },
     {
-      "sample_id": "2488260327:2",
-      "video_id": "2488260327",
-      "qid": "2",
       "question_type": "TC",
       "sampled_indices": [
         0,
@@ -2247,9 +2150,6 @@
       "selective_necessity_margin_drop": 3.749999897554517
     },
     {
-      "sample_id": "7526364640:3",
-      "video_id": "7526364640",
-      "qid": "3",
       "question_type": "CW",
       "sampled_indices": [
         0,
@@ -2312,9 +2212,6 @@
       "selective_necessity_margin_drop": -0.12500007450580597
     },
     {
-      "sample_id": "2500623285:5",
-      "video_id": "2500623285",
-      "qid": "5",
       "question_type": "CW",
       "sampled_indices": [
         0,
@@ -2383,9 +2280,6 @@
       "selective_necessity_margin_drop": 0.12499989941716194
     },
     {
-      "sample_id": "3434653211:3",
-      "video_id": "3434653211",
-      "qid": "3",
       "question_type": "CW",
       "sampled_indices": [
         0,
@@ -2452,9 +2346,6 @@
       "selective_necessity_margin_drop": 0.3750002756714821
     },
     {
-      "sample_id": "2881352518:0",
-      "video_id": "2881352518",
-      "qid": "0",
       "question_type": "CW",
       "sampled_indices": [
         0,
@@ -2517,9 +2408,6 @@
       "selective_necessity_margin_drop": 0.25
     },
     {
-      "sample_id": "6802770639:1",
-      "video_id": "6802770639",
-      "qid": "1",
       "question_type": "CW",
       "sampled_indices": [
         0,
@@ -2582,9 +2470,6 @@
       "selective_necessity_margin_drop": 1.4999999478459358
     },
     {
-      "sample_id": "4740345442:1",
-      "video_id": "4740345442",
-      "qid": "1",
       "question_type": "CH",
       "sampled_indices": [
         0,
@@ -2647,9 +2532,6 @@
       "selective_necessity_margin_drop": -1.0000000596046448
     },
     {
-      "sample_id": "4032595511:2",
-      "video_id": "4032595511",
-      "qid": "2",
       "question_type": "CW",
       "sampled_indices": [
         0,
@@ -2716,9 +2598,6 @@
       "selective_necessity_margin_drop": -0.6249997289851308
     },
     {
-      "sample_id": "3258993991:2",
-      "video_id": "3258993991",
-      "qid": "2",
       "question_type": "CW",
       "sampled_indices": [
         0,
@@ -2787,9 +2666,6 @@
       "selective_necessity_margin_drop": 0.3750001615844667
     },
     {
-      "sample_id": "2868301160:1",
-      "video_id": "2868301160",
-      "qid": "1",
       "question_type": "CW",
       "sampled_indices": [
         0,
@@ -2862,9 +2738,6 @@
       "selective_necessity_margin_drop": -0.6250000596046448
     },
     {
-      "sample_id": "3575108079:8",
-      "video_id": "3575108079",
-      "qid": "8",
       "question_type": "TC",
       "sampled_indices": [
         0,
@@ -2927,9 +2800,6 @@
       "selective_necessity_margin_drop": 0.24999994039535522
     },
     {
-      "sample_id": "6216509632:7",
-      "video_id": "6216509632",
-      "qid": "7",
       "question_type": "CH",
       "sampled_indices": [
         0,
@@ -2994,9 +2864,6 @@
       "selective_necessity_margin_drop": -0.12499994586687535
     },
     {
-      "sample_id": "5412696114:7",
-      "video_id": "5412696114",
-      "qid": "7",
       "question_type": "TN",
       "sampled_indices": [
         0,
@@ -3059,9 +2926,6 @@
       "selective_necessity_margin_drop": -0.4999999403953552
     },
     {
-      "sample_id": "2406887888:2",
-      "video_id": "2406887888",
-      "qid": "2",
       "question_type": "TC",
       "sampled_indices": [
         0,
@@ -3124,9 +2988,6 @@
       "selective_necessity_margin_drop": -9.685754776000977e-08
     },
     {
-      "sample_id": "2983727948:5",
-      "video_id": "2983727948",
-      "qid": "5",
       "question_type": "CH",
       "sampled_indices": [
         0,
@@ -3195,9 +3056,6 @@
       "selective_necessity_margin_drop": 1.8750001030275598
     },
     {
-      "sample_id": "4641631235:8",
-      "video_id": "4641631235",
-      "qid": "8",
       "question_type": "TN",
       "sampled_indices": [
         0,
@@ -3260,9 +3118,6 @@
       "selective_necessity_margin_drop": 0.4999999701976776
     },
     {
-      "sample_id": "2402178262:6",
-      "video_id": "2402178262",
-      "qid": "6",
       "question_type": "TC",
       "sampled_indices": [
         0,
@@ -3327,9 +3182,6 @@
       "selective_necessity_margin_drop": -2.9802322387695312e-08
     },
     {
-      "sample_id": "2603758280:2",
-      "video_id": "2603758280",
-      "qid": "2",
       "question_type": "TC",
       "sampled_indices": [
         0,
@@ -3392,9 +3244,6 @@
       "selective_necessity_margin_drop": -2.9802322387695312e-08
     },
     {
-      "sample_id": "2481132749:7",
-      "video_id": "2481132749",
-      "qid": "7",
       "question_type": "TN",
       "sampled_indices": [
         0,
@@ -3457,9 +3306,6 @@
       "selective_necessity_margin_drop": 0.124999956227839
     },
     {
-      "sample_id": "4180380438:3",
-      "video_id": "4180380438",
-      "qid": "3",
       "question_type": "TN",
       "sampled_indices": [
         0,
@@ -3524,9 +3370,6 @@
       "selective_necessity_margin_drop": 0.1250000298023224
     },
     {
-      "sample_id": "10864382765:8",
-      "video_id": "10864382765",
-      "qid": "8",
       "question_type": "CW",
       "sampled_indices": [
         0,
@@ -3597,9 +3440,6 @@
       "selective_necessity_margin_drop": 2.5000000298023224
     },
     {
-      "sample_id": "2916577028:2",
-      "video_id": "2916577028",
-      "qid": "2",
       "question_type": "CW",
       "sampled_indices": [
         0,
@@ -3664,9 +3504,6 @@
       "selective_necessity_margin_drop": -0.12500008940696716
     },
     {
-      "sample_id": "3081360150:8",
-      "video_id": "3081360150",
-      "qid": "8",
       "question_type": "CW",
       "sampled_indices": [
         0,
@@ -3729,9 +3566,6 @@
       "selective_necessity_margin_drop": 0.24999989476054907
     },
     {
-      "sample_id": "2466853140:7",
-      "video_id": "2466853140",
-      "qid": "7",
       "question_type": "CH",
       "sampled_indices": [
         0,
@@ -3800,9 +3634,6 @@
       "selective_necessity_margin_drop": 3.6250001173466444
     },
     {
-      "sample_id": "4167294363:4",
-      "video_id": "4167294363",
-      "qid": "4",
       "question_type": "CW",
       "sampled_indices": [
         0,
@@ -3865,9 +3696,6 @@
       "selective_necessity_margin_drop": 0.49999991059303284
     },
     {
-      "sample_id": "2828927371:7",
-      "video_id": "2828927371",
-      "qid": "7",
       "question_type": "CH",
       "sampled_indices": [
         0,
@@ -3936,9 +3764,6 @@
       "selective_necessity_margin_drop": 1.0
     },
     {
-      "sample_id": "2597214137:4",
-      "video_id": "2597214137",
-      "qid": "4",
       "question_type": "CH",
       "sampled_indices": [
         0,
@@ -4003,9 +3828,6 @@
       "selective_necessity_margin_drop": 0.2500000596046448
     },
     {
-      "sample_id": "6975125131:3",
-      "video_id": "6975125131",
-      "qid": "3",
       "question_type": "CH",
       "sampled_indices": [
         0,
@@ -4076,9 +3898,6 @@
       "selective_necessity_margin_drop": -5.960464477539063e-08
     },
     {
-      "sample_id": "4015487071:6",
-      "video_id": "4015487071",
-      "qid": "6",
       "question_type": "CW",
       "sampled_indices": [
         0,

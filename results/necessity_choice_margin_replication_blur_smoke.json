@@ -1,7 +1,6 @@
 {
   "schema_version": 2,
   "script": "necessity_choice_margin_test.py",
-  "samples_file": "/home/ato121/res/data/nextgqa_samples_necessity_choice_replication_smoke.json",
   "model": "Qwen/Qwen2.5-VL-7B-Instruct",
   "quant": "4bit",
   "dtype": "bfloat16",
@@ -67,9 +66,6 @@
   ],
   "records": [
     {
-      "sample_id": "13125896183:3",
-      "video_id": "13125896183",
-      "qid": "3",
       "question_type": "CW",
       "sampled_indices": [
         0,
@@ -136,9 +132,6 @@
       "selective_necessity_margin_drop": 1.6250001192092896
     },
     {
-      "sample_id": "6176571322:6",
-      "video_id": "6176571322",
-      "qid": "6",
       "question_type": "TN",
       "sampled_indices": [
         0,
@@ -209,9 +202,6 @@
       "selective_necessity_margin_drop": -0.2500000298023224
     },
     {
-      "sample_id": "5080289573:9",
-      "video_id": "5080289573",
-      "qid": "9",
       "question_type": "CW",
       "sampled_indices": [
         0,

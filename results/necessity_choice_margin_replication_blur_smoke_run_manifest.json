@@ -1,7 +1,6 @@
 {
   "script": "run_necessity_choice_margin_test_and_publish.py",
   "created_utc": "2026-10-05T14:53:47.628550+00:00",
-  "samples_file": "data/nextgqa_samples_necessity_choice_replication_smoke.json",
   "preflight_report": "results/necessity_choice_replication_preflight.json",
   "output": "results/necessity_choice_margin_replication_blur_smoke.json",
   "n_samples": 3,
@@ -10,26 +9,6 @@
   "num_frames": 16,
   "mask_fill": "blur",
   "blur_radius": 12.0,
-  "command": [
-    "/home/ato121/res/.venv/bin/python",
-    "/home/ato121/res/scripts/necessity_choice_margin_test.py",
-    "--samples-file",
-    "/home/ato121/res/data/nextgqa_samples_necessity_choice_replication_smoke.json",
-    "--output",
-    "/home/ato121/res/results/necessity_choice_margin_replication_blur_smoke.json",
-    "--quant",
-    "4bit",
-    "--seed",
-    "20261009",
-    "--num-frames",
-    "16",
-    "--mask-fill",
-    "blur",
-    "--blur-radius",
-    "12.0",
-    "--n-samples",
-    "3"
-  ],
   "git_user_name": "Ato-37",
   "git_user_email": "taketo373373@gmail.com"
 }

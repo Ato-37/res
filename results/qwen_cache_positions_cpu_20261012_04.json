@@ -107,7 +107,7 @@
       11,
       12
     ],
-    "delta_convention": "max(position IDs)+1\u2212valid prompt length; source mechanical rule only, not semantic validation",
+    "delta_convention": "max(position IDs)+1−valid prompt length; source mechanical rule only, not semantic validation",
     "native_rope_delta": -30,
     "native_temporal_anchors": [
       2,

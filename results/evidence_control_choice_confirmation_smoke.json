@@ -1,7 +1,6 @@
 {
   "schema_version": 1,
   "script": "evidence_control_choice_confirmation.py",
-  "samples_file": "/home/ato121/res/data/nextgqa_samples_choice_confirmation_smoke.json",
   "model": "Qwen/Qwen2.5-VL-7B-Instruct",
   "quant": "4bit",
   "dtype": "bfloat16",
@@ -59,9 +58,6 @@
   ],
   "records": [
     {
-      "sample_id": "4178472052:1",
-      "video_id": "4178472052",
-      "qid": "1",
       "question_type": "CW",
       "sampled_indices": [
         0,
@@ -146,9 +142,6 @@
       ]
     },
     {
-      "sample_id": "5553110507:0",
-      "video_id": "5553110507",
-      "qid": "0",
       "question_type": "CW",
       "sampled_indices": [
         0,
@@ -233,9 +226,6 @@
       ]
     },
     {
-      "sample_id": "12298809926:11",
-      "video_id": "12298809926",
-      "qid": "11",
       "question_type": "TP",
       "sampled_indices": [
         0,

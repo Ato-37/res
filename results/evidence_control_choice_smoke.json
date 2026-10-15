@@ -1,9 +1,8 @@
 {
   "schema_version": 1,
   "script": "evidence_control_choice_probe.py",
-  "samples_file": "/home/ato121/res/data/nextgqa_samples_evidence_control_heldout.json",
-  "probe_results": "/home/ato121/res/results/evidence_control_probe_heldout.json",
-  "choice_audit": "/home/ato121/res/results/evidence_probe_task_validity_audit.json",
+  "probe_results": "[redacted-local-path]",
+  "choice_audit": "[redacted-local-path]",
   "model": "Qwen/Qwen2.5-VL-7B-Instruct",
   "quant": "4bit",
   "dtype": "bfloat16",
@@ -45,7 +44,6 @@
   },
   "records": [
     {
-      "sample_id": "0",
       "question_type": "CW",
       "baseline_choice_correct": true,
       "gold_choice_index": 2,
@@ -108,7 +106,6 @@
       ]
     },
     {
-      "sample_id": "1",
       "question_type": "CW",
       "baseline_choice_correct": true,
       "gold_choice_index": 2,

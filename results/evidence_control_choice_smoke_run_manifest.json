@@ -1,31 +1,12 @@
 {
   "script": "run_evidence_control_choice_probe_and_publish.py",
   "created_utc": "2026-10-05T11:31:11.417052+00:00",
-  "samples_file": "data/nextgqa_samples_evidence_control_heldout.json",
   "probe_results": "results/evidence_control_probe_heldout.json",
   "choice_audit": "results/evidence_probe_task_validity_audit.json",
   "output": "results/evidence_control_choice_smoke.json",
   "n_samples": 2,
   "quant": "4bit",
   "seed": 0,
-  "command": [
-    "/home/ato121/res/.venv/bin/python",
-    "/home/ato121/res/scripts/evidence_control_choice_probe.py",
-    "--samples-file",
-    "/home/ato121/res/data/nextgqa_samples_evidence_control_heldout.json",
-    "--probe-results",
-    "/home/ato121/res/results/evidence_control_probe_heldout.json",
-    "--choice-audit",
-    "/home/ato121/res/results/evidence_probe_task_validity_audit.json",
-    "--output",
-    "/home/ato121/res/results/evidence_control_choice_smoke.json",
-    "--quant",
-    "4bit",
-    "--seed",
-    "0",
-    "--n-samples",
-    "2"
-  ],
   "git_user_name": "Ato-37",
   "git_user_email": "taketo373373@gmail.com"
 }
