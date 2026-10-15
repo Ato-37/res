@@ -1272,9 +1272,40 @@ SHA-256 `19abfc9a91b3c7fc5fd4426344cfdc80bbc021e70936589bdfd865312cdd47dc`.
 Focused decoder/capacity tests pass 15/15 and the full script suite passes
 843/843. The independent auditor confirmed source hashes match the latest CPU
 preflight, per-condition PTS checks, selected-union RGB checks, schema version
-2 for success/failure records, and CPU artifact consistency. A second GPU
-feasibility run using the shared decoder is now the next action; it can verify
-that resource results remain finite and measure savings in this pipeline, but
-does not test faithfulness. Current direct faithfulness progress remains **0
-requested / 0 effective direct faithfulness samples / 0 new direct effect
-estimates**.
+2 for success/failure records, and CPU artifact consistency. The latest CPU
+preflight artifact SHA-256 is
+`9a5dbc4c0a768be16b09e71032b0a6488ab6ed1f44a38d2c32c17ceb15f28a62`.
+
+### Shared-decoder real-video GPU recheck — 16:54–16:55 JST
+
+Ran the schema-v2 shared-decoder sweep on the committed source
+`482cc032b39b954b95a3b3298de79cbd13da6a09`. All 3/3 GPU conditions passed;
+logits were finite and the output grids/tokens/sample indices matched both
+CPU preflight results. Peak allocated/reserved memory remained
+6.049/6.375, 6.236/6.797, and 7.237/8.102 GiB for 4/8/16 frames. Free VRAM
+before forwards was 8.683/8.657/8.657 GiB and host available memory
+12.966/11.956/11.962 GiB. Thus 16 frames still fit the fixed 224-equivalent
+spatial setup on this observed machine state.
+
+The runner's shared two-pass decode took 28.989 s; total run time was 42.802 s
+including 7.163 s model load. Compared with the previous 103.077 s run, the
+observed elapsed time was 58.5% shorter, while the shared decoder alone
+replaced three roughly 29-second decode/preparation stages. Forward times
+were 3.137/0.734/1.519 s (one measurement each), so latency still does not
+scale monotonically. Sparse utilization samples averaged 18.5/27.5/73.3% with
+maxima 37/46/99%; memory-busy averages were 4.5/7.0/27.0% (max 13/13/39%).
+This confirms GPU kernels ran and that the longest condition had higher sampled
+activity, but the 2–6 samples per short forward cannot establish stable GPU
+utilization or memory-bandwidth behavior. The prior and current runs are not a
+controlled benchmark series, so the elapsed reduction is descriptive only.
+
+The privacy-safe schema-v2 artifact SHA-256 is
+`a480a921d820c9d3425b2bf61e8fc5bc495b38097b339d1270637c654da08ab1`; its
+source commit and runner, decoder, model config, and helper hashes were
+independently matched to the checked-out files and CPU preflight. The reviewer
+verified the three conditions, finite logits, resource counters, and absence
+of raw/private data. It contains no QA, annotations, generated text, scores,
+or faithfulness estimate. This remains a feasibility measurement on one video
+and is not evidence for temporal evidence quality, answer validity, or
+faithfulness. The current session still has **0 direct faithfulness samples
+and 0 direct faithfulness effect estimates**.
