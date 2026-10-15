@@ -456,16 +456,16 @@ faithfulness samples or effects.
 
 ### Retired-child publisher inventory regression test — 15:35 JST
 
-The publisher gap suggests a testable inventory invariant: any Python list
-command that names a retired inference CLI must be in the early-stop guard
-inventory itself. Added an AST regression that scans all non-test scripts for
-such command lists and requires the caller to be a guarded entrypoint. This
+The publisher gap suggests a testable inventory invariant: a Python list that
+names a retired inference CLI must appear only in an early-stop-guarded file.
+Added an AST regression that scans all non-test scripts for such literal list
+references and requires the containing file to be a guarded entrypoint. This
 would have caught `run_task_validity_audit_and_publish.py` before the runtime
-audit; it also automatically checks the existing evidence-control and head
-publishers. The focused guard suite passes **4/4**. It detects literal script
-paths in Python list commands, not dynamic imports, aliases, shell-built
-commands, or arbitrary loader APIs; the separate model-loader inventory and
-source review remain necessary.
+audit; it also checks the existing evidence-control and head publishers. The
+focused guard suite passes **4/4**. This conservative scan does not prove a
+list is executed as a command and may flag a non-executed reference; it also
+misses tuples, dynamic imports, aliases, shell-built commands, and arbitrary
+loader APIs. Independent source review remains necessary.
 
 The 15:32 source check did not resolve a single NExT-GQA video's license or
 agreement applicability. NExT-GQA's seconds/frame-id documentation still does
@@ -475,3 +475,9 @@ remain independent blocking gates. Direct faithfulness this window remains
 **0 requested / 0 effective / 0 new effect estimates**. The cumulative closed
 head-confirmation result is still 79/79, −0.0756329 nat, 95% t CI
 [−0.1577747, +0.0065089], and is not part of this window's progress.
+
+At 15:34 JST, the full standalone script suite passed **810/810** in 8.945 s
+after the AST test's name and scope description were made precise. `git diff
+--check` also passed. The suite emitted expected diagnostics from negative-path
+tests; overall exit status was zero. This verifies code/test integrity only,
+not rights, annotations, or faithfulness.

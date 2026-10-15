@@ -100,7 +100,7 @@ class ClosedResearchBranchGuardTests(unittest.TestCase):
                     | GATE_CONTROLLED_LOADERS | ALLOWED_ENGINEERING_LOADERS)
         self.assertEqual(discovered, expected)
 
-    def test_every_list_command_targeting_a_retired_cli_is_guarded(self):
+    def test_every_list_referencing_a_retired_cli_is_guarded(self):
         retired = set(GUARDED_ENTRYPOINTS)
         for path in (REPO / "scripts").glob("*.py"):
             if path.name.startswith("test_"):
