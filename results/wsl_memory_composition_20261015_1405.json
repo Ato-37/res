@@ -1,0 +1,114 @@
+{
+  "captured_utc": "2026-10-15T05:05:42.493693+00:00",
+  "cgroup_limits": {
+    "high": "max",
+    "max": "max",
+    "swap.max": "max"
+  },
+  "cgroup_memory_current_bytes": 14483427328,
+  "cgroup_memory_events": {
+    "high": 0,
+    "low": 0,
+    "max": 0,
+    "oom": 0,
+    "oom_group_kill": 0,
+    "oom_kill": 0
+  },
+  "cgroup_memory_stat_bytes": {
+    "active_anon": 423866368,
+    "active_file": 9302552576,
+    "anon": 562933760,
+    "file": 13768855552,
+    "file_dirty": 647168,
+    "file_mapped": 191713280,
+    "file_writeback": 0,
+    "inactive_anon": 158756864,
+    "inactive_file": 4466167808,
+    "shmem": 159744,
+    "slab": 97290456,
+    "slab_reclaimable": 87920304,
+    "slab_unreclaimable": 9370152
+  },
+  "cgroup_memory_swap_current_bytes": 915664896,
+  "derived_gib": {
+    "Active(file)": 8.671,
+    "Cached": 12.813,
+    "Inactive(file)": 4.162,
+    "MemAvailable": 14.084,
+    "MemTotal": 15.183,
+    "SReclaimable": 0.112,
+    "Shmem": 0.002,
+    "cgroup_active_anon": 0.395,
+    "cgroup_active_file": 8.664,
+    "cgroup_anon": 0.524,
+    "cgroup_current": 13.489,
+    "cgroup_file": 12.823,
+    "cgroup_file_dirty": 0.001,
+    "cgroup_file_mapped": 0.179,
+    "cgroup_file_writeback": 0.0,
+    "cgroup_inactive_anon": 0.148,
+    "cgroup_inactive_file": 4.159,
+    "cgroup_shmem": 0.0,
+    "cgroup_slab": 0.091,
+    "cgroup_slab_reclaimable": 0.082,
+    "cgroup_slab_unreclaimable": 0.009,
+    "cgroup_swap_current": 0.853
+  },
+  "faithfulness_status": {
+    "classification": "resource diagnostic only",
+    "direct_samples": 0,
+    "effect_estimates": 0
+  },
+  "guest_meminfo_bytes": {
+    "Active(file)": 9310715904,
+    "Cached": 13758226432,
+    "Inactive(file)": 4469002240,
+    "MemAvailable": 15122132992,
+    "MemTotal": 16302923776,
+    "SReclaimable": 119865344,
+    "Shmem": 2543616
+  },
+  "limitations": [
+    "single WSL counter snapshot",
+    "active/inactive file labels do not prove reclaimability or identify file contents/process owners",
+    "cannot establish host-wide memory-pressure cause"
+  ],
+  "pressure": {
+    "cgroup": {
+      "full": {
+        "avg10": 0.0,
+        "avg300": 0.0,
+        "avg60": 0.0,
+        "total": 12386261
+      },
+      "some": {
+        "avg10": 0.0,
+        "avg300": 0.0,
+        "avg60": 0.0,
+        "total": 12412012
+      }
+    },
+    "proc": {
+      "full": {
+        "avg10": 0.0,
+        "avg300": 0.0,
+        "avg60": 0.0,
+        "total": 19662810
+      },
+      "some": {
+        "avg10": 0.0,
+        "avg300": 0.0,
+        "avg60": 0.0,
+        "total": 19757503
+      }
+    }
+  },
+  "schema_version": 1,
+  "source": "read-only /proc/meminfo, /proc/pressure/memory, and cgroup v2 memory.stat/current/swap/events/pressure",
+  "units": {
+    "memory counters": "bytes; derived GiB is bytes / 2^30",
+    "memory.events": "event counts",
+    "pressure avg10/avg60/avg300": "percent",
+    "pressure total": "microseconds"
+  }
+}
