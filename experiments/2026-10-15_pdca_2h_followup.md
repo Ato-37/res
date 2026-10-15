@@ -352,3 +352,83 @@ faithfulness observations.
   freeze fit/held-out visual anchors and an acceptance rule to calibrate the
   source-player clock. Until these are done, no GPU scoring run can test the
   intended claim-mask effect.
+
+## 22:28 JST checkpoint — duration-only parser and independent audit
+
+Elapsed **53m50s / 2h**; deadline **23:34:23 JST** (**66m13s remain**). The
+private clock-extent CLI now extracts only the three candidates' dataset
+`duration` values; it skips nested annotation payloads without constructing
+their Python objects. Its scanner rejects duplicate keys, malformed container
+separators, non-finite JSON constants, trailing data, and missing duration
+values. The lineage manifest is bounded to 1 MB before reading, requires schema
+version 1, checks its independently supplied SHA-256, and reports missing-file
+errors through the CLI's controlled error path. Synthetic tests cover these
+conditions and the annotation-payload exclusion.
+
+An independent reviewer inspected source and tests, confirmed that nested
+`location` payloads are skipped, and raised an important interpretation issue:
+the terminal extent adds the preceding PTS interval to the last PTS; it does
+not read an independently measured terminal-frame duration. The output field
+and interpretation limit now state this explicitly. The reviewer found no
+record-level IDs, paths, questions, spans, or claim text in the aggregate
+output; stable hashes remain for provenance. The reviewer did not read protected
+source data or run the real-media CLI.
+
+I independently reran the corrected CLI against the locally authorized three
+videos after the parser changes: **3/3 requested/effective, 0 decode failures**;
+frame counts remain 1615/2697/2697, and the reported whole-second duration
+differences remain 0.4/0.0101/0.0101 seconds. Output is mode 0600, 2439 bytes,
+SHA-256 `71801038fddd1c765c5ffbac75819783d7897e798608812f35bc27d7d31decd5`
+at `/tmp/nextgqa_candidate_clock_extent_20261015_2234.json`. This is a
+local-only derived artifact, not a faithfulness result. The duration reader
+scans the 195,500-byte dataset JSON text but does not parse span structures.
+
+### Faithfulness progress at 22:28 JST
+
+- Direct claim-specific evidence: **0/3 human-reviewed, 0/3 scored, 0 effect
+  estimates**; no GPU model forward or faithfulness metric has run.
+- Real-data feasibility: lineage and decoder checks remain 3/3. The duration
+  differences are compatible with whole-second rounding under the tested
+  preceding-PTS extrapolation; they do not calibrate the annotation clock or
+  establish claim support.
+- Next action: finish the full regression suite and verify whether an available
+  local review route can expose the already-prepared blinded worksheet to a
+  human reviewer. Continue into independent design/protocol audits if that
+  route remains unavailable; GPU scoring still cannot answer the target claim
+  before temporal anchors and claim mapping are fixed.
+
+## 22:30 JST checkpoint — NExT-GQA real-video CUDA path smoke
+
+Elapsed **55m54s / 2h**; deadline **23:34:23 JST** (**1h04m06s remain**). The
+local NExT-GQA smoke runner executed on the RTX 5070 Ti with the existing
+offline pinned Qwen2.5-VL-7B-Instruct checkpoint, 4-bit loading and BF16
+compute. It deterministically inspected three eligible local test clips for
+the configured 1 ms uniform-grid constraint; two were rejected on timing and
+one supplied four sampled frames. Qwen preprocessing returned temporal grid
+`[2,28,36]` and 536 input tokens. The one CUDA forward took 3.1535 seconds,
+produced finite logits, and peaked at 6.0421 GiB allocated VRAM; total run time
+was 25.7241 seconds with 14.6572 GiB free at preflight. Requested/effective
+videos and frames were 1/1 and 4/4; no runtime failure occurred.
+
+The private mode-0600 aggregate is
+`/tmp/nextgqa_real_video_gpu_smoke_20261015_2238.json` (1,631 bytes,
+SHA-256 `23b94de072152fd084b21986a4e956080ee6608b98c388802dfba6e8e69be73c`).
+The runner hash is `a75e5242ed7e15db52dfef57cee32a51f5c07e55c7c0f648a6a85a07e6286254`.
+The artifact contains no media identity/path, QA text, generated text, or raw
+media. QA text and gold interval were not supplied to the model; no answer,
+grounding, or faithfulness score was computed. An independent audit of runner
+and artifact is in progress. This is the first verified NExT-GQA real-video
+CUDA path result in this window, but remains an execution smoke only.
+
+### Faithfulness progress at 22:30 JST
+
+- Direct claim-specific faithfulness: **0/3 human-reviewed, 0/3 scored, 0
+  effect estimates**. The GPU run did not evaluate the target estimand.
+- Real-data execution: **1/1 video, 4/4 frames, 1 finite-logit CUDA forward**;
+  two of three timing candidates were rejected under the fixed 1 ms uniform
+  sampling constraint. The per-item rejection rate here describes only this
+  technical selection pass, not a dataset failure rate or research outcome.
+- Next: close the independent artifact audit, then assess whether the current
+  generated claims and review interface can be independently validated while
+  preserving the blind. Use the remaining window for a distinct protocol or
+  data-validity check; do not repeat identical GPU forwards to inflate usage.
