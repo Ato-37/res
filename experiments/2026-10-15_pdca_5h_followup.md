@@ -678,3 +678,9 @@ cannot establish anchor provenance, source identity, temporal coverage,
 measurement chronology, uncertainty, decoder equivalence, or actual clock
 validity. It does not resolve the production timing gate. Faithfulness remains
 **0 requested / 0 effective / 0 new effect estimates**.
+
+A post-implementation cross-document scan found that the protocol contract's
+data-rights section still described the earlier limitation and did not mention
+schema-v2 per-video binding. Corrected that summary and checked the worksheet
+and current contract statements against the implementation. This is a
+documentation consistency repair; it changes no result or gate.

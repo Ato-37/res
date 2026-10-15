@@ -598,7 +598,7 @@ protocol, `aggregate_publication` means privacy-safe derived numerical
 summaries only. It does not authorize publishing source media, identifiable
 frames, item-level records, or raw model outputs.
 For the protocol's `data_rights` object, use `item_rights_manifest_sha256` for
-the exact v2 item-rights ledger and `evidence_sha256` for a versioned private
+the exact v2 item-rights ledger and `evidence_sha256` for a private
 evidence-index JSON that lists the exact-byte hashes and private references for
 that ledger, annotation terms, item-level media/conditions evidence, and any
 dataset-level agreement applicability/use review (including substantiation of
@@ -611,9 +611,12 @@ compare the annotation evidence hash declared in the index with the hash
 declared in the ledger. It also checks declared scope/count consistency across
 the protocol, eligible manifest, ledger, and evidence index. It checks
 the media/conditions and agreement hash/locator references for shape and
-coverage/declarations but does not resolve those references or compare their
-target bytes with the ledger rows. A human must inspect those private artifacts
-and verify the references before declaring rights verified. Run the checker
+coverage/declarations. Evidence-index schema v2 also binds each eligible video
+ID to that video's ledger `media_evidence_sha256` and
+`conditions_record_sha256`; row coverage is exact and order-independent. The
+checker does not resolve the bundle/agreement locators or re-hash their target
+bytes. A human must inspect those private artifacts and verify the references
+before declaring rights verified. Run the checker
 alongside the existing structural protocol and item-rights audits. This component is not
 a launch orchestrator, does not authenticate private evidence or legal
 judgments, and always reports `execution_authorization=not_granted`; a passing
