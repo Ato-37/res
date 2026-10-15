@@ -29,7 +29,17 @@ def source_artifacts():
         "synthetic_video": {"frames": 40},
         "sample_counts": {"requested": 1, "effective": 1, "failures": 0},
         "forward_counts": {"requested": 3, "effective": 3},
-        "gpu_resources": {"device": "NVIDIA GeForce RTX 5070 Ti"},
+        "gpu_resources": {
+            "device": "NVIDIA GeForce RTX 5070 Ti",
+            "forwards": [
+                {"condition": "native_auto", "started_utc": "2026-10-15T03:00:02.000+00:00",
+                 "completed_utc": "2026-10-15T03:00:03.000+00:00"},
+                {"condition": "explicit_native_noop", "started_utc": "2026-10-15T03:00:04.000+00:00",
+                 "completed_utc": "2026-10-15T03:00:05.000+00:00"},
+                {"condition": "legacy_v517_reference", "started_utc": "2026-10-15T03:00:06.000+00:00",
+                 "completed_utc": "2026-10-15T03:00:06.500+00:00"},
+            ],
+        },
     }
     summary_raw = (json.dumps(summary, sort_keys=True, indent=2) + "\n").encode()
     manifest = {
@@ -45,7 +55,7 @@ def source_artifacts():
         "effective_samples": 1,
         "failures": 0,
         "runner_started_utc": "2026-10-15T03:00:02+00:00",
-        "runner_completed_utc": "2026-10-15T03:00:06+00:00",
+        "runner_completed_utc": "2026-10-15T03:00:06.500+00:00",
         "execution": {
             "mode": "fresh_synthetic_gpu_run",
             "runner": "scripts/run_qwen_temporal_position_gpu_check.py",
@@ -65,10 +75,12 @@ class NvidiaSmiTraceTests(unittest.TestCase):
                            manifest_raw, "results/source.json")
         self.assertEqual(report["trace"]["total_samples"], 7)
         self.assertEqual(report["trace"]["runner_interval_samples"], 5)
-        self.assertEqual(report["metrics"]["gpu_utilization_percent"], {
+        self.assertEqual(report["metrics"]["runner_interval"]["gpu_utilization_percent"], {
             "min": 20, "median": 40, "p95_nearest_rank": 60, "max": 60,
         })
-        self.assertEqual(report["metrics"]["memory_controller_utilization_percent"]["max"], 30)
+        self.assertEqual(report["metrics"]["forward_union"]["memory_controller_utilization_percent"]["max"], 30)
+        self.assertEqual(report["metrics"]["per_condition"]["native_auto"]["sample_count"], 1)
+        self.assertEqual(report["metrics"]["per_condition"]["legacy_v517_reference"]["sample_count"], 1)
 
     def test_rejects_invalid_metrics_and_nonmonotonic_trace(self):
         for raw in (
@@ -107,6 +119,31 @@ class NvidiaSmiTraceTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "run_interval_invalid"):
             summarize(trace_rows(), run, manifest, summary_raw,
                       manifest_raw, "results/source.json")
+
+    def test_rejects_missing_forward_sample_and_naive_forward_timestamps(self):
+        run, manifest, summary_raw, manifest_raw = source_artifacts()
+        run["gpu_resources"]["forwards"][2]["started_utc"] = "2026-10-15T03:00:05.200+00:00"
+        run["gpu_resources"]["forwards"][2]["completed_utc"] = "2026-10-15T03:00:05.800+00:00"
+        with self.assertRaisesRegex(ValueError, "forward_interval_has_no_samples"):
+            summarize(trace_rows(), run, manifest, summary_raw,
+                      manifest_raw, "results/source.json")
+        run, manifest, summary_raw, manifest_raw = source_artifacts()
+        run["gpu_resources"]["forwards"][0]["started_utc"] = "2026-10-15T03:00:02.000"
+        with self.assertRaisesRegex(ValueError, "forward_interval_invalid"):
+            summarize(trace_rows(), run, manifest, summary_raw,
+                      manifest_raw, "results/source.json")
+
+    def test_adjacent_forward_windows_assign_shared_timestamp_once(self):
+        run, manifest, summary_raw, manifest_raw = source_artifacts()
+        run["gpu_resources"]["forwards"][0]["completed_utc"] = "2026-10-15T03:00:04.000+00:00"
+        run["gpu_resources"]["forwards"][1]["started_utc"] = "2026-10-15T03:00:04.000+00:00"
+        run["gpu_resources"]["forwards"][1]["completed_utc"] = "2026-10-15T03:00:05.500+00:00"
+        report = summarize(trace_rows(), run, manifest, summary_raw,
+                           manifest_raw, "results/source.json")
+        per_condition = report["metrics"]["per_condition"]
+        self.assertEqual(per_condition["native_auto"]["sample_count"], 2)
+        self.assertEqual(per_condition["explicit_native_noop"]["sample_count"], 2)
+        self.assertEqual(report["trace"]["forward_union_samples"], 5)
 
     def test_verifies_exact_source_set_against_git_ancestor_blobs(self):
         repo = Path(__file__).resolve().parents[1]

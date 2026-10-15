@@ -95,11 +95,25 @@ def derive_public_summary(raw: dict, raw_sha256: str) -> dict:
                 or not math.isfinite(seconds) or seconds <= 0
                 or type(peak) not in (int, float) or not math.isfinite(peak) or peak <= 0):
             raise ValueError("invalid per-forward timing/VRAM diagnostic")
-        forward_diagnostics.append({
+        forward = {
             "condition": row["condition"],
             "forward_seconds": seconds,
             "peak_allocated_gib": peak,
-        })
+        }
+        start_raw, end_raw = row.get("started_utc"), row.get("completed_utc")
+        if start_raw is not None or end_raw is not None:
+            try:
+                start = datetime.fromisoformat(start_raw)
+                end = datetime.fromisoformat(end_raw)
+            except (TypeError, ValueError) as error:
+                raise ValueError("invalid per-forward UTC interval") from error
+            if (start.tzinfo is None or end.tzinfo is None
+                    or start.utcoffset() != timezone.utc.utcoffset(start)
+                    or end.utcoffset() != timezone.utc.utcoffset(end) or end <= start):
+                raise ValueError("invalid per-forward UTC interval")
+            forward["started_utc"] = start.isoformat()
+            forward["completed_utc"] = end.isoformat()
+        forward_diagnostics.append(forward)
     gpu_total = raw.get("gpu_total_gib")
     gpu_free = raw.get("gpu_free_before_gib")
     gpu_name = raw.get("gpu")

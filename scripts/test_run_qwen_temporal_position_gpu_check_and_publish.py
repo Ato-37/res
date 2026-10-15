@@ -31,8 +31,10 @@ def valid_raw():
         "fixed_vs_legacy_v517_sensitivity": {"top1_equal": True},
         "conditions": [
             {"condition": name, "finite_logits": True, "forward_seconds": 2.0,
-             "peak_allocated_gib": 8.0}
-            for name in ("native_auto", "explicit_native_noop", "legacy_v517_reference")
+             "peak_allocated_gib": 8.0,
+             "started_utc": f"2026-10-15T03:00:0{i+1}+00:00",
+             "completed_utc": f"2026-10-15T03:00:0{i+2}+00:00"}
+            for i, name in enumerate(("native_auto", "explicit_native_noop", "legacy_v517_reference"))
         ],
         "gpu": "NVIDIA GeForce RTX 5070 Ti",
         "gpu_free_before_gib": 14.0,
@@ -213,6 +215,10 @@ class PublishSummaryTests(unittest.TestCase):
         self.assertNotIn("conditions", result)
         self.assertEqual(result["gpu_resources"]["device"], "NVIDIA GeForce RTX 5070 Ti")
         self.assertEqual(len(result["gpu_resources"]["forwards"]), 3)
+        self.assertEqual(result["gpu_resources"]["forwards"][0]["started_utc"],
+                         "2026-10-15T03:00:01+00:00")
+        self.assertEqual(result["gpu_resources"]["forwards"][2]["completed_utc"],
+                         "2026-10-15T03:00:04+00:00")
 
     def test_derives_32_frame_capacity_summary(self):
         raw = valid_raw()
@@ -276,6 +282,10 @@ class PublishSummaryTests(unittest.TestCase):
         raw = valid_raw()
         raw["conditions"][0]["peak_allocated_gib"] = 17
         with self.assertRaisesRegex(ValueError, "exceeds GPU total"):
+            derive_public_summary(raw, "1" * 64)
+        raw = valid_raw()
+        raw["conditions"][0]["started_utc"] = "2026-10-15T12:00:01+09:00"
+        with self.assertRaisesRegex(ValueError, "per-forward UTC interval"):
             derive_public_summary(raw, "1" * 64)
         raw = valid_raw()
         raw["effective_forwards"] = 2

@@ -329,6 +329,7 @@ def main():
         try:
             for name,ids in [('native_auto',None),('explicit_native_noop',native),('legacy_v517_reference',legacy_ids)]:
                 gc.collect(); torch.cuda.empty_cache(); torch.cuda.reset_peak_memory_stats()
+                forward_started=datetime.now(timezone.utc).isoformat()
                 begin=time.monotonic()
                 kw={} if ids is None else {'position_ids':ids}
                 with torch.inference_mode():
@@ -339,9 +340,11 @@ def main():
                     raise RuntimeError('Nonfinite next-token logits')
                 RUN_PROGRESS['completed_forwards'] += 1
                 RUN_PROGRESS['stage']='forward_'+name
+                forward_completed=datetime.now(timezone.utc).isoformat()
                 conditions.append({'condition':name,'finite_logits':True,
                     'forward_seconds':time.monotonic()-begin,
-                    'peak_allocated_gib':torch.cuda.max_memory_allocated()/1024**3})
+                    'peak_allocated_gib':torch.cuda.max_memory_allocated()/1024**3,
+                    'started_utc':forward_started,'completed_utc':forward_completed})
                 logits.append(values); del out
         finally:
             handle.remove()

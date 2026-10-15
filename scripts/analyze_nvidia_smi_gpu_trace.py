@@ -73,6 +73,23 @@ def _exact_counts(value: object, expected: dict[str, int]) -> bool:
                     for key, count in expected.items()))
 
 
+def summarize_metrics(rows: list[dict]) -> dict:
+    fields = (
+        "gpu_utilization_percent", "memory_controller_utilization_percent",
+        "memory_used_mib", "power_w",
+    )
+    metrics = {}
+    for field in fields:
+        values = [row[field] for row in rows]
+        metrics[field] = {
+            "min": min(values),
+            "median": statistics.median(values),
+            "p95_nearest_rank": nearest_rank(values, 0.95),
+            "max": max(values),
+        }
+    return metrics
+
+
 def verify_source_commit(repo: Path, source_commit: str, source_hashes: dict) -> None:
     if subprocess.run(["git", "merge-base", "--is-ancestor", source_commit, "HEAD"],
                       cwd=repo, stdout=subprocess.DEVNULL,
@@ -166,21 +183,54 @@ def summarize(trace: bytes, run_summary: dict, run_manifest: dict,
     selected = [row for row in rows if start <= row["timestamp"] <= end]
     if len(selected) < 5:
         raise ValueError("insufficient_samples_in_runner_interval")
-    fields = (
-        "gpu_utilization_percent", "memory_controller_utilization_percent",
-        "memory_used_mib", "power_w",
-    )
-    metrics = {}
-    for field in fields:
-        values = [row[field] for row in selected]
-        metrics[field] = {
-            "min": min(values),
-            "median": statistics.median(values),
-            "p95_nearest_rank": nearest_rank(values, 0.95),
-            "max": max(values),
-        }
+    per_forward = gpu.get("forwards")
+    expected_conditions = ("native_auto", "explicit_native_noop", "legacy_v517_reference")
+    if (not isinstance(per_forward, list) or len(per_forward) != 3
+            or any(not isinstance(row, dict) for row in per_forward)
+            or tuple(row.get("condition") for row in per_forward) != expected_conditions):
+        raise ValueError("forward_interval_provenance_missing")
+    condition_windows = []
+    for condition_index, row in enumerate(per_forward):
+        try:
+            forward_start = datetime.fromisoformat(row["started_utc"])
+            forward_end = datetime.fromisoformat(row["completed_utc"])
+        except (TypeError, ValueError, KeyError) as error:
+            raise ValueError("forward_interval_invalid") from error
+        if (forward_start.tzinfo is None or forward_end.tzinfo is None
+                or forward_start.utcoffset() != timezone.utc.utcoffset(forward_start)
+                or forward_end.utcoffset() != timezone.utc.utcoffset(forward_end)
+                or forward_start < start or forward_end > end or forward_end <= forward_start):
+            raise ValueError("forward_interval_invalid")
+        if condition_windows and forward_start < condition_windows[-1]["end"]:
+            raise ValueError("forward_intervals_overlap_or_reordered")
+        includes_final_endpoint = condition_index == len(per_forward) - 1
+        condition_rows = [item for item in selected if (
+            forward_start <= item["timestamp"]
+            and (item["timestamp"] <= forward_end if includes_final_endpoint
+                 else item["timestamp"] < forward_end))]
+        if not condition_rows:
+            raise ValueError("forward_interval_has_no_samples")
+        condition_windows.append({
+            "condition": row["condition"], "start": forward_start, "end": forward_end,
+            "rows": condition_rows,
+        })
+    forward_rows = [row for row in selected if any(
+        window["start"] <= row["timestamp"]
+        and (row["timestamp"] <= window["end"] if index == len(condition_windows) - 1
+             else row["timestamp"] < window["end"])
+        for index, window in enumerate(condition_windows))]
+    metrics = {
+        "runner_interval": summarize_metrics(selected),
+        "forward_union": summarize_metrics(forward_rows),
+        "per_condition": {
+            window["condition"]: {
+                "sample_count": len(window["rows"]),
+                "metrics": summarize_metrics(window["rows"]),
+            } for window in condition_windows
+        },
+    }
     return {
-        "schema_version": 1,
+        "schema_version": 2,
         "purpose": "synthetic_qwen_gpu_utilization_diagnostic",
         "source_commit": source_commit,
         "source_run": {
@@ -197,6 +247,7 @@ def summarize(trace: bytes, run_summary: dict, run_manifest: dict,
             "sha256": sha256_bytes(trace),
             "total_samples": len(rows),
             "runner_interval_samples": len(selected),
+            "forward_union_samples": len(forward_rows),
             "sampling_interval_ms": 250,
             "timestamp_timezone": "UTC (TZ=UTC set for nvidia-smi)",
         },
@@ -205,6 +256,7 @@ def summarize(trace: bytes, run_summary: dict, run_manifest: dict,
             "Synthetic engineering diagnostic only; no faithfulness evidence.",
             "nvidia-smi utilization is a sampled busy percentage, not measured memory bandwidth in GB/s.",
             "The runner interval includes model loading and preprocessing as well as three forwards.",
+            "Forward windows include CUDA synchronization, logits transfer, and finite-value checking.",
             "A single run has no uncertainty interval or inferential comparison.",
         ],
     }
@@ -242,7 +294,7 @@ def main(argv: list[str] | None = None) -> int:
     manifest = Path(str(prefix) + "_run_manifest.json")
     output_raw = (json.dumps(report, sort_keys=True, indent=2) + "\n").encode("utf-8")
     manifest_value = {
-        "schema_version": 1,
+        "schema_version": 2,
         "artifact": output.relative_to(repo).as_posix(),
         "artifact_sha256": sha256_bytes(output_raw),
         "trace_path": trace_path.relative_to(repo).as_posix(),
@@ -270,8 +322,9 @@ def main(argv: list[str] | None = None) -> int:
     print(json.dumps({"summary": output.relative_to(repo).as_posix(),
                       "manifest": manifest.relative_to(repo).as_posix(),
                       "samples": report["trace"]["runner_interval_samples"],
-                      "gpu_utilization_percent": report["metrics"]["gpu_utilization_percent"],
-                      "memory_controller_utilization_percent": report["metrics"]["memory_controller_utilization_percent"]},
+                      "gpu_utilization_runner_interval": report["metrics"]["runner_interval"]["gpu_utilization_percent"],
+                      "gpu_utilization_forward_union": report["metrics"]["forward_union"]["gpu_utilization_percent"],
+                      "memory_controller_forward_union": report["metrics"]["forward_union"]["memory_controller_utilization_percent"]},
                      sort_keys=True))
     return 0
 
