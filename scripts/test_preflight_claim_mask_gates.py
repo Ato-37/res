@@ -103,15 +103,23 @@ class ClaimMaskGatePreflightTests(unittest.TestCase):
             "non_applicability_basis_sha256": None,
         }
         evidence_index = {
-            "schema_version": 1,
+            "schema_version": 2,
             "eligible_manifest": {"sha256": eligible_sha, "private_locator": "private://synthetic/eligible",
                                   "eligible_video_count": len(eligible)},
             "item_rights_manifest": {"sha256": hashlib.sha256(rights_raw).hexdigest(),
                                      "private_locator": "private://synthetic/rights"},
             "annotation_terms": {"sha256": rights["annotation_rights"]["evidence_sha256"],
                                   "private_locator": "private://synthetic/annotation"},
-            "item_media_conditions": {"sha256": "a" * 64, "private_locator": "private://synthetic/media",
-                                      "covered_video_count": len(eligible)},
+            "item_media_conditions": {
+                "sha256": "a" * 64, "private_locator": "private://synthetic/media",
+                "covered_video_count": len(eligible),
+                "items": [
+                    {"video_id": row["video_id"],
+                     "media_evidence_sha256": row["media_evidence_sha256"],
+                     "conditions_record_sha256": row["conditions_record_sha256"]}
+                    for row in rights["items"]
+                ],
+            },
             "dataset_access_agreement": agreement,
         }
         evidence_raw = write_json(Path(root) / "data-rights-work.json", evidence_index)

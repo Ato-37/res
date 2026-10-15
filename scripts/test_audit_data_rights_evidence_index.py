@@ -30,7 +30,9 @@ def fixture(applicability="applicable"):
             "decisions": {use: "permitted" for use in USES},
         },
         "items": [
-            {"video_id": row["video_id"], "media_review_status": "completed",
+            {"video_id": row["video_id"], "media_evidence_sha256": "b" * 64,
+             "conditions_record_sha256": ("c" if row["video_id"] == "opaque-test-a" else "d") * 64,
+             "media_review_status": "completed",
              "conditions_status": "reviewed_resolved",
              "decisions": {use: "permitted" for use in USES}}
             for row in eligible
@@ -47,13 +49,20 @@ def fixture(applicability="applicable"):
         "non_applicability_basis_sha256": H if applicability == "not_applicable" else None,
     }
     index = {
-        "schema_version": 1,
+        "schema_version": 2,
         "eligible_manifest": {"sha256": hashlib.sha256(eligible_raw).hexdigest(),
                               "private_locator": "private://synthetic/eligible", "eligible_video_count": 2},
         "item_rights_manifest": {"sha256": hashlib.sha256(ledger_raw).hexdigest(),
                                  "private_locator": "private://synthetic/ledger"},
         "annotation_terms": {"sha256": H, "private_locator": "private://synthetic/annotation"},
-        "item_media_conditions": {"sha256": H, "private_locator": "private://synthetic/media", "covered_video_count": 2},
+        "item_media_conditions": {
+            "sha256": H, "private_locator": "private://synthetic/media", "covered_video_count": 2,
+            "items": [
+                {"video_id": row["video_id"], "media_evidence_sha256": "b" * 64,
+                 "conditions_record_sha256": ("c" if row["video_id"] == "opaque-test-a" else "d") * 64}
+                for row in eligible
+            ],
+        },
         "dataset_access_agreement": agreement,
     }
     index_raw = raw(index)
@@ -99,6 +108,42 @@ class EvidenceIndexAuditTests(unittest.TestCase):
         report = run_audit(parts)
         self.assertIn("evidence_index_hash_mismatch", report["failure_codes"])
         self.assertIn("index_media_coverage_incomplete", report["failure_codes"])
+
+    def test_each_media_and_conditions_hash_is_bound_to_its_ledger_video(self):
+        parts = list(fixture())
+        parts[5] = copy.deepcopy(parts[5])
+        parts[5]["item_media_conditions"]["items"].reverse()
+        parts[6] = raw(parts[5])
+        parts[0] = copy.deepcopy(parts[0])
+        parts[0]["data_rights"]["evidence_sha256"] = hashlib.sha256(parts[6]).hexdigest()
+        self.assertEqual(run_audit(parts)["structural_status"], "passed")
+        parts = list(fixture())
+        parts[5] = copy.deepcopy(parts[5])
+        records = parts[5]["item_media_conditions"]["items"]
+        records[0]["media_evidence_sha256"], records[1]["media_evidence_sha256"] = (
+            records[1]["media_evidence_sha256"], records[0]["media_evidence_sha256"])
+        records[0]["conditions_record_sha256"], records[1]["conditions_record_sha256"] = (
+            records[1]["conditions_record_sha256"], records[0]["conditions_record_sha256"])
+        parts[6] = raw(parts[5])
+        parts[0] = copy.deepcopy(parts[0])
+        parts[0]["data_rights"]["evidence_sha256"] = hashlib.sha256(parts[6]).hexdigest()
+        self.assertIn("index_media_item_evidence_mismatch", run_audit(parts)["failure_codes"])
+        parts = list(fixture())
+        parts[5] = copy.deepcopy(parts[5])
+        parts[5]["item_media_conditions"]["items"][0]["media_evidence_sha256"] = "e" * 64
+        parts[6] = raw(parts[5])
+        self.assertIn("index_media_item_evidence_mismatch", run_audit(parts)["failure_codes"])
+        parts = list(fixture())
+        parts[5] = copy.deepcopy(parts[5])
+        parts[5]["item_media_conditions"]["items"][0]["conditions_record_sha256"] = "e" * 64
+        parts[6] = raw(parts[5])
+        report = run_audit(parts)
+        self.assertIn("index_media_item_evidence_mismatch", report["failure_codes"])
+        parts = list(fixture())
+        parts[5] = copy.deepcopy(parts[5])
+        parts[5]["item_media_conditions"]["items"].pop()
+        parts[6] = raw(parts[5])
+        self.assertIn("index_media_item_coverage_mismatch", run_audit(parts)["failure_codes"])
 
     def test_protocol_and_index_must_bind_exact_ledger_and_cohort(self):
         parts = list(fixture())

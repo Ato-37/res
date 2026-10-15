@@ -612,3 +612,43 @@ rejected generically. The focused cross-gate/config suite passes **13/13** and
 the full suite after these test changes passes **819/819** in 8.037 s. The
 auditor independently inspected this correction and confirmed the gap is
 closed. Authorization remains blocked; no data or CUDA was used.
+
+### Per-video rights-evidence binding audit — 15:48–15:51 JST
+
+An independent design review identified that the private data-rights index
+asserted a media/conditions bundle hash and cohort coverage count, but did not
+structurally bind each eligible video's ledger `media_evidence_sha256` and
+`conditions_record_sha256` to its corresponding index record. Upgraded the
+private index to schema v2 with one exact `(video_id, media_evidence_sha256,
+conditions_record_sha256)` row per eligible item. The checker now enforces
+one-to-one identity coverage, strict record shape/hash syntax, and hash equality
+against that video's ledger row; row ordering is intentionally irrelevant.
+Updated synthetic direct and integrated preflight fixtures and the human-review
+worksheet. A matching structural fixture still yields `not_granted`.
+
+Focused rights-index tests pass **15/15**, and cross-gate integration tests
+pass **8/8**. The full CPU suite passes **820/820** in 9.028 s. The initial
+full-suite attempt had one test-fixture failure because the row-reordering
+test changed index bytes without recomputing the protocol's exact index hash;
+the fixture was corrected, then the focused and full suites passed. Python
+byte-compilation and `git diff --check` pass. No protected input, project
+media, model, or CUDA was accessed. This is structural consistency only: it
+does not dereference locators, re-hash bundle files, authenticate reviewer or
+source evidence, judge rights, or authorize inference. Faithfulness progress
+remains **0 requested / 0 effective / 0 new effect estimates**; no metric,
+effect size, interval, significance test, multiplicity adjustment, or
+inference-failure count is available for this research window.
+
+Independent implementation audit found no fail-open and confirmed row-order
+independence, but recommended a stronger identity mutation: swap two videos'
+valid-shaped media and conditions hashes while also recomputing the index and
+protocol hashes. Added this test; the direct rights-index tests remain **15/15**
+and the complete suite rerun passes **820/820** in 8.514 s. This specifically
+shows that exact per-row ID/hash binding rejects a valid-format cross-video
+swap, while a pure row-order permutation passes after its outer exact-byte
+hash is updated.
+
+Next action: independent implementation audit, then inspect any remaining
+executable protocol boundary with synthetic data. Do not run claim-mask scoring
+until human frame mapping, item-level rights, production-clock calibration,
+target/dependence, SESOI, and a run-bound authenticated gate are resolved.

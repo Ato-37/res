@@ -181,14 +181,14 @@ def audit(protocol: Any, protocol_raw: Any, eligible: Any, eligible_raw: Any,
     }
     if (not _exact_keys(index, required_index)
             or type(index.get("schema_version")) is not int
-            or index.get("schema_version") != 1):
+            or index.get("schema_version") != 2):
         failures.add("evidence_index_schema_invalid")
         index = {}
     expected_links = {
         "eligible_manifest": {"sha256", "private_locator", "eligible_video_count"},
         "item_rights_manifest": {"sha256", "private_locator"},
         "annotation_terms": {"sha256", "private_locator"},
-        "item_media_conditions": {"sha256", "private_locator", "covered_video_count"},
+        "item_media_conditions": {"sha256", "private_locator", "covered_video_count", "items"},
     }
     for name, keys in expected_links.items():
         entry = index.get(name)
@@ -211,6 +211,33 @@ def audit(protocol: Any, protocol_raw: Any, eligible: Any, eligible_raw: Any,
     if (type(media_entry.get("covered_video_count")) is not int
             or media_entry.get("covered_video_count") != eligible_count):
         failures.add("index_media_coverage_incomplete")
+    media_items = media_entry.get("items")
+    if not isinstance(media_items, list):
+        failures.add("index_media_item_coverage_mismatch")
+        media_items = []
+    media_ids = [row.get("video_id") if isinstance(row, dict) else None for row in media_items]
+    if (len(media_items) != eligible_count
+            or any(not _text(video_id) for video_id in media_ids)
+            or len(set(media_ids)) != len(media_ids)
+            or set(media_ids) != eligible_ids):
+        failures.add("index_media_item_coverage_mismatch")
+    media_by_id = {
+        row.get("video_id"): row for row in media_items
+        if isinstance(row, dict) and isinstance(row.get("video_id"), str)
+    }
+    ledger_by_id = {
+        row.get("video_id"): row for row in ledger_items
+        if isinstance(row, dict) and isinstance(row.get("video_id"), str)
+    }
+    for video_id in eligible_ids & media_by_id.keys() & ledger_by_id.keys():
+        media_record = media_by_id[video_id]
+        ledger_record = ledger_by_id[video_id]
+        if (not _exact_keys(media_record, {"video_id", "media_evidence_sha256", "conditions_record_sha256"})
+                or not _sha(media_record.get("media_evidence_sha256"))
+                or not _sha(media_record.get("conditions_record_sha256"))
+                or media_record.get("media_evidence_sha256") != ledger_record.get("media_evidence_sha256")
+                or media_record.get("conditions_record_sha256") != ledger_record.get("conditions_record_sha256")):
+            failures.add("index_media_item_evidence_mismatch")
     annotation = index.get("annotation_terms", {})
     annotation = annotation if isinstance(annotation, dict) else {}
     ledger_annotation = ledger.get("annotation_rights", {})

@@ -218,12 +218,15 @@ does not read this index or authenticate any evidence.
 
 For the CPU cross-checker `scripts/audit_data_rights_evidence_index.py` (a
 structural helper, not a substitute for required human evidence review),
-use a closed schema with root keys `schema_version=1`, `eligible_manifest`,
+use a closed schema with root keys `schema_version=2`, `eligible_manifest`,
 `item_rights_manifest`, `annotation_terms`, `item_media_conditions`, and
 `dataset_access_agreement`. The first three evidence entries contain
 `sha256` and `private_locator`; `eligible_manifest` also contains
 `eligible_video_count`. `item_media_conditions` contains `sha256`,
-`private_locator`, and `covered_video_count`. The agreement entry contains
+`private_locator`, `covered_video_count`, and `items`. Each `items` row binds
+one eligible `video_id` to its ledger `media_evidence_sha256` and
+`conditions_record_sha256`; rows must cover the eligible IDs exactly once and
+both hashes must equal the corresponding ledger row. The agreement entry contains
 `applicability` (`applicable`, `not_applicable`, or `unresolved`), evidence
 `sha256`, `private_locator`, `review_record_sha256`, `reviewer_role`,
 `reviewed_at_utc`, `planned_use_scope`, `decisions`, and
@@ -237,9 +240,9 @@ Unresolved applicability or any uncleared planned use cannot pass the
 structural cross-check. Bind ledger and eligible-manifest entries to their
 exact bytes, and annotation terms to the ledger's declared annotation-evidence
 hash. The `item_media_conditions` hash and locator refer to the restricted
-evidence bundle: the checker validates their syntax and declared eligible-item
-count, but does not resolve the locator or compare referenced bytes with each
-ledger row's media/conditions hashes. Agreement hash and locator are also
+evidence bundle: the checker also compares each declared media/conditions hash
+to the same video's ledger row, but does not resolve the bundle locator or
+re-hash referenced evidence bytes. Agreement hash and locator are also
 recorded references and are not rehashed from their locators. The checker
 cross-checks intended-use scope and eligible count/hash across protocol,
 ledger, and index. Before declaring rights verified, a human reviewer must
