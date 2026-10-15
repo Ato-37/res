@@ -692,6 +692,34 @@ interval score. Faithfulness progress remains **0/3 human-reviewed, 0/3 scored,
 0 effects**. The code change is measurement-only and does not change experiment
 selection or outcome scoring.
 
+## 22:59 JST checkpoint — same-video frame-count timing comparison
+
+Elapsed **1h25m18s / 2h**; deadline **23:34:23 JST** (**34m42s remain**). To
+test whether the 16- and 64-frame timing values referred to the same clip, I
+reran the smoke's deterministic candidate selection and decode on CPU for both
+frame counts at the same 50 ms technical tolerance. Both selected candidate
+rank 1 and decoded 2,525 source frames; the source-file hash matched across
+counts, and each run's PTS and pixel digests matched its private GPU artifact.
+Thus these two smokes form a same-video runtime comparison, although each has
+only one forward and neither measures task quality.
+
+The 16-frame run used 2,144 tokens and took 3.148 s for the forward; the
+64-frame run used 8,480 tokens and took 62.139 s. Frame/token count increased
+4x while this pair's forward time increased 19.7x. This one-clip result is a
+rough upper-load feasibility observation, not a stable scaling law; long
+sequence attention costs may grow superlinearly, and WSL/allocator telemetry
+remains anomalous. The 64-frame actual driver sample reached near-full VRAM and
+100% compute utilization; the 16-frame run did not have a synchronized driver
+time series. Use the 64-frame result to avoid planning a large workload from
+the 16-frame forward time alone.
+
+The memory snapshot's timestamp marks the end of collection, after the
+`mem_get_info` call; the output contains no synchronized `nvidia-smi` PID/time
+sample. A separate 2-second monitor did observe near-saturation during the same
+run. Because deterministic pixel/PTS digests are linkable to source media by a
+party holding those files, all detailed summaries remain mode 0600 in `/tmp`
+and uncommitted.
+
 At a post-run idle check, the current WSL-visible environment reported 15 GiB
 total RAM, 1.4 GiB `used`, 1.8 GiB `free`, 12 GiB `buff/cache`, and 13 GiB
 `available`; cgroup `memory.current` was 14,025,715,712 bytes with no numeric
