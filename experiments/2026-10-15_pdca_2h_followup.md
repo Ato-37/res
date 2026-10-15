@@ -586,6 +586,20 @@ behavior only; it does not clear those gates. The final frame2time and two GPU
 artifact hashes were re-read and match their recorded values. The claim review
 worksheet remains mode 0600 and 0/3 complete.
 
+## 22:41 JST checkpoint — independent timestamp recomputation
+
+Elapsed **1h07m07s / 2h**; deadline **23:34:23 JST** (**52m53s remain**).
+I independently re-decoded the three lineage-hash-verified local videos using
+PyAV and recomputed, from exact decoded PTS and the three `frame2time_test`
+vectors, nearest-PTS residuals without calling the project audit helper. The
+sorted decoded frame counts were 1,615/2,697/2,697, with 32 mapping points per
+video; medians were 0.01000/0.00885/0.00885 s, maxima 0.0200/0.0162/0.0162 s,
+and out-of-range counts were 0/0/0. These independently match the aggregate
+artifact's values. This reproduction still cannot establish which source frame
+each annotation denotes, player/decoder alignment, annotation-clock origin or
+drift, or visual claim support. It is not a temporal calibration pass and does
+not change the **0/3** human-review or **0** faithfulness-effect counts.
+
 Additional claim-ledger, private-review-index, clock-extent, and cross-gate
 preflight regressions passed **51/51**. These tests cover hash binding,
 row reconciliation, omission of private values from summaries, invalid-span
