@@ -2068,7 +2068,9 @@ exact duplicate intervals, and clarified that v2 preserves the interval list
 but counts each sampled frame once under the union. A new synthetic planner
 test covers two partially overlapping occurrences and verifies their union
 maps to the expected two sampled frame indices and equal-count disjoint
-controls. Editing v2 changed its draft hash again; I observed the resulting
+controls. An independent re-review strengthened the test so the same sampled
+PTS is inside both intervals; the expected evidence list still contains that
+frame only once. Editing v2 changed its draft hash again; I observed the resulting
 `protocol_v2_identity_mismatch` in the first affected test run, updated the
 diagnostic draft digest, and re-ran the affected suites: **44/44 passed**
 (target-builder, assignment-planner, and synthetic preflight tests). The
@@ -2076,3 +2078,19 @@ diagnostic pin remains distinct from a joint protocol freeze. This validates
 only synthetic mapping behavior, not actual claims, intervals, clock
 correspondence, or score execution. No media or GPU was used. At **20:11:20
 JST**, **4h46m33s elapsed** and **1h13m27s remain**.
+
+## 20:14 JST checkpoint — align reviewer UI with interval policy
+
+The UI audit found the same interval-policy mismatch at the human handoff:
+the HTML reviewer rejected all overlap/shared endpoints even though the policy
+and updated planner preserve distinct occurrences and union only sampled
+frames. Updated the add-interval rule to reject an exact duplicate interval
+while allowing distinct overlapping intervals, kept start-time sorting so
+rationales remain attached to their intervals, and clarified the Japanese UI
+message. Added page-generation assertions for the exact-duplicate predicate,
+overlap allowance, and sorting. The offline renderer, assignment planner,
+diagnostic target builder, and synthetic preflight suites pass **51/51**;
+`git diff --check` passes. This is static/generated-HTML verification only;
+no live browser session was available, so it does not establish actual
+reviewer interaction or clock calibration. No review rows, media, or GPU were
+used. At **20:14:57 JST**, **4h50m10s elapsed** and **1h09m50s remain**.
