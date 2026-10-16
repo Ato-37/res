@@ -11,6 +11,8 @@ import math
 from collections.abc import Mapping
 from typing import Any, Callable
 
+from nextgqa_atomic_batch_freeze import FrozenBatch, batch_sha256
+
 
 CONDITIONS = ("full", "claim_evidence_black", "temporal_control_black")
 REQUESTED_RECORDS = 3
@@ -53,7 +55,34 @@ def _margin(log_probabilities: list[float], gold_index: int) -> float:
     return gold - foil
 
 
+def _validate_frozen_hashes(*, triplets: Any, record_ids: Any,
+                            expected_batch_hashes: Any) -> None:
+    if (not isinstance(record_ids, (list, tuple)) or len(record_ids) != REQUESTED_RECORDS
+            or any(not isinstance(value, str) or not value for value in record_ids)
+            or len(set(record_ids)) != REQUESTED_RECORDS
+            or not isinstance(expected_batch_hashes, Mapping)
+            or set(expected_batch_hashes) != set(record_ids)):
+        raise ValueError("frozen_batch_hash_binding_invalid")
+    for row_position, (record_id, row) in enumerate(zip(record_ids, triplets, strict=True), 1):
+        expected_conditions = expected_batch_hashes[record_id]
+        if (not isinstance(expected_conditions, Mapping)
+                or set(expected_conditions) != set(CONDITIONS)):
+            raise ValueError(f"record_{row_position}_frozen_hash_conditions_invalid")
+        for condition in CONDITIONS:
+            expected = expected_conditions[condition]
+            if (not isinstance(expected, str) or len(expected) != 64
+                    or any(char not in "0123456789abcdef" for char in expected)):
+                raise ValueError(f"record_{row_position}_{condition}_frozen_hash_invalid")
+            try:
+                observed = batch_sha256(row["batches"][condition].to("cpu"))
+            except Exception:
+                raise ValueError(f"record_{row_position}_{condition}_frozen_hash_unavailable") from None
+            if observed != expected:
+                raise ValueError(f"record_{row_position}_{condition}_frozen_hash_mismatch")
+
+
 def score_preflighted_triplets(*, model: Any, triplets: Any, token_ids: Any,
+                               record_ids: Any, expected_batch_hashes: Any,
                                torch_module: Any, device: str = "cuda",
                                before_forward: Callable[[int, int, str], None] | None = None
                                ) -> dict:
@@ -64,7 +93,18 @@ def score_preflighted_triplets(*, model: Any, triplets: Any, token_ids: Any,
     A failure stops execution and leaves ``D3`` null. This function assumes the
     caller has already authenticated and frozen all nine exact model inputs.
     """
+    # Gate the exact freezer-produced type before generic validation calls
+    # `.to()`. This excludes subclasses that could override transfer behavior.
+    if isinstance(triplets, (list, tuple)) and len(triplets) == REQUESTED_RECORDS:
+        for row in triplets:
+            if isinstance(row, Mapping) and isinstance(row.get("batches"), Mapping):
+                if any(type(batch) is not FrozenBatch for batch in row["batches"].values()):
+                    raise ValueError("frozen_batch_snapshot_required")
     validate_scoring_inputs(triplets, token_ids)
+    # Recheck all nine snapshots before the first forward, then hash each
+    # device batch after transfer to catch later edits and transfer changes.
+    _validate_frozen_hashes(triplets=triplets, record_ids=record_ids,
+                            expected_batch_hashes=expected_batch_hashes)
     if model is None or torch_module is None or not isinstance(device, str) or not device:
         raise ValueError("scoring_runtime_invalid")
 
@@ -94,9 +134,13 @@ def score_preflighted_triplets(*, model: Any, triplets: Any, token_ids: Any,
         row_scores: dict[str, list[float]] = {}
         for condition_position, condition in enumerate(CONDITIONS, start=1):
             try:
+                expected_hash = expected_batch_hashes[record_ids[row_position - 1]][condition]
                 if before_forward is not None:
                     before_forward(row_position, condition_position, condition)
                 batch = row["batches"][condition].to(device)
+                if batch_sha256(batch) != expected_hash:
+                    failure = "frozen_batch_hash_changed_after_device_transfer"
+                    break
                 attempted += 1
                 with torch_module.inference_mode():
                     output = model(**batch, use_cache=False, logits_to_keep=1)
