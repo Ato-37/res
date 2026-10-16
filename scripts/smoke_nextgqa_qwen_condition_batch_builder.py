@@ -8,6 +8,7 @@ from __future__ import annotations
 
 from fractions import Fraction
 import hashlib
+from importlib.metadata import version
 import json
 import os
 from pathlib import Path
@@ -22,6 +23,7 @@ from PIL import Image
 from transformers import AutoProcessor
 
 from nextgqa_condition_batch_builder import build_exact_triplet_batches
+from nextgqa_batch_digest_freeze import verify_batch_digest_manifest
 
 
 MODEL_REV = "cc594898137f460bfe9f0759e9844b3ce807cfb5"
@@ -66,15 +68,25 @@ def main() -> None:
     if torch.cuda.is_initialized():
         raise SystemExit("unexpected_cuda_initialization")
     result = build_exact_triplet_batches(records=synthetic_records(), processor=processor)
+    triplets = result.get("triplets")
+    from nextgqa_atomic_batch_freeze import CONDITIONS
+    if (not isinstance(triplets, list) or len(triplets) != 3
+            or any(not isinstance(row, dict)
+                   or not isinstance(row.get("batches"), dict)
+                   or set(row["batches"]) != set(CONDITIONS)
+                   for row in triplets)):
+        raise SystemExit("synthetic_condition_batch_shape_invalid")
+    if not verify_batch_digest_manifest(triplets, result["digest_manifest"]):
+        raise SystemExit("synthetic_batch_manifest_verification_failed")
     hashes = result["digest_manifest"]["records"]
     report = {
         "status": result["status"],
         "scope": "synthetic_cpu_processor_path_only",
         "model_revision": MODEL_REV,
-        "processor_version": __import__("importlib.metadata", fromlist=["version"]).version("transformers"),
+        "processor_version": version("transformers"),
         "requested_records": result["requested_records"],
         "requested_batches": result["requested_batches"],
-        "effective_batches": len(hashes) * 3,
+        "effective_batches": sum(len(row["batches"]) for row in triplets),
         "record_batch_manifest_sha256": hashlib.sha256(
             json.dumps(hashes, sort_keys=True, separators=(",", ":")).encode()).hexdigest(),
         "frame_pixel_identity_verified": result["frame_pixel_identity_verified"],
@@ -89,9 +101,16 @@ def main() -> None:
     }
     print(json.dumps(report, sort_keys=True))
     if (report["status"] != "condition_batches_constructed_unvalidated"
+            or report["requested_records"] != 3
+            or report["requested_batches"] != 9
             or report["effective_batches"] != 9
+            or report["model_loaded"] is not False
             or report["model_forwards"] != 0
-            or report["cuda_initialized"]):
+            or report["cuda_initialized"] is not False
+            or report["execution_authorization"] != "not_granted"
+            or any(report[field] != "not_performed" for field in (
+                "source_authentication", "review_authentication",
+                "clock_authentication", "protocol_freeze"))):
         raise SystemExit("synthetic_cpu_processor_smoke_failed")
 
 
