@@ -234,9 +234,24 @@ evidence alignment in agentic long-video QA with temporal-grounding and
 semantic-grounding diagnostics, then gates answers on pixel-level verification.
 It is a close evidence-verification precedent, but does not test this claim-span
 versus matched-control black-mask contrast. NExT-GQA itself supplies QA-level
-supporting-moment labels and is a direct evidence-grounding precedent, but its
-intervals do not review each model-generated explanation sentence. EG-VQA scores predicted
-temporal-semantic evidence, and VideoZeroBench jointly evaluates answers with
+supporting-moment labels and is a direct evidence-grounding precedent. Its
+paper also studies post-hoc temporal-attention localization and proposes a
+learned Gaussian-mask grounding method. These localize QA-relevant moments;
+the labels do not review each model-generated explanation sentence, and those
+methods do not estimate the proposed deletion-based fixed-choice-margin
+sensitivity against a frame-count-matched temporal control. Thus, the existing
+QA intervals can support QA-level grounding analysis, but claim-specific
+scoring still requires the reviewed claim-to-interval mapping described here.
+The NExT-GQA paper also reports PosQA/NegQA comparisons that sample from
+inside versus outside gold intervals; the largest absolute QA-accuracy change
+in the reported table is 1.2 percentage points (direct subtraction), and the
+authors discuss coarse frame representations and possible input-distribution
+shift. This is a direct
+QA-level temporal-input comparison, but it uses accuracy rather than a
+fixed-choice margin and does not test deletion of a reviewed generated-claim
+span against a matched temporal-control deletion. It must be treated as an
+important adjacent precedent, not as evidence for the present estimand.
+EG-VQA scores predicted temporal-semantic evidence, and VideoZeroBench jointly evaluates answers with
 manually verified temporal/spatial evidence localization. These works make
 temporal evidence grounding a well-established research direction, while their
 described outcomes are localization/alignment scores rather than this proposed

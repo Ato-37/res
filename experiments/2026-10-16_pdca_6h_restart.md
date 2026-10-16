@@ -1971,3 +1971,49 @@ unresolved readiness, not a confirmatory protocol. The reviewer rechecked the
 correction and found no remaining version confusion. Next: recheck scoped
 changes and continue with another outcome-blind preflight readiness task while
 the authorized window remains open.
+
+## 19:58 JST checkpoint — state what NExT-GQA evidence intervals support
+
+Directly checking the NExT-GQA paper added one useful distinction to the
+related-work boundary: its QA-pair intervals can support QA-level grounding
+analysis, and the paper itself uses post-hoc temporal-attention localization
+and proposes learned Gaussian-mask grounding. Those are important direct
+precedents. They do not, by themselves, establish that each generated sentence
+is supported, and they do not evaluate this proposed black-mask answer-margin
+contrast against an equal-count temporal control. Updated the worksheet to
+state both sides explicitly: use existing labels for QA-level work where the
+question is appropriate; require human claim-to-interval review for the
+separate generated-claim estimand. This avoids dismissing available dataset
+evidence while keeping the estimands distinct. The audit also surfaced the
+paper's PosQA/NegQA conditions: sample from inside versus outside gold
+intervals, scoring QA accuracy rather than a margin. Direct subtraction of
+Table 4's reported values gives a maximum absolute difference of 1.2 percentage
+points (NG+ FrozenBiLM, NormalQA 70.8 versus NegQA 69.6), despite the prose
+claiming less than 1%. The worksheet now states the tabulated maximum, not the
+blanket prose claim. The independent auditor confirmed the arithmetic and
+flagged that discrepancy. This is a relevant prior temporal-input comparison,
+but remains a different estimand from claim-linked mask-versus-control margin
+sensitivity. No local dataset rows or outcomes were read. At **19:58:08 JST**,
+**4h33m21s elapsed** and **1h26m39s remain**.
+
+## 20:02 JST checkpoint — stop redundant QA-margin GPU replication
+
+Two independent read-only reviews assessed whether the adjacent QA-level
+gold-interval margin contrast warrants another GPU run. Both found the
+contrast already exists in the pilot runner and existing n=10 pilot; it would
+repeat the same mask, score, and control without a new identifying question.
+The observed 16-frame mean is −0.1375 nat (SD 1.5969; 4/10 positive) and the
+32-frame mean is −0.3375 nat (SD 1.9085; 6/10 positive), but record-level
+pairing across these conditions cannot be reconstructed from saved artifacts.
+These are selected-cohort descriptive pilot values, not faithfulness effects or
+confirmatory estimates. NExT-GQA's PosQA/NegQA is a related but different
+accuracy contrast, not a reason to rerun this deletion-margin condition. A
+genuinely disjoint descriptive replication would first need outcome-blind
+exposure/identity reconciliation, an explicit frame and interval-hit rule, and
+a frozen target and failure denominator. Therefore no GPU job was launched.
+This branch is stopped for lack of a new discriminating question; direct
+generated-claim faithfulness remains separately gated at 0/3 human-reviewed
+and 0/3 scored. The next work is an independent read-only audit of protocol
+consistency and CPU-only reproducibility prerequisites, followed by any
+concrete repair. At **20:02:50 JST**, **4h38m03s elapsed** and **1h21m57s
+remain**.
