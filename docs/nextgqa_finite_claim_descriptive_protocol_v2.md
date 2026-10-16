@@ -11,6 +11,29 @@ frame-sampling plan. The current format-valid candidate cohort is the three-item
 input differs, stop and version a new protocol before inspecting scores.
 Protected data and derived artifacts remain local; rights status is unverified.
 
+## Protocol routing (do not mix gate versions)
+
+This draft is the candidate protocol for a **finite three-record descriptive
+feasibility study**. It is separate from the schema-v13 all-eligible candidate
+estimand/contract. `scripts/preflight_claim_mask_gates.py` validates schema v13
+and intentionally returns blocked because its inferential and SESOI items are
+unresolved and confirmatory readiness is not granted; that report is not a v2
+feasibility-protocol audit. Conversely,
+`scripts/claim_score_preflight_rehearsal.py` only joins synthetic review and QA
+target fixtures, reports nine forwards as planned for the three-row contract,
+and always records zero score calls and `execution_authorization=not_granted`.
+It does not validate this draft's freeze state or authenticate real inputs.
+
+No production atomic preflight is currently connected to the v2 protocol. A
+future v2 runner must validate this exact protocol version and all three rows
+atomically before model load, retain the denominator of three, and make zero
+score calls for any preflight failure. It must not inherit v13's unresolved
+population-inference/SESOI requirements or silently borrow any v13 pass
+semantics. This
+routing note does not freeze v2, satisfy any review/clock/target gate, or grant
+scoring authority; the complete protocol, claim packet, target, cohort, frame
+sampler, and code still require joint hash-freeze before any score is opened.
+
 ## Estimand and scope
 
 The estimand is a finite-cohort descriptive contrast of **model next-token

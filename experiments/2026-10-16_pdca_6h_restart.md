@@ -1939,3 +1939,35 @@ Markdown diff check passes, as do four focused assertions for the key
 interpretation boundaries. No Python unit suite was rerun because only planning
 documentation changed. At **19:53:56 JST**, **4h29m09s elapsed** and **1h30m51s
 remain**.
+
+## 19:56 JST checkpoint — separate finite feasibility from the all-eligible candidate gate
+
+The next-step gate audit found two protocol namespaces that could be confused:
+the draft v2 is a finite three-record descriptive feasibility design with an
+all-three denominator and no inference/SESOI claim, while schema v13 is a
+separate all-eligible candidate estimand/contract whose cross-gate remains
+blocked because inferential, SESOI, and authorization items are unresolved.
+Added a routing note to v2 documenting that the v13 blocked report is not a v2
+audit, and that the existing synthetic
+assignment/QA rehearsal plans nine forwards only as a structural fixture while
+calling zero scorers and granting no authority. It also states that no
+production atomic preflight is wired to v2 and the routing note does not freeze
+the protocol or clear real-data gates. This reconciles the concepts without
+choosing the unresolved v2 protocol details or opening outcomes.
+
+I checked the source directly and ran the two focused suites using the existing
+repository `.venv`: 20 tests pass (12 synthetic assignment/QA rehearsal and 8
+v13 cross-gate tests). The first attempt under system Python failed because the
+test loader lacked repository script imports/Pillow; rerunning with the
+repository environment passed. These tests establish only existing synthetic
+and v13 blocker behavior, not a real-data run or that v2 is frozen. The new
+routing note is pending independent audit. No videos, claims, model weights,
+or GPU were used. At **19:55:43 JST**, **4h30m56s elapsed** and **1h29m04s
+remain**. The independent reviewer caught an inaccurate label in the initial
+routing note that called v13 itself “confirmatory”; the validator rejects a
+confirmatory stage and the cross-gate adds explicit blockers. Corrected the v2
+note and this log to describe v13 as an all-eligible candidate contract with
+unresolved readiness, not a confirmatory protocol. The reviewer rechecked the
+correction and found no remaining version confusion. Next: recheck scoped
+changes and continue with another outcome-blind preflight readiness task while
+the authorized window remains open.
