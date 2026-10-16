@@ -20,7 +20,12 @@ LABEL_COUNT = 5
 
 
 def validate_scoring_inputs(triplets: Any, token_ids: Any) -> None:
-    """Validate the entire fixed cohort's container shape before forwarding."""
+    """Validate the fixed cohort's already-frozen CPU inputs before forwarding.
+
+    Do not call ``FrozenBatch.to('cpu')`` here: the freezer has already made
+    the authoritative CPU snapshot, and ``FrozenBatch.to`` clones tensors.
+    Hashing the existing snapshot below is sufficient to validate its bytes.
+    """
     if (not isinstance(token_ids, (list, tuple)) or len(token_ids) != LABEL_COUNT
             or any(type(token) is not int or token < 0 for token in token_ids)
             or len(set(token_ids)) != LABEL_COUNT):
@@ -38,14 +43,27 @@ def validate_scoring_inputs(triplets: Any, token_ids: Any) -> None:
             raise ValueError(f"record_{row_index + 1}_condition_set_invalid")
         for condition in CONDITIONS:
             batch = batches[condition]
-            if not isinstance(batch, Mapping) or not callable(getattr(batch, "to", None)):
+            if (type(batch) is not FrozenBatch
+                    or not isinstance(batch, Mapping) or not batch):
                 raise ValueError(f"record_{row_index + 1}_{condition}_batch_invalid")
-            try:
-                cpu_batch = batch.to("cpu")
-            except Exception:
-                raise ValueError(f"record_{row_index + 1}_{condition}_cpu_materialization_failed") from None
-            if not isinstance(cpu_batch, Mapping):
-                raise ValueError(f"record_{row_index + 1}_{condition}_cpu_batch_invalid")
+            _validate_cpu_tree(batch, row_index + 1, condition)
+
+
+def _validate_cpu_tree(value: Any, row_position: int, condition: str) -> None:
+    """Reject non-CPU tensor leaves without copying the frozen snapshot."""
+    if (callable(getattr(value, "detach", None))
+            and callable(getattr(value, "cpu", None))
+            and hasattr(value, "device")):
+        if str(value.device) != "cpu":
+            raise ValueError(f"record_{row_position}_{condition}_batch_not_cpu")
+        return
+    if isinstance(value, Mapping):
+        for child in value.values():
+            _validate_cpu_tree(child, row_position, condition)
+        return
+    if isinstance(value, (list, tuple)):
+        for child in value:
+            _validate_cpu_tree(child, row_position, condition)
 
 
 def _margin(log_probabilities: list[float], gold_index: int) -> float:
@@ -74,7 +92,7 @@ def _validate_frozen_hashes(*, triplets: Any, record_ids: Any,
                     or any(char not in "0123456789abcdef" for char in expected)):
                 raise ValueError(f"record_{row_position}_{condition}_frozen_hash_invalid")
             try:
-                observed = batch_sha256(row["batches"][condition].to("cpu"))
+                observed = batch_sha256(row["batches"][condition])
             except Exception:
                 raise ValueError(f"record_{row_position}_{condition}_frozen_hash_unavailable") from None
             if observed != expected:

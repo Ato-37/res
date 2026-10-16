@@ -34,6 +34,19 @@ class MutableBatchSubclass(FrozenBatch):
         return super().to(device)
 
 
+class DeviceTensorLike:
+    device = "cuda:0"
+
+    def detach(self):
+        return self
+
+    def cpu(self):
+        raise AssertionError("CPU validation must reject before copying")
+
+    def tolist(self):
+        return [1]
+
+
 class Output:
     def __init__(self, logits):
         self.logits = logits
@@ -118,25 +131,58 @@ class NextgqaClaimMaskScoringTests(unittest.TestCase):
                 torch_module=torch, device="cpu")
         self.assertEqual(model.calls, 0)
 
-    def test_cpu_materializes_all_nine_batches_before_any_forward(self):
+    def test_hash_preflight_does_not_rematerialize_cpu_batches(self):
         rows = triplets()
         hashes = hash_binding(rows)
+        hashes["expected_batch_hashes"]["r3"]["temporal_control_black"] = "0" * 64
         model = FakeModel()
-        failing_batch = rows[2]["batches"]["temporal_control_black"]
         original_to = FrozenBatch.to
+        cpu_calls = []
 
-        def fail_one_batch(self, device):
-            if self is failing_batch and device == "cpu":
-                raise RuntimeError("synthetic materialization failure")
+        def count_cpu_materializations(self, device):
+            if device == "cpu":
+                cpu_calls.append(self)
             return original_to(self, device)
 
         from unittest.mock import patch
-        with patch.object(FrozenBatch, "to", fail_one_batch), self.assertRaisesRegex(
-                ValueError, "record_3_temporal_control_black_cpu_materialization_failed"):
+        with patch.object(FrozenBatch, "to", count_cpu_materializations), self.assertRaisesRegex(
+                ValueError, "record_3_temporal_control_black_frozen_hash_mismatch"):
             score_preflighted_triplets(
                 model=model, triplets=rows, token_ids=[0, 1, 2, 3, 4],
                 **hashes,
                 torch_module=torch, device="cpu")
+        self.assertEqual(cpu_calls, [])
+        self.assertEqual(model.calls, 0)
+
+    def test_success_only_transfers_each_batch_once_for_its_forward(self):
+        rows = triplets()
+        model = FakeModel()
+        original_to = FrozenBatch.to
+        cpu_calls = []
+
+        def count_cpu_transfers(self, device):
+            if device == "cpu":
+                cpu_calls.append(self)
+            return original_to(self, device)
+
+        from unittest.mock import patch
+        with patch.object(FrozenBatch, "to", count_cpu_transfers):
+            result = score_preflighted_triplets(
+                model=model, triplets=rows, token_ids=[0, 1, 2, 3, 4],
+                **hash_binding(rows), torch_module=torch, device="cpu")
+        self.assertEqual(result["status"], "completed")
+        self.assertEqual(model.calls, 9)
+        self.assertEqual(len(cpu_calls), 9)
+
+    def test_non_cpu_tensor_is_rejected_without_copy_or_forward(self):
+        rows = triplets()
+        hashes = hash_binding(rows)
+        rows[0]["batches"]["full"]["input_ids"] = DeviceTensorLike()
+        model = FakeModel()
+        with self.assertRaisesRegex(ValueError, "record_1_full_batch_not_cpu"):
+            score_preflighted_triplets(
+                model=model, triplets=rows, token_ids=[0, 1, 2, 3, 4],
+                **hashes, torch_module=torch, device="cpu")
         self.assertEqual(model.calls, 0)
 
     def test_forward_failure_keeps_d3_null_and_records_counts(self):
