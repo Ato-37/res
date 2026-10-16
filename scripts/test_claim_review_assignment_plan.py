@@ -104,7 +104,7 @@ def fixture():
     review_payload = {"schema_version": 3, "purpose": "anonymous_local_claim_video_human_review",
                       "status": "human_review_recorded_unvalidated", "review_completed": True,
                       "execution_authorization": "not_granted",
-                      "claim_review_policy_id": "nextgqa_claim_review_v5",
+                      "claim_review_policy_id": "nextgqa_claim_review_v6",
                       "claim_review_policy_sha256": FROZEN_POLICY_SHA256,
                       "human_reviewer_role": "independent_human",
                       "human_reviewer_private_id": "private reviewer",
@@ -129,7 +129,7 @@ def fixture():
                       ("test.csv", "gsub_test.json", "map_vid_vidorID.json", "frame2time_test.json")}
     worksheet_raw = json.dumps({
         "schema_version": 1, "occurrence_policy": "all_relevant_occurrences",
-        "claim_review_policy_id": "nextgqa_claim_review_v5",
+        "claim_review_policy_id": "nextgqa_claim_review_v6",
         "claim_review_policy_sha256": FROZEN_POLICY_SHA256,
         "review_procedure_status": "frozen_pre_review",
         "source_packet_sha256": source_packet_sha, "cohort_sha256": cohort_sha,
@@ -503,7 +503,7 @@ class ClaimReviewAssignmentPlanTests(unittest.TestCase):
         self.assertEqual(result["failure_codes"], ["claim_input_row_invalid"])
         self.assertEqual(result["score_calls"], 0)
 
-    def test_worksheet_occurrence_policy_must_match_review_v5(self):
+    def test_worksheet_occurrence_policy_must_match_review_v6(self):
         args = fixture()
         worksheet = json.loads(args["worksheet_raw"])
         worksheet["occurrence_policy"] = "one_sufficient_occurrence"

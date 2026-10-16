@@ -23,7 +23,7 @@ class RenderNextgqaClaimReviewHtmlTests(unittest.TestCase):
         source_raw = encode(source)
         built, _ = build(source, source_raw)
         policy_raw = (Path(__file__).resolve().parents[1] / "docs" /
-                      "nextgqa_claim_review_policy_v5.json").read_bytes()
+                      "nextgqa_claim_review_policy_v6.json").read_bytes()
         built = apply_review_policy(built, json.loads(policy_raw), policy_raw)
         records = []
         for i, row in enumerate(built["records"]):
@@ -212,7 +212,7 @@ class RenderNextgqaClaimReviewHtmlTests(unittest.TestCase):
         self.assertIn("anchor_id_validation:'format_and_per_video_uniqueness_only_unverified'", page)
         self.assertIn("unvalidated_html5_clock_observation_integrity_index", page)
         # Keep the reviewer-facing export disclosure synchronized with the fields
-        # the v5 renderer actually writes into its JSON payload.
+        # the v6 renderer actually writes into its JSON payload.
         for disclosure in (
                 "schema_version", "human_reviewer_private_id", "browser_user_agent",
                 "independence_attestation", "review_token", "interval_rationales",
@@ -220,13 +220,14 @@ class RenderNextgqaClaimReviewHtmlTests(unittest.TestCase):
                 "claim_review_policy_sha256", "review_payload_sha256",
                 "request_video_frame_callback_metadata", "export_disclosure_acknowledged"):
             self.assertIn(disclosure, page)
-        self.assertIn("凍結v5方針文書には", page)
-        self.assertIn("レビューJSONのexport_disclosure_acknowledged", page)
+        self.assertIn("v6方針は上記のレビューJSON", page)
+        self.assertIn("本名ではなく非公開のレビュアー識別子", page)
+        self.assertIn("export_disclosure_acknowledgedは", page)
         self.assertIn("id=\"export-disclosure\"", page)
         self.assertIn("&&document.getElementById('export-disclosure').checked", page)
         self.assertIn("export_disclosure_acknowledged:document.getElementById('export-disclosure').checked", page)
         disclosure = page.split('<div id="rows">', 1)[0]
-        self.assertLess(page.index('レビューJSONのexport_disclosure_acknowledged'),
+        self.assertLess(page.index('export_disclosure_acknowledgedは'),
                         page.index('<div id="rows">'))
         expected_pre_review_fields = {
             # Review JSON top-level, environment, record, and review fields.
@@ -262,6 +263,34 @@ class RenderNextgqaClaimReviewHtmlTests(unittest.TestCase):
         self.assertTrue(expected_pre_review_fields.issubset(set(re.findall(
             r"[A-Za-z][A-Za-z0-9_]*", disclosure))),
             "pre-review disclosure omits one or more exported fields")
+        policy_path = (Path(__file__).resolve().parents[1] / "docs" /
+                       "nextgqa_claim_review_policy_v6.json")
+        export_contract = json.loads(policy_path.read_text(encoding="utf-8"))["export_contract"]
+        self.assertEqual(
+            set(export_contract["review_json_top_level_fields"]),
+            {
+                "schema_version", "purpose", "status", "review_completed",
+                "execution_authorization", "claim_review_policy_id",
+                "claim_review_policy_sha256", "human_reviewer_role",
+                "human_reviewer_private_id", "review_environment",
+                "independence_attestation", "export_disclosure_acknowledged",
+                "records",
+            },
+            "v6 policy must enumerate every actual review JSON top-level field",
+        )
+        contract_fields = set()
+        for field_group in (
+                "review_json_top_level_fields", "review_json_environment_fields",
+                "review_record_fields", "integrity_index_fields",
+                "optional_clock_json_fields", "clock_record_event_fields",
+                "clock_integrity_index_fields", "review_record_wrapper_fields",
+                "clock_record_wrapper_fields", "clock_callback_metadata_fields",
+                "clock_capture_threshold_fields"):
+            contract_fields.update(export_contract[field_group])
+        contract_fields.update({"review", "events"})
+        disclosed_fields = set(re.findall(r"[A-Za-z][A-Za-z0-9_]*", disclosure))
+        self.assertTrue(contract_fields.issubset(disclosed_fields),
+                        "v6 policy export schema is not disclosed by the reviewer page")
         self.assertIn("s.clockEvents=[]", page)
         self.assertIn("claim根拠区間と別に保存します", page)
         self.assertIn("decoder PTSの同一性を証明しません", page)

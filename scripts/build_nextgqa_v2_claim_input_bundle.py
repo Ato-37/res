@@ -1,7 +1,7 @@
 """Build a v2-bound, pre-review claim-input bundle without changing v1 schema.
 
 The wrapper accepts exact local bytes for the eligible manifest, original
-three-record generation packet, lineage manifest, and v5 review policy. It
+three-record generation packet, lineage manifest, and v6 review policy. It
 cross-checks their structural identity, then delegates construction of the
 private claim manifest to ``build_claim_input_manifest.build`` unchanged. The
 sidecar is path-free and contains hashes/identities only, never claim text or
@@ -32,8 +32,8 @@ from typing import Any
 from build_claim_input_manifest import build as build_v1_claim_input
 
 V2_COHORT_SHA256 = "162fda51377768ae4e488fbfa1a8377f903ead3af7b277a17780b53e67b79a95"
-V5_POLICY_SHA256 = "f33fd193fdcec7bd9200ab700c46616cbd7ee78535399ef193496ba52054260a"
-V5_POLICY_ID = "nextgqa_claim_review_v5"
+V6_POLICY_SHA256 = "1e04d9c001b1249bd2d04d9f43730902c45341543d0a7f1aa6badf4b40dbff91"
+V6_POLICY_ID = "nextgqa_claim_review_v6"
 ALL_RELEVANT_OCCURRENCES = "all_relevant_occurrences"
 GENERATION_PURPOSE = "private_local_nextgqa_model_generated_claim_review_packet"
 LINEAGE_PURPOSE = "private_source_lineage_crosscheck_for_claim_review"
@@ -57,6 +57,7 @@ _DATASET_INPUT_NAMES = {
 _POLICY_KEYS = {
     "schema_version", "policy_id", "purpose", "occurrence_policy", "review_scope", "display_procedure",
     "permitted_evidence", "support_rule", "interval_rule", "failure_rule", "review_order",
+    "export_contract",
 }
 _WORKSHEET_KEYS = {
     "schema_version", "purpose", "status", "created_at_utc", "source_packet_sha256",
@@ -166,14 +167,16 @@ def _validate_policy(policy_raw: bytes) -> str:
     if (not isinstance(policy, dict) or set(policy) != _POLICY_KEYS
             or type(policy.get("schema_version")) is not int
             or policy.get("schema_version") != 1
-            or policy.get("policy_id") != V5_POLICY_ID
+            or policy.get("policy_id") != V6_POLICY_ID
             or policy.get("purpose") != "pre_outcome_human_claim_to_video_mapping"
             or policy.get("occurrence_policy") != ALL_RELEVANT_OCCURRENCES):
         raise ValueError("policy_schema_or_identity_invalid")
     policy_sha = _sha(policy_raw)
-    if policy_sha != V5_POLICY_SHA256:
-        raise ValueError("policy_v5_hash_mismatch")
-    if not all(_text(policy.get(key)) for key in _POLICY_KEYS - {"schema_version"}):
+    if policy_sha != V6_POLICY_SHA256:
+        raise ValueError("policy_v6_hash_mismatch")
+    if (not all(_text(policy.get(key)) for key in
+                 _POLICY_KEYS - {"schema_version", "export_contract"})
+            or not isinstance(policy.get("export_contract"), dict)):
         raise ValueError("policy_fields_invalid")
     return policy_sha
 
@@ -274,7 +277,7 @@ def _validate_worksheet_binding(worksheet_raw: bytes, generation_raw: bytes,
             or worksheet.get("model_revision") != generation.get("model_revision")
             or worksheet.get("dataset_inputs_sha256") != generation.get("dataset_inputs_sha256")
             or worksheet.get("occurrence_policy") != ALL_RELEVANT_OCCURRENCES
-            or worksheet.get("claim_review_policy_id") != V5_POLICY_ID
+            or worksheet.get("claim_review_policy_id") != V6_POLICY_ID
             or worksheet.get("claim_review_policy_sha256") != policy_sha
             or not isinstance(worksheet.get("records"), list)
             or len(worksheet["records"]) != 3):
@@ -484,7 +487,7 @@ depends on sampled PTS, interval/control positions, choices, and gold labels.
         "cohort_sha256": V2_COHORT_SHA256,
         "cohort_digest_check": "pinned_value_and_input_declarations_match_not_recomputed_from_full_planner_inputs",
         "occurrence_policy": ALL_RELEVANT_OCCURRENCES,
-        "policy_id": V5_POLICY_ID,
+        "policy_id": V6_POLICY_ID,
         "policy_sha256": policy_sha,
         "model": generation["model"],
         "model_revision": generation["model_revision"],

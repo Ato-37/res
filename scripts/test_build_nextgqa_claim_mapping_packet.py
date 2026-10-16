@@ -92,7 +92,7 @@ def assert_exact_output_keys(test, value):
 class BuildNextgqaClaimMappingPacketTests(unittest.TestCase):
     @staticmethod
     def policy():
-        path = Path(__file__).resolve().parents[1] / "docs" / "nextgqa_claim_review_policy_v5.json"
+        path = Path(__file__).resolve().parents[1] / "docs" / "nextgqa_claim_review_policy_v6.json"
         return path.read_bytes()
 
     def test_blinded_draft_contains_claims_and_blank_review_fields_only(self):

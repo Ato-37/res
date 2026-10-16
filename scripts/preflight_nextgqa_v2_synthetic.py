@@ -24,7 +24,7 @@ from presentation_time_utils import (
 )
 
 FIXTURE_TYPE = "synthetic_nextgqa_v2_preflight_fixture_v1"
-PROTOCOL_V2_SHA256 = "98c113102530f9ca7ca37607c4bfbf411339f64ec9f1f3957ecd2829fe3b0543"
+PROTOCOL_V2_SHA256 = "db71bc5017d0f85aeb58506480edf97f2cbf8ba5d9d56b5ea22fc2fb8f811973"
 PROTOCOL_V2_TITLE = b"# NExT-GQA finite-cohort claim-aligned input-dependence protocol v2"
 PROTOCOL_V2_DRAFT = b"Status: **design draft; not frozen, not scoreable, and not an execution"
 PROTOCOL_V2_FRAME_RULE = b"Use 32 endpoint-inclusive uniformly sampled decoded-frame indices."

@@ -164,7 +164,7 @@ def plan_claim_review_assignments(*, expected_video_ids, worksheet_records,
         return _blocked("worksheet_records_byte_binding_invalid", n)
     if (not isinstance(worksheet_doc, dict)
             or worksheet_doc.get("occurrence_policy") != "all_relevant_occurrences"
-            or worksheet_doc.get("claim_review_policy_id") != "nextgqa_claim_review_v5"
+            or worksheet_doc.get("claim_review_policy_id") != "nextgqa_claim_review_v6"
             or worksheet_doc.get("claim_review_policy_sha256") != FROZEN_POLICY_SHA256
             or worksheet_doc.get("review_procedure_status") != "frozen_pre_review"):
         return _blocked("worksheet_policy_binding_invalid", n)
@@ -265,7 +265,7 @@ def plan_claim_review_assignments(*, expected_video_ids, worksheet_records,
             or parsed_review.get("status") != "human_review_recorded_unvalidated"
             or parsed_review.get("review_completed") is not True
             or parsed_review.get("execution_authorization") != "not_granted"
-            or parsed_review.get("claim_review_policy_id") != "nextgqa_claim_review_v5"
+            or parsed_review.get("claim_review_policy_id") != "nextgqa_claim_review_v6"
             or parsed_review.get("claim_review_policy_sha256") != FROZEN_POLICY_SHA256
             or parsed_review.get("human_reviewer_role") != "independent_human"
             or not isinstance(parsed_review.get("human_reviewer_private_id"), str)

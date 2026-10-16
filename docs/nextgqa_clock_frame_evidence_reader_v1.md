@@ -56,16 +56,20 @@ independence procedure remain to be implemented and audited.
 The tool requires a 0600 expected Ed25519 key and helper-source hash, but the
 caller-supplied hashes become trust anchors only when they are independently
 frozen. The Windows helper accepts only a candidate plan with the same pinned
-hashes, requires a new direct child of the plan directory, applies a
-restricted DACL before writing screenshots, and captures only when the
-foreground process is Edge with the expected review-page title. If a caught
-failure occurs, it removes only that newly created output directory. The
-helper's receipt remains a self-report and cannot authenticate the compositor.
+hashes, requires a new direct child of the plan directory, verifies that the
+private parent is Linux mode 0700, then uses the Windows-to-WSL bridge to set
+and verify the output directory as 0700 and each PNG/receipt as 0600. It
+captures only when the foreground process is Edge with the expected review-page
+title. If a caught failure occurs, it removes only the output directory that
+the helper created exclusively. The helper's receipt remains a self-report
+and cannot authenticate the compositor.
 
 The Windows `ValidateOnly` path was executed successfully against the private
 candidate plan and sidecar; it returned before creating output, registering a
-hotkey, or capturing pixels. This does not test the WSL UNC ACL behavior or an
-actual capture. No real screenshots or human review have been created.
+hotkey, or capturing pixels. The separate `PermissionSmokeOnly` path checks
+WSL POSIX permission enforcement and removes its empty probe afterward. Neither
+path tests actual capture. No real screenshots or human review have been
+created.
 
 Tests generate synthetic videos, screenshots, keys, and signatures locally.
 They exercise the 3×5 joins, ambiguous decisions, missing/duplicate anchors,

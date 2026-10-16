@@ -111,7 +111,7 @@ def audit(worksheet: Any, worksheet_raw: bytes, lineage: Any, lineage_raw: bytes
     if (index.get("claim_review_policy_sha256") != FROZEN_POLICY_SHA256
             or review.get("claim_review_policy_sha256") != FROZEN_POLICY_SHA256
             or worksheet.get("claim_review_policy_sha256") != FROZEN_POLICY_SHA256
-            or review.get("claim_review_policy_id") != "nextgqa_claim_review_v5"):
+            or review.get("claim_review_policy_id") != "nextgqa_claim_review_v6"):
         failures.add("policy_hash_mismatch")
     if not _utc(index.get("created_at_utc")):
         failures.add("review_timestamp_invalid")

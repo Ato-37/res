@@ -4,7 +4,8 @@ param(
     [Parameter(Mandatory = $true)][string]$ExpectedPlanSha256,
     [Parameter(Mandatory = $true)][string]$ExpectedPlanProvenanceSha256,
     [Parameter(Mandatory = $true)][string]$OutputDirectory,
-    [switch]$ValidateOnly
+    [switch]$ValidateOnly,
+    [switch]$PermissionSmokeOnly
 )
 
 $ErrorActionPreference = 'Stop'
@@ -26,6 +27,8 @@ public static class NextGqaClockCaptureNative {
   [DllImport("user32.dll", SetLastError=true)] public static extern bool UnregisterHotKey(IntPtr hWnd, int id);
   [DllImport("user32.dll", SetLastError=true)] public static extern int GetMessage(out MSG msg, IntPtr hWnd, uint min, uint max);
   [DllImport("kernel32.dll")] public static extern uint GetTickCount();
+  [DllImport("kernel32.dll", CharSet=CharSet.Unicode, SetLastError=true)]
+  public static extern bool CreateDirectory(String path, IntPtr securityAttributes);
   public static uint Elapsed(uint start, uint end) { unchecked { return end - start; } }
   [DllImport("user32.dll")] public static extern IntPtr GetForegroundWindow();
   [DllImport("user32.dll", SetLastError=true)] public static extern bool GetWindowRect(IntPtr hWnd, out RECT rect);
@@ -46,6 +49,23 @@ function Read-PrivateJson([string]$Path, [string]$ExpectedHash) {
     $bytes = [System.IO.File]::ReadAllBytes($Path)
     if ((Get-Sha256 $bytes) -ne $ExpectedHash) { throw 'private_input_hash_mismatch' }
     return [System.Text.Encoding]::UTF8.GetString($bytes) | ConvertFrom-Json
+}
+
+function Get-WslModeOwner([string]$LinuxPath) {
+    $statLine = (& wsl.exe -d $script:wslDistro --exec stat -c '%a:%u' $LinuxPath).Trim()
+    if ($LASTEXITCODE -ne 0 -or $statLine -notmatch '^([0-7]{3,4}):([0-9]+)$') {
+        throw 'wsl_private_mode_stat_failed'
+    }
+    return @{ Mode = $Matches[1]; Uid = $Matches[2] }
+}
+
+function Set-WslPrivateMode([string]$LinuxPath, [string]$Mode, [string]$ExpectedUid) {
+    & wsl.exe -d $script:wslDistro --exec chmod $Mode $LinuxPath
+    if ($LASTEXITCODE -ne 0) { throw 'wsl_private_mode_chmod_failed' }
+    $observed = Get-WslModeOwner $LinuxPath
+    if ($observed.Mode -ne $Mode -or $observed.Uid -ne $ExpectedUid) {
+        throw 'wsl_private_mode_verification_failed'
+    }
 }
 
 if ($ExpectedPlanSha256 -notmatch '^[0-9a-f]{64}$' -or
@@ -79,32 +99,50 @@ if ($anchors.Count -ne 15 -or (Test-Path -LiteralPath $OutputDirectory)) {
 }
 $privateRoot = [System.IO.Path]::GetFullPath((Split-Path -Parent $PlanPath))
 $targetRoot = [System.IO.Path]::GetFullPath($OutputDirectory)
+$createdOutput = $false
 if ([System.IO.Path]::GetDirectoryName($targetRoot) -ne $privateRoot -or
     [System.IO.Path]::GetFileName($targetRoot) -notmatch '^clock_screenshots_[A-Za-z0-9_-]+$') {
     throw 'screenshot_output_must_be_private_child'
 }
+if ($ValidateOnly -and $PermissionSmokeOnly) { throw 'capture_validation_modes_conflict' }
 if ($ValidateOnly) {
     Write-Host 'Candidate plan and provenance validated; no screenshot capture started.'
     return
 }
-try {
-[void][System.IO.Directory]::CreateDirectory($targetRoot)
-
-$currentSid = [System.Security.Principal.WindowsIdentity]::GetCurrent().User
-$directoryAcl = New-Object System.Security.AccessControl.DirectorySecurity
-$directoryAcl.SetAccessRuleProtection($true, $false)
-$directoryAcl.SetOwner($currentSid)
-$inheritance = [System.Security.AccessControl.InheritanceFlags]::ContainerInherit -bor
-               [System.Security.AccessControl.InheritanceFlags]::ObjectInherit
-foreach ($sidText in @($currentSid.Value, 'S-1-5-18', 'S-1-5-32-544')) {
-    $sid = New-Object System.Security.Principal.SecurityIdentifier($sidText)
-    $rule = [System.Security.AccessControl.FileSystemAccessRule]::new(
-        $sid, [System.Security.AccessControl.FileSystemRights]::FullControl, $inheritance,
-        [System.Security.AccessControl.PropagationFlags]::None,
-        [System.Security.AccessControl.AccessControlType]::Allow)
-    $directoryAcl.AddAccessRule($rule)
+$uncPattern = '^\\\\wsl(?:\.localhost)?\\([^\\]+)\\(.+)$'
+if ($privateRoot -notmatch $uncPattern) { throw 'private_root_must_be_wsl_unc' }
+$script:wslDistro = $Matches[1]
+$privateLinuxRoot = '/' + $Matches[2].Replace('\', '/')
+$targetLinuxPath = $privateLinuxRoot.TrimEnd('/') + '/' + [System.IO.Path]::GetFileName($targetRoot)
+$privateRootMode = Get-WslModeOwner $privateLinuxRoot
+if ($privateRootMode.Mode -ne '700') { throw 'private_root_mode_not_0700' }
+if ($PermissionSmokeOnly) {
+    $smokeCreated = $false
+    try {
+        if (-not [NextGqaClockCaptureNative]::CreateDirectory($targetRoot, [IntPtr]::Zero)) {
+            throw 'exclusive_capture_output_create_failed'
+        }
+        $smokeCreated = $true
+        Set-WslPrivateMode $targetLinuxPath '700' $privateRootMode.Uid
+        $probePath = Join-Path $targetRoot 'permission_probe.txt'
+        $probeStream = New-Object System.IO.FileStream($probePath, [System.IO.FileMode]::CreateNew,
+            [System.IO.FileAccess]::Write, [System.IO.FileShare]::None)
+        try { $probeStream.Flush($true) }
+        finally { $probeStream.Dispose() }
+        Set-WslPrivateMode ($targetLinuxPath + '/permission_probe.txt') '600' $privateRootMode.Uid
+        Write-Host 'Windows-to-WSL private modes verified (directory 0700, file 0600); no screen capture.'
+    }
+    finally {
+        if ($smokeCreated) { Remove-Item -LiteralPath $targetRoot -Recurse -Force -ErrorAction SilentlyContinue }
+    }
+    return
 }
-Set-Acl -LiteralPath $targetRoot -AclObject $directoryAcl
+try {
+if (-not [NextGqaClockCaptureNative]::CreateDirectory($targetRoot, [IntPtr]::Zero)) {
+    throw 'exclusive_capture_output_create_failed'
+}
+$createdOutput = $true
+Set-WslPrivateMode $targetLinuxPath '700' $privateRootMode.Uid
 
 $records = [System.Collections.Generic.List[object]]::new()
 $hotkeyId = 7331
@@ -168,6 +206,7 @@ try {
             [System.IO.FileAccess]::Write, [System.IO.FileShare]::None)
         try { $fileStream.Write($screenshotBytes, 0, $screenshotBytes.Length); $fileStream.Flush($true) }
         finally { $fileStream.Dispose() }
+        Set-WslPrivateMode ($targetLinuxPath + '/' + $filename) '600' $privateRootMode.Uid
         $records.Add([pscustomobject]@{
             review_token = $anchor.review_token
             anchor_id = $anchor.anchor_id
@@ -209,10 +248,11 @@ $receiptStream = New-Object System.IO.FileStream($receiptPath, [System.IO.FileMo
     [System.IO.FileAccess]::Write, [System.IO.FileShare]::None)
 try { $receiptStream.Write($receiptBytes, 0, $receiptBytes.Length); $receiptStream.Flush($true) }
 finally { $receiptStream.Dispose() }
+Set-WslPrivateMode ($targetLinuxPath + '/capture_receipt.json') '600' $privateRootMode.Uid
 Write-Host 'Capture receipt created with 15 local screenshots. Its declarations are not authenticated; independently inspect them before use.'
 }
 catch {
-    if ([System.IO.Directory]::Exists($targetRoot)) {
+    if ($createdOutput -and [System.IO.Directory]::Exists($targetRoot)) {
         Remove-Item -LiteralPath $targetRoot -Recurse -Force -ErrorAction SilentlyContinue
     }
     throw

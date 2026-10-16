@@ -131,7 +131,7 @@ def add_claim_bundle(fixture):
     manifest = {
         "schema_version": 1, "eligible_dataset_id": "synthetic-three-video-cohort",
         "eligible_manifest_sha256": "11" * 32,
-        "claim_policy_sha256": candidate.V5_POLICY_SHA256,
+        "claim_policy_sha256": candidate.V6_POLICY_SHA256,
         "occurrence_policy": candidate.ALL_RELEVANT_OCCURRENCES,
         "claims": [],
     }
@@ -166,8 +166,8 @@ def add_claim_bundle(fixture):
         "cohort_sha256": candidate.V2_COHORT_SHA256,
         "cohort_digest_check": "pinned_value_and_input_declarations_match_not_recomputed_from_full_planner_inputs",
         "occurrence_policy": candidate.ALL_RELEVANT_OCCURRENCES,
-        "policy_id": candidate.V5_POLICY_ID,
-        "policy_sha256": candidate.V5_POLICY_SHA256,
+        "policy_id": candidate.V6_POLICY_ID,
+        "policy_sha256": candidate.V6_POLICY_SHA256,
         "model": "Qwen/Qwen2.5-VL-7B-Instruct",
         "model_revision": candidate.MODEL_REVISION,
         "v1_generation_run_sha256_semantics": "generation_packet_container_byte_digest_not_unique_run_id",
@@ -176,7 +176,7 @@ def add_claim_bundle(fixture):
             "eligible_manifest": manifest["eligible_manifest_sha256"],
             "generation_packet": sha(generation_raw),
             "lineage_manifest": sha(lineage_raw),
-            "policy": candidate.V5_POLICY_SHA256,
+            "policy": candidate.V6_POLICY_SHA256,
             "test_csv": sha(fixture["csv_raw"]),
             "video_map": lineage["dataset_inputs_sha256"]["map_vid_vidorID.json"],
             "worksheet": sha(worksheet_raw),

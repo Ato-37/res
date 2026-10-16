@@ -27,7 +27,7 @@ from claim_text_quality import claim_text_quality_failure
 SHA256 = re.compile(r"^[a-f0-9]{64}$")
 GIT_COMMIT = re.compile(r"^[a-f0-9]{40}$")
 PURPOSE = "private_local_nextgqa_model_generated_claim_review_packet"
-FROZEN_POLICY_SHA256 = "f33fd193fdcec7bd9200ab700c46616cbd7ee78535399ef193496ba52054260a"
+FROZEN_POLICY_SHA256 = "1e04d9c001b1249bd2d04d9f43730902c45341543d0a7f1aa6badf4b40dbff91"
 DATASET_INPUT_KEYS = {
     "test.csv", "gsub_test.json", "map_vid_vidorID.json", "frame2time_test.json",
 }
@@ -229,20 +229,22 @@ def apply_review_policy(output: dict, policy: Any, policy_raw: bytes) -> dict:
         "schema_version", "policy_id", "purpose", "occurrence_policy",
         "review_scope",
         "display_procedure", "permitted_evidence", "support_rule",
-        "interval_rule", "failure_rule", "review_order",
+        "interval_rule", "failure_rule", "review_order", "export_contract",
     }
     if not isinstance(policy, dict) or set(policy) != expected:
         raise ValueError("review_policy_schema_invalid")
     if not _raw_matches(policy, policy_raw):
         raise ValueError("review_policy_bytes_invalid")
     if (policy.get("schema_version") != 1
-            or policy.get("policy_id") != "nextgqa_claim_review_v5"
+            or policy.get("policy_id") != "nextgqa_claim_review_v6"
             or policy.get("purpose") != "pre_outcome_human_claim_to_video_mapping"
             or policy.get("occurrence_policy") != "all_relevant_occurrences"
             or hashlib.sha256(policy_raw).hexdigest() != FROZEN_POLICY_SHA256
             or output.get("requested_records") != 3
             or output.get("effective_records") != 3
-            or not all(_text(policy.get(key)) for key in expected - {"schema_version"})):
+            or not all(_text(policy.get(key)) for key in
+                       expected - {"schema_version", "export_contract"})
+            or not isinstance(policy.get("export_contract"), dict)):
         raise ValueError("review_policy_values_invalid")
     output["claim_review_policy_id"] = policy["policy_id"]
     output["claim_review_policy_sha256"] = hashlib.sha256(policy_raw).hexdigest()

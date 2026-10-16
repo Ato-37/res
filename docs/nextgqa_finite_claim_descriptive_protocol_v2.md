@@ -131,7 +131,7 @@ content. These limits must accompany any result.
 
 All three items must have a completed independent review of the full source
 video, following every requirement in the frozen
-`docs/nextgqa_claim_review_policy_v5.json` policy. The complete, valid
+`docs/nextgqa_claim_review_policy_v6.json` policy. The complete, valid
 claim-input packet and displayed claim text must match byte/hash-bound inputs;
 the claim must be supported by visible pixels and all relevant occurrences
 annotated under the frozen occurrence policy. The reviewer must be independent

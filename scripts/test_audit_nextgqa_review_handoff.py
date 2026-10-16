@@ -13,7 +13,7 @@ from test_render_nextgqa_claim_review_html import RenderNextgqaClaimReviewHtmlTe
 def frozen_worksheet():
     source, raw = packet(3)
     built, _ = build(source, raw)
-    policy_raw = (Path(__file__).resolve().parents[1] / "docs" / "nextgqa_claim_review_policy_v5.json").read_bytes()
+    policy_raw = (Path(__file__).resolve().parents[1] / "docs" / "nextgqa_claim_review_policy_v6.json").read_bytes()
     built = apply_review_policy(built, json.loads(policy_raw), policy_raw)
     return built, encode(built)
 
@@ -33,7 +33,7 @@ def fixture():
     review = {
         "schema_version": 3, "purpose": "anonymous_local_claim_video_human_review",
         "status": "human_review_recorded_unvalidated", "review_completed": True,
-        "execution_authorization": "not_granted", "claim_review_policy_id": "nextgqa_claim_review_v5",
+        "execution_authorization": "not_granted", "claim_review_policy_id": "nextgqa_claim_review_v6",
         "claim_review_policy_sha256": worksheet["claim_review_policy_sha256"],
         "human_reviewer_role": "independent_human", "human_reviewer_private_id": "reviewer-local",
         "review_environment": {"browser_user_agent": "Synthetic", "offline_static_page": True,

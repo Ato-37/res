@@ -1,0 +1,139 @@
+{
+  "schema_version": 1,
+  "policy_id": "nextgqa_claim_review_v6",
+  "purpose": "pre_outcome_human_claim_to_video_mapping",
+  "review_scope": "Exactly the three frozen model-generated feasibility candidates in the input packet; retain all three in the denominator. This is not a confirmatory inferential cohort and does not authorize scoring.",
+  "occurrence_policy": "all_relevant_occurrences",
+  "display_procedure": "Before review, a custodian independent of claim generation and scoring verifies each row against the frozen cohort and private lineage, then gives the human reviewer only the offline HTML page and opaque token-named media. The page does not show dataset IDs/indexes, source paths, gold answers, QA seed intervals, or outcomes. The reviewer watches each full video at normal speed with audio muted and text/caption tracks disabled; burned-in text may remain visible but cannot support a claim. Before starting, the reviewer is told exactly which review JSON, integrity index, and optional clock JSON/index fields are exported. These include a private reviewer pseudonym, role and independence declarations, browser user-agent, per-record playback/review timestamps and duration, decisions, intervals and free-text rationales, plus browser clock observations when requested. The page labels these as self-reported, not proof of identity, viewing, or frame correspondence. Save every export and video-derived note only in the private local custodian area; do not publish or share them externally. A separate custodian verifies token coverage, media bytes, and source mapping.",
+  "permitted_evidence": "Visible source-video pixels only; audio, subtitles, captions, metadata, QA gold answer, QA seed intervals, and model outcome scores are not evidence and remain hidden during mapping.",
+  "support_rule": "A claim is supported only if every material factual component is visibly established by one or more localizable video moments. Partial, contradicted, unsupported, ambiguous, or unlocalizable claims fail the frozen full-cohort review gate; do not invent or borrow intervals.",
+  "interval_rule": "Record every distinct visually sufficient occurrence as a separate positive-duration interval in source-video player seconds, with inclusive endpoints rounded to the nearest millisecond. Do not merge disjoint occurrences or select a subset. After mapping is frozen, the claim-linked mask is the union of sampled frames overlapping any listed interval. Decoder PTS calibration and any disjoint-control selection are separate protocol gates and are not established by this review.",
+  "failure_rule": "Any item without a fully supported claim, verified source identity, complete review, at least one valid interval, or a valid equal-count disjoint temporal control is recorded as a failure; retain the frozen denominator and do not substitute or silently exclude items.",
+  "review_order": "Freeze this policy and exact claim-input/cohort manifests before any human views an item. The custodian validates source lineage and exact media bytes, creates mode-0600 opaque token copies and a private crosswalk, and gives the reviewer only the isolated page and media. Before review, the reviewer reads the complete export disclosure and acknowledges that the page records the private reviewer pseudonym, role/attestations, browser environment, timing/duration declarations, support decisions, intervals, rationale text, and optional clock observations; the reviewer may stop before viewing if those fields are unacceptable. The reviewer must be independent of generation, scoring, and custody; must not see the crosswalk, dataset indexes, gold answers, QA seed intervals, or outcomes; and must not consult external sources. The reviewer watches all three videos and records every distinct visibly sufficient occurrence separately. The review JSON, integrity index, and any clock observation JSON/index are self-reported inputs, not independently authenticated evidence; a custodian keeps them local, validates their hashes and token/media crosswalk, and records the exact bytes before any score access. Human attestation remains required. This review does not authorize scoring.",
+  "export_contract": {
+    "purpose": "local_pre_outcome_review_audit_and_clock_calibration_input_only",
+    "storage": "private_local_only; mode_0600_files; never publish or externally share",
+    "review_json_top_level_fields": [
+      "schema_version",
+      "purpose",
+      "status",
+      "review_completed",
+      "execution_authorization",
+      "claim_review_policy_id",
+      "claim_review_policy_sha256",
+      "human_reviewer_role",
+      "human_reviewer_private_id",
+      "review_environment",
+      "independence_attestation",
+      "export_disclosure_acknowledged",
+      "records"
+    ],
+    "review_json_environment_fields": [
+      "browser_user_agent",
+      "offline_static_page",
+      "network_fetch_available"
+    ],
+    "review_record_fields": [
+      "review_token",
+      "full_source_video_reviewed",
+      "question_and_claim_only_context_shown",
+      "gold_and_seed_hidden_until_mapping_frozen",
+      "outcome_scores_not_accessed",
+      "media_bytes_verified",
+      "occurrence_policy_applied",
+      "support_decision",
+      "evidence_intervals_seconds",
+      "interval_rationales",
+      "media_duration_seconds",
+      "reviewer_role",
+      "first_played_at_utc",
+      "reviewed_at_utc",
+      "review_status",
+      "display_player",
+      "claim_review_policy_sha256"
+    ],
+    "integrity_index_fields": [
+      "schema_version",
+      "purpose",
+      "review_payload_sha256",
+      "claim_review_policy_sha256",
+      "created_at_utc",
+      "review_status",
+      "execution_authorization"
+    ],
+    "optional_clock_json_fields": [
+      "schema_version",
+      "purpose",
+      "status",
+      "capture_policy_id",
+      "capture_thresholds",
+      "player_clock",
+      "presented_frame_metadata",
+      "decoder_frame_identity",
+      "created_at_utc",
+      "browser_user_agent",
+      "anchor_id_validation",
+      "predeclared_plan_binding",
+      "fit_heldout_split",
+      "decoder_pts_pairing",
+      "execution_authorization",
+      "records"
+    ],
+    "clock_record_event_fields": [
+      "anchor_id",
+      "sequence",
+      "requested_player_time_seconds",
+      "request_started_performance_ms",
+      "html5_current_time_seconds",
+      "request_video_frame_callback_metadata",
+      "frame_match_status",
+      "performance_now_ms",
+      "media_duration_seconds",
+      "playback_rate",
+      "muted",
+      "volume",
+      "text_tracks_disabled",
+      "paused",
+      "seeking",
+      "ready_state",
+      "current_src_is_staged_media",
+      "visibility_state",
+      "captured_at_utc"
+    ],
+    "clock_integrity_index_fields": [
+      "schema_version",
+      "purpose",
+      "payload_sha256",
+      "created_at_utc",
+      "status",
+      "execution_authorization"
+    ],
+    "attestation_limit": "all reviewer declarations, browser environment values, timestamps, durations, rationale, and clock observations are self-reported; they do not independently authenticate identity, viewing, or decoder-frame correspondence",
+    "review_record_wrapper_fields": [
+      "records",
+      "review_token",
+      "review"
+    ],
+    "clock_record_wrapper_fields": [
+      "records",
+      "review_token",
+      "events"
+    ],
+    "clock_callback_metadata_fields": [
+      "media_time_seconds",
+      "presented_frames",
+      "presentation_time_ms",
+      "expected_display_time_ms",
+      "width",
+      "height",
+      "callback_now_ms"
+    ],
+    "clock_capture_threshold_fields": [
+      "max_callback_age_ms",
+      "max_request_delay_ms",
+      "max_click_player_time_delta_seconds",
+      "max_callback_player_time_delta_seconds",
+      "callback_wait_timeout_ms"
+    ]
+  }
+}

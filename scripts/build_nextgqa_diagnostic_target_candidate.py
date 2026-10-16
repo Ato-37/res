@@ -23,7 +23,7 @@ from typing import Any
 
 from audit_nextgqa_prompt_tokenizer import MODEL_REVISION, validate_answer_label_tokens
 from build_nextgqa_v2_claim_input_bundle import (
-    ALL_RELEVANT_OCCURRENCES, V2_COHORT_SHA256, V5_POLICY_ID, V5_POLICY_SHA256,
+    ALL_RELEVANT_OCCURRENCES, V2_COHORT_SHA256, V6_POLICY_ID, V6_POLICY_SHA256,
 )
 from claim_mask_video_decoder import decode_sampled_video, verify_sampled_frame_pixels
 from nextgqa_actual_qa_source_adapter import build_actual_qa_source
@@ -40,7 +40,7 @@ WORKSHEET_PURPOSE = "private_blinded_claim_to_evidence_mapping_worksheet"
 # Exact current draft bytes for the diagnostic target candidate only. This is
 # not a protocol freeze or scoring authorization; bump it when the draft text
 # changes, and freeze the complete artifact set separately before any scoring.
-PROTOCOL_V2_DRAFT_SHA256 = "98c113102530f9ca7ca37607c4bfbf411339f64ec9f1f3957ecd2829fe3b0543"
+PROTOCOL_V2_DRAFT_SHA256 = "db71bc5017d0f85aeb58506480edf97f2cbf8ba5d9d56b5ea22fc2fb8f811973"
 PROTOCOL_V2_TITLE = b"# NExT-GQA finite-cohort claim-aligned input-dependence protocol v2"
 PROTOCOL_V2_DRAFT_STATUS = b"Status: **design draft; not frozen, not scoreable, and not an execution"
 PROTOCOL_V2_FRAME_RULE = b"Use 32 endpoint-inclusive uniformly sampled decoded-frame indices."
@@ -263,7 +263,7 @@ def _validate_claim_input_bundle(*, manifest_raw: bytes, sidecar_raw: bytes,
             or not isinstance(manifest.get("eligible_dataset_id"), str)
             or not manifest["eligible_dataset_id"].strip()
             or not _is_sha(manifest.get("eligible_manifest_sha256"))
-            or manifest.get("claim_policy_sha256") != V5_POLICY_SHA256
+            or manifest.get("claim_policy_sha256") != V6_POLICY_SHA256
             or manifest.get("occurrence_policy") != ALL_RELEVANT_OCCURRENCES
             or not isinstance(manifest.get("claims"), list)
             or len(manifest["claims"]) != 3):
@@ -284,8 +284,8 @@ def _validate_claim_input_bundle(*, manifest_raw: bytes, sidecar_raw: bytes,
             or sidecar.get("cohort_digest_check") !=
                 "pinned_value_and_input_declarations_match_not_recomputed_from_full_planner_inputs"
             or sidecar.get("occurrence_policy") != ALL_RELEVANT_OCCURRENCES
-            or sidecar.get("policy_id") != V5_POLICY_ID
-            or sidecar.get("policy_sha256") != V5_POLICY_SHA256
+            or sidecar.get("policy_id") != V6_POLICY_ID
+            or sidecar.get("policy_sha256") != V6_POLICY_SHA256
             or sidecar.get("model") != "Qwen/Qwen2.5-VL-7B-Instruct"
             or sidecar.get("model_revision") != MODEL_REVISION
             or sidecar.get("v1_generation_run_sha256_semantics") !=
@@ -299,7 +299,7 @@ def _validate_claim_input_bundle(*, manifest_raw: bytes, sidecar_raw: bytes,
         "eligible_manifest": manifest["eligible_manifest_sha256"],
         "generation_packet": _sha(generation_raw),
         "lineage_manifest": _sha(lineage_raw),
-        "policy": V5_POLICY_SHA256,
+        "policy": V6_POLICY_SHA256,
         "test_csv": _sha(csv_raw),
         "video_map": lineage["dataset_inputs_sha256"].get("map_vid_vidorID.json"),
         "worksheet": _sha(worksheet_raw),
