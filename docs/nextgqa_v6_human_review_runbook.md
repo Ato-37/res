@@ -1,8 +1,10 @@
 # NExT-GQA v6 local human-review runbook
 
-Status: **preparation only**. Do not open the reviewer package until the
-pre-outcome joint-freeze gate below is complete. The local byte inventory is a
-candidate receipt, not a freeze, review, or authorization.
+Status: **preparation only**. The local byte inventory is a candidate receipt,
+not a freeze, review, or authorization. Use two distinct freeze stages: a
+review-only release freeze before any reviewer opens the package, followed by
+a score freeze after review and clock evidence are complete. A review-only
+receipt never authorizes model loading or scoring.
 
 ## Current local package
 
@@ -16,15 +18,47 @@ It recorded 50 present roles and no missing slots, but has
 `joint_freeze=false`, `review_completed=false`, `score_ready=false`, and
 `execution_authorization=not_granted`.
 
-## Before anyone views a video
+## Review-only release freeze before anyone views a video
 
-An outcome-blind custodian and the independent pre-outcome freeze owner must
-first freeze the exact v6 claim/cohort inputs, source and media bindings, the
-v2 protocol, 32-frame sampler, relevant code, capture policy/helper, thresholds,
-and the designated reviewers' public-key hashes. This freeze must be made
-before a reviewer opens the page. The current protocol is still a draft, and
-there is no production joint-freeze receipt; do not treat the candidate
-inventory or any self-reported review export as a substitute.
+The current v2 protocol is a draft and is not frozen for scoring. Its exact
+bytes and its already stated finite-cohort estimand, three-record denominator,
+conditions, 32-frame sampler, mask/control rule, and failure rule must still be
+hash-bound in the review-only release freeze. This records which fixed study
+contract the annotations serve; it does not mark v2 frozen, score-ready, or
+authorized. The release freeze must also bind the exact v6 claim/cohort inputs,
+source and media lineage/custody, staged media, reviewer page and renderer,
+review policy and disclosure, capture helper/policy, 15-anchor plan and its
+provenance, crop and pair-review procedure, thresholds, and the designated
+reviewers' public-key hashes. The v2 sampler rule is pinned at this stage, but
+the concrete scoring sampler/configuration and executable scorer are not thereby
+approved; bind and validate those in the later score freeze. Freeze the exact
+bytes before anyone opens the page. An independently established trusted
+roster/key root must bind the freeze-owner identity and signing key as well as
+the reviewer identities and keys; a key hash supplied only by the receipt
+being verified is not a trust anchor. A signed local timestamp is only a
+machine-clock assertion, so record the witnessed release order separately if
+no trusted timestamp service is used.
+
+No review-only release receipt or independent roster/key pin currently exists.
+Do not open the package until the exact receipt and its independently
+established trust-root pin have been checked against the frozen bytes, and
+release order is supported by either trusted timestamp evidence or a witnessed
+procedure.
+
+The review-only receipt must say `review_only`, keep
+`protocol_v2_status=design_draft_not_frozen`, `score_ready=false`,
+`model_load_permitted=false`, and `execution_authorization=not_granted`. It
+permits only the frozen human annotation and capture/review work. It must not
+be accepted by any scoring runner. If the claim text, cohort, review policy,
+estimand, metric, conditions, eligibility/failure rule, or mask/control rule
+changes, stop and version the study; affected reviews must be repeated before
+scoring. The later score freeze must bind the completed review exports, audited
+clock/frame evidence, all three source-backed targets, exact prompt prefixes and
+answer-token IDs, sampler/config/code, model checkpoint/configuration,
+tokenizer/processor, precision, condition builder/scorer code, all nine exact
+processor batches, and a production all-three-row atomic preflight bound to the
+same v2 contract before model loading. No production score-freeze receipt
+currently exists.
 
 Assign people to these roles before opening the package. The freeze owner may
 also serve as custodian, but must not serve as either reviewer.
@@ -49,7 +83,8 @@ substitute an agent-generated label or an operator self-attestation.
 
 ## Claim review
 
-After the freeze owner releases the package, the claim reviewer reads and
+After the freeze owner releases the package under the review-only receipt, the
+claim reviewer reads and
 acknowledges the full export disclosure before viewing. The reviewer may stop
 without viewing if they do not accept its terms. Otherwise, they open the local
 `index.html` offline and review all three complete videos at normal speed with
