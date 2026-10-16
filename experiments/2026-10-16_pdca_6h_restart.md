@@ -1749,3 +1749,20 @@ builder's exact-byte pin. The affected candidate/calibration set passes
 and `git diff --check` passes. At **19:29:31 JST**, **4h04m44s** elapsed and
 **1h55m16s** remain. Continue provenance-chain review and prepare a strictly
 local commit only after checking the full explicit path allowlist.
+
+## 19:32 JST checkpoint — align the research overview to verified gates
+
+Updated `docs/research_overview.md` to stop calling the converter “future” work
+and to reflect its current schema-v2 state, while explicitly retaining the
+missing real-browser/PTS/frame-match and integrated-provenance gates. Also
+added the audit finding that the auxiliary 16/32-frame paired difference is
+not independently reconstructible by item from stored score rows. The two
+per-setting means remain reproducible; the paired contrast remains exploratory
+and unverified. This is a documentation correction, not a new experiment.
+
+An independent privacy scan of local commit `4f75c41` found no raw QA/claim
+text, video IDs, or credentials. It did identify one host-local `/tmp` artifact
+locator and digest in the private restart log. Since the commit remains local
+and must not be pushed, no history rewrite is warranted; future publication
+remains blocked. The commit contains only docs/scripts/tests, not raw data or
+result files. At **19:31:36 JST**, **4h06m49s** elapsed and **1h53m11s** remain.
