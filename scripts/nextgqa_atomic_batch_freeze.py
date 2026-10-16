@@ -16,6 +16,7 @@ from typing import Any
 
 CONDITIONS = ("full", "claim_evidence_black", "temporal_control_black")
 ROW_COUNT = 3
+_FINITE_CHECK_CHUNK_ELEMENTS = 1_048_576
 
 
 class PreflightError(ValueError):
@@ -42,11 +43,15 @@ def _canonical(value: Any) -> bytes:
         _fail("batch_value_not_canonicalizable")
 
 
-def _tensor_payload(value: Any) -> dict[str, Any] | None:
-    """Encode tensor metadata and values without depending on NumPy/Torch APIs."""
-    if not (callable(getattr(value, "detach", None))
+def _is_tensor(value: Any) -> bool:
+    return (callable(getattr(value, "detach", None))
             and callable(getattr(value, "cpu", None))
-            and callable(getattr(value, "tolist", None))):
+            and callable(getattr(value, "tolist", None)))
+
+
+def _tensor_payload(value: Any) -> dict[str, Any] | None:
+    """Fallback value encoding for tensor-like test doubles."""
+    if not _is_tensor(value):
         return None
     try:
         cpu = value.detach().cpu()
@@ -80,7 +85,8 @@ def _snapshot_tree(value: Any) -> Any:
             _fail("batch_mapping_key_invalid")
         return {key: _snapshot_tree(item) for key, item in value.items()}
     if isinstance(value, (list, tuple)):
-        return [_snapshot_tree(item) for item in value]
+        copied = [_snapshot_tree(item) for item in value]
+        return tuple(copied) if isinstance(value, tuple) else copied
     if value is None or type(value) in (str, int, float, bool):
         if isinstance(value, float) and not math.isfinite(value):
             _fail("batch_contains_nonfinite_value")
@@ -117,30 +123,101 @@ def _assert_finite_tree(value: Any) -> None:
             _assert_finite_tree(item)
 
 
-def _encode(value: Any) -> Any:
+def _is_torch_tensor(value: Any) -> bool:
+    try:
+        import torch
+    except ImportError:  # pragma: no cover - actual scoring requires torch
+        return False
+    return isinstance(value, torch.Tensor)
+
+
+def _update_blob(digest, value: bytes | memoryview) -> None:
+    digest.update(len(value).to_bytes(8, "big"))
+    if isinstance(value, memoryview):
+        for start in range(0, len(value), 8 * 1024 * 1024):
+            digest.update(value[start:start + 8 * 1024 * 1024])
+    else:
+        digest.update(value)
+
+
+def _update_tensor(digest, value: Any) -> None:
+    """Hash tensor bytes directly; do not materialize huge Python value lists."""
+    try:
+        import torch
+        tensor = value.detach().to(device="cpu")
+        if tensor.layout != torch.strided or tensor.is_quantized:
+            _fail("batch_tensor_layout_unsupported")
+        tensor = tensor.contiguous()
+        if tensor.is_floating_point():
+            flat = tensor.reshape(-1)
+            for start in range(0, flat.numel(), _FINITE_CHECK_CHUNK_ELEMENTS):
+                if not bool(torch.isfinite(
+                        flat[start:start + _FINITE_CHECK_CHUNK_ELEMENTS]).all().item()):
+                    _fail("batch_contains_nonfinite_value")
+        if tensor.is_complex():
+            _fail("batch_tensor_dtype_unsupported")
+        metadata = _canonical({"dtype": str(tensor.dtype),
+                               "shape": [int(dim) for dim in tensor.shape]})
+        byte_view = tensor.reshape(-1).view(torch.uint8).numpy()
+        raw = memoryview(byte_view).cast("B")
+    except PreflightError:
+        raise
+    except Exception:
+        _fail("batch_tensor_stream_materialization_failed")
+    digest.update(b"T")
+    _update_blob(digest, metadata)
+    _update_blob(digest, raw)
+
+
+def _update_value(digest, value: Any) -> None:
+    if _is_torch_tensor(value):
+        _update_tensor(digest, value)
+        return
     tensor = _tensor_payload(value)
     if tensor is not None:
-        return tensor
+        digest.update(b"F")
+        _update_blob(digest, _canonical(tensor))
+        return
     if isinstance(value, Mapping):
         if any(not isinstance(key, str) for key in value):
             _fail("batch_mapping_key_invalid")
-        return {key: _encode(item) for key, item in sorted(value.items())}
+        digest.update(b"{")
+        digest.update(len(value).to_bytes(8, "big"))
+        for key, item in sorted(value.items()):
+            _update_blob(digest, key.encode("utf-8"))
+            _update_value(digest, item)
+        digest.update(b"}")
+        return
     if isinstance(value, (list, tuple)):
-        return [_encode(item) for item in value]
+        digest.update(b"L" if isinstance(value, list) else b"U")
+        digest.update(len(value).to_bytes(8, "big"))
+        for item in value:
+            _update_value(digest, item)
+        digest.update(b"]")
+        return
     if value is None or type(value) in (str, int, float, bool):
         if isinstance(value, float) and not math.isfinite(value):
             _fail("batch_contains_nonfinite_value")
-        return value
+        digest.update(b"S")
+        _update_blob(digest, _canonical(value))
+        return
     # Processor outputs should be recursively representable as mappings,
     # sequences, scalars, or tensors; silently stringifying objects is unsafe.
     _fail("batch_value_type_unsupported")
 
 
 def batch_sha256(batch: Any) -> str:
-    """Hash a fully materialized batch with keys, tensor dtype/shape, and values."""
+    """Hash typed batches with chunked tensor bytes and canonical containers.
+
+    Tensor shape and dtype are included before the contiguous CPU byte payload.
+    This avoids converting model-sized pixel tensors into Python lists, which
+    can multiply transient RAM use by an order of magnitude.
+    """
     if not isinstance(batch, Mapping) or not batch:
         _fail("condition_batch_schema_invalid")
-    return hashlib.sha256(_canonical(_encode(batch))).hexdigest()
+    digest = hashlib.sha256(b"nextgqa_typed_batch_stream_v1\0")
+    _update_value(digest, batch)
+    return digest.hexdigest()
 
 
 def freeze_all_batches(*, triplets: Any, token_ids: Any,
@@ -243,6 +320,7 @@ def freeze_all_batches(*, triplets: Any, token_ids: Any,
         "requested_records": ROW_COUNT,
         "requested_forwards": ROW_COUNT * len(CONDITIONS),
         "batch_sha256": observed_hashes,
+        "batch_hash_schema": "nextgqa_typed_batch_stream_v1",
         "triplets": materialized,
         "execution_authorization": "not_granted",
     }

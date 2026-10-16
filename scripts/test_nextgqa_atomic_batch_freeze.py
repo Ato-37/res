@@ -194,6 +194,67 @@ class AtomicBatchFreezeTests(unittest.TestCase):
         source[0] = 99.0
         self.assertEqual(float(frozen[0]), 1.0)
 
+    def test_stream_hash_preserves_tensor_bytes_dtype_shape_and_scalar_shape(self):
+        try:
+            import torch
+        except ImportError:  # pragma: no cover
+            self.skipTest("torch unavailable")
+        values = torch.tensor([1.0, -2.5, 0.125], dtype=torch.bfloat16)
+        base = batch_sha256({"pixels": values})
+        self.assertEqual(base, batch_sha256({"pixels": values.clone()}))
+        self.assertNotEqual(base, batch_sha256({"pixels": values.to(torch.float32)}))
+        values[1] = -2.0
+        self.assertNotEqual(base, batch_sha256({"pixels": values}))
+        scalar = torch.tensor(3.0, dtype=torch.float32)
+        self.assertEqual(64, len(batch_sha256({"scalar": scalar})))
+        empty = torch.empty((0, 3), dtype=torch.bfloat16)
+        self.assertEqual(batch_sha256({"empty": empty}),
+                         batch_sha256({"empty": empty.clone()}))
+        noncontiguous = torch.arange(12, dtype=torch.int32).reshape(3, 4)[:, ::2]
+        self.assertFalse(noncontiguous.is_contiguous())
+        self.assertEqual(batch_sha256({"x": noncontiguous}),
+                         batch_sha256({"x": noncontiguous.contiguous()}))
+        self.assertNotEqual(batch_sha256({"x": torch.tensor([0.0])}),
+                            batch_sha256({"x": torch.tensor([-0.0])}))
+
+    def test_container_types_and_nested_mapping_order_have_stable_domains(self):
+        self.assertEqual(batch_sha256({"x": 1}),
+                         "0bd1c0f20db2f25be462f5362663b968df252687b74c06551320b71f7f7bc7e9")
+        self.assertNotEqual(batch_sha256({"x": [1, 2]}),
+                            batch_sha256({"x": (1, 2)}))
+        self.assertEqual(batch_sha256({"outer": {"b": 2, "a": 1}}),
+                         batch_sha256({"outer": {"a": 1, "b": 2}}))
+        self.assertNotEqual(batch_sha256({"x": True}), batch_sha256({"x": 1}))
+        self.assertNotEqual(batch_sha256({"x": 1}), batch_sha256({"x": 1.0}))
+
+    def test_cpu_snapshot_preserves_tuple_container_type(self):
+        rows, hashes = fixture()
+        rows[0]["batches"]["full"]["nested"] = (1, [2, 3])
+        hashes["r1"]["full"] = batch_sha256(rows[0]["batches"]["full"])
+        result = freeze_all_batches(
+            triplets=rows, token_ids=[11, 12, 13, 14, 15],
+            expected_record_ids=["r1", "r2", "r3"],
+            expected_batch_hashes=hashes,
+            authenticated_gate_check=lambda: True)
+        self.assertEqual(result["triplets"][0]["batches"]["full"]["nested"],
+                         (1, [2, 3]))
+        self.assertEqual(result["batch_hash_schema"], "nextgqa_typed_batch_stream_v1")
+
+    def test_stream_hash_rejects_nonfinite_and_unsupported_tensor_layouts(self):
+        try:
+            import torch
+        except ImportError:  # pragma: no cover
+            self.skipTest("torch unavailable")
+        with self.assertRaisesRegex(PreflightError, "nonfinite"):
+            batch_sha256({"pixels": torch.tensor([float("inf")])})
+        import warnings
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", UserWarning)
+            sparse = torch.sparse_coo_tensor(
+                [[0]], [1.0], (1,), check_invariants=True)
+        with self.assertRaisesRegex(PreflightError, "layout_unsupported"):
+            batch_sha256({"pixels": sparse})
+
 
 if __name__ == "__main__":
     unittest.main()
