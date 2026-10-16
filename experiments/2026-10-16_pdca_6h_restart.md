@@ -1701,18 +1701,20 @@ log-probabilities and best-foil identity per item/condition in the private
 excluding answer labels from public-safe aggregates. The pinned protocol SHA
 was refreshed and will be checked with the candidate-builder tests.
 
-A separate source-only provenance audit found that the current chain is not an
-integrated reproducible handoff: renderer observations do not carry the full
-worksheet/custody/media-check references, the calibrator preserves only a
-capture digest, and the planner needs fields the calibrator does not emit.
-Converter→calibrator and planner are tested separately with synthetic fixtures,
-not as one connected artifact chain. This does not create scoring authority;
-it means actual clock evidence could not yet be used honestly end-to-end. The
-next useful foundation is a versioned local provenance bundle binding renderer
-worksheet, custody, observation/index, frozen anchor plan, converted capture,
-calibration and assignment; a synthetic end-to-end test should reject swapped
-tokens/media and any missing edge. Keep the chain unvalidated until a real
-browser and independent frame/PTS evidence exist.
+A separate source-only provenance audit found that the full renderer-to-planner
+handoff is not an integrated reproducible artifact chain: renderer observations
+do not carry all worksheet/custody/media-check references, the calibrator
+preserves only a capture digest, and the planner requires additional
+caller-supplied fields. Correction after direct test inspection: a synthetic
+test already chains observation conversion into calibration for three fixture
+captures (`test_bundle_capture_schema_feeds_empirical_validator_without_authorizing`);
+the gap is the upstream review/custody linkage and downstream calibration-to-
+assignment binding, not a missing converter→calibrator test. Existing fixtures
+still cannot authenticate browser telemetry or authorize scoring. The next
+useful foundation is to preserve stable opaque-token and source-hash references
+through the downstream artifact bundle and test swapped/missing edges. Keep
+the chain unvalidated until a real browser and independent frame/PTS evidence
+exist.
 
 No protected results, GPU, or direct claim scores were used for these audits.
 At **19:25:42 JST**, **4h00m55s** elapsed and **1h59m05s** remain to the
@@ -1787,3 +1789,28 @@ start field is the first verified-media play event, not the beginning of reading
 the UI describes that limitation. No actual browser, dataset, GPU, or model was
 used. At **19:37:55 JST**, **4h13m08s** elapsed and **1h46m52s** remain. Next:
 stage only these eight source/test paths plus this log and commit locally.
+
+## 19:41 JST checkpoint — preserve calibration lineage without overstating it
+
+Direct inspection found an existing synthetic 3-record test for observation
+conversion → calibration. The actual omission was transitive lineage in the
+calibration artifact, so a new wrapper now carries each record's opaque review
+token and the observation, index, frozen-plan, capture, and media SHA-256 values
+into a canonical rehashed artifact. It verifies that the token selects exactly
+one embedded capture, the supplied capture matches that row, and media bytes
+match the capture's source hash. A regression deliberately supplies fabricated
+upstream digest strings; the output marks them unauthenticated. This therefore
+helps catch accidental swaps but does not prove input authenticity, reviewer
+identity, browser telemetry, or frame/PTS correspondence.
+
+The independent audit found no defect in those selected-row checks or artifact
+hashing. It also confirmed the wrapper is intentionally **not planner-eligible**:
+it does not invent independent-review attestations or frame-correspondence
+evidence hashes. Wiring it into assignment would require a separate, evidence-
+preserving planner design. Focused tests pass **13/13**, the full suite passes
+**1022/1022** in **9.62 s**, Python compilation and `git diff --check` pass.
+No real browser exists in this environment (`node` is present, but no Chromium,
+Firefox, Playwright, or Selenium); no protected data, model, or GPU was used.
+At **19:41:17 JST**, **4h16m30s** elapsed and **1h43m30s** remain. Next: update
+the readiness overview/log, independently review the complete working diff,
+and commit only these scoped docs/tests/helper locally.

@@ -15,6 +15,7 @@ from prepare_html5_clock_calibration_inputs import (
     prepare_capture_bundle,
 )
 from html5_clock_capture_calibration import build_html5_clock_calibration
+from bind_html5_clock_calibration_provenance import build_bound_html5_clock_calibration
 
 
 def enc(value):
@@ -119,6 +120,111 @@ class PrepareHtml5ClockInputsTests(unittest.TestCase):
             self.assertTrue(calibration["empirical_residual_within_tolerance"])
             self.assertEqual(calibration["execution_authorization"], "not_granted")
             self.assertEqual(calibration["uncertainty_status"], "not_evaluated")
+
+    def test_synthetic_converter_to_calibrator_hash_bindings(self):
+        """Check byte-hash continuity; synthetic browser claims remain unauthenticated."""
+        obs_raw, index_raw, plan_raw = fixture()
+        plan_sha = hashlib.sha256(plan_raw).hexdigest()
+        bundle = prepare_capture_bundle(obs_raw, index_raw, plan_raw, plan_sha)
+
+        self.assertEqual(bundle["observations_sha256"], hashlib.sha256(obs_raw).hexdigest())
+        self.assertEqual(bundle["observation_index_sha256"], hashlib.sha256(index_raw).hexdigest())
+        self.assertEqual(bundle["anchor_plan_sha256"], plan_sha)
+
+        # The fixture's media bytes deliberately match the synthetic source hash
+        # in the plan. This verifies arithmetic and artifact binding only.
+        for i, item in enumerate(bundle["captures"]):
+            media = f"video-{i}".encode()
+            capture_raw = enc(item["capture"])
+            calibration = build_html5_clock_calibration(capture_raw, media, "1/20")
+
+            self.assertEqual(calibration["source_media_sha256"], hashlib.sha256(media).hexdigest())
+            self.assertEqual(calibration["capture_sha256"], hashlib.sha256(capture_raw).hexdigest())
+            self.assertEqual(hashlib.sha256(calibration["artifact_raw"]).hexdigest(),
+                             calibration["artifact_sha256"])
+            self.assertEqual(json.loads(calibration["artifact_raw"]), {
+                key: value for key, value in calibration.items()
+                if key not in {"artifact_raw", "artifact_sha256"}
+            })
+            self.assertEqual(calibration["execution_authorization"], "not_granted")
+            # Upstream observation/index/plan digests are bundle-level only;
+            # the calibrator artifact currently carries capture and media
+            # hashes, not those transitive references or the stable row token.
+            self.assertNotIn("anchor_plan_sha256", calibration)
+            self.assertNotIn("observation_index_sha256", calibration)
+            self.assertNotIn("review_token", calibration)
+
+    def test_bound_calibration_retains_lineage_hashes_and_token(self):
+        obs_raw, index_raw, plan_raw = fixture()
+        plan_sha = hashlib.sha256(plan_raw).hexdigest()
+        bundle = prepare_capture_bundle(obs_raw, index_raw, plan_raw, plan_sha)
+        item = bundle["captures"][1]
+        capture_raw = enc(item["capture"])
+        record = build_bound_html5_clock_calibration(
+            prepared_bundle=bundle,
+            review_token=item["review_token"],
+            capture_raw=capture_raw,
+            media_bytes=b"video-1",
+            frozen_tolerance_pts_seconds="1/20",
+        )
+
+        self.assertEqual(record["observations_sha256"], hashlib.sha256(obs_raw).hexdigest())
+        self.assertEqual(record["observation_index_sha256"], hashlib.sha256(index_raw).hexdigest())
+        self.assertEqual(record["anchor_plan_sha256"], plan_sha)
+        self.assertEqual(record["review_token"], item["review_token"])
+        self.assertEqual(record["capture_sha256"], hashlib.sha256(capture_raw).hexdigest())
+        self.assertEqual(record["source_media_sha256"], hashlib.sha256(b"video-1").hexdigest())
+        self.assertEqual(record["provenance_status"],
+                         "capture_and_media_byte_bound_upstream_digests_unverified")
+        self.assertEqual(record["upstream_hash_verification"],
+                         "digest_strings_carried_from_prepared_bundle_not_reauthenticated")
+        self.assertEqual(record["execution_authorization"], "not_granted")
+        self.assertEqual(hashlib.sha256(record["artifact_raw"]).hexdigest(),
+                         record["artifact_sha256"])
+        self.assertEqual(json.loads(record["artifact_raw"]), {
+            key: value for key, value in record.items()
+            if key not in {"artifact_raw", "artifact_sha256"}
+        })
+
+    def test_fabricated_bundle_hashes_are_carried_but_explicitly_untrusted(self):
+        obs_raw, index_raw, plan_raw = fixture()
+        bundle = prepare_capture_bundle(obs_raw, index_raw, plan_raw,
+                                        hashlib.sha256(plan_raw).hexdigest())
+        item = bundle["captures"][0]
+        fabricated = dict(bundle,
+                          observations_sha256="f" * 64,
+                          observation_index_sha256="e" * 64,
+                          anchor_plan_sha256="d" * 64)
+        record = build_bound_html5_clock_calibration(
+            prepared_bundle=fabricated,
+            review_token=item["review_token"],
+            capture_raw=enc(item["capture"]),
+            media_bytes=b"video-0",
+            frozen_tolerance_pts_seconds="1/20",
+        )
+        self.assertEqual(record["observations_sha256"], "f" * 64)
+        self.assertIn("fabricated bundle", " ".join(record["limitations"]))
+        self.assertEqual(record["provenance_status"],
+                         "capture_and_media_byte_bound_upstream_digests_unverified")
+        self.assertEqual(record["execution_authorization"], "not_granted")
+
+    def test_bound_calibration_rejects_token_or_media_mismatch(self):
+        obs_raw, index_raw, plan_raw = fixture()
+        bundle = prepare_capture_bundle(obs_raw, index_raw, plan_raw,
+                                        hashlib.sha256(plan_raw).hexdigest())
+        item = bundle["captures"][0]
+        args = {
+            "prepared_bundle": bundle,
+            "review_token": item["review_token"],
+            "capture_raw": enc(item["capture"]),
+            "media_bytes": b"video-0",
+            "frozen_tolerance_pts_seconds": "1/20",
+        }
+        wrong_token = dict(args, review_token=bundle["captures"][1]["review_token"])
+        with self.assertRaisesRegex(ValueError, "capture_bundle_content_mismatch"):
+            build_bound_html5_clock_calibration(**wrong_token)
+        with self.assertRaisesRegex(ValueError, "source_media_binding_mismatch"):
+            build_bound_html5_clock_calibration(**dict(args, media_bytes=b"wrong media"))
 
     def test_calibration_uses_presented_media_time_not_click_current_time(self):
         obs_raw, index_raw, plan_raw = fixture()
