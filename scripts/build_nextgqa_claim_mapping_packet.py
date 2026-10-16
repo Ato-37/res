@@ -191,7 +191,7 @@ def build(packet: Any, packet_raw: bytes) -> tuple[dict, bytes]:
                 "rationale": None,
                 "reviewer_role": None,
                 "review_record_reference": None,
-                "review_started_at_utc": None,
+                "first_played_at_utc": None,
                 "reviewed_at_utc": None,
                 "review_status": "not_started",
             },

@@ -81,7 +81,7 @@ def assert_exact_output_keys(test, value):
         "question_and_claim_only_context_shown", "gold_and_seed_hidden_until_mapping_frozen",
         "outcome_scores_not_accessed", "occurrence_policy_applied", "support_decision",
         "evidence_intervals_seconds", "rationale", "reviewer_role",
-        "review_record_reference", "review_started_at_utc", "reviewed_at_utc", "review_status",
+        "review_record_reference", "first_played_at_utc", "reviewed_at_utc", "review_status",
     }
     test.assertIn(set(value), (top, top | policy_keys))
     for row in value["records"]:
@@ -129,7 +129,7 @@ class BuildNextgqaClaimMappingPacketTests(unittest.TestCase):
                 "rationale": None,
                 "reviewer_role": None,
                 "review_record_reference": None,
-                "review_started_at_utc": None,
+                "first_played_at_utc": None,
                 "reviewed_at_utc": None,
                 "review_status": "not_started",
             })

@@ -66,7 +66,7 @@ def fixture():
             "media_duration_seconds": 3.0,
             "reviewer_role": "independent_human",
             "display_player": "Synthetic HTML5 player",
-            "review_started_at_utc": "2026-10-16T05:59:00Z",
+            "first_played_at_utc": "2026-10-16T05:59:00Z",
             "reviewed_at_utc": "2026-10-16T06:00:00Z",
             "review_status": "completed",
             "claim_review_policy_sha256": FROZEN_POLICY_SHA256,
@@ -95,7 +95,7 @@ def fixture():
                         "pts": list(range(7)), "time_base": [1, 2], "num_frames": 7,
                         "sampled_pixel_sha256": frame_sha,
                         "processor_pixel_sha256": frame_sha.copy()})
-    review_payload = {"schema_version": 2, "purpose": "anonymous_local_claim_video_human_review",
+    review_payload = {"schema_version": 3, "purpose": "anonymous_local_claim_video_human_review",
                       "status": "human_review_recorded_unvalidated", "review_completed": True,
                       "execution_authorization": "not_granted",
                       "claim_review_policy_id": "nextgqa_claim_review_v5",
@@ -197,9 +197,9 @@ class ClaimReviewAssignmentPlanTests(unittest.TestCase):
         self.assertEqual(result["failure_codes"], ["audit_report_byte_binding_invalid"])
         self.assertEqual(result["score_calls"], 0)
 
-    def test_review_start_must_precede_item_completion_and_export(self):
+    def test_first_play_must_precede_item_completion_and_export(self):
         args = fixture()
-        args["review_records"][0]["review"]["review_started_at_utc"] = "2026-10-16T06:01:00Z"
+        args["review_records"][0]["review"]["first_played_at_utc"] = "2026-10-16T06:01:00Z"
         rebind_review(args)
         result = plan_claim_review_assignments(**args)
         self.assertEqual(result["failure_codes"], ["review_declaration_gate_failed"])

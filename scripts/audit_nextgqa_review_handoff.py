@@ -119,7 +119,7 @@ def audit(worksheet: Any, worksheet_raw: bytes, lineage: Any, lineage_raw: bytes
                 "claim_review_policy_id", "claim_review_policy_sha256", "human_reviewer_role",
                 "human_reviewer_private_id", "review_environment", "independence_attestation", "records"}
     env = review.get("review_environment")
-    if (set(review) != top_keys or review.get("schema_version") != 2
+    if (set(review) != top_keys or review.get("schema_version") != 3
             or review.get("purpose") != "anonymous_local_claim_video_human_review"
             or review.get("status") != "human_review_recorded_unvalidated"
             or review.get("review_completed") is not True
@@ -147,7 +147,7 @@ def audit(worksheet: Any, worksheet_raw: bytes, lineage: Any, lineage_raw: bytes
         keys = {"full_source_video_reviewed", "question_and_claim_only_context_shown",
                 "gold_and_seed_hidden_until_mapping_frozen", "outcome_scores_not_accessed",
                 "media_bytes_verified", "occurrence_policy_applied", "support_decision", "evidence_intervals_seconds",
-                "interval_rationales", "reviewer_role", "review_started_at_utc",
+                "interval_rationales", "reviewer_role", "first_played_at_utc",
                 "reviewed_at_utc", "review_status",
                 "display_player", "claim_review_policy_sha256", "media_duration_seconds"}
         if (not isinstance(item, dict) or set(item) != keys
@@ -158,7 +158,7 @@ def audit(worksheet: Any, worksheet_raw: bytes, lineage: Any, lineage_raw: bytes
                 or item.get("media_bytes_verified") is not True
                 or item.get("occurrence_policy_applied") != "all_relevant_occurrences"
                 or item.get("claim_review_policy_sha256") != FROZEN_POLICY_SHA256
-                or not _utc_leq(item.get("review_started_at_utc"), item.get("reviewed_at_utc"))
+                or not _utc_leq(item.get("first_played_at_utc"), item.get("reviewed_at_utc"))
                 or not _utc_leq(item.get("reviewed_at_utc"), index.get("created_at_utc"))
                 or not isinstance(item.get("display_player"), str) or not item.get("display_player")):
             failures.add("review_declaration_incomplete"); continue

@@ -1829,3 +1829,29 @@ independent reviewer verified the fixture and test assert exactly that narrow
 point. Focused planner tests pass **21/21**. At **19:42:31 JST**, **4h17m44s**
 elapsed and **1h42m16s** remain. Next: full-suite verification, scoped local
 commit, then reassess useful independent work against the no-go scoring gates.
+
+## 19:44 JST checkpoint — name the per-item event precisely
+
+The prior schema-v2 field `review_started_at_utc` could be read as the start of
+reading or review, but it records only the first playback event. Renamed it to
+`first_played_at_utc` and bumped the human-review payload to schema v3 across
+the renderer, worksheet builder, handoff audit, assignment planner, and tests.
+The Japanese notice now says “initial playback time”; validators still require
+that it precede row completion and the export index, and v2 payloads fail
+closed. No review record had been completed, so no real payload migration was
+needed. Focused cross-component tests pass **51/51**; rendered inline
+JavaScript passes `node --check`. This clarifies a self-report field only and
+does not authenticate viewing. Independent review is pending. At **19:44:46
+JST**, **4h19m59s** elapsed and **1h39m01s** remain. Next: complete the audit,
+run the full suite, then commit only the schema-v3 sources/tests and log.
+
+Follow-up added an explicit compatibility regression: a schema-v2 review payload
+with correctly recomputed payload/index hashes is rejected specifically as
+`review_payload_schema_invalid`, while semantic authentication stays false and
+authorization stays not granted. The independent reviewer verified this tests
+version rejection rather than stale-hash rejection. Focused cross-component
+tests now pass **52/52**, generated inline JavaScript passes `node --check`, and
+`git diff --check` is clean. This is backward-incompatible by design, but there
+is no completed review payload to migrate. The full repository suite and final
+local commit remain pending; work-window accounting at **19:45:35 JST** is
+**4h20m48s** elapsed and **1h39m12s** remaining.
