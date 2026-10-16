@@ -247,6 +247,38 @@ class ClaimReviewAssignmentPlanTests(unittest.TestCase):
         self.assertEqual(result["denominator"], 3)
         self.assertEqual(result["score_calls"], 0)
 
+    def test_zero_sampled_evidence_overlap_blocks_complete_cohort(self):
+        args = fixture()
+        # The reviewed interval is valid and away from all sampled PTS values,
+        # so the frozen intervention would otherwise be a no-op mask.
+        args["review_records"][1]["review"]["evidence_intervals_seconds"] = [[0.4, 0.6]]
+        rebind_review(args)
+        result = plan_claim_review_assignments(**args)
+        self.assertEqual(result["status"], "blocked")
+        self.assertEqual(result["failure_codes"], ["zero_sampled_evidence_overlap"])
+        self.assertEqual(result["denominator"], 3)
+        self.assertEqual(result["validated_videos"], 0)
+        self.assertEqual(result["assignments"], [])
+        self.assertEqual(result["score_calls"], 0)
+        self.assertEqual(result["execution_authorization"], "not_granted")
+
+    def test_insufficient_equal_count_controls_block_complete_cohort(self):
+        args = fixture()
+        args["expected_num_frames"] = 7
+        args["review_records"][2]["review"]["evidence_intervals_seconds"] = [[0.1, 2.9]]
+        for timing in args["timing_records"]:
+            hashes = [sha(f"sampled-pixel-{i}".encode()) for i in range(7)]
+            timing["sampled_pixel_sha256"] = hashes
+            timing["processor_pixel_sha256"] = hashes.copy()
+        rebind_review(args)
+        result = plan_claim_review_assignments(**args)
+        self.assertEqual(result["status"], "blocked")
+        self.assertEqual(result["failure_codes"], ["evidence_control_assignment_failed"])
+        self.assertEqual(result["denominator"], 3)
+        self.assertEqual(result["validated_videos"], 0)
+        self.assertEqual(result["assignments"], [])
+        self.assertEqual(result["score_calls"], 0)
+
     def test_affine_clock_drift_maps_player_intervals_to_pts(self):
         args = fixture()
         for row in args["review_records"]:

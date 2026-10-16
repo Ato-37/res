@@ -73,9 +73,11 @@ define
 
 `S_i(z) = log P(gold_i | z) - max_{foil != gold_i} log P(foil | z)`.
 
-Conditions are (1) full video, (2) black-filled frames inside the human-reviewed
-claim-evidence interval, and (3) black-filled equal-count temporal-control
-frames. Hold the question, ordered choices, gold index, prompt, checkpoint,
+Conditions are (1) full video, (2) black-filled frames overlapping the union
+of all distinct human-reviewed support-occurrence intervals for the one frozen
+claim, and (3) black-filled equal-count temporal-control frames. Do not choose
+one occurrence or merge disjoint intervals after review. Hold the question,
+ordered choices, gold index, prompt, checkpoint,
 tokenizer, processor, frame sampler, and every non-mask input fixed. For item
 `i`, the paired contrast is
 
@@ -107,9 +109,14 @@ Use 32 endpoint-inclusive uniformly sampled decoded-frame indices. The final
 sampler and its source/configuration hash must be frozen before scoring.
 Evidence ranks are sampled frames whose decoder PTS lies inside any
 human-reviewed interval, inclusive of endpoints. For `k` evidence ranks,
-select exactly `k` distinct non-evidence ranks minimizing the sum of absolute
-rank distances; ties go to the lexicographically smallest ordered control-rank
-tuple. If fewer than `k` controls exist, block the cohort before model load.
+require `k >= 1` for every row after applying the frozen 32-frame sampler and
+the calibrated PTS guard. Record the sampled overlap count and ranks in the
+private audit record. If `k == 0`, report
+`zero_sampled_evidence_overlap` and block the complete cohort before model
+load; do not score no-op masks or replace the row. Otherwise, select exactly
+`k` distinct non-evidence ranks minimizing the sum of absolute rank distances;
+ties go to the lexicographically smallest ordered control-rank tuple. If fewer
+than `k` controls exist, block the cohort before model load.
 Set every pixel channel of selected complete RGB frames to zero before Qwen
 resizing/normalization. Only selected frame pixels may vary across conditions.
 Bind the transform code/configuration and exact processor inputs.
@@ -168,9 +175,12 @@ all model, model-config, tokenizer, processor, prompt-builder and scoring-code
 hashes. The current structural target contract, actual-CSV adapter, and
 experimental structural target wrapper do not alone authenticate all upstream
 declarations, tokenize prefixes, or authorize inference. A production atomic
-preflight is still to be implemented and audited; it must check every upstream
-artifact, decoder PTS/pixel identity, frame assignment and score-input binding,
-and return zero score calls for any failure.
+preflight is still to be implemented and audited; it must require this
+protocol's 32-frame endpoint-inclusive sampler and verify its frozen
+sampler/configuration and code hashes (the current planner accepts a
+caller-specified frame count and does not bind those hashes), check every
+upstream artifact, decoder PTS/pixel identity, frame assignment and score-input
+binding, and return zero score calls for any failure.
 
 ## Reporting and data handling
 

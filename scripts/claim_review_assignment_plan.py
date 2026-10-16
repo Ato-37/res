@@ -446,6 +446,8 @@ def plan_claim_review_assignments(*, expected_video_ids, worksheet_records,
                 mapped.append([pts_start, pts_end])
             assignment = assign_evidence_control_frames_from_times(
                 len(times), expected_num_frames, times, mapped)
+            if assignment["status"] == "no_evidence":
+                raise ValueError("zero_sampled_evidence_overlap")
             if assignment["status"] != "ok":
                 raise ValueError("evidence_control_assignment_failed")
             planned.append({

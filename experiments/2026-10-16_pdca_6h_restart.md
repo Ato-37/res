@@ -2013,7 +2013,29 @@ exposure/identity reconciliation, an explicit frame and interval-hit rule, and
 a frozen target and failure denominator. Therefore no GPU job was launched.
 This branch is stopped for lack of a new discriminating question; direct
 generated-claim faithfulness remains separately gated at 0/3 human-reviewed
-and 0/3 scored. The next work is an independent read-only audit of protocol
-consistency and CPU-only reproducibility prerequisites, followed by any
-concrete repair. At **20:02:50 JST**, **4h38m03s elapsed** and **1h21m57s
+and 0/3 scored. At **20:02:50 JST**, **4h38m03s elapsed** and **1h21m57s
 remain**.
+
+## 20:05 JST checkpoint — reject zero-overlap no-op masks
+
+The independent protocol audit found that v2 did not explicitly require a
+reviewed support interval to overlap the frozen 32-frame sample. The assignment
+planner already blocks a row with no sampled evidence, but the generic failure
+code hid the distinction; treating a zero/zero pair of masks as a scored
+contrast would be misleading. The protocol now requires `k >= 1` after the
+frozen sampler and PTS guard, records overlap ranks privately, and blocks the
+whole cohort with `zero_sampled_evidence_overlap` before model load without
+replacement. The scale-up worksheet and estimand wording now consistently
+state that one claim uses the union of all distinct support-occurrence
+intervals. The planner emits the named failure code and a new synthetic
+regression test verifies denominator=3, zero assignments, zero score calls,
+and `execution_authorization=not_granted`. A follow-up audit confirmed the
+atomic failure path and noted a separate v2 integration gap: this generic
+planner accepts a caller-specified frame count and does not bind sampler/code
+hashes. The v2 production launch gate must therefore explicitly require its
+frozen 32-frame sampler and configuration/code digests; the current planner is
+not itself that gate. Planner and synthetic rehearsal suites pass 35/35 tests;
+`git diff --check` passes. These checks establish only synthetic protocol
+behavior. They do not establish sampled overlap for any protected record,
+authenticate review or clock evidence, or authorize scoring. No media or GPU
+was used. At **20:07:26 JST**, **4h42m39s elapsed** and **1h17m21s remain**.
