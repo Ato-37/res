@@ -64,3 +64,16 @@ pages remain historical bytes and must not be silently replaced or treated as
 having shown this notice. A new page should be rendered and audited as a new
 artifact; its policy digest still identifies the frozen v5 policy and does not
 hash this implementation disclosure.
+
+The current reviewer page presents the review JSON and integrity index as a
+two-step required handoff. After the JSON download is initiated, it explains
+that the page must remain open until the index download is initiated; the
+page directs both files to the private custodian and offers re-download buttons
+for the same frozen payload/index if a browser download fails. The page
+explicitly says that initiating a browser download does
+not prove that the file reached disk. It avoids persistent browser storage
+because the review payload includes private reviewer metadata and free-text
+video-derived rationales. When clock observations are collected, their payload
+and integrity index must also be kept and returned privately. This is a
+handoff usability aid only and does not authenticate human review or authorize
+scoring.
