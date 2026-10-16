@@ -148,6 +148,20 @@ class SyntheticV2PreflightTests(unittest.TestCase):
         f["rows"].pop()
         self.assert_denied(run(f), "cohort_row_count_mismatch")
 
+    def test_unhashable_row_video_id_fails_closed_without_typeerror(self):
+        for malformed_id in (["synthetic-video-0"], {"id": "synthetic-video-0"}):
+            with self.subTest(malformed_id=malformed_id):
+                f = fixture()
+                f["rows"][0]["video_id"] = malformed_id
+                self.assert_denied(run(f), "clock_mapping_config_content_mismatch")
+
+    def test_unhashable_expected_video_id_fails_closed_without_typeerror(self):
+        for malformed_id in (["synthetic-video-0"], {"id": "synthetic-video-0"}):
+            with self.subTest(malformed_id=malformed_id):
+                f = fixture()
+                f["expected_video_ids"][0] = malformed_id
+                self.assert_denied(run(f), "frozen_three_record_cohort_invalid")
+
     def test_non_32_or_non_endpoint_sample_grid_fails_closed(self):
         f = fixture()
         f["rows"][1]["sample_indices"] = list(range(1, 32))

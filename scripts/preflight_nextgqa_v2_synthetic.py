@@ -222,8 +222,22 @@ def _fraction_pair(value, code, *, positive=False):
 
 
 def _clock_config_expected(rows, expected_ids):
+    if (not isinstance(expected_ids, list)
+            or any(not isinstance(value, str) or not value for value in expected_ids)
+            or len(set(expected_ids)) != len(expected_ids)):
+        return None
     material = []
-    by_id = {row.get("video_id"): row for row in rows if isinstance(row, dict)}
+    # Validate identities before using them as dictionary keys: malformed
+    # synthetic rows may contain lists/dicts, which must fail closed rather
+    # than leak a TypeError from this preflight boundary.
+    by_id = {}
+    for row in rows:
+        if not isinstance(row, dict):
+            return None
+        video_id = row.get("video_id")
+        if not isinstance(video_id, str) or not video_id or video_id in by_id:
+            return None
+        by_id[video_id] = row
     if set(by_id) != set(expected_ids):
         return None
     for video_id in expected_ids:
