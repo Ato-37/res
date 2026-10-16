@@ -4,7 +4,11 @@
 The page contains protected question/claim text. It performs no network calls,
 does not embed video bytes, and cannot authorize scoring. Browser downloads may
 inherit permissive modes; move the exported JSON to a private directory and set
-mode 0600 before use.
+mode 0600 before use. Optional --claim-input-manifest and --claim-input-sidecar
+must be supplied together; when present, their hashes and each displayed claim
+are checked against the draft worksheet, then only the two artifact digests are
+embedded in non-visible HTML metadata. This remains unreviewed and does not
+authorize scoring.
 """
 from __future__ import annotations
 
@@ -21,6 +25,7 @@ from build_nextgqa_claim_mapping_packet import FROZEN_POLICY_SHA256
 from audit_nextgqa_claim_packet_lineage import validate_for_worksheet
 from claim_text_quality import claim_text_quality_failure
 from private_output_paths import validate_private_output
+from build_nextgqa_v2_claim_input_bundle import V2_COHORT_SHA256
 
 MAX_WORKSHEET_BYTES = 1_000_000
 MAX_MEDIA_BYTES = 64_000_000
@@ -42,6 +47,23 @@ REVIEW_KEYS = {
     "review_record_reference", "first_played_at_utc", "reviewed_at_utc", "review_status",
 }
 DATASET_KEYS = {"test.csv", "gsub_test.json", "map_vid_vidorID.json", "frame2time_test.json"}
+CLAIM_MANIFEST_KEYS = {"schema_version", "eligible_dataset_id", "eligible_manifest_sha256",
+                       "claim_policy_sha256", "occurrence_policy", "claims"}
+CLAIM_ROW_KEYS = {"video_id", "claim_id", "claim_text", "claim_text_sha256",
+                  "model_revision", "generation_run_sha256"}
+BUNDLE_RECORD_KEYS = {"video_id", "dataset_video_id", "dataset_question_id", "video_sha256",
+                      "question_sha256", "claim_id", "claim_text_sha256"}
+SIDECAR_KEYS = {
+    "schema_version", "purpose", "status", "scope", "review_completed", "scoring_ready",
+    "execution_authorization", "eligible_dataset_id", "cohort_sha256", "cohort_digest_check",
+    "occurrence_policy", "policy_id", "policy_sha256", "model", "model_revision",
+    "v1_generation_run_sha256_semantics", "worksheet_binding_check", "input_sha256",
+    "claim_input_manifest_sha256", "records",
+}
+SIDECAR_INPUT_HASH_KEYS = {
+    "eligible_manifest", "generation_packet", "lineage_manifest", "policy", "test_csv",
+    "video_map", "worksheet",
+}
 
 
 def _unique_object(pairs):
@@ -53,10 +75,127 @@ def _unique_object(pairs):
     return obj
 
 
+def _validate_claim_bundle(payload: dict, worksheet_raw: bytes,
+                           lineage: dict, lineage_raw: bytes,
+                           manifest: Any, manifest_raw: bytes,
+                           sidecar: Any, sidecar_raw: bytes) -> tuple[str, str]:
+    """Bind displayed worksheet bytes/rows to a candidate v2 claim manifest."""
+    try:
+        parsed_manifest = json.loads(manifest_raw.decode("utf-8"), object_pairs_hook=_unique_object)
+        parsed_sidecar = json.loads(sidecar_raw.decode("utf-8"), object_pairs_hook=_unique_object)
+    except (AttributeError, UnicodeError, json.JSONDecodeError, ValueError):
+        raise ValueError("claim_bundle_json_invalid") from None
+    if parsed_manifest != manifest or parsed_sidecar != sidecar:
+        raise ValueError("claim_bundle_raw_binding_invalid")
+    if (not isinstance(manifest, dict) or set(manifest) != CLAIM_MANIFEST_KEYS
+            or type(manifest.get("schema_version")) is not int or manifest["schema_version"] != 1
+            or not isinstance(manifest.get("eligible_dataset_id"), str)
+            or not manifest["eligible_dataset_id"]
+            or manifest["eligible_dataset_id"] != manifest["eligible_dataset_id"].strip()
+            or not re.fullmatch(r"[a-f0-9]{64}", str(manifest.get("eligible_manifest_sha256", "")))
+            or manifest.get("claim_policy_sha256") != FROZEN_POLICY_SHA256
+            or manifest.get("occurrence_policy") != "all_relevant_occurrences"
+            or not isinstance(manifest.get("claims"), list) or len(manifest["claims"]) != 3):
+        raise ValueError("claim_manifest_schema_or_policy_invalid")
+    if (not isinstance(sidecar, dict) or set(sidecar) != SIDECAR_KEYS
+            or type(sidecar.get("schema_version")) is not int
+            or sidecar.get("schema_version") != 1
+            or sidecar.get("purpose") != "private_nextgqa_v2_claim_input_bundle_provenance"
+            or sidecar.get("status") != "candidate_unreviewed"
+            or sidecar.get("scope") != "structural_only"
+            or sidecar.get("review_completed") is not False
+            or sidecar.get("scoring_ready") is not False
+            or sidecar.get("execution_authorization") != "not_granted"
+            or not isinstance(sidecar.get("eligible_dataset_id"), str)
+            or not sidecar["eligible_dataset_id"]
+            or sidecar["eligible_dataset_id"] != sidecar["eligible_dataset_id"].strip()
+            or sidecar.get("cohort_sha256") != V2_COHORT_SHA256
+            or sidecar.get("cohort_sha256") != payload.get("cohort_sha256")
+            or sidecar.get("cohort_digest_check") !=
+                "pinned_value_and_input_declarations_match_not_recomputed_from_full_planner_inputs"
+            or sidecar.get("occurrence_policy") != payload.get("occurrence_policy")
+            or sidecar.get("policy_id") != payload.get("claim_review_policy_id")
+            or sidecar.get("policy_sha256") != FROZEN_POLICY_SHA256
+            or sidecar.get("model") != "Qwen/Qwen2.5-VL-7B-Instruct"
+            or sidecar.get("model_revision") != "cc594898137f460bfe9f0759e9844b3ce807cfb5"
+            or sidecar.get("model_revision") != payload.get("model_revision")
+            or sidecar.get("v1_generation_run_sha256_semantics") !=
+                "generation_packet_container_byte_digest_not_unique_run_id"
+            or sidecar.get("worksheet_binding_check") !=
+                "claim_and_identity_hashes_matched_only_not_review_or_custody_validation"):
+        raise ValueError("claim_bundle_sidecar_status_or_protocol_invalid")
+    inputs = sidecar.get("input_sha256")
+    if (not isinstance(inputs, dict) or set(inputs) != SIDECAR_INPUT_HASH_KEYS
+            or any(not isinstance(digest, str) or not re.fullmatch(r"[a-f0-9]{64}", digest)
+                   for digest in inputs.values())
+            or inputs.get("worksheet") != hashlib.sha256(worksheet_raw).hexdigest()
+            or inputs.get("lineage_manifest") != hashlib.sha256(lineage_raw).hexdigest()
+            or inputs.get("policy") != FROZEN_POLICY_SHA256
+            or not isinstance(inputs.get("generation_packet"), str)
+            or not re.fullmatch(r"[a-f0-9]{64}", inputs["generation_packet"])
+            or not re.fullmatch(r"[a-f0-9]{64}", str(sidecar.get("claim_input_manifest_sha256", "")))
+            or sidecar.get("claim_input_manifest_sha256") != hashlib.sha256(manifest_raw).hexdigest()):
+        raise ValueError("claim_bundle_artifact_hash_mismatch")
+    if (manifest.get("eligible_dataset_id") != sidecar.get("eligible_dataset_id")
+            or manifest.get("eligible_manifest_sha256") != inputs.get("eligible_manifest")
+            or manifest.get("claim_policy_sha256") != sidecar.get("policy_sha256")):
+        raise ValueError("claim_bundle_manifest_binding_invalid")
+    if not isinstance(sidecar.get("records"), list) or len(sidecar["records"]) != 3:
+        raise ValueError("claim_bundle_records_invalid")
+    worksheet_by_video = {row["video_id"]: row for row in payload["records"]}
+    lineage_by_video = {row["video_id"]: row for row in lineage["records"]}
+    sidecar_by_video = {}
+    for row in sidecar["records"]:
+        if not isinstance(row, dict) or set(row) != BUNDLE_RECORD_KEYS:
+            raise ValueError("claim_bundle_record_schema_invalid")
+        video_id = row.get("video_id")
+        if video_id in sidecar_by_video:
+            raise ValueError("claim_bundle_video_duplicate")
+        sidecar_by_video[video_id] = row
+    manifest_videos = set()
+    for claim in manifest["claims"]:
+        if not isinstance(claim, dict) or set(claim) != CLAIM_ROW_KEYS:
+            raise ValueError("claim_manifest_row_schema_invalid")
+        video_id = claim.get("video_id")
+        if video_id in manifest_videos or video_id not in worksheet_by_video:
+            raise ValueError("claim_manifest_cohort_mismatch")
+        manifest_videos.add(video_id)
+        worksheet_row = worksheet_by_video[video_id]
+        lineage_row = lineage_by_video.get(video_id)
+        bundle_row = sidecar_by_video.get(video_id)
+        if lineage_row is None or bundle_row is None:
+            raise ValueError("claim_bundle_lineage_join_missing")
+        try:
+            text_sha = hashlib.sha256(claim["claim_text"].encode("utf-8")).hexdigest()
+        except (AttributeError, UnicodeEncodeError):
+            raise ValueError("claim_manifest_text_invalid") from None
+        if (not isinstance(claim.get("generation_run_sha256"), str)
+                or not re.fullmatch(r"[a-f0-9]{64}", claim["generation_run_sha256"])
+                or claim["generation_run_sha256"] != inputs["generation_packet"]
+                or claim.get("model_revision") != sidecar.get("model") + "@" + payload["model_revision"]
+                or worksheet_row.get("claim_text") != claim.get("claim_text")
+                or worksheet_row.get("claim_text_sha256") != text_sha
+                or claim.get("claim_text_sha256") != text_sha
+                or worksheet_row.get("claim_id") != claim.get("claim_id")
+                or worksheet_row.get("video_sha256") != lineage_row.get("video_sha256")
+                or bundle_row.get("claim_id") != claim.get("claim_id")
+                or bundle_row.get("claim_text_sha256") != text_sha
+                or bundle_row.get("video_sha256") != lineage_row.get("video_sha256")
+                or bundle_row.get("dataset_video_id") != lineage_row.get("dataset_video_id")
+                or bundle_row.get("dataset_question_id") != lineage_row.get("dataset_question_id")
+                or bundle_row.get("question_sha256") != lineage_row.get("question_sha256")):
+            raise ValueError("claim_manifest_worksheet_row_mismatch")
+    if manifest_videos != set(worksheet_by_video) or manifest_videos != set(sidecar_by_video):
+        raise ValueError("claim_bundle_cohort_mismatch")
+    return hashlib.sha256(manifest_raw).hexdigest(), hashlib.sha256(sidecar_raw).hexdigest()
+
+
 def render(payload: Any, raw: bytes, lineage: Any, lineage_raw: bytes,
            expected_lineage_sha256: str, custody: Any,
            custody_raw: bytes,
-           expected_custody_sha256: str) -> bytes:
+           expected_custody_sha256: str,
+           claim_input_manifest: Any = None, claim_input_manifest_raw: bytes | None = None,
+           bundle_sidecar: Any = None, bundle_sidecar_raw: bytes | None = None) -> bytes:
     parsed = json.loads(raw.decode("utf-8"), object_pairs_hook=_unique_object)
     if (len(raw) > MAX_WORKSHEET_BYTES or not isinstance(payload, dict) or parsed != payload
             or set(payload) != TOP_KEYS
@@ -154,6 +293,15 @@ def render(payload: Any, raw: bytes, lineage: Any, lineage_raw: bytes,
                     or not re.fullmatch(r"[a-f0-9]{64}", str(entry.get("media_check_salt", "")))
                     or not re.fullmatch(r"[a-f0-9]{64}", str(entry.get("media_check_sha256", "")))):
                 raise ValueError("custody_media_token_binding_invalid")
+    supplied_bundle = (claim_input_manifest is not None, claim_input_manifest_raw is not None,
+                       bundle_sidecar is not None, bundle_sidecar_raw is not None)
+    bundle_hashes = None
+    if any(supplied_bundle):
+        if not all(supplied_bundle):
+            raise ValueError("claim_bundle_pair_required")
+        bundle_hashes = _validate_claim_bundle(
+            payload, raw, lineage, lineage_raw, claim_input_manifest,
+            claim_input_manifest_raw, bundle_sidecar, bundle_sidecar_raw)
     # HTML script data is escaped so claims cannot terminate the data element.
     page_payload = {
         "schema_version": 1,
@@ -176,6 +324,7 @@ def render(payload: Any, raw: bytes, lineage: Any, lineage_raw: bytes,
     template = r'''<!doctype html>
 <html lang="ja"><meta charset="utf-8"><meta name="viewport" content="width=device-width">
 <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; media-src blob:; connect-src 'none'; img-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'">
+PROVENANCE
 <title>Private offline video review</title>
 <style>
 body{font:16px system-ui,sans-serif;max-width:1050px;margin:2rem auto;padding:0 1rem;color:#18202a}
@@ -187,6 +336,9 @@ textarea{width:100%;min-height:4rem} input[type=number]{width:8rem} button{margi
 <h1>動画主張の人手レビュー</h1>
 <p class="notice">この画面はローカル専用です。質問とモデル生成主張だけを表示し、QA正解・選択肢・gold区間・モデルの選択フレーム・スコアは表示しません。動画は画面に表示されたランダムtoken名のファイルを選択します。ページ内に安定した動画SHAやデータセットIDを含みません。公開データセットの索引や回答を調べず、見た内容だけで判定してください。レビューJSON保存後に、完全性indexも別ボタンで保存してください。どちらも採点許可にはなりません。</p>
 <p class="notice">各動画の初回再生時刻と、必須レビュー入力が揃った時点を行ごとに記録します。いずれもブラウザの自己申告ログであり、実際の視聴や時系列を独立に証明しません。</p>
+<p class="notice">レビューJSONには、上位項目のschema_version、purpose、status、review_completed、execution_authorization、claim_review_policy_id、claim_review_policy_sha256、human_reviewer_role、human_reviewer_private_id、review_environment（browser_user_agent、offline_static_page、network_fetch_available）、independence_attestation、recordsが含まれます。各recordにはreview_tokenとreviewがあり、reviewにはfull_source_video_reviewed、question_and_claim_only_context_shown、gold_and_seed_hidden_until_mapping_frozen、outcome_scores_not_accessed、media_bytes_verified、occurrence_policy_applied、support_decision、evidence_intervals_seconds、interval_rationales、media_duration_seconds、reviewer_role、first_played_at_utc、reviewed_at_utc、review_status、display_player、claim_review_policy_sha256が含まれます。interval_rationalesは非公開の自由記述です。これらの記録は自己申告で、独立に検証された事実ではありません。保存前にJSONをcustodianへ渡すことと、根拠メモに動画内容が記録されることを確認してください。</p>
+<p class="notice">追加の出力もあります。完全性indexにはschema_version、purpose、review_payload_sha256、claim_review_policy_sha256、created_at_utc、review_status、execution_authorizationが含まれます。任意の時計観測JSONにはschema_version、purpose、status、player_clock、presented_frame_metadata、decoder_frame_identity、created_at_utc、browser_user_agent、anchor_id_validation、predeclared_plan_binding、fit_heldout_split、decoder_pts_pairing、execution_authorization、recordsが含まれ、各recordはreview_tokenとevents、各eventはanchor_id、sequence、html5_current_time_seconds、request_video_frame_callback_metadata、frame_match_status、performance_now_ms、media_duration_seconds、playback_rate、muted、volume、text_tracks_disabled、paused、seeking、ready_state、current_src_is_staged_media、visibility_state、captured_at_utcを含みます。時計JSONの別indexにはschema_version、purpose、payload_sha256、created_at_utc、status、execution_authorizationが含まれます。これらは全て自己申告/ブラウザ観測値であり、身元・視聴・decoder PTSとの対応を証明しません。</p>
+<p class="notice">凍結v5方針文書には、export内容をtokenと判定/区間だけとする記載がありますが、実際のこのrendererの出力は上記のとおり追加の識別情報・環境情報・自由記述を含みます。このページの実装開示が実際の出力項目を示します。レビューJSONのexport_disclosure_acknowledgedは、差異と全項目を確認したというレビュアーの自己申告です。続行するには、この差異と全ての出力項目を確認したことを明示してください。</p>
 <p class="notice">音声と字幕トラックは無効化します。映像に焼き付いた字幕・キャプション・テロップは残ることがありますが、根拠として使わないでください。文字 overlay だけが主張を支える場合、その主張は不支持として判定します。</p>
 <p>方針 <code>nextgqa_claim_review_v5</code> / occurrence: <code>all_relevant_occurrences</code> / policy SHA-256: <code>POLICY</code></p>
 <div id="rows"></div>
@@ -194,6 +346,7 @@ textarea{width:100%;min-height:4rem} input[type=number]{width:8rem} button{margi
 <label>氏名または非公開の担当者識別 <input id="reviewer" autocomplete="off"></label>
 <label>役割 <select id="role"><option value="">選択</option><option value="independent_human">claim生成・採点から独立した人間レビュアー</option></select></label>
 <label><input type="checkbox" id="attest"> 私は人間であり、claim生成・採点・custodyから独立しています。照合manifestを見ておらず、QA正解やgold区間にもアクセスせず、方針に従い全3動画を自分でレビューしました。</label>
+<label><input type="checkbox" id="export-disclosure"> 実際のレビューJSON・完全性index・任意の時計観測出力の全項目を確認し、凍結v5方針のexport説明との差異を理解しました。識別情報と非公開の動画由来メモがprivateなcustody場所へ保存されることに同意します。</label>
 <button id="export" disabled>レビューJSONを保存</button><button id="export-index" disabled>完全性indexを保存</button><button id="export-clock" disabled>HTML5時計観測ログを保存</button><span id="global"></span>
 <p>保存後のJSONは private な場所へ移し、ファイル権限を 0600 にしてください。人手記録はモデル入力・動画の真正性・権利・PTS時計校正・SESOI・採点許可を証明しません。</p>
 <p>HTML5時計観測ログはclaim根拠区間と別に保存します。アンカーを記録するときは、動画を一時停止しseek中でない状態にしてください。対応ブラウザならrequestVideoFrameCallbackの直近提示フレーム時刻・連番・提示時刻も記録しますが、直近callback値がアンカー時点の表示フレームと一致する保証はなく、decoder PTSの同一フレーム対応も証明しません。currentTimeだけの観測、未取得metadata、またはdecoderフレームとの照合不能は未校正として扱い、fit/held-out分割・事前固定済みの対応証拠・不確かさ評価がそろうまで校正値として使用できません。</p>
@@ -205,7 +358,7 @@ const MAX_MEDIA_BYTES=64000000;
 const rows=document.getElementById('rows'), state=base.records.map(()=>({tokenOK:false,full:false,context:false,seedHidden:false,outcomeHidden:false,decision:'',intervals:[],clockEvents:[],duration:null,mime:'',firstPlayedAt:null,reviewedAt:null}));
 const decisions=[['supports_claim','主張を支持'],['partial','一部のみ支持'],['contradicted','動画と矛盾'],['unsupported','支持なし'],['ambiguous','曖昧'],['unlocalizable','時刻特定不能']];
 function el(tag,attrs={},text=''){const e=document.createElement(tag);for(const [k,v] of Object.entries(attrs)){if(k==='className')e.className=v;else e.setAttribute(k,v)}if(text)e.textContent=text;return e}
-function checkReady(){for(const s of state){const done=s.tokenOK&&Number.isFinite(s.duration)&&s.duration>0&&s.firstPlayedAt&&s.full&&s.context&&s.seedHidden&&s.outcomeHidden&&s.decision&&(s.decision!=='supports_claim'||s.intervals.length>0);if(done&&!s.reviewedAt)s.reviewedAt=new Date().toISOString();if(!done)s.reviewedAt=null}const ready=state.every(s=>s.tokenOK&&Number.isFinite(s.duration)&&s.duration>0&&s.firstPlayedAt&&s.reviewedAt&&s.full&&s.context&&s.seedHidden&&s.outcomeHidden&&s.decision)&&document.getElementById('reviewer').value.trim()&&document.getElementById('role').value==='independent_human'&&document.getElementById('attest').checked;document.getElementById('export').disabled=!ready;document.getElementById('global').textContent=ready?' 全項目の入力がそろいました。':' 3件すべてのレビュー記録が必要です。'}
+function checkReady(){for(const s of state){const done=s.tokenOK&&Number.isFinite(s.duration)&&s.duration>0&&s.firstPlayedAt&&s.full&&s.context&&s.seedHidden&&s.outcomeHidden&&s.decision&&(s.decision!=='supports_claim'||s.intervals.length>0);if(done&&!s.reviewedAt)s.reviewedAt=new Date().toISOString();if(!done)s.reviewedAt=null}const ready=state.every(s=>s.tokenOK&&Number.isFinite(s.duration)&&s.duration>0&&s.firstPlayedAt&&s.reviewedAt&&s.full&&s.context&&s.seedHidden&&s.outcomeHidden&&s.decision)&&document.getElementById('reviewer').value.trim()&&document.getElementById('role').value==='independent_human'&&document.getElementById('attest').checked&&document.getElementById('export-disclosure').checked;document.getElementById('export').disabled=!ready;document.getElementById('global').textContent=ready?' 全項目の入力がそろいました。':' 3件すべてのレビュー記録が必要です。'}
 base.records.forEach((r,i)=>{
  const s=state[i],box=el('article');box.append(el('h2',{},`匿名動画 ${i+1} — ${r.review_token}.mp4`));
  box.append(el('h3',{},'質問'));box.append(el('p',{className:'claim'},r.question));box.append(el('h3',{},'固定されたモデル生成主張'));box.append(el('p',{className:'claim'},r.claim_text));
@@ -225,20 +378,27 @@ base.records.forEach((r,i)=>{
  const add=el('button',{},'区間を追加');add.type='button';add.onclick=()=>{const a=Number(start.value),b=Number(end.value),why=reason.value.trim(),duration=video.duration;const ms=x=>Math.abs(x*1000-Math.round(x*1000))<1e-6;if(!Number.isFinite(a)||!Number.isFinite(b)||!Number.isFinite(duration)||a<0||b<=a||b>duration||!ms(a)||!ms(b)||!why||s.intervals.some(x=>a===x.start&&b===x.end)){alert('動画長内の正の区間（ミリ秒精度）と根拠メモを入力してください。同一区間の重複登録はできません。別の根拠出現は重なる場合も個別に記録してください。');return}s.intervals.push({start:a,end:b,rationale:why});s.intervals.sort((x,y)=>x.start-y.start);s.reviewedAt=null;redraw();checkReady();start.value='';end.value='';reason.value=''};
  box.append(el('label',{},'開始秒（inclusive・0.001秒精度）'));box.lastChild.append(start,capture);box.append(el('label',{},'終了秒（inclusive・0.001秒精度）'));box.lastChild.append(end,captureEnd);box.append(el('label',{},'この区間がどの主張要素を支持するか（非公開メモ）'));box.lastChild.append(reason);box.append(add);rows.append(box)
 });
-for(const id of ['reviewer','role','attest'])document.getElementById(id).addEventListener('input',checkReady);for(const id of ['role','attest'])document.getElementById(id).addEventListener('change',checkReady);
+for(const id of ['reviewer','role','attest','export-disclosure'])document.getElementById(id).addEventListener('input',checkReady);for(const id of ['role','attest','export-disclosure'])document.getElementById(id).addEventListener('change',checkReady);
 document.getElementById('export').onclick=async()=>{
  if(!state.every(s=>s.decision!=='supports_claim'||s.intervals.length>0)){alert('支持判定の各項目には根拠区間が必要です。');return}
  const now=new Date().toISOString(), policySha=base.claim_review_policy_sha256;
- const out={schema_version:3,purpose:'anonymous_local_claim_video_human_review',status:'human_review_recorded_unvalidated',review_completed:true,execution_authorization:'not_granted',claim_review_policy_id:base.claim_review_policy_id,claim_review_policy_sha256:policySha,human_reviewer_role:'independent_human',human_reviewer_private_id:document.getElementById('reviewer').value.trim(),review_environment:{browser_user_agent:navigator.userAgent,offline_static_page:true,network_fetch_available:false},independence_attestation:'reviewer_asserts_independence_from_generation_scoring_and_custody_and_did_not_view_custody_crosswalk',records:base.records.map((r,i)=>{const s=state[i];return {review_token:r.review_token,review:{full_source_video_reviewed:s.full,question_and_claim_only_context_shown:s.context,gold_and_seed_hidden_until_mapping_frozen:s.seedHidden,outcome_scores_not_accessed:s.outcomeHidden,media_bytes_verified:s.tokenOK,occurrence_policy_applied:base.occurrence_policy,support_decision:s.decision,evidence_intervals_seconds:s.intervals.map(x=>[x.start,x.end]),interval_rationales:s.intervals.map(x=>x.rationale),media_duration_seconds:s.duration,reviewer_role:'independent_human',first_played_at_utc:s.firstPlayedAt,reviewed_at_utc:s.reviewedAt,review_status:'completed',display_player:'HTML5 video; audio forced muted; text/caption tracks disabled; playback rate 1.0; UA='+navigator.userAgent,claim_review_policy_sha256:policySha}}})};
+ const out={schema_version:3,purpose:'anonymous_local_claim_video_human_review',status:'human_review_recorded_unvalidated',review_completed:true,execution_authorization:'not_granted',claim_review_policy_id:base.claim_review_policy_id,claim_review_policy_sha256:policySha,human_reviewer_role:'independent_human',human_reviewer_private_id:document.getElementById('reviewer').value.trim(),review_environment:{browser_user_agent:navigator.userAgent,offline_static_page:true,network_fetch_available:false},independence_attestation:'reviewer_asserts_independence_from_generation_scoring_and_custody_and_did_not_view_custody_crosswalk',export_disclosure_acknowledged:document.getElementById('export-disclosure').checked,records:base.records.map((r,i)=>{const s=state[i];return {review_token:r.review_token,review:{full_source_video_reviewed:s.full,question_and_claim_only_context_shown:s.context,gold_and_seed_hidden_until_mapping_frozen:s.seedHidden,outcome_scores_not_accessed:s.outcomeHidden,media_bytes_verified:s.tokenOK,occurrence_policy_applied:base.occurrence_policy,support_decision:s.decision,evidence_intervals_seconds:s.intervals.map(x=>[x.start,x.end]),interval_rationales:s.intervals.map(x=>x.rationale),media_duration_seconds:s.duration,reviewer_role:'independent_human',first_played_at_utc:s.firstPlayedAt,reviewed_at_utc:s.reviewedAt,review_status:'completed',display_player:'HTML5 video; audio forced muted; text/caption tracks disabled; playback rate 1.0; UA='+navigator.userAgent,claim_review_policy_sha256:policySha}}})};
  const raw=JSON.stringify(out,null,2)+'\n',bytes=new TextEncoder().encode(raw),digest=Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',bytes))).map(x=>x.toString(16).padStart(2,'0')).join(''),index={schema_version:1,purpose:'anonymous_unvalidated_human_review_handoff',review_payload_sha256:digest,claim_review_policy_sha256:policySha,created_at_utc:now,review_status:'unvalidated_requires_custodian_audit',execution_authorization:'not_granted'};
  function download(text,name,type){const blob=new Blob([text],{type}),a=el('a');a.href=URL.createObjectURL(blob);a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000)}
- const stem='nextgqa_human_review_'+now.replace(/[:.]/g,'-');window.pendingReviewIndex=JSON.stringify(index,null,2)+'\n';download(raw,stem+'.json','application/json');for(const control of rows.querySelectorAll('input:not(.clock-control),select,textarea,button:not(.clock-control)'))control.disabled=true;document.getElementById('reviewer').disabled=true;document.getElementById('role').disabled=true;document.getElementById('attest').disabled=true;document.getElementById('export').disabled=true;document.getElementById('export-index').disabled=false
+ const stem='nextgqa_human_review_'+now.replace(/[:.]/g,'-');window.pendingReviewIndex=JSON.stringify(index,null,2)+'\n';download(raw,stem+'.json','application/json');for(const control of rows.querySelectorAll('input:not(.clock-control),select,textarea,button:not(.clock-control)'))control.disabled=true;document.getElementById('reviewer').disabled=true;document.getElementById('role').disabled=true;document.getElementById('attest').disabled=true;document.getElementById('export-disclosure').disabled=true;document.getElementById('export').disabled=true;document.getElementById('export-index').disabled=false
 };
 document.getElementById('export-index').onclick=()=>{if(window.pendingReviewIndex){const blob=new Blob([window.pendingReviewIndex],{type:'application/json'}),a=el('a');a.href=URL.createObjectURL(blob);a.download='nextgqa_human_review_index.json';a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000)}};
 document.getElementById('export-clock').onclick=async()=>{const now=new Date().toISOString(),payload={schema_version:2,purpose:'local_unvalidated_html5_player_clock_observations',status:'raw_player_clock_observations_only',player_clock:'html5_video_currentTime_seconds',presented_frame_metadata:'requestVideoFrameCallback_when_available_not_decoder_matched',decoder_frame_identity:'not_verified',created_at_utc:now,browser_user_agent:navigator.userAgent,anchor_id_validation:'format_and_per_video_uniqueness_only_unverified',predeclared_plan_binding:'not_checked',fit_heldout_split:'not_assigned',decoder_pts_pairing:'not_provided',execution_authorization:'not_granted',records:base.records.map((r,i)=>({review_token:r.review_token,events:state[i].clockEvents}))};const raw=JSON.stringify(payload,null,2)+'\n',digest=Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',new TextEncoder().encode(raw)))).map(x=>x.toString(16).padStart(2,'0')).join(''),index={schema_version:1,purpose:'unvalidated_html5_clock_observation_integrity_index',payload_sha256:digest,created_at_utc:now,status:'raw_observations_only',execution_authorization:'not_granted'};function download(text,name){const blob=new Blob([text],{type:'application/json'}),a=el('a');a.href=URL.createObjectURL(blob);a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000)}const stem='nextgqa_html5_clock_observations_'+now.replace(/[:.]/g,'-');download(raw,stem+'.json');download(JSON.stringify(index,null,2)+'\n',stem+'_index.json')};
 checkReady();
 </script></html>'''
+    provenance = ""
+    if bundle_hashes is not None:
+        provenance = (
+            f'<meta name="claim-input-manifest-sha256" content="{bundle_hashes[0]}">\n'
+            f'<meta name="claim-input-bundle-sidecar-sha256" content="{bundle_hashes[1]}">'
+        )
     html_doc = (template.replace("POLICY", payload["claim_review_policy_sha256"])
+                .replace("PROVENANCE", provenance)
                 .replace("DATA", data)).encode("utf-8")
     return html_doc
 
@@ -265,6 +425,10 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--custody-manifest", required=True)
     parser.add_argument("--expected-custody-sha256", required=True,
                         help="independently recorded digest of the private custody manifest")
+    parser.add_argument("--claim-input-manifest",
+                        help="optional candidate v2 claim manifest; must be paired with its sidecar")
+    parser.add_argument("--claim-input-sidecar",
+                        help="optional candidate v2 claim-input provenance sidecar")
     parser.add_argument("--output", required=True)
     parser.add_argument("--user-authorized-local-only", action="store_true")
     args = parser.parse_args(argv)
@@ -273,6 +437,10 @@ def main(argv: list[str] | None = None) -> int:
     source = Path(args.input).resolve()
     lineage_source = Path(args.lineage_manifest).resolve()
     custody_source = Path(args.custody_manifest).resolve()
+    claim_manifest_source = Path(args.claim_input_manifest).resolve() if args.claim_input_manifest else None
+    claim_sidecar_source = Path(args.claim_input_sidecar).resolve() if args.claim_input_sidecar else None
+    if bool(claim_manifest_source) != bool(claim_sidecar_source):
+        parser.error("claim_bundle_pair_required")
     repo_root = Path(__file__).resolve().parents[1]
     try:
         target = validate_private_output(args.output, repo_root)
@@ -280,8 +448,10 @@ def main(argv: list[str] | None = None) -> int:
         parser.error("refusing_to_overwrite_output")
     except (OSError, ValueError) as exc:
         parser.error(str(exc).split(":", 1)[0] or "private_output_path_invalid")
-    if any((path.stat().st_mode & 0o777) != 0o600
-           for path in (source, lineage_source, custody_source)):
+    private_inputs = [source, lineage_source, custody_source]
+    if claim_manifest_source is not None:
+        private_inputs.extend([claim_manifest_source, claim_sidecar_source])
+    if any((path.stat().st_mode & 0o777) != 0o600 for path in private_inputs):
         parser.error("private_input_mode_invalid")
     try:
         raw = source.read_bytes(); payload = json.loads(raw.decode("utf-8"))
@@ -289,8 +459,15 @@ def main(argv: list[str] | None = None) -> int:
         lineage = json.loads(lineage_raw.decode("utf-8"))
         custody_raw = custody_source.read_bytes()
         custody = json.loads(custody_raw.decode("utf-8"))
+        claim_manifest = claim_manifest_raw = claim_sidecar = claim_sidecar_raw = None
+        if claim_manifest_source is not None:
+            claim_manifest_raw = claim_manifest_source.read_bytes()
+            claim_manifest = json.loads(claim_manifest_raw.decode("utf-8"))
+            claim_sidecar_raw = claim_sidecar_source.read_bytes()
+            claim_sidecar = json.loads(claim_sidecar_raw.decode("utf-8"))
         result = render(payload, raw, lineage, lineage_raw, args.expected_lineage_sha256,
-                        custody, custody_raw, args.expected_custody_sha256)
+                        custody, custody_raw, args.expected_custody_sha256,
+                        claim_manifest, claim_manifest_raw, claim_sidecar, claim_sidecar_raw)
         write_exclusive(target, result)
     except FileExistsError:
         parser.error("refusing_to_overwrite_output")

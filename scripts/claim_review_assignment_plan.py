@@ -247,7 +247,8 @@ def plan_claim_review_assignments(*, expected_video_ids, worksheet_records,
     review_top_keys = {
         "schema_version", "purpose", "status", "review_completed", "execution_authorization",
         "claim_review_policy_id", "claim_review_policy_sha256", "human_reviewer_role",
-        "human_reviewer_private_id", "review_environment", "independence_attestation", "records",
+        "human_reviewer_private_id", "review_environment", "independence_attestation",
+        "export_disclosure_acknowledged", "records",
     }
     try:
         parsed_records_canonical = json.dumps(
@@ -270,6 +271,7 @@ def plan_claim_review_assignments(*, expected_video_ids, worksheet_records,
             or not isinstance(parsed_review.get("human_reviewer_private_id"), str)
             or not parsed_review["human_reviewer_private_id"].strip()
             or parsed_review.get("independence_attestation") != "reviewer_asserts_independence_from_generation_scoring_and_custody_and_did_not_view_custody_crosswalk"
+            or parsed_review.get("export_disclosure_acknowledged") is not True
             or not isinstance(parsed_review.get("review_environment"), dict)
             or set(parsed_review["review_environment"]) != {"browser_user_agent", "offline_static_page", "network_fetch_available"}
             or not isinstance(parsed_review["review_environment"].get("browser_user_agent"), str)

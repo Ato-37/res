@@ -117,7 +117,8 @@ def audit(worksheet: Any, worksheet_raw: bytes, lineage: Any, lineage_raw: bytes
         failures.add("review_timestamp_invalid")
     top_keys = {"schema_version", "purpose", "status", "review_completed", "execution_authorization",
                 "claim_review_policy_id", "claim_review_policy_sha256", "human_reviewer_role",
-                "human_reviewer_private_id", "review_environment", "independence_attestation", "records"}
+                "human_reviewer_private_id", "review_environment", "independence_attestation",
+                "export_disclosure_acknowledged", "records"}
     env = review.get("review_environment")
     if (set(review) != top_keys or review.get("schema_version") != 3
             or review.get("purpose") != "anonymous_local_claim_video_human_review"
@@ -125,6 +126,7 @@ def audit(worksheet: Any, worksheet_raw: bytes, lineage: Any, lineage_raw: bytes
             or review.get("review_completed") is not True
             or review.get("execution_authorization") != "not_granted"
             or review.get("human_reviewer_role") != "independent_human"
+            or review.get("export_disclosure_acknowledged") is not True
             or review.get("independence_attestation") != "reviewer_asserts_independence_from_generation_scoring_and_custody_and_did_not_view_custody_crosswalk"
             or not isinstance(review.get("human_reviewer_private_id"), str)
             or not review["human_reviewer_private_id"].strip()

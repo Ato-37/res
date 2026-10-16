@@ -112,6 +112,7 @@ def fixture():
                                              "offline_static_page": True,
                                              "network_fetch_available": False},
                       "independence_attestation": "reviewer_asserts_independence_from_generation_scoring_and_custody_and_did_not_view_custody_crosswalk",
+                      "export_disclosure_acknowledged": True,
                       "records": reviews}
     review_raw = json.dumps(review_payload, sort_keys=True).encode()
     review_sha = sha(review_raw)
@@ -248,6 +249,21 @@ class ClaimReviewAssignmentPlanTests(unittest.TestCase):
         result = plan_claim_review_assignments(**args)
         self.assertEqual(result["failure_codes"], ["audit_report_byte_binding_invalid"])
         self.assertEqual(result["score_calls"], 0)
+
+    def test_export_disclosure_acknowledgment_is_required(self):
+        for value in (False, None):
+            with self.subTest(value=value):
+                args = fixture()
+                payload = json.loads(args["review_payload_raw"])
+                if value is None:
+                    payload.pop("export_disclosure_acknowledged")
+                else:
+                    payload["export_disclosure_acknowledged"] = value
+                args["review_payload_raw"] = json.dumps(payload, sort_keys=True).encode()
+                rebind_review(args)
+                result = plan_claim_review_assignments(**args)
+                self.assertEqual(result["failure_codes"], ["review_payload_rows_mismatch"])
+                self.assertEqual(result["score_calls"], 0)
 
     def test_first_play_must_precede_item_completion_and_export(self):
         args = fixture()

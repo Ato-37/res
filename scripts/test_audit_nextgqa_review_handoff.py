@@ -39,6 +39,7 @@ def fixture():
         "review_environment": {"browser_user_agent": "Synthetic", "offline_static_page": True,
                                "network_fetch_available": False},
         "independence_attestation": "reviewer_asserts_independence_from_generation_scoring_and_custody_and_did_not_view_custody_crosswalk",
+        "export_disclosure_acknowledged": True,
         "records": []}
     for row in worksheet["records"]:
         review["records"].append({"review_token": row["review_token"], "review": {
@@ -85,6 +86,22 @@ class AuditNextgqaReviewHandoffTests(unittest.TestCase):
         self.assertIn("review_payload_schema_invalid", result["failure_codes"])
         self.assertFalse(result["semantic_review_authenticated"])
         self.assertEqual(result["execution_authorization"], "not_granted")
+
+    def test_export_disclosure_acknowledgment_is_required(self):
+        for value in (False, None):
+            with self.subTest(value=value):
+                v = fixture()
+                review = json.loads(v[5])
+                if value is None:
+                    review.pop("export_disclosure_acknowledged")
+                else:
+                    review["export_disclosure_acknowledged"] = value
+                review_raw = encode(review)
+                index = dict(v[6], review_payload_sha256=hashlib.sha256(review_raw).hexdigest())
+                result = audit(v[0], v[1], v[2], v[3], review, review_raw, index, encode(index),
+                               hashlib.sha256(v[3]).hexdigest())
+                self.assertIn("review_payload_schema_invalid", result["failure_codes"])
+                self.assertEqual(result["execution_authorization"], "not_granted")
 
     def test_per_item_review_times_may_precede_index_but_must_be_ordered(self):
         v = fixture()

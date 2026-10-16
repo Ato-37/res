@@ -22,6 +22,9 @@ import tempfile
 from typing import Any
 
 from audit_nextgqa_prompt_tokenizer import MODEL_REVISION, validate_answer_label_tokens
+from build_nextgqa_v2_claim_input_bundle import (
+    ALL_RELEVANT_OCCURRENCES, V2_COHORT_SHA256, V5_POLICY_ID, V5_POLICY_SHA256,
+)
 from claim_mask_video_decoder import decode_sampled_video, verify_sampled_frame_pixels
 from nextgqa_actual_qa_source_adapter import build_actual_qa_source
 from private_output_paths import validate_private_output
@@ -41,6 +44,21 @@ PROTOCOL_V2_DRAFT_SHA256 = "370d4735951b8d648cac9584ff969805f5f47778d707fa5e4838
 PROTOCOL_V2_TITLE = b"# NExT-GQA finite-cohort claim-aligned input-dependence protocol v2"
 PROTOCOL_V2_DRAFT_STATUS = b"Status: **design draft; not frozen, not scoreable, and not an execution"
 PROTOCOL_V2_FRAME_RULE = b"Use 32 endpoint-inclusive uniformly sampled decoded-frame indices."
+CLAIM_MANIFEST_KEYS = {"schema_version", "eligible_dataset_id", "eligible_manifest_sha256",
+                       "claim_policy_sha256", "occurrence_policy", "claims"}
+CLAIM_KEYS = {"video_id", "claim_id", "claim_text", "claim_text_sha256",
+              "model_revision", "generation_run_sha256"}
+CLAIM_SIDECAR_KEYS = {
+    "schema_version", "purpose", "status", "scope", "review_completed", "scoring_ready",
+    "execution_authorization", "eligible_dataset_id", "cohort_sha256", "cohort_digest_check",
+    "occurrence_policy", "policy_id", "policy_sha256", "model", "model_revision",
+    "v1_generation_run_sha256_semantics", "worksheet_binding_check", "input_sha256",
+    "claim_input_manifest_sha256", "records",
+}
+CLAIM_SIDECAR_INPUT_KEYS = {"eligible_manifest", "generation_packet", "lineage_manifest",
+                            "policy", "test_csv", "video_map", "worksheet"}
+CLAIM_SIDECAR_ROW_KEYS = {"video_id", "dataset_video_id", "dataset_question_id", "video_sha256",
+                          "question_sha256", "claim_id", "claim_text_sha256"}
 
 # Repo-relative source closure for this diagnostic candidate builder. This is
 # deliberately not a frozen production scoring-code set.
@@ -51,6 +69,7 @@ DIAGNOSTIC_SOURCE_CODE_PATHS = (
     ("frame_sampling_utils", "scripts/necessity_choice_margin_utils.py"),
     ("presentation_time_utils", "scripts/presentation_time_utils.py"),
     ("source_adapter", "scripts/nextgqa_actual_qa_source_adapter.py"),
+    ("claim_bundle_validator", "scripts/build_nextgqa_v2_claim_input_bundle.py"),
     ("tokenizer_audit", "scripts/audit_nextgqa_prompt_tokenizer.py"),
 )
 
@@ -226,6 +245,125 @@ def _validate_upstream(*, csv_raw: bytes, generation_raw: bytes,
     if not _is_sha(lineage_sha):
         _fail("lineage_digest_invalid")
     return generation, lineage, worksheet, {"selection": selection, "target": target}
+
+
+def _validate_claim_input_bundle(*, manifest_raw: bytes, sidecar_raw: bytes,
+                                 csv_raw: bytes, generation_raw: bytes,
+                                 lineage_raw: bytes, worksheet_raw: bytes,
+                                 generation: dict, lineage: dict, worksheet: dict) -> str:
+    """Bind this diagnostic QA target to the exact candidate claim packet.
+
+    This is structural byte binding only. It does not authenticate eligible
+    cohort provenance, custody, semantic review, or execution permission.
+    """
+    manifest = _strict_json(manifest_raw, "claim_manifest_json_invalid")
+    sidecar = _strict_json(sidecar_raw, "claim_sidecar_json_invalid")
+    if (not isinstance(manifest, dict) or set(manifest) != CLAIM_MANIFEST_KEYS
+            or type(manifest.get("schema_version")) is not int or manifest["schema_version"] != 1
+            or not isinstance(manifest.get("eligible_dataset_id"), str)
+            or not manifest["eligible_dataset_id"].strip()
+            or not _is_sha(manifest.get("eligible_manifest_sha256"))
+            or manifest.get("claim_policy_sha256") != V5_POLICY_SHA256
+            or manifest.get("occurrence_policy") != ALL_RELEVANT_OCCURRENCES
+            or not isinstance(manifest.get("claims"), list)
+            or len(manifest["claims"]) != 3):
+        _fail("claim_manifest_schema_invalid")
+    if (not isinstance(sidecar, dict) or set(sidecar) != CLAIM_SIDECAR_KEYS
+            or type(sidecar.get("schema_version")) is not int or sidecar["schema_version"] != 1
+            or sidecar.get("purpose") != "private_nextgqa_v2_claim_input_bundle_provenance"
+            or sidecar.get("status") != "candidate_unreviewed"
+            or sidecar.get("scope") != "structural_only"
+            or sidecar.get("review_completed") is not False
+            or sidecar.get("scoring_ready") is not False
+            or sidecar.get("execution_authorization") != "not_granted"
+            or sidecar.get("eligible_dataset_id") != manifest.get("eligible_dataset_id")
+            or sidecar.get("cohort_sha256") != V2_COHORT_SHA256
+            or generation.get("cohort_sha256") != V2_COHORT_SHA256
+            or lineage.get("cohort_sha256") != V2_COHORT_SHA256
+            or worksheet.get("cohort_sha256") != V2_COHORT_SHA256
+            or sidecar.get("cohort_digest_check") !=
+                "pinned_value_and_input_declarations_match_not_recomputed_from_full_planner_inputs"
+            or sidecar.get("occurrence_policy") != ALL_RELEVANT_OCCURRENCES
+            or sidecar.get("policy_id") != V5_POLICY_ID
+            or sidecar.get("policy_sha256") != V5_POLICY_SHA256
+            or sidecar.get("model") != "Qwen/Qwen2.5-VL-7B-Instruct"
+            or sidecar.get("model_revision") != MODEL_REVISION
+            or sidecar.get("v1_generation_run_sha256_semantics") !=
+                "generation_packet_container_byte_digest_not_unique_run_id"
+            or sidecar.get("worksheet_binding_check") !=
+                "claim_and_identity_hashes_matched_only_not_review_or_custody_validation"
+            or sidecar.get("claim_input_manifest_sha256") != _sha(manifest_raw)):
+        _fail("claim_sidecar_binding_invalid")
+    inputs = sidecar.get("input_sha256")
+    expected_inputs = {
+        "eligible_manifest": manifest["eligible_manifest_sha256"],
+        "generation_packet": _sha(generation_raw),
+        "lineage_manifest": _sha(lineage_raw),
+        "policy": V5_POLICY_SHA256,
+        "test_csv": _sha(csv_raw),
+        "video_map": lineage["dataset_inputs_sha256"].get("map_vid_vidorID.json"),
+        "worksheet": _sha(worksheet_raw),
+    }
+    if (not isinstance(inputs, dict) or set(inputs) != CLAIM_SIDECAR_INPUT_KEYS
+            or inputs != expected_inputs
+            or not all(_is_sha(value) for value in inputs.values())):
+        _fail("claim_sidecar_input_hashes_mismatch")
+    generation_by_video = {
+        "video-" + row["video_sha256"]: row for row in generation["records"]
+        if isinstance(row, dict) and _is_sha(row.get("video_sha256"))
+    }
+    worksheet_by_video = {row["video_id"]: row for row in worksheet["records"]
+                          if isinstance(row, dict) and isinstance(row.get("video_id"), str)}
+    lineage_by_video = {row["video_id"]: row for row in lineage["records"]
+                        if isinstance(row, dict) and isinstance(row.get("video_id"), str)}
+    if (not isinstance(sidecar.get("records"), list) or len(sidecar["records"]) != 3
+            or len(generation_by_video) != 3 or len(worksheet_by_video) != 3
+            or len(lineage_by_video) != 3):
+        _fail("claim_sidecar_record_count_invalid")
+    claim_by_video = {}
+    for claim in manifest["claims"]:
+        if not isinstance(claim, dict) or set(claim) != CLAIM_KEYS:
+            _fail("claim_manifest_row_schema_invalid")
+        video_id = claim.get("video_id")
+        generated = generation_by_video.get(video_id)
+        sheet = worksheet_by_video.get(video_id)
+        source = lineage_by_video.get(video_id)
+        parsed = generated.get("generated_parsed") if isinstance(generated, dict) else None
+        text = parsed.get("claim") if isinstance(parsed, dict) else None
+        if (not isinstance(video_id, str) or video_id in claim_by_video
+                or not isinstance(text, str)
+                or claim.get("claim_id") != sheet.get("claim_id")
+                or claim.get("claim_text") != text
+                or claim.get("claim_text") != sheet.get("claim_text")
+                or claim.get("claim_text_sha256") != _sha(text.encode("utf-8"))
+                or claim.get("claim_text_sha256") != sheet.get("claim_text_sha256")
+                or claim.get("model_revision") != "Qwen/Qwen2.5-VL-7B-Instruct@" + MODEL_REVISION
+                or claim.get("generation_run_sha256") != _sha(generation_raw)
+                or source is None or source.get("claim_id") != claim.get("claim_id")
+                or source.get("claim_text_sha256") != claim.get("claim_text_sha256")):
+            _fail("claim_manifest_lineage_join_mismatch")
+        claim_by_video[video_id] = claim
+    sidecar_by_video = {}
+    for row in sidecar["records"]:
+        if not isinstance(row, dict) or set(row) != CLAIM_SIDECAR_ROW_KEYS:
+            _fail("claim_sidecar_record_schema_invalid")
+        video_id = row.get("video_id")
+        if video_id in sidecar_by_video:
+            _fail("claim_sidecar_duplicate_video")
+        sidecar_by_video[video_id] = row
+        source = lineage_by_video.get(video_id)
+        claim = claim_by_video.get(video_id)
+        if (source is None or claim is None
+                or row.get("dataset_video_id") != source.get("dataset_video_id")
+                or row.get("dataset_question_id") != source.get("dataset_question_id")
+                or row.get("video_sha256") != source.get("video_sha256")
+                or row.get("question_sha256") != source.get("question_sha256")
+                or row.get("claim_id") != claim.get("claim_id")
+                or row.get("claim_text_sha256") != claim.get("claim_text_sha256")):
+            _fail("claim_sidecar_lineage_join_mismatch")
+    if set(claim_by_video) != set(lineage_by_video) or set(sidecar_by_video) != set(lineage_by_video):
+        _fail("claim_bundle_cohort_mismatch")
+    return _sha(manifest_raw)
 
 
 def _checkpoint_fingerprint(model_path: Path) -> tuple[str, str]:
@@ -406,6 +544,8 @@ def _fingerprints(*, model_path: Path, protocol_raw: bytes,
 def build_candidate(*, csv_raw: bytes, generation_raw: bytes, lineage_raw: bytes,
                     worksheet_raw: bytes, protocol_raw: bytes, video_root: Path,
                     model_path: Path, processor, frame_count: int = FRAME_COUNT,
+                    claim_input_manifest_raw: bytes | None = None,
+                    claim_input_sidecar_raw: bytes | None = None,
                     script_path: Path | None = None, vision_info_fn=None,
                     decoder_fn=decode_sampled_video, verify_frames_fn=verify_sampled_frame_pixels) -> dict:
     """Create an unvalidated hash-only candidate payload; never score or authorize."""
@@ -413,6 +553,15 @@ def build_candidate(*, csv_raw: bytes, generation_raw: bytes, lineage_raw: bytes
     generation, lineage, worksheet, upstream = _validate_upstream(
         csv_raw=csv_raw, generation_raw=generation_raw, lineage_raw=lineage_raw,
         worksheet_raw=worksheet_raw, video_root=video_root)
+    if (claim_input_manifest_raw is None) != (claim_input_sidecar_raw is None):
+        _fail("claim_bundle_pair_required")
+    claim_input_sha = None
+    if claim_input_manifest_raw is not None:
+        claim_input_sha = _validate_claim_input_bundle(
+            manifest_raw=claim_input_manifest_raw, sidecar_raw=claim_input_sidecar_raw,
+            csv_raw=csv_raw, generation_raw=generation_raw, lineage_raw=lineage_raw,
+            worksheet_raw=worksheet_raw, generation=generation, lineage=lineage,
+            worksheet=worksheet)
     selection, target = upstream["selection"], upstream["target"]
     qa_source, binding = build_actual_qa_source(
         csv_raw=csv_raw, selection=selection,
@@ -512,8 +661,11 @@ def build_candidate(*, csv_raw: bytes, generation_raw: bytes, lineage_raw: bytes
         "purpose": "private_nextgqa_diagnostic_target_candidate_unvalidated",
         "status": "diagnostic_candidate_unvalidated",
         "diagnostic_only": True,
-        "claim_input_manifest_present": False,
-        "claim_input_manifest_sha256": None,
+        "claim_input_manifest_present": claim_input_sha is not None,
+        "claim_input_manifest_sha256": claim_input_sha,
+        "claim_input_sidecar_sha256": (
+            _sha(claim_input_sidecar_raw)
+            if claim_input_sidecar_raw is not None else None),
         "source_packet_sha256": _sha(generation_raw),
         "lineage_manifest_sha256": _sha(lineage_raw),
         "worksheet_sha256": _sha(worksheet_raw),
@@ -537,8 +689,9 @@ def build_candidate(*, csv_raw: bytes, generation_raw: bytes, lineage_raw: bytes
         "execution_authorization": "not_granted",
         "rights_status": "unverified_local_only",
         "records": output_rows,
-        "limitations": [
+        "limitations": ([
             "no claim-input manifest exists; its hash is explicitly absent",
+        ] if claim_input_sha is None else []) + [
             "protocol is hashed as supplied and remains a design draft, not frozen",
             "only the full unmasked QA prompt/processor path was built",
             "processor_input_ids_sha256 covers input_ids only, not pixel tensors or video metadata",
@@ -594,6 +747,10 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--generation-packet", required=True, type=Path)
     parser.add_argument("--lineage", required=True, type=Path)
     parser.add_argument("--worksheet", required=True, type=Path)
+    parser.add_argument("--claim-input-manifest", type=Path,
+                        help="optional v2 claim manifest; must be paired with its sidecar")
+    parser.add_argument("--claim-input-sidecar", type=Path,
+                        help="optional v2 claim-input provenance sidecar")
     parser.add_argument("--protocol", required=True, type=Path)
     parser.add_argument("--video-root", required=True, type=Path)
     parser.add_argument("--model-path", required=True, type=Path)
@@ -603,12 +760,24 @@ def main(argv: list[str] | None = None) -> int:
     try:
         if args.frames != FRAME_COUNT:
             _fail("protocol_frame_count_mismatch")
+        if bool(args.claim_input_manifest) != bool(args.claim_input_sidecar):
+            _fail("claim_bundle_pair_required")
         paths = (args.csv, args.generation_packet, args.lineage, args.worksheet,
                  args.protocol)
         if any(not path.is_file() for path in paths) or not args.video_root.is_dir():
             _fail("explicit_local_input_missing")
+        if args.claim_input_manifest is not None:
+            for private_input in (args.claim_input_manifest, args.claim_input_sidecar):
+                info = private_input.lstat()
+                if (not stat.S_ISREG(info.st_mode) or stat.S_ISLNK(info.st_mode)
+                        or info.st_uid != os.geteuid() or stat.S_IMODE(info.st_mode) != 0o600):
+                    _fail("claim_bundle_private_input_mode_invalid")
         csv_raw, generation_raw, lineage_raw, worksheet_raw, protocol_raw = (
             path.read_bytes() for path in paths)
+        claim_input_manifest_raw = (args.claim_input_manifest.read_bytes()
+                                    if args.claim_input_manifest is not None else None)
+        claim_input_sidecar_raw = (args.claim_input_sidecar.read_bytes()
+                                   if args.claim_input_sidecar is not None else None)
         _validate_protocol_v2(protocol_raw, args.frames)
         # Source/candidate identity must be sound before loading even the processor
         # or decoding any local video frames.
@@ -619,6 +788,8 @@ def main(argv: list[str] | None = None) -> int:
         payload = build_candidate(
             csv_raw=csv_raw, generation_raw=generation_raw,
             lineage_raw=lineage_raw, worksheet_raw=worksheet_raw,
+            claim_input_manifest_raw=claim_input_manifest_raw,
+            claim_input_sidecar_raw=claim_input_sidecar_raw,
             protocol_raw=protocol_raw, video_root=args.video_root,
             model_path=args.model_path, processor=processor,
             frame_count=args.frames)

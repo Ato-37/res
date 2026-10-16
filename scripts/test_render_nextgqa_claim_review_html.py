@@ -3,6 +3,7 @@ import hashlib
 import contextlib
 import io
 import os
+import re
 import stat
 import tempfile
 import unittest
@@ -10,6 +11,7 @@ from pathlib import Path
 
 from build_nextgqa_claim_mapping_packet import apply_review_policy, build
 from render_nextgqa_claim_review_html import main, render
+from build_nextgqa_v2_claim_input_bundle import V2_COHORT_SHA256
 from test_build_nextgqa_claim_mapping_packet import encode, packet
 
 
@@ -72,6 +74,63 @@ class RenderNextgqaClaimReviewHtmlTests(unittest.TestCase):
             custody_args = (custody, custody_raw, hashlib.sha256(custody_raw).hexdigest())
         return render(payload, raw, lineage, lineage_raw, expected_lineage, *custody_args)
 
+    def bundle(self, payload, worksheet_raw, lineage, lineage_raw):
+        manifest = {
+            "schema_version": 1,
+            "eligible_dataset_id": "synthetic-nextgqa",
+            "eligible_manifest_sha256": "11" * 32,
+            "claim_policy_sha256": payload["claim_review_policy_sha256"],
+            "occurrence_policy": payload["occurrence_policy"],
+            "claims": [],
+        }
+        sidecar_records = []
+        lineage_by_video = {row["video_id"]: row for row in lineage["records"]}
+        for row in payload["records"]:
+            manifest["claims"].append({
+                "video_id": row["video_id"], "claim_id": row["claim_id"],
+                "claim_text": row["claim_text"],
+                "claim_text_sha256": row["claim_text_sha256"],
+                "model_revision": "Qwen/Qwen2.5-VL-7B-Instruct@" + payload["model_revision"],
+                "generation_run_sha256": "22" * 32,
+            })
+            source = lineage_by_video[row["video_id"]]
+            sidecar_records.append({
+                "video_id": row["video_id"], "dataset_video_id": source["dataset_video_id"],
+                "dataset_question_id": source["dataset_question_id"],
+                "video_sha256": source["video_sha256"],
+                "question_sha256": source["question_sha256"],
+                "claim_id": row["claim_id"], "claim_text_sha256": row["claim_text_sha256"],
+            })
+        manifest_raw = encode(manifest)
+        sidecar = {
+            "schema_version": 1,
+            "purpose": "private_nextgqa_v2_claim_input_bundle_provenance",
+            "status": "candidate_unreviewed", "scope": "structural_only",
+            "review_completed": False, "scoring_ready": False,
+            "execution_authorization": "not_granted",
+            "eligible_dataset_id": manifest["eligible_dataset_id"],
+            "cohort_sha256": payload["cohort_sha256"],
+            "cohort_digest_check": "pinned_value_and_input_declarations_match_not_recomputed_from_full_planner_inputs",
+            "occurrence_policy": payload["occurrence_policy"],
+            "policy_id": payload["claim_review_policy_id"],
+            "policy_sha256": payload["claim_review_policy_sha256"],
+            "model": "Qwen/Qwen2.5-VL-7B-Instruct",
+            "model_revision": payload["model_revision"],
+            "v1_generation_run_sha256_semantics": "generation_packet_container_byte_digest_not_unique_run_id",
+            "worksheet_binding_check": "claim_and_identity_hashes_matched_only_not_review_or_custody_validation",
+            "input_sha256": {
+                "eligible_manifest": manifest["eligible_manifest_sha256"],
+                "generation_packet": "22" * 32,
+                "lineage_manifest": hashlib.sha256(lineage_raw).hexdigest(),
+                "policy": payload["claim_review_policy_sha256"],
+                "test_csv": "33" * 32, "video_map": "44" * 32,
+                "worksheet": hashlib.sha256(worksheet_raw).hexdigest(),
+            },
+            "claim_input_manifest_sha256": hashlib.sha256(manifest_raw).hexdigest(),
+            "records": sidecar_records,
+        }
+        return manifest, manifest_raw, sidecar, encode(sidecar)
+
     def test_offline_page_never_authorizes_scoring(self):
         payload, raw, lineage, lineage_raw = self.payload()
         custody = self.custody(payload, raw, lineage_raw)
@@ -127,6 +186,57 @@ class RenderNextgqaClaimReviewHtmlTests(unittest.TestCase):
         self.assertIn("predeclared_plan_binding:'not_checked'", page)
         self.assertIn("anchor_id_validation:'format_and_per_video_uniqueness_only_unverified'", page)
         self.assertIn("unvalidated_html5_clock_observation_integrity_index", page)
+        # Keep the reviewer-facing export disclosure synchronized with the fields
+        # the v5 renderer actually writes into its JSON payload.
+        for disclosure in (
+                "schema_version", "human_reviewer_private_id", "browser_user_agent",
+                "independence_attestation", "review_token", "interval_rationales",
+                "media_duration_seconds", "first_played_at_utc", "display_player",
+                "claim_review_policy_sha256", "review_payload_sha256",
+                "request_video_frame_callback_metadata", "export_disclosure_acknowledged"):
+            self.assertIn(disclosure, page)
+        self.assertIn("凍結v5方針文書には", page)
+        self.assertIn("レビューJSONのexport_disclosure_acknowledged", page)
+        self.assertIn("id=\"export-disclosure\"", page)
+        self.assertIn("&&document.getElementById('export-disclosure').checked", page)
+        self.assertIn("export_disclosure_acknowledged:document.getElementById('export-disclosure').checked", page)
+        disclosure = page.split('<div id="rows">', 1)[0]
+        self.assertLess(page.index('レビューJSONのexport_disclosure_acknowledged'),
+                        page.index('<div id="rows">'))
+        expected_pre_review_fields = {
+            # Review JSON top-level, environment, record, and review fields.
+            "schema_version", "purpose", "status", "review_completed",
+            "execution_authorization", "claim_review_policy_id",
+            "claim_review_policy_sha256", "human_reviewer_role",
+            "human_reviewer_private_id", "review_environment",
+            "browser_user_agent", "offline_static_page",
+            "network_fetch_available", "independence_attestation",
+            "export_disclosure_acknowledged", "records", "review_token",
+            "review", "full_source_video_reviewed",
+            "question_and_claim_only_context_shown",
+            "gold_and_seed_hidden_until_mapping_frozen",
+            "outcome_scores_not_accessed", "media_bytes_verified",
+            "occurrence_policy_applied", "support_decision",
+            "evidence_intervals_seconds", "interval_rationales",
+            "media_duration_seconds", "reviewer_role", "first_played_at_utc",
+            "reviewed_at_utc", "review_status", "display_player",
+            # Review integrity index.
+            "review_payload_sha256", "created_at_utc",
+            # Clock payload and event fields.
+            "player_clock", "presented_frame_metadata", "decoder_frame_identity",
+            "anchor_id_validation", "predeclared_plan_binding",
+            "fit_heldout_split", "decoder_pts_pairing", "events",
+            "anchor_id", "sequence", "html5_current_time_seconds",
+            "request_video_frame_callback_metadata", "frame_match_status",
+            "performance_now_ms", "playback_rate", "muted", "volume",
+            "text_tracks_disabled", "paused", "seeking", "ready_state",
+            "current_src_is_staged_media", "visibility_state",
+            # Clock integrity index.
+            "payload_sha256",
+        }
+        self.assertTrue(expected_pre_review_fields.issubset(set(re.findall(
+            r"[A-Za-z][A-Za-z0-9_]*", disclosure))),
+            "pre-review disclosure omits one or more exported fields")
         self.assertIn("s.clockEvents=[]", page)
         self.assertIn("claim根拠区間と別に保存します", page)
         self.assertIn("currentTimeだけの観測", page)
@@ -145,6 +255,77 @@ class RenderNextgqaClaimReviewHtmlTests(unittest.TestCase):
         self.assertNotIn('"claim_text_sha256"', page)
         self.assertNotIn("worksheetSha", page)
         self.assertNotIn("lineageSha", page)
+
+    def test_optional_v2_bundle_binds_displayed_claims_and_embeds_hashes(self):
+        payload, raw, lineage, lineage_raw = self.payload()
+        payload["cohort_sha256"] = V2_COHORT_SHA256
+        payload["model_revision"] = "cc594898137f460bfe9f0759e9844b3ce807cfb5"
+        lineage["cohort_sha256"] = V2_COHORT_SHA256
+        raw, lineage_raw = encode(payload), encode(lineage)
+        custody = self.custody(payload, raw, lineage_raw)
+        custody_raw = encode(custody)
+        manifest, manifest_raw, sidecar, sidecar_raw = self.bundle(
+            payload, raw, lineage, lineage_raw)
+        page = render(
+            payload, raw, lineage, lineage_raw, hashlib.sha256(lineage_raw).hexdigest(),
+            custody, custody_raw, hashlib.sha256(custody_raw).hexdigest(),
+            manifest, manifest_raw, sidecar, sidecar_raw,
+        ).decode("utf-8")
+        self.assertIn(f'name="claim-input-manifest-sha256" content="{hashlib.sha256(manifest_raw).hexdigest()}"', page)
+        self.assertIn(f'name="claim-input-bundle-sidecar-sha256" content="{hashlib.sha256(sidecar_raw).hexdigest()}"', page)
+        self.assertIn("execution_authorization", page)
+        self.assertIn("not_granted", page)
+
+        bad_sidecar = json.loads(sidecar_raw)
+        bad_sidecar["input_sha256"]["worksheet"] = "00" * 32
+        with self.assertRaisesRegex(ValueError, "claim_bundle_artifact_hash_mismatch"):
+            render(payload, raw, lineage, lineage_raw, hashlib.sha256(lineage_raw).hexdigest(),
+                   custody, custody_raw, hashlib.sha256(custody_raw).hexdigest(),
+                   manifest, manifest_raw, bad_sidecar, encode(bad_sidecar))
+
+        for missing_key in ("test_csv", "video_map"):
+            bad_sidecar = json.loads(sidecar_raw)
+            del bad_sidecar["input_sha256"][missing_key]
+            with self.subTest(missing_hash=missing_key):
+                with self.assertRaisesRegex(ValueError, "claim_bundle_artifact_hash_mismatch"):
+                    render(payload, raw, lineage, lineage_raw, hashlib.sha256(lineage_raw).hexdigest(),
+                           custody, custody_raw, hashlib.sha256(custody_raw).hexdigest(),
+                           manifest, manifest_raw, bad_sidecar, encode(bad_sidecar))
+        bad_sidecar = json.loads(sidecar_raw)
+        bad_sidecar["input_sha256"]["test_csv"] = "not-a-sha256"
+        with self.assertRaisesRegex(ValueError, "claim_bundle_artifact_hash_mismatch"):
+            render(payload, raw, lineage, lineage_raw, hashlib.sha256(lineage_raw).hexdigest(),
+                   custody, custody_raw, hashlib.sha256(custody_raw).hexdigest(),
+                   manifest, manifest_raw, bad_sidecar, encode(bad_sidecar))
+
+        bad_manifest = json.loads(manifest_raw)
+        bad_manifest["claims"][0]["claim_text"] = "different displayed claim"
+        bad_manifest_raw = encode(bad_manifest)
+        bad_sidecar = json.loads(sidecar_raw)
+        bad_sidecar["claim_input_manifest_sha256"] = hashlib.sha256(bad_manifest_raw).hexdigest()
+        with self.assertRaisesRegex(ValueError, "claim_manifest_worksheet_row_mismatch"):
+            render(payload, raw, lineage, lineage_raw, hashlib.sha256(lineage_raw).hexdigest(),
+                   custody, custody_raw, hashlib.sha256(custody_raw).hexdigest(),
+                   bad_manifest, bad_manifest_raw, bad_sidecar, encode(bad_sidecar))
+
+        bad_manifest = json.loads(manifest_raw)
+        bad_manifest["eligible_dataset_id"] = None
+        bad_manifest_raw = encode(bad_manifest)
+        bad_sidecar = json.loads(sidecar_raw)
+        bad_sidecar["eligible_dataset_id"] = None
+        bad_sidecar["claim_input_manifest_sha256"] = hashlib.sha256(bad_manifest_raw).hexdigest()
+        with self.assertRaisesRegex(ValueError, "claim_manifest_schema_or_policy_invalid"):
+            render(payload, raw, lineage, lineage_raw, hashlib.sha256(lineage_raw).hexdigest(),
+                   custody, custody_raw, hashlib.sha256(custody_raw).hexdigest(),
+                   bad_manifest, bad_manifest_raw, bad_sidecar, encode(bad_sidecar))
+
+    def test_claim_bundle_arguments_must_be_paired(self):
+        payload, raw, lineage, lineage_raw = self.payload()
+        custody = self.custody(payload, raw, lineage_raw)
+        custody_raw = encode(custody)
+        with self.assertRaisesRegex(ValueError, "claim_bundle_pair_required"):
+            render(payload, raw, lineage, lineage_raw, hashlib.sha256(lineage_raw).hexdigest(),
+                   custody, custody_raw, hashlib.sha256(custody_raw).hexdigest(), {}, b"{}")
 
     def test_renderer_fails_closed_without_custody(self):
         payload, raw, lineage, lineage_raw = self.payload()

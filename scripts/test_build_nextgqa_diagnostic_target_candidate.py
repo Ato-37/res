@@ -116,6 +116,80 @@ def make_fixture(root: Path):
             "worksheet": worksheet}
 
 
+def add_claim_bundle(fixture):
+    generation = json.loads(fixture["generation_raw"])
+    lineage = json.loads(fixture["lineage_raw"])
+    worksheet = json.loads(fixture["worksheet_raw"])
+    generation["cohort_sha256"] = candidate.V2_COHORT_SHA256
+    generation_raw = canonical(generation)
+    lineage["cohort_sha256"] = candidate.V2_COHORT_SHA256
+    lineage["source_packet_sha256"] = sha(generation_raw)
+    lineage_raw = canonical(lineage)
+    worksheet["cohort_sha256"] = candidate.V2_COHORT_SHA256
+    worksheet["source_packet_sha256"] = sha(generation_raw)
+    worksheet_raw = canonical(worksheet)
+    manifest = {
+        "schema_version": 1, "eligible_dataset_id": "synthetic-three-video-cohort",
+        "eligible_manifest_sha256": "11" * 32,
+        "claim_policy_sha256": candidate.V5_POLICY_SHA256,
+        "occurrence_policy": candidate.ALL_RELEVANT_OCCURRENCES,
+        "claims": [],
+    }
+    sidecar_records = []
+    for claim_row, source_row, sheet_row in zip(
+            generation["records"], lineage["records"], worksheet["records"], strict=True):
+        video_id = "video-" + claim_row["video_sha256"]
+        claim_text = claim_row["generated_parsed"]["claim"]
+        claim_id = sheet_row["claim_id"]
+        claim_sha = sha(claim_text.encode())
+        manifest["claims"].append({
+            "video_id": video_id, "claim_id": claim_id, "claim_text": claim_text,
+            "claim_text_sha256": claim_sha,
+            "model_revision": "Qwen/Qwen2.5-VL-7B-Instruct@" + candidate.MODEL_REVISION,
+            "generation_run_sha256": sha(generation_raw),
+        })
+        sidecar_records.append({
+            "video_id": video_id, "dataset_video_id": source_row["dataset_video_id"],
+            "dataset_question_id": source_row["dataset_question_id"],
+            "video_sha256": source_row["video_sha256"],
+            "question_sha256": source_row["question_sha256"],
+            "claim_id": claim_id, "claim_text_sha256": claim_sha,
+        })
+    manifest_raw = canonical(manifest)
+    sidecar = {
+        "schema_version": 1,
+        "purpose": "private_nextgqa_v2_claim_input_bundle_provenance",
+        "status": "candidate_unreviewed", "scope": "structural_only",
+        "review_completed": False, "scoring_ready": False,
+        "execution_authorization": "not_granted",
+        "eligible_dataset_id": manifest["eligible_dataset_id"],
+        "cohort_sha256": candidate.V2_COHORT_SHA256,
+        "cohort_digest_check": "pinned_value_and_input_declarations_match_not_recomputed_from_full_planner_inputs",
+        "occurrence_policy": candidate.ALL_RELEVANT_OCCURRENCES,
+        "policy_id": candidate.V5_POLICY_ID,
+        "policy_sha256": candidate.V5_POLICY_SHA256,
+        "model": "Qwen/Qwen2.5-VL-7B-Instruct",
+        "model_revision": candidate.MODEL_REVISION,
+        "v1_generation_run_sha256_semantics": "generation_packet_container_byte_digest_not_unique_run_id",
+        "worksheet_binding_check": "claim_and_identity_hashes_matched_only_not_review_or_custody_validation",
+        "input_sha256": {
+            "eligible_manifest": manifest["eligible_manifest_sha256"],
+            "generation_packet": sha(generation_raw),
+            "lineage_manifest": sha(lineage_raw),
+            "policy": candidate.V5_POLICY_SHA256,
+            "test_csv": sha(fixture["csv_raw"]),
+            "video_map": lineage["dataset_inputs_sha256"]["map_vid_vidorID.json"],
+            "worksheet": sha(worksheet_raw),
+        },
+        "claim_input_manifest_sha256": sha(manifest_raw),
+        "records": sidecar_records,
+    }
+    fixture.update(generation_raw=generation_raw, lineage_raw=lineage_raw,
+                   worksheet_raw=worksheet_raw, claim_input_manifest_raw=manifest_raw,
+                   claim_input_sidecar_raw=canonical(sidecar))
+    return fixture
+
+
 def make_model_snapshot(root: Path) -> Path:
     model = root / candidate.MODEL_REVISION
     model.mkdir()
@@ -153,6 +227,9 @@ class DiagnosticTargetCandidateTests(unittest.TestCase):
                 "video_root")},
             model_path=make_model_snapshot(root), processor=FakeProcessor(), frame_count=32,
             verify_frames_fn=lambda frames, meta: None, vision_info_fn=synthetic_vision)
+        for key in ("claim_input_manifest_raw", "claim_input_sidecar_raw"):
+            if key in fixture:
+                kwargs[key] = fixture[key]
         if decoder_fn is not None:
             kwargs["decoder_fn"] = decoder_fn
         return candidate.build_candidate(**kwargs)
@@ -168,6 +245,9 @@ class DiagnosticTargetCandidateTests(unittest.TestCase):
         self.assertEqual(payload["source_row_bindings"], 3)
         self.assertFalse(payload["claim_input_manifest_present"])
         self.assertIsNone(payload["claim_input_manifest_sha256"])
+        self.assertIsNone(payload["claim_input_sidecar_sha256"])
+        self.assertIn("no claim-input manifest exists; its hash is explicitly absent",
+                      payload["limitations"])
         self.assertEqual(payload["model_weights_loaded"], False)
         self.assertEqual(payload["cuda_used"], False)
         self.assertEqual(payload["score_calls"], 0)
@@ -194,6 +274,64 @@ class DiagnosticTargetCandidateTests(unittest.TestCase):
         self.assertNotIn("synthetic question", encoded)
         self.assertNotIn("synthetic claim", encoded)
         self.assertNotIn("gold-0", encoded)
+
+    def test_candidate_binds_claim_manifest_and_sidecar_without_authorizing_scores(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            fixture = add_claim_bundle(make_fixture(root))
+            payload = self.build(root, fixture, decoder_fn=synthetic_decoder)
+        self.assertTrue(payload["claim_input_manifest_present"])
+        self.assertEqual(payload["claim_input_manifest_sha256"],
+                         sha(fixture["claim_input_manifest_raw"]))
+        self.assertEqual(payload["claim_input_sidecar_sha256"],
+                         sha(fixture["claim_input_sidecar_raw"]))
+        self.assertNotIn("no claim-input manifest exists; its hash is explicitly absent",
+                         payload["limitations"])
+        self.assertEqual(payload["effective_records"], 3)
+        self.assertEqual(payload["score_calls"], 0)
+        self.assertEqual(payload["execution_authorization"], "not_granted")
+        self.assertFalse(payload["worksheet_review_completed"])
+        encoded = json.dumps(payload)
+        self.assertNotIn("synthetic claim", encoded)
+        self.assertNotIn("synthetic question", encoded)
+        self.assertNotIn("gold-0", encoded)
+
+    def test_claim_bundle_pair_hash_and_row_mismatches_fail_closed(self):
+        for corruption, expected in (
+                ("pair", "claim_bundle_pair_required"),
+                ("sidecar_hash", "claim_sidecar_binding_invalid"),
+                ("worksheet_hash", "claim_sidecar_input_hashes_mismatch"),
+                ("claim_text", "claim_manifest_lineage_join_mismatch")):
+            with self.subTest(corruption=corruption), tempfile.TemporaryDirectory() as temp:
+                root = Path(temp)
+                fixture = add_claim_bundle(make_fixture(root))
+                kwargs = {key: fixture[key] for key in (
+                    "csv_raw", "generation_raw", "lineage_raw", "worksheet_raw", "protocol_raw",
+                    "video_root")}
+                kwargs.update(model_path=make_model_snapshot(root), processor=FakeProcessor(),
+                              frame_count=32, verify_frames_fn=lambda frames, meta: None,
+                              vision_info_fn=synthetic_vision, decoder_fn=synthetic_decoder)
+                kwargs["claim_input_manifest_raw"] = fixture["claim_input_manifest_raw"]
+                kwargs["claim_input_sidecar_raw"] = fixture["claim_input_sidecar_raw"]
+                if corruption == "pair":
+                    kwargs.pop("claim_input_sidecar_raw")
+                elif corruption == "sidecar_hash":
+                    sidecar = json.loads(kwargs["claim_input_sidecar_raw"])
+                    sidecar["claim_input_manifest_sha256"] = "00" * 32
+                    kwargs["claim_input_sidecar_raw"] = canonical(sidecar)
+                elif corruption == "worksheet_hash":
+                    sidecar = json.loads(kwargs["claim_input_sidecar_raw"])
+                    sidecar["input_sha256"]["worksheet"] = "00" * 32
+                    kwargs["claim_input_sidecar_raw"] = canonical(sidecar)
+                else:
+                    manifest = json.loads(kwargs["claim_input_manifest_raw"])
+                    manifest["claims"][0]["claim_text"] = "tampered claim"
+                    kwargs["claim_input_manifest_raw"] = canonical(manifest)
+                    sidecar = json.loads(kwargs["claim_input_sidecar_raw"])
+                    sidecar["claim_input_manifest_sha256"] = sha(kwargs["claim_input_manifest_raw"])
+                    kwargs["claim_input_sidecar_raw"] = canonical(sidecar)
+                with self.assertRaisesRegex(candidate.CandidateError, expected):
+                    candidate.build_candidate(**kwargs)
 
     def test_generation_claim_and_worksheet_claim_tampering_fail_before_decode(self):
         for target in ("generation", "worksheet"):

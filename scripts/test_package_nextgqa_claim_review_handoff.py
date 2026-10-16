@@ -12,12 +12,14 @@ from pathlib import Path
 import package_nextgqa_claim_review_handoff as package_cli
 from package_nextgqa_claim_review_handoff import _package_review_after_audit
 from render_nextgqa_claim_review_html import render
+from build_nextgqa_v2_claim_input_bundle import V2_COHORT_SHA256
 from test_audit_nextgqa_review_handoff import fixture as handoff_fixture, frozen_worksheet
 from test_build_nextgqa_claim_mapping_packet import encode
+from test_render_nextgqa_claim_review_html import RenderNextgqaClaimReviewHtmlTests
 
 
 class PackageNextgqaReviewHandoffTests(unittest.TestCase):
-    def cli_fixture(self, root):
+    def cli_fixture(self, root, *, include_bundle=False):
         worksheet, _, lineage, _ = handoff_fixture()[:4]
         private = root / "data" / "private_nextgqa"
         private.mkdir(parents=True, mode=0o700)
@@ -48,6 +50,10 @@ class PackageNextgqaReviewHandoffTests(unittest.TestCase):
                 "media_check_salt": salt.hex(),
                 "media_check_sha256": hashlib.sha256(salt + media).hexdigest(),
             })
+        if include_bundle:
+            worksheet["cohort_sha256"] = V2_COHORT_SHA256
+            worksheet["model_revision"] = "cc594898137f460bfe9f0759e9844b3ce807cfb5"
+            lineage["cohort_sha256"] = V2_COHORT_SHA256
         worksheet_raw = encode(worksheet)
         lineage_raw = encode(lineage)
         custody = {
@@ -60,11 +66,25 @@ class PackageNextgqaReviewHandoffTests(unittest.TestCase):
             "record_count": 3, "records": rows,
         }
         custody_raw = encode(custody)
+        bundle_paths = None
+        bundle_values = None
+        if include_bundle:
+            renderer_tests = RenderNextgqaClaimReviewHtmlTests()
+            bundle_values = renderer_tests.bundle(worksheet, worksheet_raw, lineage, lineage_raw)
+            bundle_paths = []
+            for name, raw_value in zip(
+                    ("claim-input.json", "claim-input-sidecar.json"),
+                    (bundle_values[1], bundle_values[3]), strict=True):
+                path = private / name
+                path.write_bytes(raw_value)
+                os.chmod(path, 0o600)
+                bundle_paths.append(path)
         review_page = private / "review.html"
         page_raw = render(
             worksheet, worksheet_raw, lineage, lineage_raw,
             hashlib.sha256(lineage_raw).hexdigest(), custody, custody_raw,
-            hashlib.sha256(custody_raw).hexdigest())
+            hashlib.sha256(custody_raw).hexdigest(),
+            *(bundle_values if bundle_values is not None else (None, None, None, None)))
         review_page.write_bytes(page_raw)
         os.chmod(review_page, 0o600)
         inputs = []
@@ -74,12 +94,13 @@ class PackageNextgqaReviewHandoffTests(unittest.TestCase):
             path.write_bytes(raw)
             os.chmod(path, 0o600)
             inputs.append(path)
-        return private, media_dir, inputs, review_page
+        return private, media_dir, inputs, review_page, bundle_paths
 
     def test_cli_audits_and_binds_all_inputs_before_packaging(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp) / "repo"
-            private, media_dir, inputs, review_page = self.cli_fixture(root)
+            private, media_dir, inputs, review_page, bundle_paths = self.cli_fixture(
+                root, include_bundle=True)
             output = private / "handoff"
             fake_file = root / "scripts" / "package_nextgqa_claim_review_handoff.py"
             fake_file.parent.mkdir(parents=True)
@@ -88,6 +109,8 @@ class PackageNextgqaReviewHandoffTests(unittest.TestCase):
                     "--custody-manifest", str(inputs[2]),
                     "--expected-custody-sha256", hashlib.sha256(inputs[2].read_bytes()).hexdigest(),
                     "--media-dir", str(media_dir), "--review-page", str(review_page),
+                    "--claim-input-manifest", str(bundle_paths[0]),
+                    "--claim-input-sidecar", str(bundle_paths[1]),
                     "--output-dir", str(output), "--user-authorized-local-only"]
             stdout = io.StringIO()
             with mock.patch.object(package_cli, "__file__", str(fake_file)), \
@@ -103,7 +126,7 @@ class PackageNextgqaReviewHandoffTests(unittest.TestCase):
     def test_cli_rejects_html_not_bound_to_frozen_inputs_before_copy(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp) / "repo"
-            private, media_dir, inputs, review_page = self.cli_fixture(root)
+            private, media_dir, inputs, review_page, _ = self.cli_fixture(root)
             review_page.write_text("tampered page")
             os.chmod(review_page, 0o600)
             output = private / "handoff"
@@ -118,6 +141,59 @@ class PackageNextgqaReviewHandoffTests(unittest.TestCase):
             with mock.patch.object(package_cli, "__file__", str(fake_file)), \
                     contextlib.redirect_stderr(io.StringIO()), self.assertRaises(SystemExit):
                 package_cli.main(argv)
+            self.assertFalse(output.exists())
+
+    def test_cli_requires_claim_manifest_and_sidecar_as_a_pair(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp) / "repo"
+            private, media_dir, inputs, review_page, _ = self.cli_fixture(root)
+            output = private / "handoff"
+            fake_file = root / "scripts" / "package_nextgqa_claim_review_handoff.py"
+            fake_file.parent.mkdir(parents=True)
+            argv = ["--worksheet", str(inputs[0]), "--lineage-manifest", str(inputs[1]),
+                    "--expected-lineage-sha256", hashlib.sha256(inputs[1].read_bytes()).hexdigest(),
+                    "--custody-manifest", str(inputs[2]),
+                    "--expected-custody-sha256", hashlib.sha256(inputs[2].read_bytes()).hexdigest(),
+                    "--media-dir", str(media_dir), "--review-page", str(review_page),
+                    "--claim-input-manifest", str(inputs[0]),
+                    "--output-dir", str(output), "--user-authorized-local-only"]
+            with mock.patch.object(package_cli, "__file__", str(fake_file)), \
+                    contextlib.redirect_stderr(io.StringIO()), self.assertRaises(SystemExit):
+                package_cli.main(argv)
+            self.assertFalse(output.exists())
+
+    def test_cli_rejects_stale_page_after_valid_bundle_digest_change(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp) / "repo"
+            private, media_dir, inputs, review_page, bundle_paths = self.cli_fixture(
+                root, include_bundle=True)
+            manifest = json.loads(bundle_paths[0].read_bytes())
+            sidecar = json.loads(bundle_paths[1].read_bytes())
+            manifest["eligible_dataset_id"] += "-changed"
+            manifest_raw = encode(manifest)
+            sidecar["eligible_dataset_id"] = manifest["eligible_dataset_id"]
+            sidecar["claim_input_manifest_sha256"] = hashlib.sha256(manifest_raw).hexdigest()
+            sidecar_raw = encode(sidecar)
+            bundle_paths[0].write_bytes(manifest_raw)
+            bundle_paths[1].write_bytes(sidecar_raw)
+            os.chmod(bundle_paths[0], 0o600)
+            os.chmod(bundle_paths[1], 0o600)
+            output = private / "handoff"
+            fake_file = root / "scripts" / "package_nextgqa_claim_review_handoff.py"
+            fake_file.parent.mkdir(parents=True)
+            argv = ["--worksheet", str(inputs[0]), "--lineage-manifest", str(inputs[1]),
+                    "--expected-lineage-sha256", hashlib.sha256(inputs[1].read_bytes()).hexdigest(),
+                    "--custody-manifest", str(inputs[2]),
+                    "--expected-custody-sha256", hashlib.sha256(inputs[2].read_bytes()).hexdigest(),
+                    "--media-dir", str(media_dir), "--review-page", str(review_page),
+                    "--claim-input-manifest", str(bundle_paths[0]),
+                    "--claim-input-sidecar", str(bundle_paths[1]),
+                    "--output-dir", str(output), "--user-authorized-local-only"]
+            stderr = io.StringIO()
+            with mock.patch.object(package_cli, "__file__", str(fake_file)), \
+                    contextlib.redirect_stderr(stderr), self.assertRaises(SystemExit):
+                package_cli.main(argv)
+            self.assertIn("review_page_not_bound_to_frozen_inputs", stderr.getvalue())
             self.assertFalse(output.exists())
 
     def test_package_contains_only_blinded_page_and_verified_token_media(self):

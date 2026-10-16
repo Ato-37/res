@@ -85,6 +85,10 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--expected-custody-sha256", required=True)
     p.add_argument("--media-dir", required=True)
     p.add_argument("--review-page", required=True)
+    p.add_argument("--claim-input-manifest",
+                   help="optional v2 claim-input manifest bound into the review page")
+    p.add_argument("--claim-input-sidecar",
+                   help="optional v2 provenance sidecar; must be paired with the manifest")
     p.add_argument("--output-dir", required=True)
     p.add_argument("--user-authorized-local-only", action="store_true")
     a = p.parse_args(argv)
@@ -93,19 +97,32 @@ def main(argv: list[str] | None = None) -> int:
     root = Path(__file__).resolve().parents[1]
     private = root / "data" / "private_nextgqa"
     paths = [Path(a.worksheet), Path(a.lineage_manifest), Path(a.custody_manifest), Path(a.review_page)]
+    claim_manifest_path = Path(a.claim_input_manifest) if a.claim_input_manifest else None
+    claim_sidecar_path = Path(a.claim_input_sidecar) if a.claim_input_sidecar else None
     try:
-        if any(x.stat().st_uid != os.geteuid() or stat.S_IMODE(x.stat().st_mode) != 0o600 for x in paths):
+        if bool(claim_manifest_path) != bool(claim_sidecar_path):
+            raise ValueError("claim_bundle_pair_required")
+        private_inputs = list(paths)
+        if claim_manifest_path is not None:
+            private_inputs.extend((claim_manifest_path, claim_sidecar_path))
+        if any(x.stat().st_uid != os.geteuid() or stat.S_IMODE(x.stat().st_mode) != 0o600 for x in private_inputs):
             raise ValueError("private_input_mode_invalid")
         raw = [x.read_bytes() for x in paths[:3]]
         values = [json.loads(x) for x in raw]
+        claim_manifest_raw = claim_manifest_path.read_bytes() if claim_manifest_path else None
+        claim_sidecar_raw = claim_sidecar_path.read_bytes() if claim_sidecar_path else None
+        claim_manifest = json.loads(claim_manifest_raw) if claim_manifest_raw is not None else None
+        claim_sidecar = json.loads(claim_sidecar_raw) if claim_sidecar_raw is not None else None
         failures = audit_custody(values[0], raw[0], values[1], raw[1], values[2], raw[2],
                                  Path(a.media_dir), a.expected_custody_sha256)
         if failures:
             raise ValueError("custody_audit_failed")
         if hashlib.sha256(raw[1]).hexdigest() != a.expected_lineage_sha256:
             raise ValueError("lineage_manifest_hash_mismatch")
-        expected_page = render(values[0], raw[0], values[1], raw[1], a.expected_lineage_sha256,
-                               values[2], raw[2], a.expected_custody_sha256)
+        expected_page = render(
+            values[0], raw[0], values[1], raw[1], a.expected_lineage_sha256,
+            values[2], raw[2], a.expected_custody_sha256,
+            claim_manifest, claim_manifest_raw, claim_sidecar, claim_sidecar_raw)
         if paths[3].read_bytes() != expected_page:
             raise ValueError("review_page_not_bound_to_frozen_inputs")
         result = _package_review_after_audit(paths[3], values[0], values[2], Path(a.media_dir), Path(a.output_dir), private)
