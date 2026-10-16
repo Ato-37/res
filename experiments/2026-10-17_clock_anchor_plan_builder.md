@@ -52,10 +52,11 @@ with input, plan, dependent code, PTS-sequence, decoder, and runtime hashes;
 the joint-freeze receipt remains null. Windows Edge 155 exists. WSL-to-Windows
 interop fails in the ordinary sandbox; individual elevation can read the
 private page path and query the browser version. A dedicated Edge process was
-started with the local review-page argument. A local DevTools target was
-visible, but a WebSocket control attempt failed before media readiness could
-be checked. No human review, playback, compositor capture, or frame
-correspondence result is claimed, and no GPU work was attempted.
+started with the local review-page argument, and the generic page title is
+visible in Edge. A local DevTools target was visible, but a WebSocket control
+attempt failed before media readiness could be checked. No human review,
+playback, compositor capture, or frame correspondence result is claimed; no
+GPU work was attempted.
 
 ## Next action
 
