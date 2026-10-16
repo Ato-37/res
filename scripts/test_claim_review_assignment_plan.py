@@ -227,6 +227,64 @@ class ClaimReviewAssignmentPlanTests(unittest.TestCase):
         self.assertNotIn("private claim", encoded)
         self.assertNotIn("opaque-review-token", encoded)
 
+    def test_bound_calibrations_join_by_review_token_without_injecting_media_id(self):
+        args = fixture()
+        for worksheet_row, calibration in zip(
+                args["worksheet_records"], args["calibration_records"], strict=True):
+            calibration.pop("video_id")
+            calibration["review_token"] = worksheet_row["review_token"]
+            rebind_calibration(calibration)
+
+        result = plan_claim_review_assignments(**args)
+
+        self.assertEqual(result["status"], "assignment_plan_structurally_passed_unvalidated")
+        self.assertEqual(result["validated_videos"], 3)
+        self.assertEqual(result["score_calls"], 0)
+        self.assertEqual(result["execution_authorization"], "not_granted")
+
+    def test_calibration_without_video_or_opaque_token_identity_fails_closed(self):
+        args = fixture()
+        for calibration in args["calibration_records"]:
+            calibration.pop("video_id")
+            rebind_calibration(calibration)
+
+        result = plan_claim_review_assignments(**args)
+
+        self.assertEqual(result["status"], "blocked")
+        self.assertEqual(result["failure_codes"], ["calibration_identity_missing"])
+        self.assertEqual(result["score_calls"], 0)
+        self.assertEqual(result["execution_authorization"], "not_granted")
+
+    def test_partial_calibration_identity_mode_fails_closed(self):
+        args = fixture()
+        args["calibration_records"][0]["review_token"] = "z" * 24
+        rebind_calibration(args["calibration_records"][0])
+
+        result = plan_claim_review_assignments(**args)
+
+        self.assertEqual(result["status"], "blocked")
+        self.assertEqual(result["failure_codes"], ["calibration_identity_mixed"])
+        self.assertEqual(result["score_calls"], 0)
+        self.assertEqual(result["execution_authorization"], "not_granted")
+
+    def test_swapped_token_calibration_is_rejected_by_media_binding(self):
+        args = fixture()
+        calibrations = args["calibration_records"]
+        tokens = [row["review_token"] for row in args["worksheet_records"]]
+        for calibration, token in zip(calibrations, tokens, strict=True):
+            calibration.pop("video_id")
+            calibration["review_token"] = token
+        calibrations[0]["review_token"], calibrations[1]["review_token"] = tokens[1], tokens[0]
+        for calibration in calibrations:
+            rebind_calibration(calibration)
+
+        result = plan_claim_review_assignments(**args)
+
+        self.assertEqual(result["status"], "blocked")
+        self.assertEqual(result["failure_codes"], ["clock_calibration_gate_failed"])
+        self.assertEqual(result["score_calls"], 0)
+        self.assertEqual(result["execution_authorization"], "not_granted")
+
     def test_fabricated_evidence_hashes_only_pass_structural_unvalidated_plan(self):
         args = fixture()
         for i, calibration in enumerate(args["calibration_records"]):

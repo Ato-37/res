@@ -301,12 +301,57 @@ def plan_claim_review_assignments(*, expected_video_ids, worksheet_records,
     try:
         worksheet = keyed(worksheet_records, "video_id")
         reviews = keyed(review_records, "review_token")
-        calibrations = keyed(calibration_records, "video_id")
         timings = keyed(timing_records, "video_id")
     except ValueError as exc:
         return _blocked(str(exc), n)
     if set(worksheet) != set(expected_video_ids) or set(timings) != set(expected_video_ids):
         return _blocked("cohort_membership_mismatch", n)
+    token_to_video = {}
+    for video_id, row in worksheet.items():
+        token = row.get("review_token")
+        if not isinstance(token, str) or TOKEN.fullmatch(token) is None or token in token_to_video:
+            return _blocked("worksheet_token_mapping_invalid", n)
+        token_to_video[token] = video_id
+    if set(reviews) != set(token_to_video):
+        return _blocked("review_token_coverage_mismatch", n)
+
+    # Bound clock artifacts are keyed by the opaque review token; synthetic
+    # planner fixtures and older callers may instead supply an explicit
+    # video_id. Join through the worksheet token map without injecting an ID
+    # into the hash-bound calibration artifact.
+    if any(not isinstance(row, dict) for row in calibration_records):
+        return _blocked("calibration_identity_missing", n)
+    identity_shapes = {("video_id" in row, "review_token" in row)
+                       for row in calibration_records}
+    if len(identity_shapes) > 1:
+        return _blocked("calibration_identity_mixed", n)
+    if not identity_shapes:
+        return _blocked("calibration_identity_missing", n)
+    has_video_id, has_review_token = next(iter(identity_shapes), (False, False))
+    if ((has_video_id and any(not isinstance(row.get("video_id"), str)
+                              for row in calibration_records))
+            or (has_review_token and any(not isinstance(row.get("review_token"), str)
+                                         for row in calibration_records))):
+        return _blocked("calibration_identity_missing", n)
+    if has_video_id:
+        try:
+            calibrations = keyed(calibration_records, "video_id")
+        except ValueError as exc:
+            return _blocked(str(exc), n)
+        if has_review_token and any(
+                row["video_id"] != token_to_video.get(row["review_token"])
+                for row in calibration_records):
+            return _blocked("calibration_token_video_mismatch", n)
+    elif has_review_token:
+        try:
+            by_token = keyed(calibration_records, "review_token")
+        except ValueError as exc:
+            return _blocked(str(exc), n)
+        if set(by_token) != set(token_to_video):
+            return _blocked("calibration_token_coverage_mismatch", n)
+        calibrations = {token_to_video[token]: row for token, row in by_token.items()}
+    else:
+        return _blocked("calibration_identity_missing", n)
     if set(calibrations) != set(expected_video_ids):
         return _blocked("calibration_cohort_mismatch", n)
     try:
@@ -335,15 +380,6 @@ def plan_claim_review_assignments(*, expected_video_ids, worksheet_records,
     except (UnicodeError, json.JSONDecodeError, ValueError, RecursionError) as exc:
         code = str(exc) if re.fullmatch(r"[a-z0-9_]+", str(exc)) else "calibration_artifact_invalid"
         return _blocked(code, n)
-    token_to_video = {}
-    for video_id, row in worksheet.items():
-        token = row.get("review_token")
-        if not isinstance(token, str) or TOKEN.fullmatch(token) is None or token in token_to_video:
-            return _blocked("worksheet_token_mapping_invalid", n)
-        token_to_video[token] = video_id
-    if set(reviews) != set(token_to_video):
-        return _blocked("review_token_coverage_mismatch", n)
-
     planned = []
     try:
         for video_id in expected_video_ids:
