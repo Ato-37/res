@@ -9,9 +9,17 @@ class Html5ClockCaptureCalibrationTests(unittest.TestCase):
     def setUp(self):
         self.media = b"synthetic local staged media"
         self.capture = {
-            "schema_version": 2,
+            "schema_version": 3,
             "purpose": "local_html5_player_clock_anchor_capture",
             "player_clock": "html5_video_requestVideoFrameCallback_mediaTime_seconds",
+            "capture_policy_id": "rvfc_click_bound_v1",
+            "capture_thresholds": {
+                "max_callback_age_ms": 250.0,
+                "max_request_delay_ms": 250.0,
+                "max_click_player_time_delta_seconds": 0.1,
+                "max_callback_player_time_delta_seconds": 0.1,
+                "callback_wait_timeout_ms": 1000.0,
+            },
             "browser_user_agent": "Synthetic browser fixture",
             "current_src_matches_staged_media": True,
             "source_media_sha256": hashlib.sha256(self.media).hexdigest(),
@@ -57,7 +65,7 @@ class Html5ClockCaptureCalibrationTests(unittest.TestCase):
 
     def test_rejects_duplicate_json_keys(self):
         raw = json.dumps(self.capture, sort_keys=True).encode()
-        raw = raw[:-1] + b',"schema_version":2}'
+        raw = raw[:-1] + b',"schema_version":3}'
         with self.assertRaisesRegex(ValueError, "capture_duplicate_json_key"):
             build_html5_clock_calibration(raw, self.media, "1/100")
 

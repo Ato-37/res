@@ -20,6 +20,14 @@ from annotation_clock_calibration import evaluate_affine_calibration
 
 SHA256 = re.compile(r"^[a-f0-9]{64}$")
 PLAYER_CLOCK = "html5_video_requestVideoFrameCallback_mediaTime_seconds"
+CAPTURE_POLICY_ID = "rvfc_click_bound_v1"
+CAPTURE_THRESHOLDS = {
+    "max_callback_age_ms": 250.0,
+    "max_request_delay_ms": 250.0,
+    "max_click_player_time_delta_seconds": 0.1,
+    "max_callback_player_time_delta_seconds": 0.1,
+    "callback_wait_timeout_ms": 1000.0,
+}
 
 
 def _fraction(value: Any, field: str) -> Fraction:
@@ -45,7 +53,7 @@ def build_html5_clock_calibration(capture_raw: bytes, media_bytes: bytes,
                                  frozen_tolerance_pts_seconds: str) -> dict:
     """Return a planner-compatible empirical calibration record.
 
-    Capture schema v2 requires explicit actual-player metadata and disjoint
+    Capture schema v3 requires explicit actual-player metadata and disjoint
     anchor lists. Anchor rows pair decoder PTS with rVFC ``mediaTime``. The
     caller must separately verify that metadata is fresh and the displayed
     frame corresponds to the decoder frame; this helper cannot establish that.
@@ -55,14 +63,17 @@ def build_html5_clock_calibration(capture_raw: bytes, media_bytes: bytes,
         capture = json.loads(capture_raw, object_pairs_hook=_unique_object)
     except (TypeError, UnicodeDecodeError, json.JSONDecodeError):
         raise ValueError("capture_json_invalid") from None
-    required = {"schema_version", "purpose", "player_clock", "browser_user_agent",
+    required = {"schema_version", "purpose", "player_clock", "capture_policy_id",
+                "capture_thresholds", "browser_user_agent",
                 "current_src_matches_staged_media", "source_media_sha256",
                 "playback_rate", "muted", "text_tracks_disabled",
                 "fit_anchors", "heldout_anchors"}
     if not isinstance(capture, dict) or set(capture) != required:
         raise ValueError("capture_schema_invalid")
-    if (type(capture["schema_version"]) is not int or capture["schema_version"] != 2
+    if (type(capture["schema_version"]) is not int or capture["schema_version"] != 3
             or capture["purpose"] != "local_html5_player_clock_anchor_capture"
+            or capture["capture_policy_id"] != CAPTURE_POLICY_ID
+            or capture["capture_thresholds"] != CAPTURE_THRESHOLDS
             or capture["player_clock"] != PLAYER_CLOCK):
         raise ValueError("capture_identity_invalid")
     if (not isinstance(capture["browser_user_agent"], str)
@@ -115,6 +126,8 @@ def build_html5_clock_calibration(capture_raw: bytes, media_bytes: bytes,
     guard = Fraction(evaluation["heldout_max_abs_residual"]) / slope
     artifact = {
         "clock_scope": PLAYER_CLOCK,
+        "capture_policy_id": CAPTURE_POLICY_ID,
+        "capture_thresholds": CAPTURE_THRESHOLDS,
         # This is only an arithmetic result. It is deliberately not named
         # ``heldout_pass`` so downstream code cannot mistake it for validation.
         "empirical_residual_within_tolerance": guard <= tolerance,

@@ -55,7 +55,9 @@ def fixture():
                     "width": 640, "height": 360,
                     "callback_now_ms": 999.0 + sequence,
                 },
-                "frame_match_status": "last_presented_frame_metadata_unverified",
+                "requested_player_time_seconds": float(sequence) / 2,
+                "request_started_performance_ms": 900.0 + sequence,
+                "frame_match_status": "fresh_click_bound_callback_unverified_decoder",
                 "performance_now_ms": 1000.0 + sequence,
                 "media_duration_seconds": 10.0, "playback_rate": 1.0,
                 "muted": True, "volume": 0.0, "text_tracks_disabled": True,
@@ -65,9 +67,17 @@ def fixture():
             })
         observation_rows.append({"review_token": token, "events": events})
     observations = {
-        "schema_version": 2,
+            "schema_version": 3,
         "purpose": "local_unvalidated_html5_player_clock_observations",
         "status": "raw_player_clock_observations_only",
+            "capture_policy_id": "rvfc_click_bound_v1",
+            "capture_thresholds": {
+                "max_callback_age_ms": 250.0,
+                "max_request_delay_ms": 250.0,
+                "max_click_player_time_delta_seconds": 0.1,
+                "max_callback_player_time_delta_seconds": 0.1,
+                "callback_wait_timeout_ms": 1000.0,
+            },
         "player_clock": "html5_video_currentTime_seconds",
         "presented_frame_metadata": "requestVideoFrameCallback_when_available_not_decoder_matched",
         "decoder_frame_identity": "not_verified",
@@ -226,7 +236,7 @@ class PrepareHtml5ClockInputsTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "source_media_binding_mismatch"):
             build_bound_html5_clock_calibration(**dict(args, media_bytes=b"wrong media"))
 
-    def test_calibration_uses_presented_media_time_not_click_current_time(self):
+    def test_rejects_presented_media_time_far_from_player_time(self):
         obs_raw, index_raw, plan_raw = fixture()
         observations = json.loads(obs_raw)
         event = observations["records"][0]["events"][0]
@@ -234,12 +244,9 @@ class PrepareHtml5ClockInputsTests(unittest.TestCase):
         changed_raw = enc(observations)
         changed_index = json.loads(index_raw)
         changed_index["payload_sha256"] = hashlib.sha256(changed_raw).hexdigest()
-        result = prepare_capture_bundle(changed_raw, enc(changed_index), plan_raw,
-                                        hashlib.sha256(plan_raw).hexdigest())
-        fit_anchor = result["captures"][0]["capture"]["fit_anchors"][0]
-        self.assertEqual(fit_anchor["html5_media_time_seconds"], "0.5")
-        self.assertNotIn("html5_current_time_seconds", fit_anchor)
-        self.assertTrue(any("may be stale" in item for item in result["limitations"]))
+        with self.assertRaisesRegex(ValueError, "presented_frame_stale_or_time_mismatch"):
+            prepare_capture_bundle(changed_raw, enc(changed_index), plan_raw,
+                                   hashlib.sha256(plan_raw).hexdigest())
 
     def test_rejects_wrong_plan_or_observation_index_hash(self):
         obs_raw, index_raw, plan_raw = fixture()
@@ -279,12 +286,50 @@ class PrepareHtml5ClockInputsTests(unittest.TestCase):
                                    hashlib.sha256(plan_raw).hexdigest())
 
         observations = json.loads(obs_raw)
-        observations["records"][0]["events"][0]["paused"] = False
+        observations["records"][0]["events"][0]["frame_match_status"] = "last_presented_frame_metadata_unverified"
         bad_raw = enc(observations)
         index = json.loads(index_raw); index["payload_sha256"] = hashlib.sha256(bad_raw).hexdigest()
         with self.assertRaisesRegex(ValueError, "observed_event_state_invalid"):
             prepare_capture_bundle(bad_raw, enc(index), plan_raw,
                                    hashlib.sha256(plan_raw).hexdigest())
+
+    def test_rejects_stale_or_player_time_mismatched_presented_frame(self):
+        obs_raw, index_raw, plan_raw = fixture()
+        for field, value in (("performance_now_ms", 2000.0),
+                             ("html5_current_time_seconds", 7.25),
+                             ("requested_player_time_seconds", 7.25),
+                             ("request_started_performance_ms", 700.0)):
+            observations = json.loads(obs_raw)
+            observations["records"][0]["events"][0][field] = value
+            bad_raw = enc(observations)
+            index = json.loads(index_raw)
+            index["payload_sha256"] = hashlib.sha256(bad_raw).hexdigest()
+            with self.subTest(field=field), self.assertRaisesRegex(
+                    ValueError, "presented_frame_stale_or_time_mismatch"):
+                prepare_capture_bundle(bad_raw, enc(index), plan_raw,
+                                       hashlib.sha256(plan_raw).hexdigest())
+
+    def test_capture_threshold_policy_is_explicit_and_fixed(self):
+        obs_raw, index_raw, plan_raw = fixture()
+        observations = json.loads(obs_raw)
+        observations["capture_thresholds"]["max_request_delay_ms"] = 500.0
+        bad_raw = enc(observations)
+        index = json.loads(index_raw)
+        index["payload_sha256"] = hashlib.sha256(bad_raw).hexdigest()
+        with self.assertRaisesRegex(ValueError, "raw_observation_schema_invalid"):
+            prepare_capture_bundle(bad_raw, enc(index), plan_raw,
+                                   hashlib.sha256(plan_raw).hexdigest())
+
+    def test_fresh_presented_frame_may_be_captured_while_playing(self):
+        obs_raw, index_raw, plan_raw = fixture()
+        observations = json.loads(obs_raw)
+        observations["records"][0]["events"][0]["paused"] = False
+        fresh_raw = enc(observations)
+        index = json.loads(index_raw)
+        index["payload_sha256"] = hashlib.sha256(fresh_raw).hexdigest()
+        result = prepare_capture_bundle(fresh_raw, enc(index), plan_raw,
+                                        hashlib.sha256(plan_raw).hexdigest())
+        self.assertEqual(len(result["captures"]), 3)
 
     def test_rejects_event_set_or_fit_heldout_overlap(self):
         obs_raw, index_raw, plan_raw = fixture()

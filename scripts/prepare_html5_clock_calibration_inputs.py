@@ -28,6 +28,10 @@ OBSERVATION_PURPOSE = "local_unvalidated_html5_player_clock_observations"
 PLAN_PURPOSE = "predeclared_html5_clock_pts_anchor_plan"
 PRESENTED_FRAME_KEYS = {"media_time_seconds", "presented_frames", "presentation_time_ms",
                         "expected_display_time_ms", "width", "height", "callback_now_ms"}
+CAPTURE_POLICY_ID = "rvfc_click_bound_v1"
+MAX_CALLBACK_AGE_MS = 250.0
+MAX_REQUEST_DELAY_MS = 250.0
+MAX_PLAYER_TIME_DELTA_SECONDS = 0.1
 
 
 def _strict_json(raw: bytes) -> Any:
@@ -86,15 +90,24 @@ def prepare_capture_bundle(observations_raw: bytes, index_raw: bytes,
             or index.get("execution_authorization") != "not_granted"
             or index.get("payload_sha256") != _sha(observations_raw)):
         raise ValueError("observation_index_invalid")
-    obs_keys = {"schema_version", "purpose", "status", "player_clock",
+    obs_keys = {"schema_version", "purpose", "status", "capture_policy_id",
+                "capture_thresholds", "player_clock",
                 "presented_frame_metadata", "decoder_frame_identity",
                 "created_at_utc", "browser_user_agent", "anchor_id_validation",
                 "predeclared_plan_binding", "fit_heldout_split", "decoder_pts_pairing",
                 "execution_authorization", "records"}
     if (not isinstance(obs, dict) or set(obs) != obs_keys
-            or type(obs.get("schema_version")) is not int or obs["schema_version"] != 2
+            or type(obs.get("schema_version")) is not int or obs["schema_version"] != 3
             or obs.get("purpose") != OBSERVATION_PURPOSE
             or obs.get("status") != "raw_player_clock_observations_only"
+            or obs.get("capture_policy_id") != CAPTURE_POLICY_ID
+            or obs.get("capture_thresholds") != {
+                "max_callback_age_ms": MAX_CALLBACK_AGE_MS,
+                "max_request_delay_ms": MAX_REQUEST_DELAY_MS,
+                "max_click_player_time_delta_seconds": MAX_PLAYER_TIME_DELTA_SECONDS,
+                "max_callback_player_time_delta_seconds": MAX_PLAYER_TIME_DELTA_SECONDS,
+                "callback_wait_timeout_ms": 1000.0,
+            }
             or obs.get("player_clock") != "html5_video_currentTime_seconds"
             or obs.get("presented_frame_metadata") != "requestVideoFrameCallback_when_available_not_decoder_matched"
             or obs.get("decoder_frame_identity") != "not_verified"
@@ -165,6 +178,7 @@ def prepare_capture_bundle(observations_raw: bytes, index_raw: bytes,
         sequences = set()
         for event in events:
             event_keys = {"anchor_id", "sequence", "html5_current_time_seconds",
+                          "requested_player_time_seconds", "request_started_performance_ms",
                           "request_video_frame_callback_metadata", "frame_match_status",
                           "performance_now_ms", "media_duration_seconds", "playback_rate",
                           "muted", "volume", "text_tracks_disabled", "paused", "seeking", "ready_state",
@@ -178,8 +192,10 @@ def prepare_capture_bundle(observations_raw: bytes, index_raw: bytes,
                     or anchor_id in event_by_id or event.get("current_src_is_staged_media") is not True
                     or playback_rate != 1 or event.get("muted") is not True
                     or volume != 0 or event.get("text_tracks_disabled") is not True
-                    or event.get("paused") is not True or event.get("seeking") is not False
-                    or event.get("frame_match_status") != "last_presented_frame_metadata_unverified"
+                    or type(event.get("paused")) is not bool
+                    or event.get("seeking") is not False
+                    or event.get("frame_match_status")
+                        != "fresh_click_bound_callback_unverified_decoder"
                     or not isinstance(event.get("visibility_state"), str)
                     or event.get("visibility_state") != "visible"
                     or type(event.get("ready_state")) is not int or event["ready_state"] < 2
@@ -191,8 +207,12 @@ def prepare_capture_bundle(observations_raw: bytes, index_raw: bytes,
                 raise ValueError("observed_event_sequence_invalid")
             sequences.add(event["sequence"])
             current = _number(event.get("html5_current_time_seconds"), "player_time")
+            requested_player_time = _number(event.get("requested_player_time_seconds"),
+                                             "requested_player_time")
+            request_started = _number(event.get("request_started_performance_ms"),
+                                      "request_started_performance")
             duration = _number(event.get("media_duration_seconds"), "duration", positive=True)
-            _number(event.get("performance_now_ms"), "performance_now")
+            performance_now = _number(event.get("performance_now_ms"), "performance_now")
             if current < 0 or current > duration:
                 raise ValueError("observed_player_time_out_of_range")
             frame = event.get("request_video_frame_callback_metadata")
@@ -208,7 +228,14 @@ def prepare_capture_bundle(observations_raw: bytes, index_raw: bytes,
                 raise ValueError("presented_frame_metadata_invalid")
             _number(frame.get("presentation_time_ms"), "presentation_time")
             _number(frame.get("expected_display_time_ms"), "expected_display_time")
-            _number(frame.get("callback_now_ms"), "callback_now")
+            callback_now = _number(frame.get("callback_now_ms"), "callback_now")
+            if (performance_now < callback_now
+                    or performance_now - callback_now > MAX_CALLBACK_AGE_MS
+                    or callback_now < request_started
+                    or callback_now - request_started > MAX_REQUEST_DELAY_MS
+                    or abs(current - media_time) > MAX_PLAYER_TIME_DELTA_SECONDS
+                    or abs(requested_player_time - media_time) > MAX_PLAYER_TIME_DELTA_SECONDS):
+                raise ValueError("presented_frame_stale_or_time_mismatch")
             event_by_id[anchor_id] = {"anchor_id": anchor_id,
                                       "decoder_pts_seconds": plan_by_id[anchor_id],
                                       "html5_media_time_seconds": str(media_time)}
@@ -219,9 +246,11 @@ def prepare_capture_bundle(observations_raw: bytes, index_raw: bytes,
         captures.append({
             "review_token": token,
             "capture": {
-                "schema_version": 2,
+                "schema_version": 3,
                 "purpose": "local_html5_player_clock_anchor_capture",
                 "player_clock": "html5_video_requestVideoFrameCallback_mediaTime_seconds",
+                "capture_policy_id": CAPTURE_POLICY_ID,
+                "capture_thresholds": obs["capture_thresholds"],
                 "browser_user_agent": obs["browser_user_agent"],
                 "current_src_matches_staged_media": True,
                 "source_media_sha256": media_sha,
@@ -243,7 +272,7 @@ def prepare_capture_bundle(observations_raw: bytes, index_raw: bytes,
         "execution_authorization": "not_granted",
         "limitations": [
             "the plan digest must be independently frozen before capture; this tool cannot authenticate its timing",
-            "requestVideoFrameCallback metadata may be stale at capture time; paused/currentTime state does not prove which compositor frame the reviewer selected",
+            "fresh post-request requestVideoFrameCallback metadata and player-time proximity are mechanically checked, but this cannot authenticate browser telemetry or prove decoder-frame identity",
             "the tool cannot authenticate browser telemetry, visual anchor correspondence, decoder-frame identity, or reviewer identity",
             "calibration results remain empirical held-out diagnostics and do not authorize scoring",
         ],

@@ -40,7 +40,7 @@ WORKSHEET_PURPOSE = "private_blinded_claim_to_evidence_mapping_worksheet"
 # Exact current draft bytes for the diagnostic target candidate only. This is
 # not a protocol freeze or scoring authorization; bump it when the draft text
 # changes, and freeze the complete artifact set separately before any scoring.
-PROTOCOL_V2_DRAFT_SHA256 = "370d4735951b8d648cac9584ff969805f5f47778d707fa5e4838534bb47f13d4"
+PROTOCOL_V2_DRAFT_SHA256 = "98c113102530f9ca7ca37607c4bfbf411339f64ec9f1f3957ecd2829fe3b0543"
 PROTOCOL_V2_TITLE = b"# NExT-GQA finite-cohort claim-aligned input-dependence protocol v2"
 PROTOCOL_V2_DRAFT_STATUS = b"Status: **design draft; not frozen, not scoreable, and not an execution"
 PROTOCOL_V2_FRAME_RULE = b"Use 32 endpoint-inclusive uniformly sampled decoded-frame indices."

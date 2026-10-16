@@ -142,12 +142,16 @@ failure blocks all items.
 
 Calibrate the actual HTML5 review-player clock against decoder PTS using the
 exact staged media bytes. Each anchor must identify the compositor-presented
-frame using `requestVideoFrameCallback` metadata, and separately verify
-correspondence to the decoder frame/PTS. The current worksheet captures only
-the latest callback and does not verify that it is fresh at click time;
-`video.currentTime` alone does not identify the displayed frame. The current
-converter pairs `mediaTime` to the frozen decoder PTS but still returns an
-unvalidated bundle. Freeze the browser and decoder versions,
+frame using a new `requestVideoFrameCallback` requested by the anchor click,
+and separately verify correspondence to the decoder frame/PTS. The renderer
+now waits up to 1 second for that callback and records it only when the
+callback-to-capture age and click-to-callback delay are each at most 250 ms,
+and `mediaTime` is within 0.1 seconds of both the player time captured at the
+anchor click and `video.currentTime` at callback; otherwise it fails closed.
+The converter checks the same limits and emits the threshold values under the
+`rvfc_click_bound_v1` policy ID in an unvalidated bundle. These are mechanical
+freshness/proximity thresholds, not authentication or proof of compositor to
+decoder frame identity. Freeze the browser and decoder versions,
 stream/timebase, PTS-origin rule, and beginning/interior/end anchor coverage.
 Keep predeclared fit and held-out anchors disjoint; report maximum held-out
 residual and use a predeclared empirical guard to reject any frame whose
@@ -198,10 +202,12 @@ artifacts while the local-only restriction applies.
 Direct claim faithfulness remains **0/3 human-reviewed and 0/3 scored**. A
 complete valid claim-input packet for this frozen cohort is still required. No
 actual HTML5-player clock capture or production atomic launch gate has passed.
-A CPU diagnostic now checks the QA-margin runner's full unmasked prompt and
-processor path on these source-bound rows, including A–E label-token shape;
-it does not validate the final claim-bearing prompt, masked inputs, or atomic
-target launch gate. The finite-cohort descriptive
+The CPU diagnostic candidate binds the actual three CSV/lineage rows,
+claim-input manifest and sidecar byte hashes, claims, and A–E one-token
+label-token shape. It remains diagnostic-only: it builds only the full
+unmasked QA prompt and processor path. It does not validate reviewed claims,
+masked inputs, the exact final target contract, or an atomic launch gate, and
+it does not authenticate upstream declarations. The finite-cohort descriptive
 estimand avoids unjustified population inference, but it does not remove these
 operational gates. Status remains **no-go for scoring** until all gates above
 are verified and the complete protocol/artifact set is frozen before outcomes
