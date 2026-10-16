@@ -70,6 +70,14 @@ def _utc(value):
         return False
 
 
+def _utc_leq(left, right):
+    if not _utc(left) or not _utc(right):
+        return False
+    a = datetime.fromisoformat(left.replace("Z", "+00:00"))
+    b = datetime.fromisoformat(right.replace("Z", "+00:00"))
+    return a <= b
+
+
 def _blocked(code, denominator):
     return {
         "status": "blocked", "scope": "unvalidated_planning_only",
@@ -251,7 +259,7 @@ def plan_claim_review_assignments(*, expected_video_ids, worksheet_records,
         return _blocked("review_payload_rows_invalid", n)
     if (not isinstance(parsed_review, dict) or set(parsed_review) != review_top_keys
             or type(parsed_review.get("schema_version")) is not int
-            or parsed_review.get("schema_version") != 1
+            or parsed_review.get("schema_version") != 2
             or parsed_review.get("purpose") != "anonymous_local_claim_video_human_review"
             or parsed_review.get("status") != "human_review_recorded_unvalidated"
             or parsed_review.get("review_completed") is not True
@@ -344,7 +352,7 @@ def plan_claim_review_assignments(*, expected_video_ids, worksheet_records,
                          "gold_and_seed_hidden_until_mapping_frozen", "outcome_scores_not_accessed",
                          "media_bytes_verified", "occurrence_policy_applied", "support_decision",
                          "evidence_intervals_seconds", "interval_rationales", "reviewer_role",
-                         "reviewed_at_utc", "review_status", "display_player",
+                         "review_started_at_utc", "reviewed_at_utc", "review_status", "display_player",
                          "claim_review_policy_sha256", "media_duration_seconds"}
             required_true = ("full_source_video_reviewed", "question_and_claim_only_context_shown",
                              "gold_and_seed_hidden_until_mapping_frozen", "outcome_scores_not_accessed",
@@ -354,8 +362,8 @@ def plan_claim_review_assignments(*, expected_video_ids, worksheet_records,
                     or item.get("claim_review_policy_sha256") != FROZEN_POLICY_SHA256
                     or item.get("occurrence_policy_applied") != "all_relevant_occurrences"
                     or any(item.get(key) is not True for key in required_true)
-                    or not _utc(item.get("reviewed_at_utc"))
-                    or item.get("reviewed_at_utc") != review_index.get("created_at_utc")):
+                    or not _utc_leq(item.get("review_started_at_utc"), item.get("reviewed_at_utc"))
+                    or not _utc_leq(item.get("reviewed_at_utc"), review_index.get("created_at_utc"))):
                 raise ValueError("review_declaration_gate_failed")
             calibration = calibrations[video_id]
             timing = timings[video_id]

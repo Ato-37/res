@@ -31,7 +31,7 @@ def fixture():
     lineage_raw = encode(lineage)
     timestamp = "2026-10-16T06:00:00.000Z"
     review = {
-        "schema_version": 1, "purpose": "anonymous_local_claim_video_human_review",
+        "schema_version": 2, "purpose": "anonymous_local_claim_video_human_review",
         "status": "human_review_recorded_unvalidated", "review_completed": True,
         "execution_authorization": "not_granted", "claim_review_policy_id": "nextgqa_claim_review_v5",
         "claim_review_policy_sha256": worksheet["claim_review_policy_sha256"],
@@ -48,7 +48,8 @@ def fixture():
             "occurrence_policy_applied": "all_relevant_occurrences", "support_decision": "supports_claim",
             "evidence_intervals_seconds": [[1.001, 2.002]], "interval_rationales": ["visual evidence"],
             "media_duration_seconds": 3.0,
-            "reviewer_role": "independent_human", "reviewed_at_utc": timestamp,
+            "reviewer_role": "independent_human", "review_started_at_utc": timestamp,
+            "reviewed_at_utc": timestamp,
             "review_status": "completed", "display_player": "HTML5 muted",
             "claim_review_policy_sha256": worksheet["claim_review_policy_sha256"]}})
     review_raw = encode(review)
@@ -72,6 +73,23 @@ class AuditNextgqaReviewHandoffTests(unittest.TestCase):
         self.assertEqual(result["worksheet_sha256"], hashlib.sha256(values[1]).hexdigest())
         self.assertEqual(result["review_payload_sha256"], hashlib.sha256(values[5]).hexdigest())
         self.assertEqual(result["review_index_sha256"], hashlib.sha256(values[7]).hexdigest())
+
+    def test_per_item_review_times_may_precede_index_but_must_be_ordered(self):
+        v = fixture()
+        review = json.loads(v[5])
+        review["records"][0]["review"]["review_started_at_utc"] = "2026-10-16T05:40:00Z"
+        review["records"][0]["review"]["reviewed_at_utc"] = "2026-10-16T05:55:00Z"
+        review_raw = encode(review)
+        index = dict(v[6], review_payload_sha256=hashlib.sha256(review_raw).hexdigest())
+        result = audit(v[0], v[1], v[2], v[3], review, review_raw, index, encode(index),
+                       hashlib.sha256(v[3]).hexdigest())
+        self.assertEqual(result["status"], "unvalidated_handoff_structurally_valid")
+        review["records"][0]["review"]["review_started_at_utc"] = "2026-10-16T05:56:00Z"
+        review_raw = encode(review)
+        index = dict(v[6], review_payload_sha256=hashlib.sha256(review_raw).hexdigest())
+        result = audit(v[0], v[1], v[2], v[3], review, review_raw, index, encode(index),
+                       hashlib.sha256(v[3]).hexdigest())
+        self.assertIn("review_declaration_incomplete", result["failure_codes"])
 
     def test_review_hash_token_and_interval_tampering_fail_closed(self):
         v = fixture()

@@ -1766,3 +1766,24 @@ locator and digest in the private restart log. Since the commit remains local
 and must not be pushed, no history rewrite is warranted; future publication
 remains blocked. The commit contains only docs/scripts/tests, not raw data or
 result files. At **19:31:36 JST**, **4h06m49s** elapsed and **1h53m11s** remain.
+
+## 19:37 JST checkpoint — distinguish per-item review chronology
+
+The offline review page previously stamped every record with one export-time
+`reviewed_at_utc`, which hid whether the three rows were completed separately.
+Updated it to record each row's first video `play` event and the time its
+required row fields became complete. The reviewer audit and assignment planner
+now require `review_started_at_utc ≤ reviewed_at_utc ≤ index.created_at_utc`,
+and the export schema is versioned as v2. The UI explicitly calls these
+browser self-report timestamps; they do not prove actual viewing or chronology.
+This improves audit detail without clearing any human-review gate.
+
+Focused packet/audit/assignment/renderer tests pass **50/50**; the full suite
+passes **1018/1018** in **9.79 s**. A rendered synthetic page's inline JavaScript
+passes `node --check`; Python compilation and `git diff --check` pass. The
+independent reviewer found no blocking schema defect and verified that the
+assignment remains unauthenticated and not granted. One naming caveat: the
+start field is the first verified-media play event, not the beginning of reading;
+the UI describes that limitation. No actual browser, dataset, GPU, or model was
+used. At **19:37:55 JST**, **4h13m08s** elapsed and **1h46m52s** remain. Next:
+stage only these eight source/test paths plus this log and commit locally.
