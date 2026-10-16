@@ -15,6 +15,7 @@ import argparse
 import csv
 from datetime import datetime, timezone
 from fractions import Fraction
+import gc
 import glob
 import hashlib
 import importlib.metadata
@@ -43,6 +44,48 @@ MAX_VIDEOS = 10
 CONDITION_NAMES = ("full", "black_gold_interval_mask", "black_equal_count_control_mask",
                    "blur_gold_interval_mask", "blur_equal_count_control_mask")
 BLUR_RADIUS = 12.0
+
+
+def validate_cohort_cardinality(requested: int, effective: int) -> None:
+    """Fail closed when the deterministic selector cannot meet the frozen n."""
+    if effective != requested:
+        raise ValueError(f"requested_{requested}_eligible_samples_but_found_{effective}")
+
+
+def validate_preflight_cardinality(gate: dict, requested: int, selected_count: int) -> None:
+    validate_cohort_cardinality(requested, selected_count)
+    if (gate.get("requested_videos") != requested
+            or gate.get("effective_videos") != selected_count):
+        raise ValueError("preflight_requested_or_effective_count_mismatch")
+
+
+def helper_source_hashes(repo: Path) -> dict:
+    """Bind imported timing/control behavior into the preflight contract."""
+    return {
+        name: sha256_file(repo / "scripts" / name)
+        for name in ("necessity_choice_margin_utils.py", "presentation_time_utils.py")
+    }
+
+
+def validate_cohort_lock_payload(payload: dict, requested: int) -> list[dict]:
+    if not isinstance(payload, dict):
+        raise ValueError("private_cohort_lock_invalid")
+    assignments = payload.get("assignments")
+    if (type(payload.get("schema_version")) is not int
+            or payload.get("schema_version") != 1
+            or not isinstance(assignments, list)
+            or not assignments
+            or any(not isinstance(item, dict)
+                   or set(item) != {"media_sha256", "qid_sha256"}
+                   or any(not isinstance(item[key], str) or len(item[key]) != 64
+                          or any(c not in "0123456789abcdef" for c in item[key])
+                          for key in ("media_sha256", "qid_sha256"))
+                   for item in assignments)
+            or len({item["media_sha256"] for item in assignments}) != len(assignments)):
+        raise ValueError("private_cohort_lock_invalid")
+    if len(assignments) != requested:
+        raise ValueError("private_cohort_lock_count_must_equal_requested_n")
+    return assignments
 
 
 def sha256_file(path: Path) -> str:
@@ -162,7 +205,7 @@ def load_candidate_rows(repo: Path, video_root: Path):
 
 
 def freeze_cohort(repo: Path, video_root: Path, excluded_media_sha256=(),
-                  frame_count=FRAMES):
+                  frame_count=FRAMES, locked_assignments=None):
     candidates, meta = load_candidate_rows(repo, video_root)
     excluded_media_sha256 = set(excluded_media_sha256)
     selected = []
@@ -170,13 +213,19 @@ def freeze_cohort(repo: Path, video_root: Path, excluded_media_sha256=(),
               "videos_without_interval_control_pair": 0, "decode_failures": 0,
               "questions_tested_for_assignment": 0, "candidate_scan_count": 0,
               "prior_cohort_media_excluded": 0}
+    locked_by_media = ({item["media_sha256"]: item["qid_sha256"]
+                       for item in locked_assignments}
+                       if locked_assignments is not None else None)
     for vid, questions in candidates:
         if len(selected) >= MAX_VIDEOS:
             break
         counts["candidate_scan_count"] += 1
         video_path = Path(questions[0]["video_path"])
-        if excluded_media_sha256 and sha256_file(video_path) in excluded_media_sha256:
+        media_sha = sha256_file(video_path) if locked_by_media is not None else None
+        if excluded_media_sha256 and (media_sha or sha256_file(video_path)) in excluded_media_sha256:
             counts["prior_cohort_media_excluded"] += 1
+            continue
+        if locked_by_media is not None and media_sha not in locked_by_media:
             continue
         try:
             frames, decode = decode_sampled_video(
@@ -195,7 +244,15 @@ def freeze_cohort(repo: Path, video_root: Path, excluded_media_sha256=(),
                for record in decode["sampled_frames"]]
         indices = list(range(frame_count))
         chosen = None
-        for question in questions:
+        eligible_questions = questions
+        if locked_by_media is not None:
+            target_qid_sha = locked_by_media[media_sha]
+            eligible_questions = [question for question in questions
+                                  if hashlib.sha256(str(question["qid"]).encode("utf-8")).hexdigest()
+                                  == target_qid_sha]
+            if len(eligible_questions) != 1:
+                raise ValueError("cohort_lock_question_binding_missing_or_ambiguous")
+        for question in eligible_questions:
             counts["questions_tested_for_assignment"] += 1
             evidence = strict_evidence_indices_from_times(
                 indices, pts, question["spans"])
@@ -224,7 +281,8 @@ def freeze_cohort(repo: Path, video_root: Path, excluded_media_sha256=(),
     return selected, counts, meta, cohort_fingerprint
 
 
-def prepare_conditions(selected, processor, torch, frame_count=FRAMES):
+def prepare_conditions(selected, processor, torch, frame_count=FRAMES,
+                       retain_batches=True):
     import numpy as np
     from qwen_vl_utils import process_vision_info
     prepared = []
@@ -238,21 +296,11 @@ def prepare_conditions(selected, processor, torch, frame_count=FRAMES):
                 conditions[name] = [
                     apply_mask_fill(frame, fill, BLUR_RADIUS) if i in masked else frame.copy()
                     for i, frame in enumerate(item["frames"])]
-        options = "\n".join(f"{label}. {choice}"
-                            for label, choice in zip(LABELS, item["choices"], strict=True))
-        prompt_text = (f"{item['question']}\nOptions:\n{options}\n"
-                       "Choose the best answer. Respond with one letter only.\nAnswer:")
         condition_batches = {}
         condition_geometry = []
         sample_fps = item["decode"]["effective_sample_fps"]
         for condition, frames in conditions.items():
-            messages = [{"role": "user", "content": [
-                {"type": "video", "video": frames,
-                 "sample_fps": sample_fps[0] / sample_fps[1]},
-                {"type": "text", "text": prompt_text},
-            ]}]
-            text = processor.apply_chat_template(
-                messages, tokenize=False, add_generation_prompt=True)
+            text, messages = build_qa_prompt(processor, item, frames, sample_fps)
             images, videos = process_vision_info(messages, return_video_metadata=True)
             if images is not None or len(videos) != 1:
                 raise RuntimeError("qwen_video_utility_contract_failed")
@@ -270,10 +318,7 @@ def prepare_conditions(selected, processor, torch, frame_count=FRAMES):
                     or not torch.allclose(tensor_signatures, source_signatures,
                                           rtol=0, atol=2.0)):
                 raise RuntimeError("qwen_frame_pixel_identity_or_order_mismatch")
-            batch = processor(
-                text=[text], images=images, videos=[pixels], video_metadata=[metadata],
-                do_sample_frames=False, cap_pixels_per_frame=True, padding=True,
-                return_tensors="pt")
+            batch = process_qa_video(processor, text, images, pixels, metadata)
             grid = batch["video_grid_thw"][0].tolist()
             seconds_per_grid = float(batch["second_per_grid_ts"][0])
             if grid[0] != frame_count // int(processor.video_processor.temporal_patch_size):
@@ -281,14 +326,41 @@ def prepare_conditions(selected, processor, torch, frame_count=FRAMES):
             if abs(seconds_per_grid - 2 / (sample_fps[0] / sample_fps[1])) > 1e-6:
                 raise RuntimeError("qwen_second_per_grid_mismatch")
             condition_geometry.append((grid, seconds_per_grid))
-            condition_batches[condition] = batch
+            if retain_batches:
+                condition_batches[condition] = batch
+            else:
+                del batch, pixels, metadata, messages, images, videos, text
+                gc.collect()
         if len(set((tuple(grid), value) for grid, value in condition_geometry)) != 1:
             raise RuntimeError("condition_video_timing_or_grid_mismatch")
-        prepared.append({"batches": condition_batches,
+        prepared.append({"batches": condition_batches if retain_batches else None,
                          "grid": condition_geometry[0][0],
                          "seconds_per_grid": condition_geometry[0][1],
                          "sample_index": sample_index})
     return prepared
+
+
+def build_qa_prompt(processor, item, frames, sample_fps):
+    """Build the QA margin runner's exact prompt and video-first messages."""
+    options = "\n".join(f"{label}. {choice}"
+                        for label, choice in zip(LABELS, item["choices"], strict=True))
+    prompt_text = (f"{item['question']}\nOptions:\n{options}\n"
+                   "Choose the best answer. Respond with one letter only.\nAnswer:")
+    messages = [{"role": "user", "content": [
+        {"type": "video", "video": frames,
+         "sample_fps": sample_fps[0] / sample_fps[1]},
+        {"type": "text", "text": prompt_text},
+    ]}]
+    return processor.apply_chat_template(
+        messages, tokenize=False, add_generation_prompt=True), messages
+
+
+def process_qa_video(processor, text, images, pixels, metadata):
+    """Apply the QA margin runner's fixed full/masked processor call."""
+    return processor(
+        text=[text], images=images, videos=[pixels], video_metadata=[metadata],
+        do_sample_frames=False, cap_pixels_per_frame=True, padding=True,
+        return_tensors="pt")
 
 
 def summarize_values(values):
@@ -300,6 +372,27 @@ def summarize_values(values):
             "sd": (sum((x - sum(values) / len(values)) ** 2 for x in values)
                    / (len(values) - 1)) ** .5 if len(values) > 1 else None,
             "min": min(values), "max": max(values)}
+
+
+def gold_vs_best_foil_margin(scores, gold_index: int) -> float:
+    """Return fixed-choice log-score margin; positive means gold beats every foil."""
+    if (not isinstance(gold_index, int) or isinstance(gold_index, bool)
+            or not 0 <= gold_index < 5 or not isinstance(scores, (list, tuple))
+            or len(scores) != 5):
+        raise ValueError("five_choice_margin_inputs_invalid")
+    values = [float(value) for value in scores]
+    if not all(math.isfinite(value) for value in values):
+        raise ValueError("five_choice_margin_nonfinite")
+    return values[gold_index] - max(value for i, value in enumerate(values) if i != gold_index)
+
+
+def control_minus_evidence_margin(control_margin: float, evidence_margin: float) -> float:
+    """Positive values mean masking gold evidence hurts more than masking control."""
+    control_margin = float(control_margin)
+    evidence_margin = float(evidence_margin)
+    if not math.isfinite(control_margin) or not math.isfinite(evidence_margin):
+        raise ValueError("intervention_margin_nonfinite")
+    return control_margin - evidence_margin
 
 
 def write_private_json_exclusive(output: Path, payload):
@@ -322,18 +415,24 @@ def write_private_json_exclusive(output: Path, payload):
 
 
 def main():
+    global MAX_VIDEOS
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--mode", choices=("preflight", "score"), required=True)
+    parser.add_argument("--n", type=int, choices=(1, 3, 10), default=MAX_VIDEOS,
+                        help="small exploratory cohort size; selection remains deterministic")
     parser.add_argument("--frames", type=int, choices=(16, 32), default=FRAMES,
                         help="endpoint-inclusive decoded frame count per video")
     parser.add_argument("--output", required=True, help="unique local summary JSON; no publishing")
     parser.add_argument("--preflight-summary", help="required in score mode")
     parser.add_argument("--exclude-media-sha256", required=True,
                         help="private JSON media-hash list to prevent reusing prior pilot videos")
+    parser.add_argument("--cohort-lock",
+                        help="optional private hash-only video/question assignment lock")
     parser.add_argument("--user-authorized-local-only", action="store_true",
                         help="asserts the user's local-only scope for this exploratory run")
     parser.add_argument("--video-root", default=str(Path.home() / "nextgqa_sample/NExTVideo"))
     args = parser.parse_args()
+    MAX_VIDEOS = args.n
     frame_count = args.frames
     if not args.user_authorized_local_only:
         parser.error("explicit local-only authorization flag required")
@@ -376,10 +475,20 @@ def main():
                    for value in excluded_media_sha256)):
         parser.error("private_media_exclusion_manifest_invalid")
     excluded_media_digest = _hash(sorted(excluded_media_sha256))
+    cohort_lock_path = Path(args.cohort_lock).resolve() if args.cohort_lock else None
+    locked_assignments = None
+    if cohort_lock_path:
+        lock_payload = json.loads(cohort_lock_path.read_text(encoding="utf-8"))
+        try:
+            locked_assignments = validate_cohort_lock_payload(lock_payload, args.n)
+        except ValueError as exc:
+            parser.error(str(exc))
     selected, counts, candidate_meta, cohort_hash = freeze_cohort(
-        repo, video_root, excluded_media_sha256, frame_count)
-    if not selected:
-        parser.error("no_eligible_video_after_fixed_pts_and_interval_control_gates")
+        repo, video_root, excluded_media_sha256, frame_count, locked_assignments)
+    try:
+        validate_cohort_cardinality(args.n, len(selected))
+    except ValueError as exc:
+        parser.error(str(exc))
     # Outcome-blind processor check for the complete cohort and all conditions.
     processor = AutoProcessor.from_pretrained(
         str(model_path), local_files_only=True,
@@ -392,7 +501,8 @@ def main():
         token_ids.append(ids[0])
     if len(set(token_ids)) != 5:
         parser.error("choice_labels_not_distinct_tokens")
-    prepared = prepare_conditions(selected, processor, torch, frame_count)
+    prepared = prepare_conditions(selected, processor, torch, frame_count,
+                                  retain_batches=False)
     preparation_seconds = time.monotonic() - start
     if args.mode == "preflight":
         payload = {
@@ -404,6 +514,7 @@ def main():
                 ["git", "rev-parse", "HEAD"], cwd=repo, text=True).strip(),
             "runner_sha256": sha256_file(Path(__file__)),
             "decoder_sha256": sha256_file(repo / "scripts/claim_mask_video_decoder.py"),
+            "helper_source_sha256": helper_source_hashes(repo),
             "candidate_input_sha256": {
                 name: sha256_file(candidate_meta["dataset"] / name) for name in
                 ("test.csv", "gsub_test.json", "map_vid_vidorID.json")},
@@ -414,11 +525,13 @@ def main():
             "prior_cohort_media_excluded": counts["prior_cohort_media_excluded"],
             "prior_cohort_exclusion_file_sha256": sha256_file(exclusion_path),
             "prior_cohort_exclusion_media_digest_sha256": excluded_media_digest,
+            "cohort_lock_sha256": (sha256_file(cohort_lock_path)
+                                   if cohort_lock_path else None),
             "ambiguous_media_keys_excluded": candidate_meta["ambiguous_local_media_key_count"],
             "private_exclusion_manifest_count": candidate_meta["private_exclusion_manifest_count"],
             "private_exclusion_manifest_digest_sha256": candidate_meta["private_exclusion_manifest_digest"],
             "requested_videos": MAX_VIDEOS,
-            "selection_rule": "first ten outcome-blind eligible videos in deterministic hash order after prior-media exclusion",
+            "selection_rule": f"first {MAX_VIDEOS} outcome-blind eligible videos in deterministic hash order after prior-media exclusion",
             "timing_rejected_videos": counts["timing_rejected_videos"],
             "timing_pass_videos": counts["timing_pass_videos"],
             "videos_without_interval_control_pair": counts["videos_without_interval_control_pair"],
@@ -446,7 +559,7 @@ def main():
                 "The first-decoded-PTS-relative origin is not calibrated to an annotation player/source edit; frame2time metadata is not read by this runner.",
                 "Black masking can create out-of-distribution inputs; equal-count control does not eliminate all distribution shift.",
                 "Gaussian blur radius 12 is a secondary fill sensitivity condition; it is not guaranteed to be in distribution.",
-                "Selection stops at the first ten eligible videos in deterministic order after excluding all media SHA-256 values in the private exclusion manifest; candidates remaining after the cap are unscanned, and the cohort is not a probability sample.",
+                f"Selection stops at the first {MAX_VIDEOS} eligible videos in deterministic order after excluding all media SHA-256 values in the private exclusion manifest; candidates remaining after the cap are unscanned, and the cohort is not a probability sample.",
             ],
             "privacy": "No QA text, choices, answer text, IDs, paths, media, or model-generated text emitted.",
         }
@@ -459,6 +572,7 @@ def main():
     expected_inputs = {name: sha256_file(candidate_meta["dataset"] / name) for name in
                        ("test.csv", "gsub_test.json", "map_vid_vidorID.json")}
     expected_decoder = sha256_file(repo / "scripts/claim_mask_video_decoder.py")
+    expected_helpers = helper_source_hashes(repo)
     expected_versions = {name: importlib.metadata.version(name) for name in
                          ("torch", "transformers", "bitsandbytes", "qwen-vl-utils", "av")}
     expected_model_config = sha256_file(model_path / "config.json")
@@ -469,13 +583,14 @@ def main():
             or gate.get("status") != "passed"
             or gate.get("requested_videos") != MAX_VIDEOS
             or gate.get("selection_rule")
-                != "first ten outcome-blind eligible videos in deterministic hash order after prior-media exclusion"
+                != f"first {MAX_VIDEOS} outcome-blind eligible videos in deterministic hash order after prior-media exclusion"
             or gate.get("condition_names") != list(CONDITION_NAMES)
             or gate.get("blur_radius_pixels") != BLUR_RADIUS
             or gate.get("cohort_sha256") != cohort_hash
             or gate.get("effective_videos") != len(selected)
             or gate.get("runner_sha256") != sha256_file(Path(__file__))
             or gate.get("decoder_sha256") != expected_decoder
+            or gate.get("helper_source_sha256") != expected_helpers
             or gate.get("candidate_input_sha256") != expected_inputs
             or gate.get("private_exclusion_manifest_digest_sha256")
                 != candidate_meta["private_exclusion_manifest_digest"]
@@ -486,15 +601,23 @@ def main():
                 != counts["prior_cohort_media_excluded"]
             or gate.get("prior_cohort_exclusion_file_sha256") != expected_exclusion_sha
             or gate.get("prior_cohort_exclusion_media_digest_sha256") != excluded_media_digest
+            or gate.get("cohort_lock_sha256") != (sha256_file(cohort_lock_path)
+                                                    if cohort_lock_path else None)
             or gate.get("requested_frames_per_video") != frame_count
             or gate.get("uniform_tolerance_seconds") != [UNIFORM_TOLERANCE.numerator,
                                                            UNIFORM_TOLERANCE.denominator]
             or gate.get("model_revision") != MODEL_REVISION):
         parser.error("frozen_preflight_binding_mismatch; no score was run")
+    try:
+        validate_preflight_cardinality(gate, args.n, len(selected))
+    except ValueError as exc:
+        parser.error(f"frozen_preflight_binding_mismatch:{exc}; no score was run")
     if (gate.get("condition_grids") != [item["grid"] for item in prepared]
             or gate.get("versions") != expected_versions
             or gate.get("model_config_sha256") != expected_model_config):
         parser.error("processor_or_model_configuration_binding_mismatch; no score was run")
+    del prepared
+    gc.collect()
     free_before_load, total_before_load = torch.cuda.mem_get_info()
     host_free_before_load = host_available_bytes()
     if free_before_load < MIN_FREE_VRAM or host_free_before_load < MIN_HOST_AVAILABLE:
@@ -509,14 +632,25 @@ def main():
     label_tensor = torch.tensor(token_ids, device="cuda")
     records, failures, attempted = [], [], 0
     torch.cuda.reset_peak_memory_stats()
-    for prepared_item, sample in zip(prepared, selected, strict=True):
+    for sample_index, sample in enumerate(selected):
         metrics = {}
+        prepared_item = None
+        failed_condition = None
+        free_before_condition_gib = None
+        host_before_condition_gib = None
         try:
+            prepared_item = prepare_conditions(
+                [sample], processor, torch, frame_count, retain_batches=True)[0]
+            if prepared_item["grid"] != gate["condition_grids"][sample_index]:
+                raise RuntimeError("score_processor_grid_changed_after_preflight")
             for condition in CONDITION_NAMES:
-                if host_available_bytes() < MIN_HOST_AVAILABLE:
+                failed_condition = condition
+                host_before_condition_gib = host_available_bytes() / 1024**3
+                free_before_condition_gib, _ = torch.cuda.mem_get_info()
+                free_before_condition_gib /= 1024**3
+                if host_before_condition_gib * 1024**3 < MIN_HOST_AVAILABLE:
                     raise RuntimeError("per_forward_host_memory_guard_failed")
-                current_free_vram, _ = torch.cuda.mem_get_info()
-                if current_free_vram < 2 * 1024**3:
+                if free_before_condition_gib * 1024**3 < 2 * 1024**3:
                     raise RuntimeError("per_forward_free_vram_guard_failed")
                 attempted += 1
                 batch = prepared_item["batches"][condition].to("cuda")
@@ -533,13 +667,14 @@ def main():
             margins = {}
             predictions = {}
             for condition, scores in metrics.items():
-                margins[condition] = scores[sample["gold"]] - max(
-                    score for index, score in enumerate(scores) if index != sample["gold"])
+                margins[condition] = gold_vs_best_foil_margin(scores, sample["gold"])
                 predictions[condition] = max(range(5), key=lambda index: scores[index])
-            black_effect = (margins["black_equal_count_control_mask"]
-                            - margins["black_gold_interval_mask"])
-            blur_effect = (margins["blur_equal_count_control_mask"]
-                           - margins["blur_gold_interval_mask"])
+            black_effect = control_minus_evidence_margin(
+                margins["black_equal_count_control_mask"],
+                margins["black_gold_interval_mask"])
+            blur_effect = control_minus_evidence_margin(
+                margins["blur_equal_count_control_mask"],
+                margins["blur_gold_interval_mask"])
             records.append({
                 "video_index": len(records),
                 "full_gold_vs_best_foil_margin": margins["full"],
@@ -559,8 +694,14 @@ def main():
         except Exception as exc:
             failures.append({"video_index": len(records),
                              "failure_type": type(exc).__name__,
+                             "failed_condition": failed_condition,
+                             "host_available_before_condition_gib": host_before_condition_gib,
+                             "free_vram_before_condition_gib": free_before_condition_gib,
                              "completed_conditions": sorted(metrics)})
             break
+        finally:
+            del prepared_item
+            gc.collect()
     torch.cuda.synchronize()
     elapsed = time.monotonic() - start
     effects = [record["primary_black_control_minus_gold_interval_margin"] for record in records]
@@ -584,7 +725,7 @@ def main():
         "compute_dtype": "bfloat16",
         "attention_implementation": "eager",
         "seed": SEED,
-        "requested_videos": len(selected),
+        "requested_videos": args.n,
         "requested_frames_per_video": frame_count,
         "effective_frames_per_video": [len(item["frames"]) for item in selected],
         "candidate_video_count": candidate_meta["candidate_video_count"],
@@ -594,7 +735,9 @@ def main():
         "prior_cohort_media_excluded": counts["prior_cohort_media_excluded"],
         "prior_cohort_exclusion_file_sha256": expected_exclusion_sha,
         "prior_cohort_exclusion_media_digest_sha256": excluded_media_digest,
-        "selection_rule": "first ten outcome-blind eligible videos in deterministic hash order after prior-media exclusion",
+        "cohort_lock_sha256": (sha256_file(cohort_lock_path)
+                               if cohort_lock_path else None),
+        "selection_rule": f"first {MAX_VIDEOS} outcome-blind eligible videos in deterministic hash order after prior-media exclusion",
         "effective_videos": len(records),
         "condition_names": list(CONDITION_NAMES),
         "blur_radius_pixels": BLUR_RADIUS,
@@ -635,7 +778,7 @@ def main():
         "claim_specific_faithfulness_estimate": None,
         "limitations": [
             "This estimates benchmark gold-interval answer-margin dependence only; it does not assess model-generated explanation claims or explanation faithfulness.",
-            "Selection stops at the first ten outcome-blind eligible videos in deterministic hash order after excluding all media SHA-256 values in the private exclusion manifest; candidates remaining after the cap are unscanned, and the cohort is not a probability sample.",
+            f"Selection stops at the first {MAX_VIDEOS} outcome-blind eligible videos in deterministic hash order after excluding all media SHA-256 values in the private exclusion manifest; candidates remaining after the cap are unscanned, and the cohort is not a probability sample.",
             "The relative PTS origin is not independently calibrated to the annotator playback clock; frame2time metadata is not read by this runner.",
             "Black masking is potentially out-of-distribution, and matched frame count does not remove all distribution shift.",
             "Blur masking reduces the black-fill artifact but remains an intervention and does not establish an in-distribution counterfactual.",

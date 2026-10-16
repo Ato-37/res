@@ -1,30 +1,24 @@
 import hashlib
 import json
-import unittest
-import copy
-import contextlib
-import io
-import os
-import stat
 import tempfile
+import unittest
 from pathlib import Path
 
-from audit_nextgqa_review_handoff import audit, main
+from audit_nextgqa_review_handoff import audit, audit_custody
 from build_nextgqa_claim_mapping_packet import apply_review_policy, build
 from test_build_nextgqa_claim_mapping_packet import encode, packet
 from test_render_nextgqa_claim_review_html import RenderNextgqaClaimReviewHtmlTests
 
 
 def frozen_worksheet():
-    source, source_raw = packet(3)
-    built, _ = build(source, source_raw)
-    policy_raw = (Path(__file__).resolve().parents[1] / "docs" /
-                  "nextgqa_claim_review_policy_v1.json").read_bytes()
+    source, raw = packet(3)
+    built, _ = build(source, raw)
+    policy_raw = (Path(__file__).resolve().parents[1] / "docs" / "nextgqa_claim_review_policy_v5.json").read_bytes()
     built = apply_review_policy(built, json.loads(policy_raw), policy_raw)
     return built, encode(built)
 
 
-def handoff():
+def fixture():
     worksheet, worksheet_raw = frozen_worksheet()
     _, _, lineage, lineage_raw = RenderNextgqaClaimReviewHtmlTests().payload()
     lineage["source_packet_sha256"] = worksheet["source_packet_sha256"]
@@ -35,134 +29,136 @@ def handoff():
                   video_sha256=expected["video_sha256"],
                   claim_text_sha256=expected["claim_text_sha256"])
     lineage_raw = encode(lineage)
-    lineage_sha = hashlib.sha256(lineage_raw).hexdigest()
-    review = {key: value for key, value in worksheet.items() if key != "records"}
-    review["source_lineage_manifest_sha256"] = lineage_sha
-    for row in worksheet["records"]:
-        lineage_row = lineage["records"][len(review.get("records", []))]
-        review_row = {key: value for key, value in row.items() if key != "video_path"}
-        review_row["review"] = {
-            "source_identity_verified": True,
-            "full_source_video_reviewed": True,
-            "question_and_claim_only_context_shown": True,
-            "gold_and_seed_hidden_until_mapping_frozen": True,
-            "outcome_scores_not_accessed": True,
-            "occurrence_policy_applied": "all_relevant_occurrences",
-            "support_decision": "supports_claim",
-            "evidence_intervals_seconds": [[1.001, 2.002]],
-            "interval_rationales": ["synthetic rationale"],
-            "reviewer_role": "independent_human",
-            "review_record_reference": None,
-            "reviewed_at_utc": "2026-10-15T21:00:00.000Z",
-            "review_status": "completed",
-            "claim_text_sha256_seen": row["claim_text_sha256"],
-            "media_sha256_verified": True,
-            "media_sha256_observed": row["video_sha256"],
-            "media_duration_seconds": 3.0,
-            "media_mime_type": "video/mp4",
-            "cohort_lineage_reviewed": True,
-            "display_player": "Synthetic browser UA",
-            "claim_review_policy_sha256": worksheet["claim_review_policy_sha256"],
-            "source_lineage_manifest_sha256": lineage_sha,
-        }
-        review_row["review"]["source_lineage"] = {k: lineage_row[k] for k in (
-            "dataset_question_id", "dataset_video_id", "video_key",
-            "relative_video_path", "question_sha256")}
-        review.setdefault("records", []).append(review_row)
-    review.update({
-        "status": "human_review_recorded_unvalidated",
-        "review_completed": True,
-        "execution_authorization": "not_granted",
-        "human_reviewer_role": "independent_human",
-        "human_reviewer_private_id": "synthetic-reviewer",
-        "review_environment": {
-            "browser_user_agent": "Synthetic browser UA",
-            "offline_static_page": True,
-            "network_fetch_available": False,
-        },
-    })
-    review_raw = encode(review)
-    index = {
-        "schema_version": 1,
-        "purpose": "unvalidated_private_human_review_handoff",
-        "review_payload_sha256": hashlib.sha256(review_raw).hexdigest(),
-        "source_worksheet_sha256": hashlib.sha256(worksheet_raw).hexdigest(),
-        "source_lineage_manifest_sha256": lineage_sha,
+    timestamp = "2026-10-16T06:00:00.000Z"
+    review = {
+        "schema_version": 1, "purpose": "anonymous_local_claim_video_human_review",
+        "status": "human_review_recorded_unvalidated", "review_completed": True,
+        "execution_authorization": "not_granted", "claim_review_policy_id": "nextgqa_claim_review_v5",
         "claim_review_policy_sha256": worksheet["claim_review_policy_sha256"],
-        "created_at_utc": "2026-10-15T21:00:00.000Z",
-        "review_status": "unvalidated_requires_independent_audit",
-        "execution_authorization": "not_granted",
-    }
+        "human_reviewer_role": "independent_human", "human_reviewer_private_id": "reviewer-local",
+        "review_environment": {"browser_user_agent": "Synthetic", "offline_static_page": True,
+                               "network_fetch_available": False},
+        "independence_attestation": "reviewer_asserts_independence_from_generation_scoring_and_custody_and_did_not_view_custody_crosswalk",
+        "records": []}
+    for row in worksheet["records"]:
+        review["records"].append({"review_token": row["review_token"], "review": {
+            "full_source_video_reviewed": True, "question_and_claim_only_context_shown": True,
+            "gold_and_seed_hidden_until_mapping_frozen": True, "outcome_scores_not_accessed": True,
+            "media_bytes_verified": True,
+            "occurrence_policy_applied": "all_relevant_occurrences", "support_decision": "supports_claim",
+            "evidence_intervals_seconds": [[1.001, 2.002]], "interval_rationales": ["visual evidence"],
+            "media_duration_seconds": 3.0,
+            "reviewer_role": "independent_human", "reviewed_at_utc": timestamp,
+            "review_status": "completed", "display_player": "HTML5 muted",
+            "claim_review_policy_sha256": worksheet["claim_review_policy_sha256"]}})
+    review_raw = encode(review)
+    index = {"schema_version": 1, "purpose": "anonymous_unvalidated_human_review_handoff",
+             "review_payload_sha256": hashlib.sha256(review_raw).hexdigest(),
+             "claim_review_policy_sha256": worksheet["claim_review_policy_sha256"],
+             "created_at_utc": timestamp, "review_status": "unvalidated_requires_custodian_audit",
+             "execution_authorization": "not_granted"}
     return worksheet, worksheet_raw, lineage, lineage_raw, review, review_raw, index, encode(index)
 
 
 class AuditNextgqaReviewHandoffTests(unittest.TestCase):
-    def test_well_formed_private_handoff_remains_unvalidated(self):
-        values = handoff()
-        result = audit(*values, hashlib.sha256(values[3]).hexdigest())
+    def test_anonymous_handoff_is_structurally_valid_but_unvalidated(self):
+        values = fixture()
+        result = audit(values[0], values[1], values[2], values[3], values[4], values[5],
+                       values[6], values[7], hashlib.sha256(values[3]).hexdigest())
         self.assertEqual(result["status"], "unvalidated_handoff_structurally_valid")
         self.assertEqual(result["reviewed_records"], 3)
-        self.assertEqual(result["execution_authorization"], "not_granted")
         self.assertFalse(result["semantic_review_authenticated"])
-
-    def test_payload_or_source_hash_changes_are_detected(self):
-        worksheet, worksheet_raw, lineage, lineage_raw, review, review_raw, index, index_raw = handoff()
-        bad_index = dict(index, review_payload_sha256="0" * 64)
-        result = audit(worksheet, worksheet_raw, lineage, lineage_raw, review, review_raw, bad_index, encode(bad_index), hashlib.sha256(lineage_raw).hexdigest())
-        self.assertIn("review_payload_hash_mismatch", result["failure_codes"])
-        bad_index = dict(index, source_worksheet_sha256="1" * 64)
-        result = audit(worksheet, worksheet_raw, lineage, lineage_raw, review, review_raw, bad_index, encode(bad_index), hashlib.sha256(lineage_raw).hexdigest())
-        self.assertIn("worksheet_hash_mismatch", result["failure_codes"])
-
-    def test_extra_fields_path_leak_and_bad_intervals_fail_closed(self):
-        worksheet, worksheet_raw, lineage, lineage_raw, review, review_raw, index, index_raw = handoff()
-        review["answer_sentinel"] = "secret"
-        result = audit(worksheet, worksheet_raw, lineage, lineage_raw, review, encode(review), index, index_raw, hashlib.sha256(lineage_raw).hexdigest())
-        self.assertIn("review_payload_schema_invalid", result["failure_codes"])
-        worksheet, worksheet_raw, lineage, lineage_raw, review, review_raw, index, index_raw = handoff()
-        review["records"][0]["video_path"] = "/private/path"
-        result = audit(worksheet, worksheet_raw, lineage, lineage_raw, review, encode(review), index, index_raw, hashlib.sha256(lineage_raw).hexdigest())
-        self.assertIn("review_row_schema_invalid", result["failure_codes"])
-        worksheet, worksheet_raw, lineage, lineage_raw, review, review_raw, index, index_raw = handoff()
-        review["records"][0]["review"]["evidence_intervals_seconds"] = [[2.001, 1.001]]
-        review_raw = encode(review)
-        index["review_payload_sha256"] = hashlib.sha256(review_raw).hexdigest()
-        result = audit(worksheet, worksheet_raw, lineage, lineage_raw, review, review_raw, index, encode(index), hashlib.sha256(lineage_raw).hexdigest())
-        self.assertIn("review_intervals_invalid", result["failure_codes"])
         self.assertEqual(result["execution_authorization"], "not_granted")
+        self.assertEqual(result["worksheet_sha256"], hashlib.sha256(values[1]).hexdigest())
+        self.assertEqual(result["review_payload_sha256"], hashlib.sha256(values[5]).hexdigest())
+        self.assertEqual(result["review_index_sha256"], hashlib.sha256(values[7]).hexdigest())
 
-    def test_malformed_worksheet_shapes_fail_closed_without_traceback(self):
-        worksheet, worksheet_raw, lineage, lineage_raw, review, review_raw, index, index_raw = handoff()
-        for records in (None, "abc", [None, None, None]):
-            with self.subTest(records_type=type(records).__name__):
-                malformed = dict(worksheet, records=records)
-                result = audit(malformed, encode(malformed), lineage, lineage_raw, review, review_raw, index, index_raw, hashlib.sha256(lineage_raw).hexdigest())
-                self.assertEqual(result["status"], "invalid")
-                self.assertEqual(result["execution_authorization"], "not_granted")
-                self.assertIn("frozen_worksheet_invalid", result["failure_codes"])
+    def test_review_hash_token_and_interval_tampering_fail_closed(self):
+        v = fixture()
+        index = dict(v[6], review_payload_sha256="0" * 64)
+        result = audit(*v[:6], index, encode(index), hashlib.sha256(v[3]).hexdigest())
+        self.assertIn("review_payload_hash_mismatch", result["failure_codes"])
+        review = json.loads(v[5]); review["records"][0]["review_token"] = "../../private"
+        result = audit(v[0], v[1], v[2], v[3], review, encode(review), v[6], v[7], hashlib.sha256(v[3]).hexdigest())
+        self.assertIn("review_token_binding_invalid", result["failure_codes"])
+        review = json.loads(v[5]); review["records"][0]["review"]["evidence_intervals_seconds"] = [[2, 1]]
+        result = audit(v[0], v[1], v[2], v[3], review, encode(review), v[6], v[7], hashlib.sha256(v[3]).hexdigest())
+        self.assertIn("review_intervals_invalid", result["failure_codes"])
 
-    def test_cli_writes_only_private_audit_summary(self):
-        values = handoff()
-        worksheet, worksheet_raw, lineage, lineage_raw, review, review_raw, index, index_raw = values
-        with tempfile.TemporaryDirectory() as td:
-            root = Path(td)
-            files = [root / name for name in ("worksheet.json", "lineage.json",
-                                               "review.json", "index.json")]
-            raws = [worksheet_raw, lineage_raw, review_raw, index_raw]
-            for path, raw in zip(files, raws, strict=True):
-                path.write_bytes(raw); os.chmod(path, 0o600)
-            output = root / "audit.json"
-            args = ["--worksheet", str(files[0]), "--lineage-manifest", str(files[1]),
-                    "--review-payload", str(files[2]), "--review-index", str(files[3]),
-                    "--expected-lineage-sha256", hashlib.sha256(lineage_raw).hexdigest(),
-                    "--output", str(output)]
-            self.assertEqual(main(args), 0)
-            self.assertEqual(stat.S_IMODE(output.stat().st_mode), 0o600)
-            report = json.loads(output.read_bytes())
-            self.assertEqual(report["status"], "unvalidated_handoff_structurally_valid")
-            self.assertEqual(report["execution_authorization"], "not_granted")
-            with contextlib.redirect_stderr(io.StringIO()), self.assertRaises(SystemExit):
-                main(args)
+    def test_custody_checks_manifest_bindings_file_modes_and_actual_bytes(self):
+        v = fixture()
+        worksheet, worksheet_raw, lineage, lineage_raw = v[:4]
+        rows = []
+        import tempfile, os
+        from pathlib import Path
+        with tempfile.TemporaryDirectory() as tmp:
+            media_dir = Path(tmp) / "media"; media_dir.mkdir(mode=0o700)
+            for ordinal, row in enumerate(worksheet["records"], 1):
+                raw = f"synthetic video {ordinal}".encode()
+                digest = hashlib.sha256(raw).hexdigest()
+                # Test against a matching private worksheet hash without needing a source video.
+                row["video_sha256"] = digest
+                path = media_dir / (row["review_token"] + ".mp4"); path.write_bytes(raw); os.chmod(path, 0o600)
+                rows.append({"review_token": row["review_token"], "row_ordinal": ordinal,
+                             "media_file": path.name, "source_media_sha256": digest,
+                             "staged_media_sha256": digest, "size_bytes": len(raw),
+                             "media_check_salt": "01" * 32,
+                             "media_check_sha256": hashlib.sha256(bytes.fromhex("01" * 32) + raw).hexdigest()})
+            worksheet_raw = encode(worksheet)
+            custody = {"schema_version": 1, "purpose": "private_custodian_token_to_verified_media_manifest",
+                       "created_at_utc": "2026-10-16T06:00:00Z",
+                       "worksheet_sha256": hashlib.sha256(worksheet_raw).hexdigest(),
+                       "source_lineage_manifest_sha256": hashlib.sha256(lineage_raw).hexdigest(),
+                       "claim_review_policy_sha256": worksheet["claim_review_policy_sha256"],
+                       "record_count": 3, "records": rows}
+            raw = encode(custody)
+            self.assertEqual(audit_custody(worksheet, worksheet_raw, lineage, lineage_raw, custody, raw,
+                                           media_dir, hashlib.sha256(raw).hexdigest()), [])
+            (media_dir / rows[0]["media_file"]).write_bytes(b"tampered")
+            self.assertIn("custody_media_hash_mismatch", audit_custody(
+                worksheet, worksheet_raw, lineage, lineage_raw, custody, raw, media_dir,
+                hashlib.sha256(raw).hexdigest()))
+
+    def test_invalid_worksheet_token_is_rejected_before_path_access_and_extras_fail(self):
+        v = fixture(); worksheet, worksheet_raw, lineage, lineage_raw = v[:4]
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp); media_dir = root / "media"; media_dir.mkdir(mode=0o700)
+            sentinel = root / "sentinel"; sentinel.write_text("must remain untouched")
+            worksheet["records"][0]["review_token"] = "../sentinel"
+            invalid_raw = encode(worksheet)
+            custody = {"schema_version":1,"purpose":"private_custodian_token_to_verified_media_manifest",
+                       "created_at_utc":"2026-10-16T06:00:00Z","worksheet_sha256":hashlib.sha256(invalid_raw).hexdigest(),
+                       "source_lineage_manifest_sha256":hashlib.sha256(lineage_raw).hexdigest(),
+                       "claim_review_policy_sha256":worksheet["claim_review_policy_sha256"],"record_count":3,
+                       "records":[{"review_token":r["review_token"]} for r in worksheet["records"]]}
+            custody_raw=encode(custody)
+            failures = audit_custody(worksheet, invalid_raw, lineage, lineage_raw, custody, custody_raw,
+                                     media_dir, "0" * 64)
+            self.assertIn("custody_worksheet_token_invalid", failures)
+            self.assertEqual(sentinel.read_text(), "must remain untouched")
+
+        v = fixture(); worksheet, worksheet_raw, lineage, lineage_raw = v[:4]
+        with tempfile.TemporaryDirectory() as tmp:
+            media_dir = Path(tmp) / "media"; media_dir.mkdir(mode=0o700)
+            rows=[]
+            for ordinal, row in enumerate(worksheet["records"], 1):
+                data=f"extra fixture {ordinal}".encode(); digest=hashlib.sha256(data).hexdigest()
+                row["video_sha256"]=digest
+                path=media_dir/(row["review_token"]+".mp4");path.write_bytes(data)
+                import os
+                os.chmod(path,0o600)
+                salt=b"x"*32
+                rows.append({"review_token":row["review_token"],"row_ordinal":ordinal,"media_file":path.name,
+                             "source_media_sha256":digest,"staged_media_sha256":digest,"size_bytes":len(data),
+                             "media_check_salt":salt.hex(),"media_check_sha256":hashlib.sha256(salt+data).hexdigest()})
+            worksheet_raw=encode(worksheet)
+            custody={"schema_version":1,"purpose":"private_custodian_token_to_verified_media_manifest",
+                     "created_at_utc":"2026-10-16T06:00:00Z","worksheet_sha256":hashlib.sha256(worksheet_raw).hexdigest(),
+                     "source_lineage_manifest_sha256":hashlib.sha256(lineage_raw).hexdigest(),
+                     "claim_review_policy_sha256":worksheet["claim_review_policy_sha256"],"record_count":3,"records":rows}
+            raw=encode(custody);(media_dir/"extra.txt").write_text("extra");os.chmod(media_dir/"extra.txt",0o600)
+            self.assertIn("custody_media_directory_contents_invalid",audit_custody(
+                worksheet,worksheet_raw,lineage,lineage_raw,custody,raw,media_dir,hashlib.sha256(raw).hexdigest()))
 
 
 if __name__ == "__main__":

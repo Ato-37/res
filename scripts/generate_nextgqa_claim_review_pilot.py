@@ -22,44 +22,34 @@ import time
 from run_nextgqa_gold_interval_margin_pilot import (
     FRAMES, MODEL_REVISION, freeze_cohort, host_available_bytes, sha256_file,
 )
+from private_output_paths import validate_private_output
+from claim_text_quality import claim_text_quality_failure
 
 
 SEED = 20261015
 MIN_FREE_VRAM = 12 * 1024**3
 MIN_HOST_AVAILABLE = 8 * 1024**3
 PROMPT_SUFFIX = (
-    "\nOutput exactly three lines, no markdown or other text:\n"
-    "A=<one letter A-E>\n"
-    "C=<one short, visually checkable sentence supporting the answer>\n"
-    "F=<comma-separated 0-based supplied-frame indices from 0 to {last}>\n"
-    "Use only what the video shows."
+    "\nWrite exactly one short, standalone sentence about a concrete visible event "
+    "that answers the question. Use only visible video content; do not infer from "
+    "audio or text overlays. Return only that plain-English sentence, on one line. "
+    "Do not include a label, answer letter, frame index, markdown, HTML, or template text."
 )
 
 
 def parse_claim_output(text: str, frame_count: int) -> dict:
-    """Parse the fixed-label format without discarding raw generations."""
-    answer = re.search(
-        r"(?im)^\s*(?:ANSWER_LETTER|ANSWER_LET|ANSWER|A)\s*[:=]\s*([A-E])\b", text)
-    claim = re.search(
-        r"(?ims)^\s*(?:CLAIM|C)\s*[:=]\s*(.+?)(?=^\s*(?:EVIDENCE_FRAME_INDICES|EVIDENCE_FRAME|FRAME_INDICES|FRAMES|F)\s*[:=]|\Z)",
-        text)
-    frames = re.search(
-        r"(?im)^\s*(?:EVIDENCE_FRAME_INDICES|EVIDENCE_FRAME|FRAME_INDICES|FRAMES|F)\s*[:=]\s*(.*?)\s*$",
-        text)
-    indices = []
-    if frames:
-        values = [value for value in re.split(r"[^0-9]+", frames.group(1)) if value]
-        try:
-            indices = [int(value) for value in values]
-        except ValueError:
-            indices = []
-    claim_text = claim.group(1).strip() if claim else ""
-    valid = bool(answer and claim_text and indices and len(indices) == len(set(indices))
-                 and all(0 <= value < frame_count for value in indices))
+    """Accept one claim-only line; do not require model-selected frames."""
+    del frame_count  # retained for call compatibility; no frame list is requested
+    match = re.fullmatch(r"[ \t]*(?:(?:CLAIM|C)[ \t]*[:=][ \t]*)?([^\r\n]+)[ \t]*", text,
+                         flags=re.IGNORECASE)
+    claim_text = match.group(1).strip() if match else ""
+    quality_failure = claim_text_quality_failure(claim_text) if claim_text else "claim_missing"
+    valid = bool(match and claim_text and quality_failure is None)
     return {"valid": valid,
-            "answer_letter": answer.group(1).upper() if answer else None,
+            "claim_text_quality_failure": quality_failure,
+            "answer_letter": None,
             "claim": claim_text or None,
-            "evidence_frame_indices": indices}
+            "evidence_frame_indices": []}
 
 
 def write_private_json_exclusive(output: Path, payload) -> None:
@@ -94,10 +84,13 @@ def main() -> None:
     args = parser.parse_args()
     if not args.user_authorized_local_only:
         parser.error("explicit local-only user authorization flag required")
-    output = Path(args.output).resolve()
-    if output.exists():
-        parser.error("refusing to overwrite output")
     repo = Path(__file__).resolve().parents[1]
+    try:
+        output = validate_private_output(args.output, repo)
+    except FileExistsError:
+        parser.error("refusing to overwrite output")
+    except (OSError, ValueError) as exc:
+        parser.error(str(exc).split(":", 1)[0] or "private_output_path_invalid")
     exclusion_path = Path(args.exclude_media_sha256).resolve()
     exclusion = json.loads(exclusion_path.read_text(encoding="utf-8"))
     hashes = exclusion.get("media_sha256")
@@ -154,7 +147,7 @@ def main() -> None:
     for index, sample in enumerate(selected):
         choices = [f"{chr(65+i)}. {choice}" for i, choice in enumerate(sample["choices"])]
         prompt = (sample["question"] + "\nOptions:\n" + "\n".join(choices)
-                  + PROMPT_SUFFIX.format(last=args.frames - 1))
+                  + PROMPT_SUFFIX)
         messages = [{"role": "user", "content": [
             {"type": "video", "video": sample["frames"],
              "sample_fps": (sample["decode"]["effective_sample_fps"][0]

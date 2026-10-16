@@ -16,14 +16,18 @@ import math
 import os
 from pathlib import Path
 import re
+import secrets
 import tempfile
 from typing import Any
+
+from private_output_paths import validate_private_output
+from claim_text_quality import claim_text_quality_failure
 
 
 SHA256 = re.compile(r"^[a-f0-9]{64}$")
 GIT_COMMIT = re.compile(r"^[a-f0-9]{40}$")
 PURPOSE = "private_local_nextgqa_model_generated_claim_review_packet"
-FROZEN_POLICY_SHA256 = "0fe92fff658aa25280b0e32c6db979d8903c9ad4d1ddfc592bb38601d459bfb7"
+FROZEN_POLICY_SHA256 = "f33fd193fdcec7bd9200ab700c46616cbd7ee78535399ef193496ba52054260a"
 DATASET_INPUT_KEYS = {
     "test.csv", "gsub_test.json", "map_vid_vidorID.json", "frame2time_test.json",
 }
@@ -134,6 +138,7 @@ def build(packet: Any, packet_raw: bytes) -> tuple[dict, bytes]:
     result_records = []
     seen_video_hashes: set[str] = set()
     seen_claim_ids: set[str] = set()
+    seen_review_tokens: set[str] = set()
     for row in records:
         if not isinstance(row, dict):
             raise ValueError("claim_packet_record_invalid")
@@ -150,6 +155,9 @@ def build(packet: Any, packet_raw: bytes) -> tuple[dict, bytes]:
             raise ValueError("claim_packet_video_duplicate")
         seen_video_hashes.add(video_sha)
         claim = parsed["claim"]
+        quality_failure = claim_text_quality_failure(claim)
+        if quality_failure is not None:
+            raise ValueError("claim_packet_claim_text_not_reviewable_" + quality_failure)
         claim_sha = hashlib.sha256(claim.encode("utf-8")).hexdigest()
         video_id = "video-" + video_sha
         claim_id = "claim-" + hashlib.sha256(
@@ -158,11 +166,16 @@ def build(packet: Any, packet_raw: bytes) -> tuple[dict, bytes]:
         if claim_id in seen_claim_ids:
             raise ValueError("claim_packet_claim_duplicate")
         seen_claim_ids.add(claim_id)
+        review_token = secrets.token_urlsafe(18)
+        if review_token in seen_review_tokens:
+            raise ValueError("review_token_collision")
+        seen_review_tokens.add(review_token)
         result_records.append({
             "video_path": video_path,
             "video_sha256": video_sha,
             "video_id": video_id,
             "claim_id": claim_id,
+            "review_token": review_token,
             "question": question,
             "claim_text": claim,
             "claim_text_sha256": claim_sha,
@@ -222,7 +235,7 @@ def apply_review_policy(output: dict, policy: Any, policy_raw: bytes) -> dict:
     if not _raw_matches(policy, policy_raw):
         raise ValueError("review_policy_bytes_invalid")
     if (policy.get("schema_version") != 1
-            or policy.get("policy_id") != "nextgqa_claim_review_v1"
+            or policy.get("policy_id") != "nextgqa_claim_review_v5"
             or policy.get("purpose") != "pre_outcome_human_claim_to_video_mapping"
             or policy.get("occurrence_policy") != "all_relevant_occurrences"
             or hashlib.sha256(policy_raw).hexdigest() != FROZEN_POLICY_SHA256
@@ -279,14 +292,15 @@ def main(argv: list[str] | None = None) -> int:
     if not args.user_authorized_local_only:
         parser.error("explicit local-only authorization flag required")
     source = Path(args.input).resolve()
-    target = Path(args.output).resolve()
+    repo_root = Path(__file__).resolve().parents[1]
+    try:
+        target = validate_private_output(args.output, repo_root)
+    except FileExistsError:
+        parser.error("refusing_to_overwrite_output")
+    except (OSError, ValueError) as exc:
+        parser.error(str(exc).split(":", 1)[0] or "private_output_path_invalid")
     if source == target:
         parser.error("input_and_output_paths_must_differ")
-    repo_root = Path(__file__).resolve().parents[1]
-    if target.is_relative_to(repo_root):
-        parser.error("output_must_be_outside_repository")
-    if target.exists():
-        parser.error("refusing_to_overwrite_output")
     try:
         packet, raw = _read_json(source)
         payload, encoded = build(packet, raw)

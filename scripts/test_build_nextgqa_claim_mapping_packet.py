@@ -73,7 +73,7 @@ def assert_exact_output_keys(test, value):
     }
     policy_keys = {"claim_review_policy_id", "claim_review_policy_sha256"}
     record = {
-        "video_path", "video_sha256", "video_id", "claim_id", "question",
+        "video_path", "video_sha256", "video_id", "claim_id", "review_token", "question",
         "claim_text", "claim_text_sha256", "review",
     }
     review = {
@@ -92,7 +92,7 @@ def assert_exact_output_keys(test, value):
 class BuildNextgqaClaimMappingPacketTests(unittest.TestCase):
     @staticmethod
     def policy():
-        path = Path(__file__).resolve().parents[1] / "docs" / "nextgqa_claim_review_policy_v1.json"
+        path = Path(__file__).resolve().parents[1] / "docs" / "nextgqa_claim_review_policy_v5.json"
         return path.read_bytes()
 
     def test_blinded_draft_contains_claims_and_blank_review_fields_only(self):
@@ -153,6 +153,15 @@ class BuildNextgqaClaimMappingPacketTests(unittest.TestCase):
         self.assertFalse(result["review_completed"])
         self.assertEqual(result["execution_authorization"], "not_granted")
         assert_exact_output_keys(self, result)
+
+    def test_claim_format_artifacts_are_rejected_before_review_packet_build(self):
+        for claim, reason in (("A readable claim\ncontinued", "claim_multiline"),
+                              ("A addCriterion fragment", "claim_template_or_token_artifact")):
+            source, _ = packet()
+            source["records"][1]["generated_parsed"]["claim"] = claim
+            with self.subTest(reason=reason), self.assertRaisesRegex(
+                    ValueError, "claim_packet_claim_text_not_reviewable_" + reason):
+                build(source, encode(source))
 
     def test_policy_mutation_and_invalid_occurrence_fail_closed(self):
         source, raw = packet()

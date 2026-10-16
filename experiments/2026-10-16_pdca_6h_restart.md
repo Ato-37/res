@@ -1442,3 +1442,310 @@ At **18:56 JST**, **3h31m** elapsed and **2h29m** remained to 21:24:47. The
 next check is an independent audit of the final worksheet/log wording and a
 scoped source publication review. Do not score until the external review and
 actual clock gates are completed and the complete protocol is frozen.
+
+## 19:01 JST checkpoint — updated related-work boundary
+
+An outcome-blind primary-source scan found two close 2026 image-VLM
+counterfactual methods: vCT/vCCT links removed visual objects to changes in
+prediction distributions and whether CoT mentions them; EDCT extracts concepts
+cited in an explanation, applies verified image edits, and checks answer and
+explanation consistency. These make any broad “first explanation-driven
+counterfactual faithfulness test” claim untenable. The nearest video work in
+this scan evaluates evidence-corruption/temporal-intervention reliability or
+video-swap/visual-degradation effects, rather than a human-reviewed temporal
+span aligned to a generated textual claim. STEAR also uses spatiotemporal
+counterfactual evidence intervention for mitigation, a distinct goal and
+mechanism. Sources: [vCT/vCCT (arXiv:2609.06704)](https://arxiv.org/abs/2609.06704),
+[EDCT-Bench (arXiv:2609.17953)](https://arxiv.org/abs/2609.17953),
+[INFACT (arXiv:2603.11481)](https://arxiv.org/abs/2603.11481),
+[Chains That See, Answers That Don't (arXiv:2606.22862)](https://arxiv.org/abs/2606.22862),
+and [STEAR (arXiv:2604.03045)](https://arxiv.org/abs/2604.03045).
+
+Bounded inference: this targeted scan suggests a possible narrower difference
+in the video/temporal interval and claim-level review combination, but it is
+not a systematic novelty search and cannot support a priority claim. The
+design should be framed as an adaptation/test of interval-specific evidence
+dependence, with black-mask and rank-matched temporal-control limitations
+explicit, until further literature review and real-data results exist. No
+experimental evidence was added; direct faithfulness remains **0/3 reviewed,
+0/3 scored, no effect, CI, or test**.
+
+At **19:01:21 JST**, **3h36m34s** elapsed and **2h23m26s** remained to the
+21:24:47 deadline. Continue with the primary-source dataset/clock review and
+final verification; keep remote publication disabled for protected-derived
+artifacts under the local-only directive.
+
+## 19:04 JST checkpoint — independently recomputed auxiliary GPU pilot
+
+Reopened the two local auxiliary score JSONs directly and recomputed the
+record-level aggregates without exposing record identifiers or text. Both runs
+report `passed`, 10/10 completed records, 50/50 requested model forwards, and
+zero failures. The 16-frame run reports primary black-control-minus-gold-
+interval margin mean −0.137500 nat (sample SD 1.596926; range [−3.000000,
++3.000000]); the 32-frame run reports −0.337500 nat (SD 1.908543; range
+[−4.000000, +1.625000]). Their ordered record assignments match, and the
+paired change in this same primary contrast from 16 to 32 frames is −0.200000
+nat (sample SD 1.532291; 6 positive, 4 negative, 0 ties). The 16-frame file
+records a cohort digest; the 32-frame file records a cohort digest and a lock
+digest. The metadata do not establish that both settings used one shared frozen
+lock. Neither artifact supplies a CI or p-value;
+both explicitly state `claim_review_completed=false` and a null
+`claim_specific_faithfulness_estimate`. This is QA dependence on dataset gold
+intervals, not generated-claim faithfulness, and it supports no population
+inference.
+
+Runtime artifacts identify an RTX 5070 Ti, peak allocated VRAM 9.06 GiB for
+16 frames and 11.43 GiB for 32 frames, and elapsed times 135.85 s and 235.51 s.
+These are verified auxiliary GPU workloads, not progress on the blocked direct
+claim-faithfulness estimand. A first audit command used `python` which is not
+on PATH; rerunning with repository `.venv/bin/python` succeeded. The full test
+suite remains 1013/1013 from the independent 18:52 run; this checkpoint changes
+only the experiment log. At **19:04:22 JST**, 3h39m35s had elapsed and 2h20m25s
+remained to the 21:24:47 deadline. Continue with independent protocol and
+artifact audits; do not start direct scoring without the human and browser-clock
+gates.
+
+## 19:07 JST checkpoint — capture UI now records presented-frame metadata
+
+The independent clock audit found that the browser button sampled `currentTime`
+without identifying the actual compositor-presented frame. Implemented a bounded
+capture improvement in the local review HTML: where
+`requestVideoFrameCallback` is available, anchor observations now carry the most
+recent frame `mediaTime`, `presentedFrames`, presentation/expected-display
+timestamps, dimensions, and callback time. Missing metadata is explicitly marked;
+export metadata state that decoder-frame identity and PTS pairing remain
+unverified. UI instructions and the v2 protocol now state that `currentTime`
+alone cannot pass calibration, and unresolved browser-frame/decoder-frame
+correspondence fails the clock gate. The scale-up worksheet also requires the
+browser/decoder versions, stream/timebase, PTS-origin rule, temporal coverage,
+and treats held-out max residual only as an empirical diagnostic, not an
+uncertainty guarantee.
+
+Validation: the focused HTML renderer, clock-input, and clock-converter tests
+pass **20/20**; synthetic rendered-page JavaScript passes Node syntax checking;
+`git diff --check` passes. This does not exercise an actual browser or validate
+a frame-to-decoder correspondence. The prior audit exposed a limited design
+not yet implemented/authenticated in the converter: no frozen beginning/interior/end coverage check or browser/decoder identity verification exists. The direct score gate remains closed. At **19:07:15 JST**, 3h42m28s had elapsed and 2h17m32s remained to the requested deadline; continue independent review and integration checks.
+
+## 19:12 JST checkpoint — clock schema integration and digest repair
+
+A second independent UI audit found that the first metadata patch still allowed
+anchor clicks during playback/seeking, could report last-callback metadata as if
+fresh, and produced JSON rejected by the strict calibration-input converter.
+The renderer now requires paused, non-seeking, frame-ready state; labels the
+metadata only as `last_presented_frame_metadata_unverified`; emits observation
+schema v2; and records `seeking`. The converter accepts only v2 observations
+with the callback metadata, paused state, and no active seek. It feeds rVFC
+`mediaTime` (not click-time `currentTime`) to the empirical fit, preserves
+`currentTime` only as a raw diagnostic, and keeps stale-frame/decoder-identity
+limitations in the bundle. Missing metadata is rejected. These checks make the
+format compatible but do not authenticate callback freshness or same-frame
+identity, so the bundle remains explicitly unvalidated and cannot authorize
+scoring. No browser binary or Playwright/Selenium package is installed here;
+actual browser behavior remains untested.
+
+The first full-suite run after editing the protocol text failed four diagnostic
+candidate tests because the builder intentionally pins the exact protocol SHA.
+This was caused by my own protocol edit, not fixture mutation or a pre-existing
+failure. I recomputed the exact file digest and updated the builder's expected
+constant; all four focused candidate tests then passed. Final focused UI/converter/
+candidate tests pass **28/28**, and the full suite passes **1013/1013** in 9.75 s.
+Rendered synthetic HTML also passes Node syntax validation; `git diff --check`
+passes. Only source/schema compatibility and synthetic checks were exercised;
+there is still no real browser clock capture and direct faithfulness remains
+**0/3 reviewed, 0/3 scored, no direct estimate/CI/test**. At **19:12:05 JST**,
+3h47m18s had elapsed and 2h12m42s remained. Continue with a whole-diff audit and
+research-planning review, preserving all protected data locally.
+
+## 19:13 JST checkpoint — guard the clock conversion input
+
+Added a regression test where click-time `currentTime` intentionally differs
+from the associated rVFC `mediaTime`. The conversion bundle follows `mediaTime`,
+retains no click-time value in the calibration anchor, and preserves the stale-
+metadata limitation. The focused renderer/converter/calibrator suite passes
+**21/21**, including rejection tests for absent frame metadata and invalid
+paused/seeking state. This verifies transformation behavior only; it does not
+validate the event/frame match itself. At **19:13:41 JST**, 3h48m54s had elapsed
+and 2h11m06s remained. Next: independent audit of final clock claims and exact
+allowlist of any local commit; no push while protected-derived material is under
+the local-only directive.
+
+## 19:14 JST checkpoint — related-work boundary widened
+
+A primary-source check added *Journey Before Destination* (EACL 2026) to the
+near-neighbor review. It evaluates generated image-reasoning chains at the
+perception-step level with VLM judges, validates judge ratings against human
+annotations, and reports image benchmarks; it directly rules out a broad
+novelty claim about visual faithfulness of generated intermediate claims, but
+is not the same video temporal-mask intervention. INFACT evaluates answer
+reliability under evidence corruption and temporal interventions in video QA;
+VideoSEAL studies temporal/semantic evidence alignment in agentic long-video
+QA. They set a high bar for describing this project as a narrow temporal
+claim-interval intervention test rather than a general new faithfulness
+framework. The scale-up worksheet now records that boundary and labels the
+remaining difference as a hypothesis, not novelty evidence. Sources:
+[Journey Before Destination (EACL 2026)](https://aclanthology.org/2026.eacl-long.194/),
+[INFACT](https://arxiv.org/abs/2603.11481),
+[VideoSEAL (ICML 2026)](https://proceedings.mlr.press/v306/qiu26v.html).
+
+This was a targeted scan, not systematic review and not proof of novelty.
+No real-data or direct-faithfulness evidence changed. At **19:14:40 JST**,
+3h49m53s had elapsed and 2h10m07s remained. Continue with audit and safe
+integration; the hard review/clock gate still prevents direct scoring.
+
+## 19:16 JST checkpoint — align novelty and intervention claims to prior work
+
+A separate literature audit confirmed the relevant scope: *Journey Before
+Destination* evaluates image-reasoning perception steps with model judges and
+human meta-evaluation; INFACT applies video evidence corruption and temporal
+interventions at the QA-answer level; VideoSEAL is a close prior for video
+answer/evidence alignment, combining temporal-overlap grounding and semantic
+support audits for an agent's inspected evidence. Thus any possible distinction
+here is specifically the proposed fixed-answer-margin contrast between a
+human-reviewed claim-support interval and an equal-count temporal control—not
+temporal grounding or video faithfulness generally. This remains an untested
+novelty hypothesis, not a priority claim. Sources: [Journey Before Destination
+(EACL 2026)](https://aclanthology.org/2026.eacl-long.194/),
+[INFACT](https://arxiv.org/abs/2603.11481),
+[VideoSEAL (ICML 2026)](https://proceedings.mlr.press/v306/qiu26v.html).
+
+Also added *Faithfulness Under the Distribution* (ICLR 2026) to the limitation
+section: its authors state that zeroing pixels in common deletion/insertion
+metrics can move inputs out of distribution and distort model behavior. This
+supports reporting the current proposal strictly as sensitivity to black-fill
+masking; a matched temporal control does not remove visual/semantic mismatch or
+OOD concerns. Any future in-distribution replacement is a separate intervention
+requiring a new frozen protocol and confirmation. [FUD (ICLR 2026)](https://proceedings.iclr.cc/paper_files/paper/2026/hash/409fcc9d24b549969b8b9be68b56a7be-Abstract-Conference.html).
+
+The literature edits changed only the scale-up worksheet/log. No experiments or
+direct claims changed; direct score gate is still **0/3 reviewed, 0/3 scored**.
+At **19:16:37 JST**, 3h51m50s elapsed and 2h08m10s remain. Continue final
+independent source/diff audit and proportionate testing.
+
+## 19:17 JST checkpoint — full suite after literature and clock changes
+
+The complete local test suite passes **1014/1014** in 10.04 s after the latest
+converter test and literature-note changes. Node syntax validation, compileall,
+and `git diff --check` also pass. The suite's logged child-process failure
+messages are expected negative-path fixtures; the unittest runner exits OK.
+No GPU/model calls occurred during this checkpoint. At **19:17:04 JST**,
+3h52m17s elapsed and 2h07m43s remain to the 21:24:47 deadline. Continue with
+ scoped diff and commit readiness review; protected outputs remain unpushed.
+
+## 19:20 JST checkpoint — close empirical-residual/clock-validation confusion
+
+Independent audit found a naming and integration weakness: the HTML5
+calibrator's `heldout_pass` meant only that the observed maximum residual was
+below a tolerance. The assignment planner accepted that bit with an
+`empirical_heldout_residual_only` scope and could therefore emit a structurally
+passed, still-unvalidated interval plan without any separately reviewed
+capture/frame-correspondence evidence. It never called the model
+(`score_calls=0`, authorization not granted), but this could mislead planning.
+
+Renamed the calibrator output to `empirical_residual_within_tolerance` and made
+the planner additionally require a caller attestation that independent review
+is claimed plus two evidence hashes (capture and decoder-frame correspondence).
+Tests show the empirical-only artifact and each missing declaration/hash fail
+closed. A second independent audit confirmed that fabricated declarations and
+syntactically valid arbitrary hashes can still pass the planning seam. I
+therefore named the field `independent_review_claimed_unverified` and clarified
+that this is only an accidental-misuse guard: the planner does not read or
+authenticate evidence, and a signed evidence-reading audit manifest remains
+necessary. The synthetic success fixture is expressly synthetic. Real
+browser/frame calibration remains absent, so the production gate remains
+closed.
+
+Focused calibrator, assignment, and converter suites pass **33/33**. The first
+attempt used an incorrect unittest import path and failed before loading any
+tests; rerunning with `PYTHONPATH=scripts` passed. No GPU or protected dataset
+was used. Direct faithfulness remains **0/3 reviewed, 0/3 scored, no estimate,
+CI, or test**. At **19:20 JST**, 3h55m13s elapsed and 2h04m47s remain to the
+21:24:47 deadline. Next: full suite, independent review of the changed gate and
+publication/local-commit safety; do not push protected-derived logs/artifacts.
+
+## 19:23 JST checkpoint — repair protocol digest pin and rerun full suite
+
+The first full-suite attempt after clarifying that caller-supplied verification
+fields are unauthenticated exposed four candidate-builder test failures: the
+protocol text had changed but its exact-byte SHA pin had not. Updated the pin
+to the file's current SHA-256 (`1b0017be…03a0`); an independent check confirmed
+the bytes and constant match. The relevant candidate/calibration tests pass
+**41/41**, and the full suite now passes **1015/1015** in 9.65 s. Compilation
+and `git diff --check` pass as well. The negative-path error messages printed
+by subprocess fixtures are expected and the unittest command exits successfully.
+
+The clock-planning repair remains a structural safeguard only: caller-made
+attestations and hash-shaped strings can still pass to an
+`unvalidated_planning_only` artifact, which has zero score calls and no
+authorization. Actual evidence authentication remains a hard open gate.
+
+Also hardened the standalone calibrator against duplicate JSON object keys,
+so direct callers cannot rely on Python's last-key-wins parsing even if they
+bypass the stricter observation converter. A regression test covers duplicate
+`schema_version`; the focused clock/assignment/converter suite passes **34/34**
+and the full suite passes **1016/1016** in 9.92 s. No data or model was loaded.
+At **19:24:40 JST**, **3h59m53s** elapsed and **2h00m07s** remain to the
+21:24:47 deadline. Continue with independent UI/protocol/reproducibility audits
+and review the explicit local-only change set; do not publish protected-derived
+material.
+
+## 19:26 JST checkpoint — output the full margin decomposition
+
+An independent estimand audit confirmed the draft is coherent only as a
+three-item finite descriptive masking-sensitivity contrast, not claim truth,
+internal reasoning, or population evidence. It identified a useful
+interpretability risk: the best foil in `gold logP − best-foil logP` can change
+between conditions. The draft now requires retaining all five choice
+log-probabilities and best-foil identity per item/condition in the private
+0600 artifact, while keeping the fixed primary contrast unchanged and
+excluding answer labels from public-safe aggregates. The pinned protocol SHA
+was refreshed and will be checked with the candidate-builder tests.
+
+A separate source-only provenance audit found that the current chain is not an
+integrated reproducible handoff: renderer observations do not carry the full
+worksheet/custody/media-check references, the calibrator preserves only a
+capture digest, and the planner needs fields the calibrator does not emit.
+Converter→calibrator and planner are tested separately with synthetic fixtures,
+not as one connected artifact chain. This does not create scoring authority;
+it means actual clock evidence could not yet be used honestly end-to-end. The
+next useful foundation is a versioned local provenance bundle binding renderer
+worksheet, custody, observation/index, frozen anchor plan, converted capture,
+calibration and assignment; a synthetic end-to-end test should reject swapped
+tokens/media and any missing edge. Keep the chain unvalidated until a real
+browser and independent frame/PTS evidence exist.
+
+No protected results, GPU, or direct claim scores were used for these audits.
+At **19:25:42 JST**, **4h00m55s** elapsed and **1h59m05s** remain to the
+21:24:47 deadline. Continue the bounded provenance/design work and retain the
+zero-direct-score status.
+
+## 19:28 JST checkpoint — audit auxiliary pilot pairing provenance
+
+Reopened the private 16- and 32-frame score JSONs locally and verified both
+have 10 records, 50/50 requested forwards, zero failures, and the logged
+record-level effect fields. Their means/SDs/ranges/sign counts reproduce the
+existing aggregate. The 32-frame preflight digest matches its score and its
+cohort-lock digest; the lock's source score SHA and source cohort digest match
+the 16-frame score bytes/metadata. However, both score files expose only
+`video_index`, not per-record video/question hashes, and the two preflight
+cohort digests differ. The stored lock contains 10 hashed assignments but no
+reproducible builder/source linking each 16-frame score row to those
+assignments. Thus the artifact chain verifies that a lock references the 16
+score blob, but does not independently reconstruct the claimed 16↔32 row-level
+pairing. Treat the −0.200 nat difference as positional/exploratory only, not a
+verified paired effect; do not use it for inference or planning thresholds.
+
+The standalone means remain descriptive for their observed cohorts and are not
+claim faithfulness. Direct claim-specific evidence is still **0/3 reviewed,
+0/3 scored, no effect/CI/test**. No raw row identities were emitted in this
+audit. At **19:27:50 JST**, **4h03m03s** elapsed and **1h56m57s** remain to the
+deadline. Next: keep the local outputs private, re-run affected tests after
+the protocol detail change, and close the artifact/protocol audit before any
+commit decision.
+
+The revised protocol digest is `d25544ed…d10f` and matches the candidate
+builder's exact-byte pin. The affected candidate/calibration set passes
+**42/42**; the complete suite passes **1016/1016** in **9.57 s** with exit 0,
+and `git diff --check` passes. At **19:29:31 JST**, **4h04m44s** elapsed and
+**1h55m16s** remain. Continue provenance-chain review and prepare a strictly
+local commit only after checking the full explicit path allowlist.

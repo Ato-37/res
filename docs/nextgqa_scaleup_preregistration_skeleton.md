@@ -27,6 +27,19 @@ human review supports interval relevance to a claim but does not establish that
 the model used that interval. Any result is scoped to the fixed model, supplied
 choice set, interval policy, and masking procedure.
 
+NExT-GQA's annotations are QA-level answer-evidence labels, not reviews of a
+model-generated sentence's individual claims. The source paper describes spans
+covering the answer-bearing segment plus enough context to interpret the
+question; when relevant evidence repeats, annotators label all such moments.
+Each QA pair was annotated by at least two people and then checked/refined.
+Those labels are useful context for claim review, but they do not establish
+that every clause in a generated claim is supported or that its evidence
+interval is correctly localized. The paper/README describe the spans in seconds
+and provide frame-to-time mapping, but I found no universal origin or endpoint
+convention stated there; bind and calibrate the exact source media and review
+player instead of assuming one ([NExT-GQA paper](https://arxiv.org/html/2309.01327),
+[official dataset README](https://github.com/doc-doc/NExT-GQA/blob/main/datasets/nextgqa/README.md)).
+
 The current candidate score and contrast should align with the fuller
 definition in [`claim_mask_protocol_contract.md`](claim_mask_protocol_contract.md):
 fixed gold choice versus the highest-scoring foil in each condition, and
@@ -146,6 +159,57 @@ production target-preflight failures; end-to-end runtime and peak memory. If
 development scores are collected to estimate variance, keep that cohort
 separate from the scale-up confirmation and freeze every method choice before
 opening its outcomes.
+
+Clock-anchor evidence must identify the compositor-presented video frame, not
+just a sampled `video.currentTime`. The local review UI now records the most
+recent `requestVideoFrameCallback` metadata (`mediaTime`, `presentedFrames`,
+presentation/expected-display times, and dimensions) when the browser supports
+it, and only permits an anchor click while paused and not seeking. The latest
+callback can still be stale relative to that click; the raw observation and
+converter cannot authenticate freshness. The converter pairs rVFC `mediaTime`
+with the predeclared decoder PTS but leaves the bundle explicitly unvalidated.
+This is a raw observation improvement only: it does not prove identity with
+the separately decoded FFmpeg frame. Before using a PTS mapping, freeze a
+decoder/browser version, stream and timebase, PTS-origin rule, anchor coverage
+across beginning/interior/end, and a method to verify browser-presented-frame
+to decoder-frame correspondence. If the API is unavailable or that correspondence
+is unresolved, the anchor fails; `currentTime` alone cannot pass the clock gate.
+Held-out maximum residual remains an empirical diagnostic, not a calibrated
+uncertainty interval or coverage guarantee. The current UI and converter have
+not yet implemented/authenticated all these checks.
+
+## Related-work boundary
+
+The closest adjacent evidence reviewed here includes *Journey Before
+Destination: On the importance of Visual Faithfulness in Slow Thinking*
+(EACL 2026), which assesses generated image-reasoning steps for visual
+faithfulness using VLM judges and a human meta-evaluation. It rules out a broad
+novelty claim about evaluating visual faithfulness of generated intermediate
+claims; its reported task is image-based and judge-scored, not video-interval
+counterfactual dependence. [Paper](https://aclanthology.org/2026.eacl-long.194/)
+
+For video, INFACT evaluates answer reliability under evidence corruption and
+temporal interventions. VideoSEAL is a close precedent for video temporal
+evidence alignment: it combines temporal-overlap grounding with a semantic
+support audit of generated answers against inspected evidence, then gates
+answers on pixel verification. These overlap answer/evidence alignment and
+video evidence interventions but do not establish the same claim-specific
+human temporal-span mask-versus-control margin estimand. The defensible
+possible contribution is therefore narrow: a controlled test of whether a
+fixed video-VLM answer margin depends on a separately human-reviewed interval
+supporting a generated visual claim, with a matched temporal control. That
+difference remains a hypothesis pending systematic related-work review and
+valid real-data scores. [INFACT](https://arxiv.org/abs/2603.11481),
+[VideoSEAL](https://proceedings.mlr.press/v306/qiu26v.html).
+
+The primary black-fill intervention also has a known measurement limitation:
+zeroing input regions can move examples out of distribution and distort the
+model response. A matched temporal control does not remove this concern because
+its visual content and semantic role differ. The fixed pilot metric should
+therefore be reported as black-mask intervention sensitivity, not an
+unqualified causal or internal-faithfulness measure. Any later in-distribution
+replacement intervention requires a separately frozen protocol and independent
+confirmation. [FUD, ICLR 2026](https://proceedings.iclr.cc/paper_files/paper/2026/hash/409fcc9d24b549969b8b9be68b56a7be-Abstract-Conference.html).
 
 The current prerequisites and their evidence are tracked in
 [`2026-10-16_pdca_6h_restart.md`](../experiments/2026-10-16_pdca_6h_restart.md).

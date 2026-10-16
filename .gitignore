@@ -9,6 +9,7 @@ __pycache__/
 # must not be committed to GitHub because of size, licensing, and privacy.
 results/
 logs/
+/data/private_nextgqa/
 *.zip
 NExTVideo/
 nextgqa_sample/

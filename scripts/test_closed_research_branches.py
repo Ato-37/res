@@ -88,6 +88,10 @@ ALLOWED_ENGINEERING_LOADERS = {
     "spike_test_attention.py",
     "spike_test_video_attention.py",
 }
+PROCESSOR_ONLY_LOADERS = {
+    "audit_nextgqa_prompt_tokenizer.py",
+    "build_nextgqa_diagnostic_target_candidate.py",
+}
 SYNTHETIC_CPU_MODEL_CONSTRUCTORS = {
     "audit_qwen_cache_positions_cpu.py": "Qwen2_5_VLForConditionalGeneration",
 }
@@ -143,6 +147,23 @@ def _weight_loader_calls(tree):
 
 
 class ClosedResearchBranchGuardTests(unittest.TestCase):
+    def test_prompt_tokenizer_audit_is_processor_only_not_weight_loading(self):
+        source = (REPO / "scripts" / "audit_nextgqa_prompt_tokenizer.py").read_text(
+            encoding="utf-8")
+        self.assertIn("AutoProcessor.from_pretrained", source)
+        self.assertNotIn("ForConditionalGeneration.from_pretrained", source)
+        self.assertIn('"model_weights_loaded": False', source)
+        self.assertIn("torch.cuda.is_available()", source)
+
+    def test_diagnostic_target_builder_is_processor_only_not_weight_loading(self):
+        source = (REPO / "scripts" / "build_nextgqa_diagnostic_target_candidate.py").read_text(
+            encoding="utf-8")
+        self.assertIn("AutoProcessor.from_pretrained", source)
+        self.assertNotIn("ForConditionalGeneration.from_pretrained", source)
+        self.assertIn('"model_weights_loaded": False', source)
+        self.assertIn('"score_calls": 0', source)
+        self.assertIn('"execution_authorization": "not_granted"', source)
+
     def test_every_literal_pretrained_loader_has_an_explicit_class(self):
         discovered = set()
         for path in (REPO / "scripts").glob("*.py"):
@@ -156,7 +177,7 @@ class ClosedResearchBranchGuardTests(unittest.TestCase):
                 discovered.add(path.name)
         expected = (set(GUARDED_ENTRYPOINTS) & discovered
                     | GATE_CONTROLLED_LOADERS | ALLOWED_ENGINEERING_LOADERS
-                    | USER_AUTHORIZED_LOCAL_DATA_PILOTS)
+                    | USER_AUTHORIZED_LOCAL_DATA_PILOTS | PROCESSOR_ONLY_LOADERS)
         self.assertEqual(discovered, expected)
 
     def test_other_common_weight_loaders_are_explicitly_classified(self):
@@ -168,7 +189,8 @@ class ClosedResearchBranchGuardTests(unittest.TestCase):
             if _weight_loader_calls(tree):
                 discovered.add(path.name)
         expected = (set(GUARDED_ENTRYPOINTS) | GATE_CONTROLLED_LOADERS
-                    | ALLOWED_ENGINEERING_LOADERS | USER_AUTHORIZED_LOCAL_DATA_PILOTS)
+                    | ALLOWED_ENGINEERING_LOADERS | USER_AUTHORIZED_LOCAL_DATA_PILOTS
+                    | PROCESSOR_ONLY_LOADERS)
         self.assertLessEqual(discovered, expected)
 
     def test_common_loader_aliases_are_detected(self):

@@ -104,6 +104,7 @@ def main():
     frame_grid_coverage = {count: {"grid_compliant_videos": 0, "candidate_videos": 0,
                                    "covered_spans": 0, "eligible_spans": 0}
                            for count in (16, 32, 64)}
+    per_video_uniform_span_coverage = []
     span_total = span_frame2time = span_sampled_pts = 0
     ambiguous_keys = missing_vectors = 0
     for video_index, sample in enumerate(selected):
@@ -133,6 +134,15 @@ def main():
                 summary["grid_compliant_videos"] += 1
                 summary["eligible_spans"] += coverage["total_spans"]
                 summary["covered_spans"] += coverage["covered_spans"]
+            if frame_count == 16:
+                per_video_uniform_span_coverage.append({
+                    "anonymous_video_index": video_index,
+                    "covered_spans": coverage["covered_spans"],
+                    "total_spans": coverage["total_spans"],
+                    "all_spans_covered": (
+                        coverage["compliant"]
+                        and coverage["covered_spans"] == coverage["total_spans"]),
+                })
         signed_residuals = []
         absolute_residuals = []
         for point in points:
@@ -197,6 +207,7 @@ def main():
         "uniform_index_grid_span_coverage_50ms_tolerance": {
             str(count): summary for count, summary in frame_grid_coverage.items()
         },
+        "per_video_uniform_16_frame_span_coverage": per_video_uniform_span_coverage,
         "input_sha256": inputs,
         "limitations": [
             "This geometric audit does not calibrate the annotation-player/source-edit clock to decoded PTS.",

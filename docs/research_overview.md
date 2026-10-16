@@ -10,6 +10,8 @@
 
 ### 現行の提案方針（2026-10-09）
 
+2026-10-16更新: NExT-GQA `sentence_exploratory` の3件について、ローカルCSV・claim lineage・匿名レビューパッケージ・動画バイトの対応を3/3確認した。CPUでQA-margin runnerの未マスク動画prompt/processor経路を16/32フレームで監査し、A–Eラベルのdistinct single-token条件も確認した。レビューパッケージは人手レビュー開始可能だが、worksheetは`review_completed=false`、実行許可なし。直接のclaim-faithfulnessスコアは0/3、効果量・区間・検定なし。HTML5時計UIと将来の変換器は準備したが、実ブラウザ観測・PTS校正は未実施。新たな先行曝露監査で候補3件全てが118件の過去使用候補除外listと重なることが分かったが、listの来歴は未解決のため、この3件をscale-up用新規標本として扱わない。したがって、現作業は実データの来歴・入力経路の準備診断であり、faithfulnessの実験結果ではない。n=3は有限記述pilotに限り、規模拡大や母集団推論の根拠にはしない。規模拡大の事前登録に必要な未決事項は[scale-up設計worksheet](nextgqa_scaleup_preregistration_skeleton.md)に整理した。詳細・次アクションは[2026-10-16 PDCAログ](../experiments/2026-10-16_pdca_6h_restart.md)。
+
 2026-10-12追加: [8時間PDCAの記録](../experiments/2026-10-12_pdca_8h.md)で、実NOAA動画1件の7B BF16/4bitキャッシュ付き生成を3条件・6 forward検証し、native/no-op完全一致、有限出力、decode位置とcache長を確認した。別の公開CSV監査では62件すべてが点注釈で、固定5分区間には1件だけ含まれた。これは実行条件と注釈構造の確認であり、QAや説明faithfulnessの結果ではない。人間レビューはユーザーから未完了と確認され、注釈の最終QCも未検証のため、対応する評価ゲートは保留する。[キャッシュ継続の実行条件](qwen_temporal_cache_contract.md)を参照。
 
 2026-10-12更新: 使用条件を確認したNOAA動画1件と固定合成入力で、GPUによる時刻位置の動作検証を実施した。QA成績やfaithfulnessの改善は測定していない。FPS metadataの欠落、時間座標の丸め、抽出点と区間spanの違いを分けて監査した。NOAAの3動画・6 QAは人間による確認が未完了のため`no_go`を維持する。[時刻・サンプリングの結果と限界](temporal_runtime_and_sampling_limits.md)、[1時間PDCA実行記録](../experiments/2026-10-12_pdca_1h.md)を現行の実行結果として参照する。閉じたhead探索は再開しない。

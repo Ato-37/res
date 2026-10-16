@@ -13,6 +13,7 @@ import re
 import tempfile
 
 from run_nextgqa_gold_interval_margin_pilot import video_key
+from private_output_paths import validate_private_output
 
 
 PURPOSE = "private_local_nextgqa_model_generated_claim_review_packet"
@@ -200,11 +201,13 @@ def main(argv=None) -> int:
     args = parser.parse_args(argv)
     if not args.user_authorized_local_only:
         parser.error("explicit local-only authorization flag required")
-    packet_path, output = Path(args.packet).resolve(), args.output.resolve()
-    if output.is_relative_to(args.repo.resolve()):
-        parser.error("output_must_be_outside_repository")
-    if output.exists():
+    packet_path = Path(args.packet).resolve()
+    try:
+        output = validate_private_output(args.output, args.repo)
+    except FileExistsError:
         parser.error("refusing_to_overwrite_output")
+    except (OSError, ValueError) as exc:
+        parser.error(str(exc).split(":", 1)[0] or "private_output_path_invalid")
     try:
         if (packet_path.stat().st_mode & 0o777) != 0o600:
             parser.error("private_input_mode_invalid")
