@@ -163,6 +163,7 @@ class DiagnosticTargetCandidateTests(unittest.TestCase):
             fixture = make_fixture(root)
             payload = self.build(root, fixture, decoder_fn=synthetic_decoder)
         self.assertEqual(payload["status"], "diagnostic_candidate_unvalidated")
+        self.assertEqual(payload["schema_version"], 2)
         self.assertEqual(payload["effective_records"], 3)
         self.assertEqual(payload["source_row_bindings"], 3)
         self.assertFalse(payload["claim_input_manifest_present"])
@@ -171,6 +172,15 @@ class DiagnosticTargetCandidateTests(unittest.TestCase):
         self.assertEqual(payload["cuda_used"], False)
         self.assertEqual(payload["score_calls"], 0)
         self.assertEqual(payload["execution_authorization"], "not_granted")
+        code_files = payload["scoring_code_files_sha256"]
+        self.assertEqual(code_files["tokenizer_audit"]["path"],
+                         "scripts/audit_nextgqa_prompt_tokenizer.py")
+        self.assertEqual(payload["scoring_code_hash_scope"],
+                         "diagnostic_builder_direct_repo_source_closure_not_frozen_production_set")
+        self.assertTrue({"numpy", "Pillow"}.issubset(payload["software_versions"]))
+        pyav_versions = payload["pyav_library_versions"]
+        self.assertTrue(pyav_versions is None or isinstance(pyav_versions, dict))
+        json.dumps(pyav_versions)
         self.assertEqual(len(payload["records"]), 3)
         self.assertEqual(payload["records"][0]["answer_label_token_ids"], list(map(ord, "ABCDE")))
         self.assertEqual(payload["records"][0]["answer_label_token_piece_counts"], [1] * 5)
@@ -337,6 +347,113 @@ class DiagnosticTargetCandidateTests(unittest.TestCase):
             self.assertNotIn("synthetic claim", emitted)
             self.assertNotIn("gold-0", emitted)
             self.assertNotIn("dataset-video-0", emitted)
+
+    def test_diagnostic_source_hash_set_includes_tokenizer_audit_and_tracks_changes(self):
+        with tempfile.TemporaryDirectory() as temp:
+            repo = Path(temp)
+            for role, relative in candidate.DIAGNOSTIC_SOURCE_CODE_PATHS:
+                path = repo / relative
+                path.parent.mkdir(parents=True, exist_ok=True)
+                path.write_bytes(f"synthetic source for {role}\n".encode())
+
+            first = candidate._diagnostic_source_code_hashes(repo)
+            self.assertEqual(set(first), {role for role, _ in candidate.DIAGNOSTIC_SOURCE_CODE_PATHS})
+            first_aggregate = sha(canonical({"files": first, "versions": {"test": "1"}}))
+            expected_paths = {
+                "tokenizer_audit": "scripts/audit_nextgqa_prompt_tokenizer.py",
+                "frame_sampling_utils": "scripts/necessity_choice_margin_utils.py",
+                "presentation_time_utils": "scripts/presentation_time_utils.py",
+            }
+            for role, expected_path in expected_paths.items():
+                with self.subTest(role=role):
+                    self.assertEqual(first[role]["path"], expected_path)
+                    source_path = repo / expected_path
+                    source_path.write_bytes(f"changed synthetic {role}\n".encode())
+                    changed = candidate._diagnostic_source_code_hashes(repo)
+                    changed_aggregate = sha(canonical(
+                        {"files": changed, "versions": {"test": "1"}}))
+                    self.assertNotEqual(first_aggregate, changed_aggregate)
+                    self.assertNotEqual(first[role]["sha256"], changed[role]["sha256"])
+                    source_path.write_bytes(f"synthetic source for {role}\n".encode())
+
+    def test_missing_diagnostic_source_dependency_fails_closed(self):
+        for missing_role, missing_path in candidate.DIAGNOSTIC_SOURCE_CODE_PATHS:
+            with self.subTest(missing_role=missing_role), tempfile.TemporaryDirectory() as temp:
+                repo = Path(temp)
+                for role, relative in candidate.DIAGNOSTIC_SOURCE_CODE_PATHS:
+                    if (role, relative) == (missing_role, missing_path):
+                        continue
+                    path = repo / relative
+                    path.parent.mkdir(parents=True, exist_ok=True)
+                    path.write_bytes(b"synthetic dependency\n")
+                with self.assertRaisesRegex(candidate.CandidateError,
+                                            "diagnostic_source_file_missing"):
+                    candidate._diagnostic_source_code_hashes(repo)
+
+    def _write_synthetic_source_set(self, repo):
+        for role, relative in candidate.DIAGNOSTIC_SOURCE_CODE_PATHS:
+            path = repo / relative
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_bytes((f"synthetic source for {role}\n" * 100).encode())
+
+    def test_diagnostic_source_hash_rejects_symlink(self):
+        with tempfile.TemporaryDirectory() as temp:
+            repo = Path(temp)
+            self._write_synthetic_source_set(repo)
+            role, relative = candidate.DIAGNOSTIC_SOURCE_CODE_PATHS[0]
+            path = repo / relative
+            target = repo / "outside-source.py"
+            target.write_bytes(b"outside")
+            path.unlink()
+            path.symlink_to(target)
+            with self.assertRaisesRegex(candidate.CandidateError,
+                                        "diagnostic_source_file_invalid"):
+                candidate._diagnostic_source_code_hashes(repo)
+
+    def test_diagnostic_source_hash_detects_replacement_before_open(self):
+        with tempfile.TemporaryDirectory() as temp:
+            repo = Path(temp)
+            self._write_synthetic_source_set(repo)
+            _, relative = candidate.DIAGNOSTIC_SOURCE_CODE_PATHS[0]
+            path = repo / relative
+            original_open = os.open
+            swapped = False
+
+            def replace_then_open(open_path, flags, *args, **kwargs):
+                nonlocal swapped
+                if Path(open_path) == path and not swapped:
+                    swapped = True
+                    replacement = path.with_suffix(".replacement")
+                    replacement.write_bytes(b"replacement")
+                    replacement.replace(path)
+                return original_open(open_path, flags, *args, **kwargs)
+
+            with mock.patch.object(candidate.os, "open", side_effect=replace_then_open):
+                with self.assertRaisesRegex(candidate.CandidateError,
+                                            "diagnostic_source_file_changed"):
+                    candidate._diagnostic_source_code_hashes(repo)
+
+    def test_diagnostic_source_hash_detects_in_place_mutation_during_read(self):
+        with tempfile.TemporaryDirectory() as temp:
+            repo = Path(temp)
+            self._write_synthetic_source_set(repo)
+            _, relative = candidate.DIAGNOSTIC_SOURCE_CODE_PATHS[0]
+            path = repo / relative
+            original_read = os.read
+            mutated = False
+
+            def read_then_mutate(fd, count):
+                nonlocal mutated
+                block = original_read(fd, count)
+                if block and not mutated:
+                    mutated = True
+                    path.write_bytes(b"concurrent replacement content")
+                return block
+
+            with mock.patch.object(candidate.os, "read", side_effect=read_then_mutate):
+                with self.assertRaisesRegex(candidate.CandidateError,
+                                            "diagnostic_source_file_changed"):
+                    candidate._diagnostic_source_code_hashes(repo)
 
 
 if __name__ == "__main__":

@@ -2095,7 +2095,26 @@ preserves rationale pairing, and I extracted the generated inline script from a
 synthetic page for `node --check` (syntax OK). This is static/generated-HTML verification only;
 no live browser session was available, so it does not establish actual
 reviewer interaction or clock calibration. No review rows, media, or GPU were
-used. At **20:14:57 JST**, **4h50m10s elapsed** and **1h09m50s remain**.
+
+## 20:17 JST checkpoint — do not wrap an undefined atomic gate
+
+An independent API audit assessed whether to add a one-hour v2 preflight CLI.
+It found that the missing path is not just command-line glue: review/custody
+reports remain caller declarations; prepared clock bundles and calibration
+records do not authenticate the displayed decoder frame; the calibrator and
+assignment planner use different identity keys; the decoder does not emit the
+full PTS structure the planner currently expects; and the target builder does
+not provide a claim-bearing masked scoring target. Existing
+`claim_score_preflight_rehearsal` already combines structural assignment and
+QA-target checks but is synthetic-only and always has zero calls/no authority.
+Adding a new wrapper before its artifact schema is frozen would repeat that
+rehearsal without closing these gaps and could make a caller-supplied structure
+look like a production pass. No wrapper was added. If later justified, first
+freeze a versioned artifact graph and exact failure-code contract; keep every
+failure atomic over denominator three, zero calls, and explicitly unvalidated
+until independent evidence authentication exists. The next useful work remains
+outcome-blind UI/protocol and API auditing, not model scoring. At **20:17:26
+JST**, **4h52m39s elapsed** and **1h07m21s remain**.
 
 ## 20:23 JST checkpoint — stage browser exports without changing provenance
 
@@ -2129,22 +2148,117 @@ separate faithfulness evidence remains **0/3 human-reviewed, 0/3 scored, and
 zero direct effect estimates**. At **20:23:03 JST**, **4h58m16s elapsed** and
 **1h01m44s remain**; the six-hour deadline is **21:24:47 JST**.
 
-## 20:17 JST checkpoint — do not wrap an undefined atomic gate
+## 20:27 JST checkpoint — close direct diagnostic source hashes
 
-An independent API audit assessed whether to add a one-hour v2 preflight CLI.
-It found that the missing path is not just command-line glue: review/custody
-reports remain caller declarations; prepared clock bundles and calibration
-records do not authenticate the displayed decoder frame; the calibrator and
-assignment planner use different identity keys; the decoder does not emit the
-full PTS structure the planner currently expects; and the target builder does
-not provide a claim-bearing masked scoring target. Existing
-`claim_score_preflight_rehearsal` already combines structural assignment and
-QA-target checks but is synthetic-only and always has zero calls/no authority.
-Adding a new wrapper before its artifact schema is frozen would repeat that
-rehearsal without closing these gaps and could make a caller-supplied structure
-look like a production pass. No wrapper was added. If later justified, first
-freeze a versioned artifact graph and exact failure-code contract; keep every
-failure atomic over denominator three, zero calls, and explicitly unvalidated
-until independent evidence authentication exists. The next useful work remains
-outcome-blind UI/protocol and API auditing, not model scoring. At **20:17:26
-JST**, **4h52m39s elapsed** and **1h07m21s remain**.
+An independent audit found that the diagnostic candidate's source-code
+fingerprint omitted `audit_nextgqa_prompt_tokenizer.py`, even though that file
+supplies the A–E answer token IDs recorded in candidate rows. Added an explicit
+repository-relative source list for the diagnostic builder, QA runner, decoder,
+frame-sampling helper, PTS helper, CSV source adapter, and tokenizer audit.
+Fingerprints also include direct NumPy/Pillow versions and available PyAV-linked
+FFmpeg library versions. Entries record relative path, byte count, and
+SHA-256. The payload labels this exact scope as
+`diagnostic_builder_direct_repo_source_closure_not_frozen_production_set` and
+uses schema version 2 because the per-file hash entry shape changed. Tests
+independently verify tokenizer/sampler/PTS-helper inclusion, aggregate-hash
+change after synthetic dependency edits, and fail-closed behavior for a missing
+dependency. A first independent review found the sampler/PTS helpers missing;
+they were added before accepting the candidate fingerprint improvement. A
+second review is checking source-file replacement/change-during-read behavior.
+The builder and adjacent staging/UI/planner/preflight suites passed **62/62**;
+`git diff --check` passed. This closes the diagnostic candidate's direct local
+source list only: claim-mask condition generation, planner/summary, production
+PTS adapter, authenticated evidence, and model scoring are not brought into
+scope or frozen by it. A proposed paused-player clock-callback freshness change
+was not implemented after review found `requestVideoFrameCallback` may not fire
+while paused; forcing playback could silently capture a different frame than a
+planned anchor. A safe two-step plan would first require target-window binding
+and real-browser behavior checks. No media, review, forward, or GPU was used.
+Direct faithfulness remains **0/3 reviewed, 0/3 scored, zero effect estimates**.
+At **20:27:03 JST**, **5h02m16s elapsed** and **57m44s remain**.
+
+## 20:30 JST checkpoint — close fingerprint dependencies and read races
+
+Independent review of the expanded diagnostic source list found that frame
+sampling and timestamp conversion helpers also affect the candidate rows.
+Added `necessity_choice_margin_utils.py` and `presentation_time_utils.py` to
+the declared list, along with NumPy/Pillow versions and available PyAV-linked
+library versions. The source reader now requires resolved in-repository paths,
+opens without following a final symlink, compares path and descriptor identity
+plus size/timestamps before and after streaming, and rejects replacement or
+in-place mutation during the read. New synthetic tests cover helper inclusion
+and digest sensitivity, every missing dependency, a symlink, replacement
+before open, and mutation during read. The combined builder/stager/UI/planner/
+preflight suites pass **65/65**; `git diff --check` passes. This is still a
+diagnostic input-construction fingerprint, not an attestation of loaded code
+or the complete future claim-mask scoring stack. No protected row, media,
+model forward, or GPU was used. At **20:30:17 JST**, **5h05m30s elapsed** and
+**54m30s remain** before the **21:24:47 JST** deadline.
+
+The independent re-audit found no remaining blocker for this diagnostic-only
+improvement, but bounded its evidential meaning: hashing is performed after
+row construction, so it is a stable post-run source snapshot, not proof of the
+exact in-memory code that executed. Model/checkpoint and tokenizer/processor
+files still use their older hash routines; package versions do not authenticate
+installed package bytes; the Python/runtime/OS build is not frozen; and the
+Python API permits injected processor/decoder functions that the CLI does not.
+These limitations stay explicit, and no production protocol or scoring gate is
+inferred from the new fingerprints.
+
+## 20:36 JST checkpoint — exercise decoder-to-planner timing path
+
+Added an opt-in full PTS-map field to the claim-mask PyAV decoder; the default
+metadata remains unchanged. A pure adapter validates the decoder's full PTS
+sequence/digest, time base, sampled-index mapping, sampled PTS/time records,
+and RGB hashes supplied by the caller, then emits planner-compatible timing
+rows. The decoder enforces the frozen uniform-grid tolerance; the adapter
+binds sample records to that full map but does not independently establish
+timestamp uniformity.
+It marks review and clock provenance unauthenticated and execution
+`not_granted`. A synthetic integration test encodes three temporary PyAV
+videos, decodes them, verifies sampled RGB pixels, constructs planner rows,
+and obtains a 3/3 `assignment_plan_structurally_passed_unvalidated` plan with
+zero scoring calls. It does not invoke Qwen preprocessing: the caller-supplied
+"processor" pixel hashes in this synthetic test are hashes of the decoded PIL
+RGB buffers. Therefore it exercises structural decoder→adapter→planner wiring,
+not Qwen input identity, human evidence, or real-media validity.
+
+The adapter/decoder tests independently reject malformed timing maps, boolean
+integers, short sample counts, altered digests, nonmonotonic PTS, and pixel-hash
+mismatches; the decoder tests reject grids outside its frozen uniformity
+tolerance. The planner (25), adapter (6), decoder (11), and diagnostic builder
+(13) suites passed **55/55** together with
+`PYTHONPATH=scripts .venv/bin/python -m unittest test_claim_review_assignment_plan test_claim_mask_timing_adapter test_claim_mask_video_decoder test_build_nextgqa_diagnostic_target_candidate -v`; `git diff --check` passed. Two
+independent reviews confirmed the successful wiring test and identified its
+scope limits above. No protected media, human review, model forward, or GPU was
+used. Direct claim-faithfulness remains **0/3 human-reviewed, 0/3 scored, and
+zero effect estimates**. Rights status remains unverified; any future protected
+inputs and derived outputs stay local. At **20:35:47 JST**, **5h11m elapsed**
+and **49m remain** until the **21:24:47 JST** six-hour deadline.
+
+## 20:43 JST checkpoint — add a v2-only synthetic atomicity rehearsal
+
+Added a separate synthetic-only requirement mapper pinned to the exact current
+v2 draft bytes. It keeps the v2 finite three-record contract separate from the
+schema-v13 branch and checks full-cohort membership, exact 32-frame
+endpoint-inclusive sampling, source/PTS/pixel digest coherence, positive sampled
+evidence, equal-count controls, a hash-bound clock map/guard, and a closed
+caller-supplied code/config hash set. Any failure retains denominator three,
+zero score calls, and `execution_authorization=not_granted`; even structural
+success says `real_media_eligible=false` and
+`protocol_status=design_draft_not_frozen`. Tests cover a failure on every cohort
+position, zero overlap, insufficient controls, guard-near-boundary rejection,
+protocol/config tampering, and malformed synthetic declaration.
+
+The planner, decoder/adapter, diagnostic-builder, and new v2 preflight suites
+passed **65/65** under `PYTHONPATH=scripts`; `git diff --check` passed. An
+independent auditor reran the new suite (**10/10**) and reviewed its output
+semantics. This is deliberately not a production gate: code/config bytes,
+synthetic media declarations, calibration values, PTS/pixel hashes, and rows
+are caller-supplied; the fixture declaration is not authenticated. The module
+does not decode media, authenticate human review/custody/clock capture or
+loaded code, build the complete source-backed target, load a model, or score.
+It cannot clear any v2 real-pilot gate. Direct faithfulness remains **0/3
+human-reviewed, 0/3 scored, zero effect estimates**. No protected media, human
+review, model forward, or GPU was used. At **20:43:15 JST**, **5h18m28s elapsed**
+and **41m32s remain** until the **21:24:47 JST** deadline.

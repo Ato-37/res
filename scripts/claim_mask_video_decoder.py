@@ -161,7 +161,8 @@ def _image_sha256(image: Image.Image) -> str:
     return hashlib.sha256(image.convert("RGB").tobytes()).hexdigest()
 
 
-def decode_sampled_video_sets(path, *, frame_counts, uniform_tolerance_seconds) -> tuple[dict[int, list[Image.Image]], dict[int, dict]]:
+def decode_sampled_video_sets(path, *, frame_counts, uniform_tolerance_seconds,
+                              include_timing_map: bool = False) -> tuple[dict[int, list[Image.Image]], dict[int, dict]]:
     """Decode one video twice and return several exact sample sets.
 
     The time-origin is the first decoded frame's PTS. The declared tolerance
@@ -181,6 +182,8 @@ def decode_sampled_video_sets(path, *, frame_counts, uniform_tolerance_seconds) 
     if (not counts or any(type(count) is not int or count < 2 for count in counts)
             or len(set(counts)) != len(counts)):
         raise ValueError("frame_counts_must_be_ordered_unique_integers")
+    if type(include_timing_map) is not bool:
+        raise ValueError("include_timing_map_must_be_boolean")
     tolerance = _seconds_fraction(uniform_tolerance_seconds, "uniform_tolerance")
     # Pin one inode for both PyAV passes. Reopening the path would allow a path
     # replacement between passes to make the recorded hash describe other bytes.
@@ -255,17 +258,27 @@ def decode_sampled_video_sets(path, *, frame_counts, uniform_tolerance_seconds) 
             "annotation_clock_calibrated": False,
             "execution_authorization": "not_granted",
         }
+        if include_timing_map:
+            metadata_sets[count]["full_timing_map"] = {
+                "schema_version": 1,
+                "pts": list(pts),
+                "time_base": [time_base.numerator, time_base.denominator],
+                "decoded_pts_sequence_sha256": hashlib.sha256(pts_payload).hexdigest(),
+                "timestamp_origin": "first_decoded_presentation_timestamp",
+            }
         frame_sets[count] = ordered_frames
     return frame_sets, metadata_sets
 
 
-def decode_sampled_video(path, *, num_frames: int, uniform_tolerance_seconds) -> tuple[list[Image.Image], dict]:
+def decode_sampled_video(path, *, num_frames: int, uniform_tolerance_seconds,
+                         include_timing_map: bool = False) -> tuple[list[Image.Image], dict]:
     """Decode one video twice and return one exact sampled RGB frame set."""
     if type(num_frames) is not int or num_frames < 2:
         raise ValueError("num_frames_must_be_integer_at_least_two")
     frame_sets, metadata_sets = decode_sampled_video_sets(
         path, frame_counts=(num_frames,),
-        uniform_tolerance_seconds=uniform_tolerance_seconds)
+        uniform_tolerance_seconds=uniform_tolerance_seconds,
+        include_timing_map=include_timing_map)
     return frame_sets[num_frames], metadata_sets[num_frames]
 
 

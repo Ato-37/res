@@ -42,6 +42,18 @@ PROTOCOL_V2_TITLE = b"# NExT-GQA finite-cohort claim-aligned input-dependence pr
 PROTOCOL_V2_DRAFT_STATUS = b"Status: **design draft; not frozen, not scoreable, and not an execution"
 PROTOCOL_V2_FRAME_RULE = b"Use 32 endpoint-inclusive uniformly sampled decoded-frame indices."
 
+# Repo-relative source closure for this diagnostic candidate builder. This is
+# deliberately not a frozen production scoring-code set.
+DIAGNOSTIC_SOURCE_CODE_PATHS = (
+    ("builder", "scripts/build_nextgqa_diagnostic_target_candidate.py"),
+    ("runner", "scripts/run_nextgqa_gold_interval_margin_pilot.py"),
+    ("decoder", "scripts/claim_mask_video_decoder.py"),
+    ("frame_sampling_utils", "scripts/necessity_choice_margin_utils.py"),
+    ("presentation_time_utils", "scripts/presentation_time_utils.py"),
+    ("source_adapter", "scripts/nextgqa_actual_qa_source_adapter.py"),
+    ("tokenizer_audit", "scripts/audit_nextgqa_prompt_tokenizer.py"),
+)
+
 
 class CandidateError(ValueError):
     """A sanitized, stable failure code safe for aggregate CLI output."""
@@ -263,6 +275,89 @@ def _hash_file_set(root: Path, required: tuple[str, ...], optional: tuple[str, .
     return _sha(_canonical(rows))
 
 
+def _diagnostic_source_code_hashes(repo: Path) -> dict[str, dict[str, Any]]:
+    """Hash the explicit local source closure used by this diagnostic builder."""
+    result = {}
+    try:
+        repo_real = repo.resolve(strict=True)
+    except OSError:
+        _fail("diagnostic_source_repo_invalid")
+    for role, relative_name in DIAGNOSTIC_SOURCE_CODE_PATHS:
+        path = repo / relative_name
+        try:
+            expected = repo_real / relative_name
+            resolved = path.resolve(strict=True)
+            info = path.lstat()
+        except OSError:
+            _fail("diagnostic_source_file_missing")
+        if (resolved != expected or stat.S_ISLNK(info.st_mode)
+                or not stat.S_ISREG(info.st_mode)):
+            _fail("diagnostic_source_file_invalid")
+        fd = None
+        try:
+            flags = os.O_RDONLY | getattr(os, "O_CLOEXEC", 0) | getattr(os, "O_NOFOLLOW", 0)
+            fd = os.open(path, flags)
+            opened = os.fstat(fd)
+            identity = (info.st_dev, info.st_ino)
+            if ((opened.st_dev, opened.st_ino) != identity
+                    or not stat.S_ISREG(opened.st_mode)
+                    or (opened.st_size, opened.st_mtime_ns, opened.st_ctime_ns)
+                    != (info.st_size, info.st_mtime_ns, info.st_ctime_ns)):
+                _fail("diagnostic_source_file_changed")
+            digest_state = hashlib.sha256()
+            byte_count = 0
+            while True:
+                block = os.read(fd, 1024 * 1024)
+                if not block:
+                    break
+                digest_state.update(block)
+                byte_count += len(block)
+            finished = os.fstat(fd)
+            after_path = path.lstat()
+            after_resolved = path.resolve(strict=True)
+            stable = (finished.st_dev, finished.st_ino) == identity
+            stable = stable and (after_path.st_dev, after_path.st_ino) == identity
+            stable = stable and after_resolved == expected
+            stable = stable and stat.S_ISREG(finished.st_mode) and stat.S_ISREG(after_path.st_mode)
+            stable = stable and (finished.st_size, finished.st_mtime_ns, finished.st_ctime_ns) == (
+                opened.st_size, opened.st_mtime_ns, opened.st_ctime_ns)
+            stable = stable and (after_path.st_size, after_path.st_mtime_ns,
+                                 after_path.st_ctime_ns) == (
+                                     opened.st_size, opened.st_mtime_ns, opened.st_ctime_ns)
+            stable = stable and byte_count == opened.st_size
+            if not stable:
+                _fail("diagnostic_source_file_changed")
+            digest = digest_state.hexdigest()
+        except OSError:
+            _fail("diagnostic_source_file_unreadable")
+        finally:
+            if fd is not None:
+                os.close(fd)
+        result[role] = {
+            "path": relative_name,
+            "bytes": byte_count,
+            "sha256": digest,
+        }
+    return result
+
+
+def _pyav_library_versions() -> dict[str, list[int] | str] | None:
+    """Return JSON-safe PyAV linked-library versions when the API exposes them."""
+    import av
+
+    library_versions = getattr(av, "library_versions", None)
+    if not isinstance(library_versions, dict):
+        return None
+    result = {}
+    for name, version in sorted(library_versions.items(), key=lambda item: str(item[0])):
+        if (isinstance(version, (tuple, list))
+                and all(type(component) is int for component in version)):
+            result[str(name)] = list(version)
+        else:
+            result[str(name)] = str(version)
+    return result
+
+
 def _fingerprints(*, model_path: Path, protocol_raw: bytes,
                   dataset_source_inputs: dict, script_path: Path) -> dict:
     checkpoint_sha, model_config_sha = _checkpoint_fingerprint(model_path)
@@ -274,18 +369,18 @@ def _fingerprints(*, model_path: Path, protocol_raw: bytes,
         model_path, ("preprocessor_config.json",),
         ("processor_config.json", "chat_template.json"), "processor_files_missing")
     repo = Path(__file__).resolve().parents[1]
-    code_files = {
-        "builder": _file_sha(script_path),
-        "runner": _file_sha(repo / "scripts" / "run_nextgqa_gold_interval_margin_pilot.py"),
-        "decoder": _file_sha(repo / "scripts" / "claim_mask_video_decoder.py"),
-        "source_adapter": _file_sha(repo / "scripts" / "nextgqa_actual_qa_source_adapter.py"),
-    }
+    expected_builder = (repo / DIAGNOSTIC_SOURCE_CODE_PATHS[0][1]).resolve()
+    if script_path.resolve() != expected_builder:
+        _fail("diagnostic_builder_source_path_mismatch")
+    code_files = _diagnostic_source_code_hashes(repo)
     import inspect
     from run_nextgqa_gold_interval_margin_pilot import build_qa_prompt as prompt_fn
     from run_nextgqa_gold_interval_margin_pilot import process_qa_video as process_fn
     prompt_sha = _sha((inspect.getsource(prompt_fn) + "\0" + inspect.getsource(process_fn)).encode())
     versions = {name: importlib.metadata.version(name) for name in
-                ("torch", "transformers", "bitsandbytes", "qwen-vl-utils", "av")}
+                ("torch", "transformers", "bitsandbytes", "qwen-vl-utils", "av",
+                 "numpy", "Pillow")}
+    pyav_libraries = _pyav_library_versions()
     return {
         "model_revision": MODEL_REVISION,
         "model_checkpoint_sha256": checkpoint_sha,
@@ -294,10 +389,17 @@ def _fingerprints(*, model_path: Path, protocol_raw: bytes,
         "processor_config_sha256": processor_sha,
         "prompt_builder_sha256": prompt_sha,
         "scoring_code_files_sha256": code_files,
-        "scoring_code_sha256": _sha(_canonical({"files": code_files, "versions": versions})),
+        "scoring_code_sha256": _sha(_canonical({
+            "files": code_files,
+            "versions": versions,
+            "pyav_library_versions": pyav_libraries,
+        })),
+        "scoring_code_hash_scope": (
+            "diagnostic_builder_direct_repo_source_closure_not_frozen_production_set"),
         "scoring_protocol_sha256": _sha(protocol_raw),
         "dataset_source_manifest_sha256": _sha(_canonical(dataset_source_inputs)),
         "software_versions": versions,
+        "pyav_library_versions": pyav_libraries,
     }
 
 
@@ -406,7 +508,7 @@ def build_candidate(*, csv_raw: bytes, generation_raw: bytes, lineage_raw: bytes
         dataset_source_inputs=lineage["dataset_inputs_sha256"],
         script_path=script_path or Path(__file__))
     return {
-        "schema_version": 1,
+        "schema_version": 2,
         "purpose": "private_nextgqa_diagnostic_target_candidate_unvalidated",
         "status": "diagnostic_candidate_unvalidated",
         "diagnostic_only": True,

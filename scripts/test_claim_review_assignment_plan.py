@@ -1,8 +1,14 @@
 import hashlib
 import json
+from fractions import Fraction
+from pathlib import Path
+import tempfile
 import unittest
 
 from build_nextgqa_claim_mapping_packet import FROZEN_POLICY_SHA256
+from audit_qwen_pts_to_processor_cpu import encode_fixture
+from claim_mask_timing_adapter import planner_timing_record
+from claim_mask_video_decoder import decode_sampled_video, verify_sampled_frame_pixels
 from claim_review_assignment_plan import plan_claim_review_assignments
 
 
@@ -157,6 +163,52 @@ def fixture():
 
 
 class ClaimReviewAssignmentPlanTests(unittest.TestCase):
+    def test_decoder_adapter_planner_synthetic_end_to_end(self):
+        args = fixture()
+        adapter_rows = []
+        with tempfile.TemporaryDirectory(prefix="claim-review-integration-") as directory:
+            root = Path(directory)
+            for i, video_id in enumerate(args["expected_video_ids"]):
+                media_path = root / f"synthetic-{i}.mkv"
+                encode_fixture(media_path, pts=tuple(range(7)),
+                               time_base=Fraction(1, 2))
+                frames, metadata = decode_sampled_video(
+                    media_path, num_frames=4,
+                    uniform_tolerance_seconds=Fraction(0), include_timing_map=True)
+                verify_sampled_frame_pixels(frames, metadata)
+                pixel_hashes = [hashlib.sha256(frame.convert("RGB").tobytes()).hexdigest()
+                                for frame in frames]
+                timing = planner_timing_record(
+                    metadata, video_id=video_id,
+                    processor_pixel_sha256=pixel_hashes)
+                adapter_rows.append(timing)
+
+                worksheet = args["worksheet_records"][i]
+                media_sha = timing["source_media_sha256"]
+                worksheet["video_sha256"] = media_sha
+                worksheet["claim_id"] = "claim-" + sha((
+                    media_sha + "\0" + f"private-qid-{i}" + "\0"
+                    + worksheet["claim_text_sha256"]).encode())
+                args["calibration_records"][i]["source_media_sha256"] = media_sha
+                rebind_calibration(args["calibration_records"][i])
+
+        # Keep the claim manifest's claim IDs bound to the updated worksheet rows.
+        claim_manifest = json.loads(args["claim_input_manifest_raw"])
+        for row, worksheet in zip(claim_manifest["claims"], args["worksheet_records"], strict=True):
+            row["claim_id"] = worksheet["claim_id"]
+        args["claim_input_manifest_raw"] = json.dumps(claim_manifest, sort_keys=True).encode()
+        args["claim_input_manifest_sha256"] = sha(args["claim_input_manifest_raw"])
+        rebind_worksheet(args)
+        args["timing_records"] = adapter_rows
+
+        result = plan_claim_review_assignments(**args)
+        self.assertEqual(result["status"], "assignment_plan_structurally_passed_unvalidated")
+        self.assertEqual(result["denominator"], 3)
+        self.assertEqual(result["validated_videos"], 3)
+        self.assertEqual(len(result["assignments"]), 3)
+        self.assertEqual(result["score_calls"], 0)
+        self.assertEqual(result["execution_authorization"], "not_granted")
+
     def test_complete_synthetic_cohort_assigns_equal_count_disjoint_controls(self):
         result = plan_claim_review_assignments(**fixture())
         self.assertEqual(result["status"], "assignment_plan_structurally_passed_unvalidated")
