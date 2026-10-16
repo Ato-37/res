@@ -64,6 +64,43 @@ among other choices. It does not remove the video-domain validation gap
 correlational counterfactual test measures changes across the full label
 distribution in NLP.
 
+## Decision order for a scale-up
+
+Resolve these choices in order and freeze them before opening any scale-up
+outcome:
+
+1. **Target and frame:** choose a finite benchmark census, a probability sample
+   from a named finite frame, or an external-population target. State exactly
+   which generalization is allowed.
+2. **Candidate and exposure rules:** specify claim generation, per-video QA
+   selection, exclusions, and the full screened denominator. Reconcile prior
+   exposure from source artifacts; an opaque hash match is grounds to quarantine
+   a candidate, but does not prove that a person viewed or scored it. Keep the
+   current three-item feasibility cohort separate from a future confirmatory
+   cohort, as the default pilot disposition states.
+3. **Estimand and denominator:** decide whether eligibility conditions on a
+   human-supported claim, then freeze the exact contrast, unit, and all-row
+   failure rule. Do not drop unsupported, unreviewed, or technically failed rows
+   after seeing scores; changing that rule defines a different estimand.
+4. **Decision rule and multiplicity:** freeze the primary contrast, any
+   secondary families, the multiplicity procedure, alpha or descriptive-only
+   interpretation, and stopping rule before estimating precision.
+5. **Dependence and precision:** identify shared source/event clusters before
+   choosing an uncertainty method or sample-size calculation. If the target is a
+   complete finite census, report that cohort descriptively instead of adding a
+   population confidence interval. If inferential sampling is intended, freeze
+   its design variance, precision target, and calculation using independent
+   development information, not the three-item pilot.
+6. **Execution freeze:** bind the cohort, claims, review and clock evidence,
+   model inputs, intervention, analysis code, stopping rules, and custody log
+   before the first scale-up score call.
+
+The finite three-item pilot and scale-up answer different planning questions.
+The pilot can measure review and browser/calibration feasibility only after its
+human-review and real-frame/PTS gates pass. Those results do not choose the
+scale-up target or denominator after outcomes; scale-up design proceeds as a
+separate, outcome-blind branch.
+
 ## Freeze before scoring
 
 Record a value, artifact path, and SHA-256 for each item. `TBD` means the

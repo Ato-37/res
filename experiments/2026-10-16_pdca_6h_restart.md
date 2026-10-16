@@ -1855,3 +1855,22 @@ tests now pass **52/52**, generated inline JavaScript passes `node --check`, and
 is no completed review payload to migrate. The full repository suite and final
 local commit remain pending; work-window accounting at **19:45:35 JST** is
 **4h20m48s** elapsed and **1h39m12s** remaining.
+
+## 19:47 JST checkpoint — order scale-up decisions before outcome access
+
+An independent study-design audit confirmed that the finite 3-item feasibility
+pilot and scale-up must remain separate: the pilot's pending review and browser
+tests can establish operational feasibility, but cannot select the scale-up
+target or denominator after outcomes. Added a decision sequence to the existing
+scale-up worksheet: target/frame → candidate/exposure rules → estimand and
+denominator → primary/secondary families, multiplicity and stopping/decision
+rule → dependence and precision → execution freeze. The auditor caught that
+multiplicity/alpha were initially omitted from the sequence; step 4 now makes
+them explicit before precision planning. No target, threshold, or sample size
+was chosen on the user's behalf; each remains an explicit preregistration
+decision. This is a documentation-only planning change; no data or scores were
+opened. After the schema-v3 rename, the full test suite passes **1024/1024** in
+**9.56 s** and `git diff --check` is clean. At **19:47:55 JST**, **4h23m08s**
+elapsed and **1h36m52s** remain. Next: independent recheck of the decision
+sequence, then local commits and further useful provenance/planning work while
+the authorized window remains open.
