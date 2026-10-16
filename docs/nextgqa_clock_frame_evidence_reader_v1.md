@@ -8,6 +8,17 @@ foreground Edge review window with Windows `CopyFromScreen` after a human
 hotkey action and write a private receipt. The reader still does not capture
 the screen or decide whether two images show the same frame.
 
+The capture helper iterates each token's five candidate anchors in the fixed
+chronological order `fit_begin`, `heldout_quarter`, `fit_midpoint`,
+`heldout_three_quarter`, `fit_end`, regardless of how anchors are grouped in
+the plan JSON. Before each hotkey, its prompt displays the assigned opaque
+token, exact `anchor_id`, and planned `decoder_pts_seconds`; the operator must
+use that row when positioning the browser review. This prompt reduces row
+confusion but does not verify that the browser actually displayed the stated
+token, anchor, or time. Before capture, the helper requires three distinct
+tokens and validates the fit and heldout anchor sets separately, so an anchor
+cannot be silently moved between those roles.
+
 For the candidate three-video plan, the signed evidence manifest has exactly
 one row for each of the five planned anchors in each video. Each row binds an
 opaque review token and anchor ID to the canonical hash of the raw HTML5 clock

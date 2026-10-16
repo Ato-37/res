@@ -80,17 +80,45 @@ if ($plan.purpose -ne 'predeclared_html5_clock_pts_anchor_plan' -or
     $provenance.joint_freeze_receipt_sha256 -ne $null) { throw 'candidate_plan_provenance_invalid' }
 if ($plan.records.Count -ne 3) { throw 'candidate_plan_record_count_invalid' }
 
+$anchorOrder = @('fit_begin', 'heldout_quarter', 'fit_midpoint',
+                 'heldout_three_quarter', 'fit_end')
+$fitAnchorIds = @('fit_begin', 'fit_midpoint', 'fit_end')
+$heldoutAnchorIds = @('heldout_quarter', 'heldout_three_quarter')
+$seenTokens = @{}
 $anchors = @()
 foreach ($record in $plan.records) {
     if ($record.review_token -notmatch '^[A-Za-z0-9_-]{24}$') { throw 'candidate_token_invalid' }
-    foreach ($field in @('fit_anchors', 'heldout_anchors')) {
+    if ($seenTokens.ContainsKey([string]$record.review_token)) { throw 'candidate_token_duplicate' }
+    $seenTokens[[string]$record.review_token] = $true
+    $recordAnchors = @{}
+    foreach ($fieldSpec in @(
+            @{ Name = 'fit_anchors'; Expected = $fitAnchorIds },
+            @{ Name = 'heldout_anchors'; Expected = $heldoutAnchorIds })) {
+        $field = $fieldSpec.Name
+        $splitIds = @{}
         foreach ($anchor in $record.$field) {
-            if ($anchor.anchor_id -notmatch '^[A-Za-z0-9_-]{1,40}$') { throw 'candidate_anchor_invalid' }
-            $anchors += [pscustomobject]@{
-                review_token = $record.review_token
-                anchor_id = $anchor.anchor_id
-                decoder_pts_seconds = [string]$anchor.decoder_pts_seconds
-            }
+            if ($anchor.anchor_id -notmatch '^[A-Za-z0-9_-]{1,40}$' -or
+                $recordAnchors.ContainsKey([string]$anchor.anchor_id) -or
+                $splitIds.ContainsKey([string]$anchor.anchor_id)) { throw 'candidate_anchor_invalid' }
+            $recordAnchors[[string]$anchor.anchor_id] = [string]$anchor.decoder_pts_seconds
+            $splitIds[[string]$anchor.anchor_id] = $true
+        }
+        if ($splitIds.Count -ne $fieldSpec.Expected.Count -or
+            @($splitIds.Keys | Where-Object { $_ -cnotin $fieldSpec.Expected }).Count -ne 0 -or
+            @($fieldSpec.Expected | Where-Object { -not $splitIds.ContainsKey($_) }).Count -ne 0) {
+            throw 'candidate_anchor_split_ids_invalid'
+        }
+    }
+    if ($recordAnchors.Count -ne $anchorOrder.Count -or
+        @($recordAnchors.Keys | Where-Object { $_ -cnotin $anchorOrder }).Count -ne 0 -or
+        @($anchorOrder | Where-Object { -not $recordAnchors.ContainsKey($_) }).Count -ne 0) {
+        throw 'candidate_anchor_ids_invalid'
+    }
+    foreach ($anchorId in $anchorOrder) {
+        $anchors += [pscustomobject]@{
+            review_token = $record.review_token
+            anchor_id = $anchorId
+            decoder_pts_seconds = $recordAnchors[$anchorId]
         }
     }
 }
@@ -156,7 +184,8 @@ try {
     Write-Host 'A screenshot plus its window/time receipt will be written locally. This is not a human review or clock pass.'
     for ($index = 0; $index -lt $anchors.Count; $index++) {
         $anchor = $anchors[$index]
-        Write-Host ("[{0}/15] Follow the next planned anchor in browser row order." -f ($index + 1))
+        Write-Host ("[{0}/15] Token: {1} | Anchor: {2} | Planned decoder_pts_seconds: {3}" -f `
+            ($index + 1), $anchor.review_token, $anchor.anchor_id, $anchor.decoder_pts_seconds)
         Write-Host 'Focus the visible Private offline video review Edge window, then press Ctrl+Shift+F11.'
         $message = New-Object NextGqaClockCaptureNative+MSG
         do {
