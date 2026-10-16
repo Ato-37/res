@@ -222,25 +222,28 @@ def batch_sha256(batch: Any) -> str:
 
 def freeze_all_batches(*, triplets: Any, token_ids: Any,
                        expected_record_ids: Any, expected_batch_hashes: Any,
+                       upstream_precheck,
                        authenticated_gate_check) -> dict[str, Any]:
     """Validate the complete finite cohort and return exact CPU batches.
 
-    ``authenticated_gate_check`` is a required zero-argument integration hook.
-    It must invoke the concrete repository validators and raise unless review,
-    custody, clock/decoder correspondence, target, protocol, and code freeze
-    have all passed for this exact cohort. A boolean or caller-supplied status
-    is deliberately not accepted as a substitute for the hook.
-
-    All nine `.to('cpu')` conversions and exact batch hashes finish before the
-    gate hook runs. The caller may load weights only after this function
-    returns successfully. The function itself has no model/load/forward API.
+    ``upstream_precheck`` is a required, read-only validator for review,
+    custody, clock/decoder correspondence, target, and protocol gates. It runs
+    before any `.to('cpu')` snapshot or tensor hashing, so failed upstream
+    gates avoid materializing the nine potentially large batches. It does not
+    authorize scoring. The distinct ``authenticated_gate_check`` runs only
+    after exact observed hashes match and may finalize authenticated evidence.
+    The caller may load weights only after this function returns successfully.
+    The function itself has no model/load/forward API.
     """
+    if not callable(upstream_precheck):
+        _fail("upstream_precheck_required")
     if not callable(authenticated_gate_check):
         _fail("authenticated_gate_check_required")
     if (not isinstance(token_ids, (list, tuple)) or len(token_ids) != 5
             or any(type(token) is not int or token < 0 for token in token_ids)
             or len(set(token_ids)) != 5):
         _fail("answer_label_token_contract_invalid")
+    token_ids = tuple(token_ids)
     if not isinstance(triplets, (list, tuple)) or len(triplets) != ROW_COUNT:
         _fail("requested_record_count_mismatch")
     if (not isinstance(expected_record_ids, (list, tuple))
@@ -248,12 +251,12 @@ def freeze_all_batches(*, triplets: Any, token_ids: Any,
             or any(not isinstance(value, str) or not value for value in expected_record_ids)
             or len(set(expected_record_ids)) != ROW_COUNT):
         _fail("expected_record_order_invalid")
+    expected_record_ids = tuple(expected_record_ids)
     if not isinstance(expected_batch_hashes, Mapping):
         _fail("expected_batch_hashes_invalid")
 
     ids = []
-    materialized = []
-    observed_hashes = {}
+    validated_rows = []
     for row_pos, row in enumerate(triplets, start=1):
         if not isinstance(row, Mapping) or set(row) != {"record_id", "gold_index", "batches"}:
             _fail(f"record_{row_pos}_schema_invalid")
@@ -268,11 +271,49 @@ def freeze_all_batches(*, triplets: Any, token_ids: Any,
         batches = row["batches"]
         if not isinstance(batches, Mapping) or set(batches) != set(CONDITIONS):
             _fail(f"record_{row_pos}_condition_set_invalid")
-        cpu_batches = {}
         for condition in CONDITIONS:
             batch = batches[condition]
             if not isinstance(batch, Mapping) or not callable(getattr(batch, "to", None)):
                 _fail(f"record_{row_pos}_{condition}_batch_invalid")
+        validated_rows.append((record_id, row["gold_index"], dict(batches)))
+
+    if set(expected_batch_hashes) != set(ids):
+        _fail("expected_batch_record_set_mismatch")
+    for record_id in ids:
+        expected_conditions = expected_batch_hashes[record_id]
+        if (not isinstance(expected_conditions, Mapping)
+                or set(expected_conditions) != set(CONDITIONS)):
+            _fail("expected_batch_condition_set_mismatch")
+        if any(not isinstance(expected_conditions[condition], str)
+               or len(expected_conditions[condition]) != 64
+               or any(char not in "0123456789abcdef"
+                      for char in expected_conditions[condition])
+               for condition in CONDITIONS):
+            _fail("expected_batch_hash_format_invalid")
+    # Freeze the small authenticated contract before invoking any callback.
+    # A buggy closure must not be able to rewrite expected hashes/token IDs.
+    expected_batch_hashes = {
+        record_id: {condition: expected_batch_hashes[record_id][condition]
+                    for condition in CONDITIONS}
+        for record_id in ids
+    }
+
+    # This hook is a pure, read-only early rejection check. It must not mutate
+    # batch objects or write freeze/authentication receipts. The authoritative
+    # final gate stays downstream of observed hash equality below.
+    try:
+        precheck_result = upstream_precheck()
+    except Exception:
+        _fail("upstream_precheck_failed")
+    if precheck_result is not True:
+        _fail("upstream_precheck_not_passed")
+
+    materialized = []
+    observed_hashes = {}
+    for row_pos, (record_id, gold_index, batches) in enumerate(validated_rows, start=1):
+        cpu_batches = {}
+        for condition in CONDITIONS:
+            batch = batches[condition]
             try:
                 cpu_batch = batch.to("cpu")
             except Exception:
@@ -285,25 +326,18 @@ def freeze_all_batches(*, triplets: Any, token_ids: Any,
             observed_hashes.setdefault(record_id, {})[condition] = digest
         # Match the exact input contract of nextgqa_claim_mask_scoring.py;
         # identities are carried separately in the frozen envelope.
-        materialized.append({"gold_index": row["gold_index"],
+        materialized.append({"gold_index": gold_index,
                              "batches": cpu_batches})
 
-    if set(expected_batch_hashes) != set(ids):
-        _fail("expected_batch_record_set_mismatch")
     for record_id in ids:
         expected_conditions = expected_batch_hashes[record_id]
-        if (not isinstance(expected_conditions, Mapping)
-                or set(expected_conditions) != set(CONDITIONS)):
-            _fail("expected_batch_condition_set_mismatch")
         for condition in CONDITIONS:
             expected = expected_conditions[condition]
-            if (not isinstance(expected, str) or len(expected) != 64
-                    or any(c not in "0123456789abcdef" for c in expected)
-                    or observed_hashes[record_id][condition] != expected):
+            if observed_hashes[record_id][condition] != expected:
                 _fail("exact_condition_batch_hash_mismatch")
 
-    # This must be wired to concrete, independently audited validators by the
-    # production command. No model loader is reachable before it succeeds.
+    # This must be wired to concrete, independently audited final validators by
+    # the production command; it is separate from the read-only precheck.
     try:
         gate_result = authenticated_gate_check()
     except Exception:

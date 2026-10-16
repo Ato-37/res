@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import unittest
+from unittest.mock import patch
 
 from nextgqa_atomic_batch_freeze import (
     CONDITIONS, PreflightError, batch_sha256, freeze_all_batches,
@@ -33,7 +34,10 @@ class FakeTensor:
 
 
 class FakeBatch(dict):
+    to_calls = 0
+
     def to(self, device):
+        type(self).to_calls += 1
         return FakeBatch({key: (FakeTensor(value.tolist(), dtype=value.dtype,
                                            shape=value.shape, device=device)
                                 if isinstance(value, FakeTensor) else value)
@@ -62,24 +66,108 @@ def fixture():
 
 
 class AtomicBatchFreezeTests(unittest.TestCase):
-    def test_success_materializes_all_nine_before_gate_and_returns_no_auth(self):
+    def test_success_prechecks_then_materializes_and_finalizes_without_auth(self):
         rows, hashes = fixture()
         events = []
+        FakeBatch.to_calls = 0
+        import nextgqa_atomic_batch_freeze as freezer
+        original_hash = freezer.batch_sha256
+
+        def observed_hash(batch):
+            events.append("batch_hash")
+            return original_hash(batch)
 
         def gate():
-            events.append("gate")
+            events.append("final_gate")
+            self.assertEqual(FakeBatch.to_calls, 9)
+            self.assertEqual(events.count("batch_hash"), 9)
             return True
 
-        result = freeze_all_batches(
-            triplets=rows, token_ids=[11, 12, 13, 14, 15],
-            expected_record_ids=["r1", "r2", "r3"],
-            expected_batch_hashes=hashes, authenticated_gate_check=gate)
+        def precheck():
+            events.append("precheck")
+            return True
+
+        with patch("nextgqa_atomic_batch_freeze.batch_sha256", side_effect=observed_hash):
+            result = freeze_all_batches(
+                triplets=rows, token_ids=[11, 12, 13, 14, 15],
+                expected_record_ids=["r1", "r2", "r3"],
+                expected_batch_hashes=hashes, upstream_precheck=precheck,
+                authenticated_gate_check=gate)
         self.assertEqual(result["status"], "all_nine_batches_frozen")
         self.assertEqual(result["requested_forwards"], 9)
         self.assertEqual(result["execution_authorization"], "not_granted")
         self.assertEqual(len(result["triplets"]), 3)
         validate_scoring_inputs(result["triplets"], result["token_ids"])
-        self.assertEqual(events, ["gate"])
+        self.assertEqual(events[0], "precheck")
+        self.assertEqual(events[-1], "final_gate")
+        self.assertEqual(events.count("batch_hash"), 9)
+
+    def test_failed_upstream_precheck_skips_all_batch_materialization(self):
+        rows, hashes = fixture()
+        FakeBatch.to_calls = 0
+        with self.assertRaisesRegex(PreflightError, "upstream_precheck_failed"):
+            freeze_all_batches(
+                triplets=rows, token_ids=[11, 12, 13, 14, 15],
+                expected_record_ids=["r1", "r2", "r3"],
+                expected_batch_hashes=hashes,
+                upstream_precheck=lambda: (_ for _ in ()).throw(RuntimeError()),
+                authenticated_gate_check=lambda: self.fail("final gate ran"))
+        self.assertEqual(FakeBatch.to_calls, 0)
+
+    def test_false_upstream_precheck_skips_all_batch_materialization(self):
+        rows, hashes = fixture()
+        FakeBatch.to_calls = 0
+        with self.assertRaisesRegex(PreflightError, "upstream_precheck_not_passed"):
+            freeze_all_batches(
+                triplets=rows, token_ids=[11, 12, 13, 14, 15],
+                expected_record_ids=["r1", "r2", "r3"],
+                expected_batch_hashes=hashes, upstream_precheck=lambda: False,
+                authenticated_gate_check=lambda: self.fail("final gate ran"))
+        self.assertEqual(FakeBatch.to_calls, 0)
+
+    def test_malformed_nested_batch_skips_upstream_precheck(self):
+        rows, hashes = fixture()
+        del rows[1]["batches"][CONDITIONS[0]]
+        events = []
+        with self.assertRaisesRegex(PreflightError, "condition_set_invalid"):
+            freeze_all_batches(
+                triplets=rows, token_ids=[11, 12, 13, 14, 15],
+                expected_record_ids=["r1", "r2", "r3"],
+                expected_batch_hashes=hashes,
+                upstream_precheck=lambda: events.append("precheck"),
+                authenticated_gate_check=lambda: self.fail("final gate ran"))
+        self.assertEqual(events, [])
+
+    def test_precheck_cannot_rewrite_expected_hash_to_match_batch_mutation(self):
+        rows, hashes = fixture()
+
+        def mutating_precheck():
+            batch = rows[0]["batches"]["full"]
+            batch["input_ids"] = FakeTensor([99], dtype="int64")
+            hashes["r1"]["full"] = batch_sha256(batch)
+            return True
+
+        with self.assertRaisesRegex(PreflightError, "exact_condition_batch_hash_mismatch"):
+            freeze_all_batches(
+                triplets=rows, token_ids=[11, 12, 13, 14, 15],
+                expected_record_ids=["r1", "r2", "r3"],
+                expected_batch_hashes=hashes, upstream_precheck=mutating_precheck,
+                authenticated_gate_check=lambda: self.fail("final gate ran"))
+
+    def test_precheck_cannot_mutate_returned_token_contract(self):
+        rows, hashes = fixture()
+        tokens = [11, 12, 13, 14, 15]
+
+        def mutating_precheck():
+            tokens[0] = 99
+            return True
+
+        result = freeze_all_batches(
+            triplets=rows, token_ids=tokens,
+            expected_record_ids=["r1", "r2", "r3"],
+            expected_batch_hashes=hashes, upstream_precheck=mutating_precheck,
+            authenticated_gate_check=lambda: True)
+        self.assertEqual(result["token_ids"], [11, 12, 13, 14, 15])
 
     def test_freeze_to_nine_forward_scorer_integration(self):
         """Synthetic software-path check only; D3 is not a research result."""
@@ -104,6 +192,7 @@ class AtomicBatchFreezeTests(unittest.TestCase):
             triplets=rows, token_ids=[11, 12, 13, 14, 15],
             expected_record_ids=["r1", "r2", "r3"],
             expected_batch_hashes=hashes,
+            upstream_precheck=lambda: True,
             authenticated_gate_check=lambda: True)
 
         class Model:
@@ -128,7 +217,7 @@ class AtomicBatchFreezeTests(unittest.TestCase):
                                delta=1e-6)
         self.assertEqual(frozen["execution_authorization"], "not_granted")
 
-    def test_missing_condition_rejected_before_gate(self):
+    def test_missing_condition_rejected_before_final_gate(self):
         rows, hashes = fixture()
         del rows[2]["batches"][CONDITIONS[-1]]
         called = []
@@ -136,10 +225,11 @@ class AtomicBatchFreezeTests(unittest.TestCase):
             freeze_all_batches(triplets=rows, token_ids=[11, 12, 13, 14, 15],
                                expected_record_ids=["r1", "r2", "r3"],
                                expected_batch_hashes=hashes,
+                               upstream_precheck=lambda: True,
                                authenticated_gate_check=lambda: called.append(1))
         self.assertEqual(called, [])
 
-    def test_hash_mismatch_rejected_before_gate(self):
+    def test_hash_mismatch_rejected_before_final_gate(self):
         rows, hashes = fixture()
         hashes["r2"]["claim_evidence_black"] = "0" * 64
         called = []
@@ -147,6 +237,7 @@ class AtomicBatchFreezeTests(unittest.TestCase):
             freeze_all_batches(triplets=rows, token_ids=[11, 12, 13, 14, 15],
                                expected_record_ids=["r1", "r2", "r3"],
                                expected_batch_hashes=hashes,
+                               upstream_precheck=lambda: True,
                                authenticated_gate_check=lambda: called.append(1))
         self.assertEqual(called, [])
 
@@ -156,8 +247,20 @@ class AtomicBatchFreezeTests(unittest.TestCase):
             freeze_all_batches(triplets=rows, token_ids=[11, 12, 13, 14, 15],
                                expected_record_ids=["r1", "r2", "r3"],
                                expected_batch_hashes=hashes,
+                               upstream_precheck=lambda: True,
                                authenticated_gate_check=lambda: (_ for _ in ()).throw(
                                    RuntimeError("private details")))
+
+    def test_final_gate_false_never_returns_frozen_inputs(self):
+        rows, hashes = fixture()
+        FakeBatch.to_calls = 0
+        with self.assertRaisesRegex(PreflightError, "authenticated_upstream_gate_not_passed"):
+            freeze_all_batches(
+                triplets=rows, token_ids=[11, 12, 13, 14, 15],
+                expected_record_ids=["r1", "r2", "r3"],
+                expected_batch_hashes=hashes, upstream_precheck=lambda: True,
+                authenticated_gate_check=lambda: False)
+        self.assertEqual(FakeBatch.to_calls, 9)
 
     def test_nonfinite_input_fails_closed(self):
         rows, hashes = fixture()
@@ -166,6 +269,7 @@ class AtomicBatchFreezeTests(unittest.TestCase):
             freeze_all_batches(triplets=rows, token_ids=[11, 12, 13, 14, 15],
                                expected_record_ids=["r1", "r2", "r3"],
                                expected_batch_hashes=hashes,
+                               upstream_precheck=lambda: True,
                                authenticated_gate_check=lambda: True)
 
     def test_duplicate_token_ids_rejected(self):
@@ -174,6 +278,7 @@ class AtomicBatchFreezeTests(unittest.TestCase):
             freeze_all_batches(triplets=rows, token_ids=[11, 12, 13, 14, 14],
                                expected_record_ids=["r1", "r2", "r3"],
                                expected_batch_hashes=hashes,
+                               upstream_precheck=lambda: True,
                                authenticated_gate_check=lambda: True)
 
     def test_torch_cpu_batches_are_snapshotted_before_return(self):
@@ -189,6 +294,7 @@ class AtomicBatchFreezeTests(unittest.TestCase):
             triplets=rows, token_ids=[11, 12, 13, 14, 15],
             expected_record_ids=["r1", "r2", "r3"],
             expected_batch_hashes=hashes,
+            upstream_precheck=lambda: True,
             authenticated_gate_check=lambda: True)
         frozen = result["triplets"][0]["batches"]["full"]["torch_values"]
         source[0] = 99.0
@@ -235,6 +341,7 @@ class AtomicBatchFreezeTests(unittest.TestCase):
             triplets=rows, token_ids=[11, 12, 13, 14, 15],
             expected_record_ids=["r1", "r2", "r3"],
             expected_batch_hashes=hashes,
+            upstream_precheck=lambda: True,
             authenticated_gate_check=lambda: True)
         self.assertEqual(result["triplets"][0]["batches"]["full"]["nested"],
                          (1, [2, 3]))

@@ -102,7 +102,8 @@ def main() -> int:
     # resulting object still carries execution_authorization=not_granted.
     frozen = freeze_all_batches(
         triplets=triplets, token_ids=label_ids, expected_record_ids=record_ids,
-        expected_batch_hashes=hashes, authenticated_gate_check=lambda: True)
+        expected_batch_hashes=hashes, upstream_precheck=lambda: True,
+        authenticated_gate_check=lambda: True)
     if (frozen["status"] != "all_nine_batches_frozen"
             or frozen["requested_forwards"] != 9
             or frozen["execution_authorization"] != "not_granted"):
