@@ -17,8 +17,13 @@ import json
 import os
 from pathlib import Path
 import re
+import secrets
 import stat
+import sys
+from datetime import datetime, timezone
 from typing import Any
+
+import av
 
 from audit_nextgqa_review_handoff import audit_custody
 from claim_mask_video_decoder import _stream_and_decode
@@ -120,7 +125,7 @@ def _strict_json(raw: bytes):
 def build_from_private_sources(worksheet_raw: bytes, lineage_raw: bytes,
                                custody_raw: bytes, media_dir: Path,
                                expected_lineage_sha256: str,
-                               expected_custody_sha256: str) -> dict:
+                               expected_custody_sha256: str) -> tuple[dict, list[dict]]:
     worksheet, lineage, custody = map(_strict_json, (worksheet_raw, lineage_raw, custody_raw))
     if hashlib.sha256(lineage_raw).hexdigest() != expected_lineage_sha256:
         raise ValueError("lineage_manifest_hash_mismatch")
@@ -131,17 +136,31 @@ def build_from_private_sources(worksheet_raw: bytes, lineage_raw: bytes,
     if failures:
         raise ValueError("custody_audit_failed")
     records = []
+    provenance_records = []
     for row in worksheet["records"]:
         token = row["review_token"]
         media_path = media_dir / (token + ".mp4")
         media_bytes = media_path.read_bytes()
         media_sha256 = hashlib.sha256(media_bytes).hexdigest()
-        pts, time_base, _times, _spec, _pixel_hashes, _info = _stream_and_decode(io.BytesIO(media_bytes))
+        pts, time_base, _times, pixel_spec, _pixel_hashes, stream_info = _stream_and_decode(io.BytesIO(media_bytes))
         if media_sha256 != row.get("video_sha256"):
             raise ValueError("anchor_source_media_mismatch")
         records.append({"review_token": token, "source_media_sha256": media_sha256,
                         "pts": pts, "time_base": (time_base.numerator, time_base.denominator)})
-    return build_anchor_plan(records)
+        pts_bytes = json.dumps(pts, separators=(",", ":")).encode("ascii")
+        provenance_records.append({
+            "review_token": token,
+            "staged_media_sha256": media_sha256,
+            "decoded_frame_count": len(pts),
+            "decoded_pts_sequence_sha256": hashlib.sha256(pts_bytes).hexdigest(),
+            "time_base": [time_base.numerator, time_base.denominator],
+            "pixel_spec": list(pixel_spec),
+            "decoder_stream_info": {
+                key: str(value) if isinstance(value, Fraction) else value
+                for key, value in stream_info.items()
+            },
+        })
+    return build_anchor_plan(records), provenance_records
 
 
 def _write_private_exclusive(path: Path, raw: bytes) -> None:
@@ -150,6 +169,67 @@ def _write_private_exclusive(path: Path, raw: bytes) -> None:
         stream.write(raw)
         stream.flush()
         os.fsync(stream.fileno())
+
+
+def _write_private_pair_exclusive(plan_path: Path, plan_raw: bytes,
+                                  manifest_path: Path, manifest_raw: bytes) -> None:
+    """Install a same-directory private pair; roll back on ordinary failures."""
+    if plan_path.parent != manifest_path.parent or plan_path == manifest_path:
+        raise ValueError("plan_manifest_output_directory_invalid")
+    suffix = secrets.token_hex(12)
+    temps = [plan_path.parent / f".{plan_path.name}.{suffix}.tmp",
+             plan_path.parent / f".{manifest_path.name}.{suffix}.tmp"]
+    installed: list[Path] = []
+    try:
+        for path, raw in zip(temps, (plan_raw, manifest_raw), strict=True):
+            _write_private_exclusive(path, raw)
+        for temp, target in zip(temps, (plan_path, manifest_path), strict=True):
+            os.link(temp, target, follow_symlinks=False)
+            installed.append(target)
+        directory_fd = os.open(plan_path.parent, os.O_RDONLY | getattr(os, "O_DIRECTORY", 0))
+        try:
+            os.fsync(directory_fd)
+        finally:
+            os.close(directory_fd)
+    except BaseException:
+        for path in installed:
+            try:
+                path.unlink()
+            except FileNotFoundError:
+                pass
+        raise
+    finally:
+        for path in temps:
+            try:
+                path.unlink()
+            except FileNotFoundError:
+                pass
+
+
+def _build_provenance_manifest(*, worksheet_raw: bytes, lineage_raw: bytes,
+                               custody_raw: bytes, plan_raw: bytes,
+                               source_bytes: dict[str, bytes],
+                               provenance_records: list[dict], created_at_utc: str) -> dict:
+    return {
+        "schema_version": 1,
+        "purpose": "private_clock_anchor_plan_candidate_provenance",
+        "status": "candidate_not_jointly_frozen",
+        "execution_authorization": "not_granted",
+        "input_sha256": {
+            "worksheet": hashlib.sha256(worksheet_raw).hexdigest(),
+            "lineage_manifest": hashlib.sha256(lineage_raw).hexdigest(),
+            "custody_manifest": hashlib.sha256(custody_raw).hexdigest(),
+        },
+        "source_sha256": {name: hashlib.sha256(raw).hexdigest()
+                          for name, raw in source_bytes.items()},
+        "plan_sha256": hashlib.sha256(plan_raw).hexdigest(),
+        "created_at_utc": created_at_utc,
+        "python_version": sys.version.split()[0],
+        "pyav_version": av.__version__,
+        "ffmpeg_library_versions": {key: list(value) for key, value in av.library_versions.items()},
+        "joint_freeze_receipt_sha256": None,
+        "records": provenance_records,
+    }
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -161,6 +241,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--expected-custody-sha256", required=True)
     parser.add_argument("--media-dir", required=True)
     parser.add_argument("--output", required=True)
+    parser.add_argument("--manifest-output", required=True)
     parser.add_argument("--user-authorized-local-only", action="store_true")
     args = parser.parse_args(argv)
     if not args.user_authorized_local_only:
@@ -172,14 +253,35 @@ def main(argv: list[str] | None = None) -> int:
             if (stat.S_ISLNK(info.st_mode) or not stat.S_ISREG(info.st_mode)
                     or info.st_uid != os.geteuid() or stat.S_IMODE(info.st_mode) != 0o600):
                 raise ValueError("private_input_mode_invalid")
-        output = validate_private_output(args.output, Path(__file__).resolve().parents[1])
-        plan = build_from_private_sources(paths[0].read_bytes(), paths[1].read_bytes(),
-                                          paths[2].read_bytes(), Path(args.media_dir),
-                                          args.expected_lineage_sha256,
-                                          args.expected_custody_sha256)
+        repo_root = Path(__file__).resolve().parents[1]
+        private_dir = repo_root / "data" / "private_nextgqa"
+        output = validate_private_output(args.output, repo_root)
+        manifest_output = validate_private_output(args.manifest_output, repo_root)
+        if output.parent != private_dir or manifest_output.parent != private_dir:
+            raise ValueError("plan_manifest_outputs_must_be_private")
+        if output == manifest_output:
+            raise ValueError("plan_manifest_outputs_must_differ")
+        worksheet_raw, lineage_raw, custody_raw = (path.read_bytes() for path in paths)
+        plan, provenance_records = build_from_private_sources(
+            worksheet_raw, lineage_raw, custody_raw, Path(args.media_dir),
+            args.expected_lineage_sha256, args.expected_custody_sha256)
         raw = json.dumps(plan, ensure_ascii=False, sort_keys=True, separators=(",", ":"),
                          allow_nan=False).encode("utf-8") + b"\n"
-        _write_private_exclusive(output, raw)
+        source_paths = {
+            "builder": Path(__file__),
+            "decoder": Path(__file__).with_name("claim_mask_video_decoder.py"),
+            "custody_auditor": Path(__file__).with_name("audit_nextgqa_review_handoff.py"),
+            "private_output_policy": Path(__file__).with_name("private_output_paths.py"),
+        }
+        manifest = _build_provenance_manifest(
+            worksheet_raw=worksheet_raw, lineage_raw=lineage_raw,
+            custody_raw=custody_raw, plan_raw=raw,
+            source_bytes={name: path.read_bytes() for name, path in source_paths.items()},
+            provenance_records=provenance_records,
+            created_at_utc=datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"))
+        manifest_raw = json.dumps(manifest, ensure_ascii=False, sort_keys=True,
+                                  separators=(",", ":"), allow_nan=False).encode("utf-8") + b"\n"
+        _write_private_pair_exclusive(output, raw, manifest_output, manifest_raw)
     except FileExistsError:
         parser.error("refusing_to_overwrite_output")
     except (OSError, ValueError, KeyError, TypeError, json.JSONDecodeError) as exc:

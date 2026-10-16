@@ -19,14 +19,18 @@ blocked. These positions are independent of claim intervals and model scores.
 The builder binds the three opaque review tokens and exact staged-media SHA-256
 values to the private worksheet and custody audit. It writes the existing
 `predeclared_html5_clock_pts_anchor_plan` schema expected by the capture-input
-converter. Because that schema has no fields for the builder version, PTS
-sequence digest, or freeze receipt, preserve the builder source hash, exact
-input hashes, plan hash, PyAV/FFmpeg versions, stream information, and review
-freeze receipt in a separate private manifest before capture. All such values
-are private and must not be published.
+converter, plus a required private sidecar manifest. The sidecar records exact
+worksheet/lineage/custody input hashes, builder and plan hashes, PTS-sequence
+digests, decoder stream/pixel metadata, and PyAV/FFmpeg library versions. Its
+joint-freeze receipt is null until a separate joint freeze occurs. All such
+values are private and must not be published. The source hashes cover the
+builder, decoder, custody auditor, and private-output policy code.
 
 For integrity, the builder hashes and decodes the same in-memory media bytes.
-Its command output deliberately omits private digests and anchor values.
+Its command output deliberately omits private digests and anchor values. Both
+outputs must be direct children of `data/private_nextgqa/`; the pair is
+installed with exclusive hard links and ordinary write failures roll back any
+partial installation. Both files use mode 0600.
 
 `T` is the last frame's timestamp, not the container duration or the end of
 that frame's display interval. A selected frame time is only a requested

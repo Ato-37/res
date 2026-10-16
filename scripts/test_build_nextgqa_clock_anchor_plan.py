@@ -1,7 +1,14 @@
 import unittest
+import hashlib
 from fractions import Fraction
+from pathlib import Path
+import stat
+from tempfile import TemporaryDirectory
 
-from build_nextgqa_clock_anchor_plan import build_anchor_plan, select_anchor_points
+from build_nextgqa_clock_anchor_plan import (
+    _build_provenance_manifest, _write_private_pair_exclusive,
+    build_anchor_plan, select_anchor_points,
+)
 
 
 class BuildNextgqaClockAnchorPlanTests(unittest.TestCase):
@@ -56,6 +63,47 @@ class BuildNextgqaClockAnchorPlanTests(unittest.TestCase):
         self.assertTrue(all(len(row["fit_anchors"]) == 3
                             and len(row["heldout_anchors"]) == 2
                             for row in plan["records"]))
+
+    def test_private_pair_installs_both_mode_0600_files(self):
+        with TemporaryDirectory() as directory:
+            plan = Path(directory) / "plan.json"
+            manifest = Path(directory) / "manifest.json"
+            _write_private_pair_exclusive(plan, b"plan", manifest, b"manifest")
+            self.assertEqual(plan.read_bytes(), b"plan")
+            self.assertEqual(manifest.read_bytes(), b"manifest")
+            self.assertEqual(stat.S_IMODE(plan.stat().st_mode), 0o600)
+            self.assertEqual(stat.S_IMODE(manifest.stat().st_mode), 0o600)
+
+    def test_private_pair_collision_does_not_install_partial_plan(self):
+        with TemporaryDirectory() as directory:
+            plan = Path(directory) / "plan.json"
+            manifest = Path(directory) / "manifest.json"
+            manifest.write_bytes(b"existing")
+            with self.assertRaises(FileExistsError):
+                _write_private_pair_exclusive(plan, b"plan", manifest, b"manifest")
+            self.assertFalse(plan.exists())
+            self.assertEqual(manifest.read_bytes(), b"existing")
+            self.assertEqual(list(Path(directory).glob(".*.tmp")), [])
+
+    def test_provenance_manifest_binds_exact_input_plan_and_dependency_bytes(self):
+        inputs = {"worksheet": b"worksheet", "lineage_manifest": b"lineage",
+                  "custody_manifest": b"custody"}
+        plan = b"exact plan bytes\n"
+        sources = {"builder": b"builder source", "decoder": b"decoder source"}
+        manifest = _build_provenance_manifest(
+            worksheet_raw=inputs["worksheet"], lineage_raw=inputs["lineage_manifest"],
+            custody_raw=inputs["custody_manifest"], plan_raw=plan, source_bytes=sources,
+            provenance_records=[], created_at_utc="2026-10-17T00:00:00Z")
+        self.assertEqual(manifest["input_sha256"], {
+            key: hashlib.sha256(value).hexdigest() for key, value in inputs.items()
+        })
+        self.assertEqual(manifest["plan_sha256"], hashlib.sha256(plan).hexdigest())
+        self.assertEqual(manifest["source_sha256"], {
+            key: hashlib.sha256(value).hexdigest() for key, value in sources.items()
+        })
+        self.assertEqual(manifest["status"], "candidate_not_jointly_frozen")
+        self.assertIsNone(manifest["joint_freeze_receipt_sha256"])
+        self.assertEqual(manifest["execution_authorization"], "not_granted")
 
 
 if __name__ == "__main__":
