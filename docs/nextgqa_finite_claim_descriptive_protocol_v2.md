@@ -75,8 +75,10 @@ define
 
 Conditions are (1) full video, (2) black-filled frames overlapping the union
 of all distinct human-reviewed support-occurrence intervals for the one frozen
-claim, and (3) black-filled equal-count temporal-control frames. Do not choose
-one occurrence or merge disjoint intervals after review. Hold the question,
+claim, and (3) black-filled equal-count temporal-control frames. Preserve each
+reviewed occurrence as its own interval; distinct intervals may overlap or
+share endpoints, and the union counts any sampled frame only once. Do not
+choose one occurrence or merge disjoint intervals after review. Hold the question,
 ordered choices, gold index, prompt, checkpoint,
 tokenizer, processor, frame sampler, and every non-mask input fixed. For item
 `i`, the paired contrast is

@@ -2039,3 +2039,40 @@ not itself that gate. Planner and synthetic rehearsal suites pass 35/35 tests;
 behavior. They do not establish sampled overlap for any protected record,
 authenticate review or clock evidence, or authorize scoring. No media or GPU
 was used. At **20:07:26 JST**, **4h42m39s elapsed** and **1h17m21s remain**.
+
+## 20:09 JST checkpoint — restore the synthetic draft-binding path
+
+The protocol text edits left the diagnostic target builder's hard-coded v2
+digest stale (`d255…`), so its success-path synthetic test failed with
+`protocol_v2_identity_mismatch`. Independent review found this and confirmed
+that the builder is diagnostic-only, while the protocol remains explicitly
+unfrozen. Updated the constant to the independently recomputed current draft
+SHA-256 (`8df002fda2331c53055b3f3e5f5809bb86c46d5c56221737ce5a5d8be6263557`)
+and renamed it as a draft digest; code comments state that it is not a protocol
+freeze or authorization. Re-ran the affected synthetic target-builder,
+assignment-planner, and preflight-rehearsal suites: **43/43 passed**. The
+draft remains hash-bound in the diagnostic artifact, but any later draft edit
+requires updating this diagnostic pin, and an actual freeze must bind the
+complete artifact set separately. No protected row, media, model forward, or
+GPU was used. At **20:09:21 JST**, **4h44m34s elapsed** and **1h15m26s
+remain**.
+
+## 20:11 JST checkpoint — preserve distinct overlapping review intervals
+
+The audit compared the review policy to the assignment planner and found that
+the planner rejected time-overlapping or shared-endpoint intervals, although
+policy v5 requires retaining every distinct support occurrence separately and
+forming a union for masking without requiring non-overlap. Relaxed that
+structural check to allow distinct overlapping intervals while still rejecting
+exact duplicate intervals, and clarified that v2 preserves the interval list
+but counts each sampled frame once under the union. A new synthetic planner
+test covers two partially overlapping occurrences and verifies their union
+maps to the expected two sampled frame indices and equal-count disjoint
+controls. Editing v2 changed its draft hash again; I observed the resulting
+`protocol_v2_identity_mismatch` in the first affected test run, updated the
+diagnostic draft digest, and re-ran the affected suites: **44/44 passed**
+(target-builder, assignment-planner, and synthetic preflight tests). The
+diagnostic pin remains distinct from a joint protocol freeze. This validates
+only synthetic mapping behavior, not actual claims, intervals, clock
+correspondence, or score execution. No media or GPU was used. At **20:11:20
+JST**, **4h46m33s elapsed** and **1h13m27s remain**.

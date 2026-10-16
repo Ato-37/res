@@ -34,7 +34,10 @@ SHA256 = re.compile(r"^[a-f0-9]{64}$")
 GENERATION_PURPOSE = "private_local_nextgqa_model_generated_claim_review_packet"
 LINEAGE_PURPOSE = "private_source_lineage_crosscheck_for_claim_review"
 WORKSHEET_PURPOSE = "private_blinded_claim_to_evidence_mapping_worksheet"
-PROTOCOL_V2_SHA256 = "d25544ed1b4e2026d929294ed59a7a4afe23fb3936356e4d7bfbd1b64e0dd10f"
+# Exact current draft bytes for the diagnostic target candidate only. This is
+# not a protocol freeze or scoring authorization; bump it when the draft text
+# changes, and freeze the complete artifact set separately before any scoring.
+PROTOCOL_V2_DRAFT_SHA256 = "370d4735951b8d648cac9584ff969805f5f47778d707fa5e4838534bb47f13d4"
 PROTOCOL_V2_TITLE = b"# NExT-GQA finite-cohort claim-aligned input-dependence protocol v2"
 PROTOCOL_V2_DRAFT_STATUS = b"Status: **design draft; not frozen, not scoreable, and not an execution"
 PROTOCOL_V2_FRAME_RULE = b"Use 32 endpoint-inclusive uniformly sampled decoded-frame indices."
@@ -87,14 +90,14 @@ def _is_sha(value: object) -> bool:
 
 
 def _validate_protocol_v2(protocol_raw: bytes, frame_count: int = FRAME_COUNT) -> None:
-    """Require the exact current v2 draft and its frozen 32-frame rule."""
+    """Require the exact current v2 draft and its declared 32-frame rule."""
     if not isinstance(protocol_raw, bytes):
         _fail("protocol_bytes_invalid")
     if (PROTOCOL_V2_TITLE not in protocol_raw
             or PROTOCOL_V2_DRAFT_STATUS not in protocol_raw
             or PROTOCOL_V2_FRAME_RULE not in protocol_raw):
         _fail("protocol_v2_contract_invalid")
-    if _sha(protocol_raw) != PROTOCOL_V2_SHA256:
+    if _sha(protocol_raw) != PROTOCOL_V2_DRAFT_SHA256:
         _fail("protocol_v2_identity_mismatch")
     if type(frame_count) is not int or frame_count != FRAME_COUNT:
         _fail("protocol_frame_count_mismatch")

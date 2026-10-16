@@ -421,7 +421,7 @@ def plan_claim_review_assignments(*, expected_video_ids, worksheet_records,
                     or not all(_sha(x) for x in sample_hashes)):
                 raise ValueError("sampled_pixel_identity_invalid")
             mapped = []
-            previous_end = None
+            seen_intervals = set()
             for span in intervals:
                 if (not isinstance(span, list) or len(span) != 2
                         or any(isinstance(x, bool) or not isinstance(x, (int, float))
@@ -429,10 +429,11 @@ def plan_claim_review_assignments(*, expected_video_ids, worksheet_records,
                     raise ValueError("review_interval_invalid")
                 start, end = map(lambda x: Fraction(str(x)), span)
                 if (start < 0 or end <= start or end > Fraction(str(duration))
-                        or (start * 1000).denominator != 1 or (end * 1000).denominator != 1
-                        or (previous_end is not None and start <= previous_end)):
+                        or (start * 1000).denominator != 1 or (end * 1000).denominator != 1):
                     raise ValueError("review_interval_invalid")
-                previous_end = end
+                if (start, end) in seen_intervals:
+                    raise ValueError("review_interval_invalid")
+                seen_intervals.add((start, end))
                 pts_start = (start - intercept) / slope
                 pts_end = (end - intercept) / slope
                 if pts_start < 0 or pts_end <= pts_start:

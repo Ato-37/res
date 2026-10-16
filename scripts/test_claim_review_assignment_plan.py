@@ -279,6 +279,23 @@ class ClaimReviewAssignmentPlanTests(unittest.TestCase):
         self.assertEqual(result["assignments"], [])
         self.assertEqual(result["score_calls"], 0)
 
+    def test_distinct_overlapping_support_intervals_use_frame_union(self):
+        args = fixture()
+        review = args["review_records"][0]["review"]
+        # The sampled PTS at 2.0 is covered by both intervals; union membership
+        # must count that frame once while preserving both review occurrences.
+        review["evidence_intervals_seconds"] = [[0.9, 2.1], [1.4, 2.1]]
+        review["interval_rationales"] = ["first support occurrence", "second support occurrence"]
+        rebind_review(args)
+        result = plan_claim_review_assignments(**args)
+        self.assertEqual(result["status"], "assignment_plan_structurally_passed_unvalidated")
+        self.assertEqual(result["denominator"], 3)
+        self.assertEqual(result["assignments"][0]["evidence_indices"], [2, 4])
+        self.assertEqual(len(result["assignments"][0]["control_indices"]), 2)
+        self.assertTrue(set(result["assignments"][0]["evidence_indices"]).isdisjoint(
+            result["assignments"][0]["control_indices"]))
+        self.assertEqual(result["score_calls"], 0)
+
     def test_affine_clock_drift_maps_player_intervals_to_pts(self):
         args = fixture()
         for row in args["review_records"]:
