@@ -18,10 +18,18 @@ MASK_BLUR_SMOKE = ROOT / "results/necessity_choice_margin_black_blur_smoke_deriv
 class Tests(unittest.TestCase):
     def test_snapshot_statuses_and_counts(self):
         out = analyze(HEAD, BLACK, BLUR, NOAA)
-        self.assertEqual(out["direct_faithfulness"]["status"], "直接評価済み")
-        self.assertIn("not generated-rationale", out["direct_faithfulness"]["claim_scope"])
-        self.assertEqual(out["direct_faithfulness"]["n_effective"], 79)
-        self.assertFalse(out["direct_faithfulness"]["threshold_supported"])
+        self.assertEqual(out["historical_head_confirmation"]["status"], "closed_practical_threshold_not_met")
+        self.assertIn("not generated-rationale", out["historical_head_confirmation"]["claim_scope"])
+        self.assertEqual(out["historical_head_confirmation"]["n_effective"], 79)
+        self.assertFalse(out["historical_head_confirmation"]["threshold_supported"])
+        claim = out["generated_claim_faithfulness"]
+        self.assertEqual(claim["status"], "not_evaluated_no_verified_direct_score_artifact")
+        self.assertEqual((claim["human_reviewed_records_declared"], claim["scored_records_declared"]), (0, 0))
+        self.assertEqual(claim["count_source"], "operator_declared_unverified")
+        self.assertFalse(claim["verified_score_artifact_supplied"])
+        self.assertIsNone(claim["estimate_nat"])
+        self.assertIsNone(claim["confidence_interval_nat"])
+        self.assertFalse(out["unresolved_gates"]["verified_generated_claim_score"])
         self.assertEqual(out["supporting_diagnostics"]["status"], "補助診断のみ")
         self.assertEqual(out["unresolved_gates"]["noaa_human_attestation"]["status"], "no_go")
 
@@ -44,6 +52,21 @@ class Tests(unittest.TestCase):
         self.assertEqual(out["engineering_smokes"]["head_intervention"]["status"], "補助診断のみ")
         self.assertEqual(out["engineering_smokes"]["grounding_mask"]["n_effective"], 3)
         self.assertEqual(out["engineering_smokes"]["grounding_mask_black_blur_pair"]["n_effective_each"], 3)
+
+    def test_declared_claim_counts_never_claim_a_verified_score(self):
+        out = analyze(HEAD, BLACK, BLUR, NOAA, claim_reviewed_count=3, claim_scored_count=3)
+        self.assertEqual(out["generated_claim_faithfulness"]["status"], "not_evaluated_no_verified_direct_score_artifact")
+        self.assertIsNone(out["generated_claim_faithfulness"]["estimate_nat"])
+        with self.assertRaisesRegex(ValueError, "generated_claim_progress_counts_invalid"):
+            analyze(HEAD, BLACK, BLUR, NOAA, claim_reviewed_count=1, claim_scored_count=1)
+
+    def test_rejects_substituted_head_artifact_identity(self):
+        with tempfile.TemporaryDirectory() as d:
+            p = Path(d) / "same-count-different-artifact.json"
+            x = json.loads(HEAD.read_text()); x["practical_threshold_nat"] = 0.3
+            p.write_text(json.dumps(x))
+            with self.assertRaisesRegex(ValueError, "head confirmation artifact identity mismatch"):
+                analyze(p, BLACK, BLUR, NOAA)
 
 
 if __name__ == "__main__":
