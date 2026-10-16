@@ -26,6 +26,13 @@ class PresentationTimeUtilsTests(unittest.TestCase):
             strict_evidence_indices_from_times([0, 1, 2, 3], times, [[0.2, 0.5]]),
             [1, 2])
 
+    def test_fraction_interval_endpoints_remain_exact(self):
+        times = presentation_times_from_pts([0, 1, 2], Fraction(1, 3))
+        self.assertEqual(
+            strict_evidence_indices_from_times(
+                [0, 1, 2], times, [[Fraction(1, 3), Fraction(2, 3)]]),
+            [1, 2])
+
     def test_integrated_assignment_uses_pts_but_preserves_rank_control(self):
         times = presentation_times_from_pts(
             [0, 1, 2, 4, 5, 6, 14, 15], Fraction(1, 10))

@@ -47,6 +47,10 @@ def presentation_times_from_pts(pts_values, time_base):
 
 
 def _interval_seconds(value, label):
+    if isinstance(value, Fraction):
+        if value < 0:
+            raise ValueError(f"{label} must be a finite nonnegative number")
+        return value
     if isinstance(value, bool) or not isinstance(value, (int, float)):
         raise ValueError(f"{label} must be a finite nonnegative number")
     if isinstance(value, float) and not math.isfinite(value):
