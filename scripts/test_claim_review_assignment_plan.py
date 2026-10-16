@@ -174,6 +174,23 @@ class ClaimReviewAssignmentPlanTests(unittest.TestCase):
         self.assertNotIn("private claim", encoded)
         self.assertNotIn("opaque-review-token", encoded)
 
+    def test_fabricated_evidence_hashes_only_pass_structural_unvalidated_plan(self):
+        args = fixture()
+        for i, calibration in enumerate(args["calibration_records"]):
+            calibration["clock_validation_attestation"] = "independent_review_claimed_unverified"
+            calibration["capture_evidence_sha256"] = sha(f"fabricated-capture-{i}".encode())
+            calibration["frame_correspondence_evidence_sha256"] = sha(
+                f"fabricated-frame-match-{i}".encode())
+            rebind_calibration(calibration)
+
+        result = plan_claim_review_assignments(**args)
+
+        # Structural acceptance is intentionally not evidence authentication.
+        self.assertEqual(result["status"], "assignment_plan_structurally_passed_unvalidated")
+        self.assertEqual(result["execution_authorization"], "not_granted")
+        self.assertEqual(result["score_calls"], 0)
+        self.assertEqual(result["failure_codes"], [])
+
     def test_review_payload_hash_is_verified(self):
         args = fixture(); args["review_payload_raw"] += b" "
         result = plan_claim_review_assignments(**args)

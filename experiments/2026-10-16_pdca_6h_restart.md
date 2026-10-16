@@ -1814,3 +1814,18 @@ Firefox, Playwright, or Selenium); no protected data, model, or GPU was used.
 At **19:41:17 JST**, **4h16m30s** elapsed and **1h43m30s** remain. Next: update
 the readiness overview/log, independently review the complete working diff,
 and commit only these scoped docs/tests/helper locally.
+
+## 19:42 JST checkpoint — make the planner's self-report boundary executable
+
+Added an adversarial regression test that replaces all clock/frame evidence
+hashes with hashes of fabricated strings, rehashes the corresponding synthetic
+calibration records, and submits them to the assignment planner. The planner
+does structurally accept this fixture; the test requires the status to remain
+`assignment_plan_structurally_passed_unvalidated`, with zero score calls and
+`execution_authorization=not_granted`. This is a deliberate boundary test, not
+a scoring bypass or a claim that evidence was verified. It turns the protocol's
+existing warning about caller-supplied hashes into an executable check. An
+independent reviewer verified the fixture and test assert exactly that narrow
+point. Focused planner tests pass **21/21**. At **19:42:31 JST**, **4h17m44s**
+elapsed and **1h42m16s** remain. Next: full-suite verification, scoped local
+commit, then reassess useful independent work against the no-go scoring gates.
