@@ -225,25 +225,65 @@ novelty claim about evaluating visual faithfulness of generated intermediate
 claims; its reported task is image-based and judge-scored, not video-interval
 counterfactual dependence. [Paper](https://aclanthology.org/2026.eacl-long.194/)
 
-For video, INFACT evaluates answer reliability under evidence corruption and
-temporal interventions. VideoSEAL is a close precedent for video temporal
-evidence alignment: it combines temporal-overlap grounding with a semantic
-support audit of generated answers against inspected evidence, then gates
-answers on pixel verification. These overlap answer/evidence alignment and
-video evidence interventions but do not establish the same claim-specific
-human temporal-span mask-versus-control margin estimand. The defensible
-possible contribution is therefore narrow: a controlled test of whether a
-fixed video-VLM answer margin depends on a separately human-reviewed interval
-supporting a generated visual claim, with a matched temporal control. That
-difference remains a hypothesis pending systematic related-work review and
-valid real-data scores. [INFACT](https://arxiv.org/abs/2603.11481),
-[VideoSEAL](https://proceedings.mlr.press/v306/qiu26v.html).
+For video, INFACT evaluates sensitivity to temporal structure by shuffling or
+reversing order-sensitive videos, alongside visual degradation and evidence
+corruption. Its shuffle/reversal intervention is applied at the video level,
+providing temporal-sensitivity precedent but not a localized human-reviewed
+claim-span versus temporal-control contrast. VideoSEAL (ICML 2026) studies
+evidence alignment in agentic long-video QA with temporal-grounding and
+semantic-grounding diagnostics, then gates answers on pixel-level verification.
+It is a close evidence-verification precedent, but does not test this claim-span
+versus matched-control black-mask contrast. NExT-GQA itself supplies QA-level
+supporting-moment labels and is a direct evidence-grounding precedent, but its
+intervals do not review each model-generated explanation sentence. EG-VQA scores predicted
+temporal-semantic evidence, and VideoZeroBench jointly evaluates answers with
+manually verified temporal/spatial evidence localization. These works make
+temporal evidence grounding a well-established research direction, while their
+described outcomes are localization/alignment scores rather than this proposed
+intervention contrast. “Caved or Convinced” is especially close
+methodologically: it fixes a user-provided temporal claim and compares temporal
+interventions, including equal-count event-frame versus other-frame removal at
+fixed budget. Its claim is user-supplied and its outcomes concern claim
+acceptance/correction, not a model-generated reviewed claim interval with a
+gold-versus-best-foil answer-margin contrast. Video temporal-attribution work
+also studies temporal perturbation and insertion/deletion, generally for
+classifier saliency rather than reviewed claim-to-evidence relations in video
+QA. These are distinctions in the bounded sources reviewed, not a priority or
+novelty result. The candidate operational contribution here is narrower: a
+paired black-mask sensitivity contrast asking whether the fixed-choice margin changes more for
+the human-reviewed claim-linked interval than for a prespecified temporal
+control. The control matches frame count and rank distance, not visual content
+or information value, so this contrast does not identify internal reasoning or
+establish causal use of the interval. Since the outcome is the answer margin,
+not claim-text likelihood, this is a claim-associated answer-margin
+sensitivity probe, not a direct score of claim faithfulness or an
+attribution-method benchmark. Any novelty claim
+remains unsubstantiated pending systematic review of video temporal
+attribution/deletion-insertion ([Mänttäri et al., ACCV 2020](https://openaccess.thecvf.com/content/ACCV2020/papers/Manttari_Interpreting_Video_Features_A_Comparison_of_3D_Convolutional_Networks_and_ACCV2020_paper.pdf);
+[READ, 2026 preprint](https://arxiv.org/abs/2610.13776)), counterfactual explanations, and QA evidence
+localization/grounding, as well as valid real-data scores. [NExT-GQA
+paper](https://openaccess.thecvf.com/content/CVPR2024/html/Xiao_Can_I_Trust_Your_Answer_Visually_Grounded_Video_Question_Answering_CVPR_2024_paper.html),
+[EG-VQA](https://arxiv.org/abs/2606.24797v2),
+[VideoZeroBench](https://arxiv.org/abs/2604.01569),
+[Caved or Convinced](https://arxiv.org/abs/2608.03160v2), [INFACT
+(ACL Anthology)](https://aclanthology.org/2026.acl-long.2062/),
+[VideoSEAL (ICML 2026)](https://proceedings.mlr.press/v306/qiu26v.html) ([accepted-version methods](https://arxiv.org/html/2605.12571v1)).
+The bounded public-source search and additional adjacent sources are logged in
+the [2026-10-15 literature checkpoint](../experiments/2026-10-15_pdca_5h.md);
+that search was not a systematic review.
 
-The primary black-fill intervention also has a known measurement limitation:
-zeroing input regions can move examples out of distribution and distort the
-model response. A matched temporal control does not remove this concern because
-its visual content and semantic role differ. The fixed pilot metric should
-therefore be reported as black-mask intervention sensitivity, not an
+FUD (ICLR 2026) motivates caution that deletion/zeroing perturbations can
+produce out-of-distribution inputs in image attribution; it does not establish
+that this video masking protocol is out of distribution or that its proposed
+reconstruction transfers here. Treat that as a limitation to measure, not an
+observed property of this experiment. [FUD](https://proceedings.iclr.cc/paper_files/paper/2026/hash/409fcc9d24b549969b8b9be68b56a7be-Abstract-Conference.html).
+
+The primary black-fill intervention has a potential measurement limitation:
+zeroing input regions may move examples out of distribution and distort the
+model response, but this has not been measured for the current video protocol.
+A matched temporal control does not eliminate the concern because its visual
+content and semantic role differ. The fixed pilot metric should therefore be
+reported as black-mask intervention sensitivity, not an
 unqualified causal or internal-faithfulness measure. Any later in-distribution
 replacement intervention requires a separately frozen protocol and independent
 confirmation. [FUD, ICLR 2026](https://proceedings.iclr.cc/paper_files/paper/2026/hash/409fcc9d24b549969b8b9be68b56a7be-Abstract-Conference.html).

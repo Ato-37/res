@@ -1874,3 +1874,68 @@ opened. After the schema-v3 rename, the full test suite passes **1024/1024** in
 elapsed and **1h36m52s** remain. Next: independent recheck of the decision
 sequence, then local commits and further useful provenance/planning work while
 the authorized window remains open.
+
+## 19:50 JST checkpoint — narrow the related-work claim
+
+An independent primary-source review found that the former phrasing risked
+implying causal use of the reviewed interval and overstated detail about
+VideoSEAL. The scale-up worksheet now calls the proposed quantity a paired
+black-mask sensitivity contrast: fixed-choice-margin change for a reviewed
+claim-linked interval versus a prespecified temporal control. It explicitly
+states that frame count/rank-distance matching does not match content or
+information value, and that the result cannot identify internal reasoning or
+causal use. The worksheet now acknowledges INFACT's video-level temporal
+intervention precedent, cites its ACL 2026 Anthology record, and describes
+VideoSEAL only at the level supported by its publication record pending a
+methods-level check. FUD is described as general image-attribution motivation,
+not evidence that this video input is out of distribution. These are planning
+claims, not experimental findings; no new data or scores were opened. I
+independently checked the ACL record: it identifies a July 2026 ACL long paper
+and lists base, visual degradation, evidence corruption, and temporal
+intervention modes. A second independent review of adjacent video-XAI and
+localization literature is underway. Next: incorporate only verified sources,
+re-read the complete worksheet, and keep novelty provisional until the search
+scope is adequate. At **19:50 JST**, **4h25m elapsed** and **1h35m remains**.
+
+## 19:52 JST checkpoint — include the strongest grounding and intervention precedents
+
+A separate non-exhaustive primary-source search surfaced a gap in the first
+related-work edit: it under-described NExT-GQA itself and newer video QA
+evidence-grounding work. The worksheet now says directly that NExT-GQA's
+answer-support intervals are a direct grounding precedent, while distinguishing
+them from per-sentence review of a model-generated claim. It also covers
+EG-VQA's temporal-semantic evidence score, VideoZeroBench's joint answer and
+manual evidence localization, and the fixed-claim / equal-count frame-removal
+comparison in *Caved or Convinced*. Video temporal attribution and
+insertion/deletion methods are acknowledged as a neighboring method family.
+The possible distinction is now explicitly a bounded combination of reviewed
+generated-claim spans and fixed-choice margin contrast, not a claim of
+priority. The search's venue and date limits and unsearched ACM/IEEE/workshop
+areas remain documented in the earlier literature checkpoint; this turn did
+not convert that bounded search into a systematic review.
+
+Two independent reviewers checked the updated source framing. One confirmed
+the INFACT ACL 2026 publication and its shuffle/reversal intervention; the
+other checked VideoSEAL methods (temporal-span overlap and semantic-support
+diagnostics, with pixel verification) and the image-only scope of FUD. Their
+reports agree that the current wording avoids causal-mechanism and video-OOD
+overclaims. A further independent review of the whole edited paragraph is
+pending. Official ACL/PMLR/ICLR sources and primary papers were consulted; no
+local video, human-review payload, model output, or GPU was used. At **19:52:28
+JST**, **4h27m41s elapsed** and **1h32m19s remain**. Next: integrate the final
+audit, inspect the scoped diff and exact URLs, then commit the doc and log
+locally without touching unrelated untracked artifacts.
+
+The full-document independent audit found no major source mismatch. It flagged
+two phrasing refinements: the answer-margin metric could be mistaken for a score
+of the claim text, and the OOD limitation could read as measured on this video
+protocol. Updated the worksheet to call it a claim-associated answer-margin
+sensitivity probe and to say explicitly that OOD effects remain unmeasured for
+this protocol. The audit also checked NExT-GQA, EG-VQA, VideoZeroBench, INFACT,
+VideoSEAL, FUD, and *Caved or Convinced* against primary records/text. The
+limited search found no identical bundled estimand but does not support a
+priority claim; remaining search scope and real-data validation are unresolved.
+Markdown diff check passes, as do four focused assertions for the key
+interpretation boundaries. No Python unit suite was rerun because only planning
+documentation changed. At **19:53:56 JST**, **4h29m09s elapsed** and **1h30m51s
+remain**.
