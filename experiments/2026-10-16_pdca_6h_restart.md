@@ -2096,3 +2096,55 @@ synthetic page for `node --check` (syntax OK). This is static/generated-HTML ver
 no live browser session was available, so it does not establish actual
 reviewer interaction or clock calibration. No review rows, media, or GPU were
 used. At **20:14:57 JST**, **4h50m10s elapsed** and **1h09m50s remain**.
+
+## 20:23 JST checkpoint — stage browser exports without changing provenance
+
+The next practical handoff gap was that browser-exported JSON may arrive with
+mode 0644 while the downstream private auditors require mode 0600. Added a
+local-only CLI that accepts the review payload/index pair and optional clock
+observation/index pair, bounds and reads current-user regular files without
+following a final symlink, rejects duplicate JSON keys, checks only declared
+purpose/status/auth fields and raw-byte SHA-256 linkage, and copies original
+bytes unchanged into `data/private_nextgqa/` with mode 0600 and exclusive
+creation. Its output contains only generated basenames, hashes, and explicit
+`staged_unvalidated` / unauthenticated / `execution_authorization=not_granted`
+labels; it does not validate a human review, clock calibration, or scoring
+readiness. Partial files are cleaned on ordinary errors and KeyboardInterrupt;
+the manifest is written last and consumers must require it. SIGKILL or power
+loss remains outside in-process cleanup guarantees.
+
+An independent auditor found and helped correct a test-isolation defect: the
+first synthetic CLI test wrote five marker-only fixture files to the real
+ignored private directory. Each file was byte-compared against the known
+synthetic fixture, then only those five exact files were removed; the test now
+injects a temporary repo root. A second audit found interruption cleanup was
+limited to expected errors; it now uses unsuccessful-exit cleanup and a
+KeyboardInterrupt regression test. Final focused test runs passed **60/60**
+for the stager, reviewer UI, assignment planner, diagnostic builder, and
+preflight rehearsal, plus **34/34** for handoff, clock preparation, and private
+output paths (the invocations overlap on reviewer UI tests). `compileall`,
+`--help`, and `git diff --check` passed. These are synthetic/static checks only;
+no real review, media, calibration, model forward, or GPU run occurred. The
+separate faithfulness evidence remains **0/3 human-reviewed, 0/3 scored, and
+zero direct effect estimates**. At **20:23:03 JST**, **4h58m16s elapsed** and
+**1h01m44s remain**; the six-hour deadline is **21:24:47 JST**.
+
+## 20:17 JST checkpoint — do not wrap an undefined atomic gate
+
+An independent API audit assessed whether to add a one-hour v2 preflight CLI.
+It found that the missing path is not just command-line glue: review/custody
+reports remain caller declarations; prepared clock bundles and calibration
+records do not authenticate the displayed decoder frame; the calibrator and
+assignment planner use different identity keys; the decoder does not emit the
+full PTS structure the planner currently expects; and the target builder does
+not provide a claim-bearing masked scoring target. Existing
+`claim_score_preflight_rehearsal` already combines structural assignment and
+QA-target checks but is synthetic-only and always has zero calls/no authority.
+Adding a new wrapper before its artifact schema is frozen would repeat that
+rehearsal without closing these gaps and could make a caller-supplied structure
+look like a production pass. No wrapper was added. If later justified, first
+freeze a versioned artifact graph and exact failure-code contract; keep every
+failure atomic over denominator three, zero calls, and explicitly unvalidated
+until independent evidence authentication exists. The next useful work remains
+outcome-blind UI/protocol and API auditing, not model scoring. At **20:17:26
+JST**, **4h52m39s elapsed** and **1h07m21s remain**.
