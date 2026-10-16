@@ -38,12 +38,35 @@ The completed run's privacy-minimized output remains local. The command above is
 
 The runner's measured interval begins after dataset/candidate discovery and environment imports; the 25.90 s figure should not be read as end-to-end process startup time.
 
+## Follow-up: 32-frame resource smoke
+
+After the four-frame smoke, a second bounded run used the same runner, model revision, quantization, and local-only output policy with 32 requested frames. Of 7 deterministic candidates inspected, 6 failed the fixed timing check and one passed. The selected video produced 32/32 sampled frames, 4,064 input tokens, grid `[16, 28, 36]`, and one forward with finite logits.
+
+| Measurement | Observed |
+|---|---:|
+| Runner-measured segment (decode through forward) | 34.59 s |
+| Model forward | 4.25 s |
+| Peak PyTorch allocated VRAM | 10.50 GiB |
+| CUDA driver free VRAM after run | 2.22 GiB of 15.89 GiB |
+| Requested/effective frames | 32 / 32 |
+| QA / interval / faithfulness effect | none / none / none |
+
+The process released its model allocations afterward; a separate post-run check observed 14.85 GiB free. This is one technical example, not a worst-case estimate for the three claim videos. At 32 frames the peak approached the available card capacity, so an eventual nine-forward run must check each exact input's free VRAM and fail closed on an OOM rather than drop a record. No QA, answer, interval, generated text, or claim score was used.
+
+A fresh-path command for reproducing this resource check is shown below; it has **not** been run at that output path:
+
+```bash
+.venv/bin/python scripts/run_nextgqa_real_video_gpu_smoke.py \
+  --output results/nextgqa_real_video_gpu_smoke_32f_run02.json \
+  --frames 32 --uniform-tolerance-ms 1
+```
+
 ## Interpretation and limits
 
-This establishes that one local NExT-GQA video can traverse the pinned 7B preprocessing and CUDA forward path within the observed memory/time envelope. It does **not** test answer correctness, explanation generation, grounding, or faithfulness; there is no effect estimate, confidence interval, or inferential test. The single selected video and four frames are a technical smoke, not a representative sample. The score-bearing claim-mask study remains blocked on independent review of 3 videos, 15 screenshot-to-decoder correspondences, a trusted pre-outcome joint freeze, and a production preflight.
+These runs establish that the pinned 7B model can process one local NExT-GQA video with both 4-frame and 32-frame inputs. They do **not** test answer correctness, explanation generation, grounding, or faithfulness; there is no effect estimate, confidence interval, or inferential test. Both runs are technical smokes on one selected video, not representative samples. The score-bearing claim-mask study remains blocked on independent review of 3 videos, 15 screenshot-to-decoder correspondences, a trusted pre-outcome joint freeze, and a production preflight.
 
 Rights status is unverified. Raw media, local paths, model weights, QA, and per-frame digests remain private and are not included here.
 
 ## Next action
 
-Use the current v6 candidate plan to prepare decoder-frame PNGs and independently verify their source/PTS joins. Assemble the blinded 15-pair human review only after genuine video-only screenshots exist. Keep the result non-authorizing until the separate trust and scoring gates pass.
+Decoder-frame PNGs are now prepared and their source/PTS joins independently verified. The next step is genuine OS/compositor capture, then crop and blinded visual review of all 15 screenshot-to-decoder pairs. Use the exact 32-frame input characteristics of the eventual cohort to check peak VRAM before scoring; keep every condition batch atomic and abort the cohort if any row fails. The GPU smoke itself remains non-authorizing and is not a faithfulness result.
