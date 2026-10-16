@@ -2090,7 +2090,9 @@ rationales remain attached to their intervals, and clarified the Japanese UI
 message. Added page-generation assertions for the exact-duplicate predicate,
 overlap allowance, and sorting. The offline renderer, assignment planner,
 diagnostic target builder, and synthetic preflight suites pass **51/51**;
-`git diff --check` passes. This is static/generated-HTML verification only;
+`git diff --check` passes. An independent reviewer rechecked that sorting
+preserves rationale pairing, and I extracted the generated inline script from a
+synthetic page for `node --check` (syntax OK). This is static/generated-HTML verification only;
 no live browser session was available, so it does not establish actual
 reviewer interaction or clock calibration. No review rows, media, or GPU were
 used. At **20:14:57 JST**, **4h50m10s elapsed** and **1h09m50s remain**.
