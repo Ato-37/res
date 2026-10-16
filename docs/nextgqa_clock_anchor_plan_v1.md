@@ -32,6 +32,14 @@ outputs must be direct children of `data/private_nextgqa/`; the pair is
 installed with exclusive hard links and ordinary write failures roll back any
 partial installation. Both files use mode 0600.
 
+The HTML5 observation converter requires this sidecar and checks its exact
+digest, candidate status, authorization, plan digest, and row/media bindings
+before pairing raw observations with the plan. Its Python API requires the
+same arguments, and the calibration binder rejects bundles without the
+sidecar digest. It carries that digest through to the calibration record.
+These checks establish byte continuity only; they do not authenticate the
+source declarations or prove screenshot/frame correspondence.
+
 `T` is the last frame's timestamp, not the container duration or the end of
 that frame's display interval. A selected frame time is only a requested
 anchor target; it does not prove which compositor frame a browser displayed.

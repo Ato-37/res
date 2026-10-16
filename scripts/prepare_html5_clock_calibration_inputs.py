@@ -51,6 +51,85 @@ def _sha(raw: bytes) -> str:
     return hashlib.sha256(raw).hexdigest()
 
 
+def _validate_anchor_provenance(plan: dict, plan_raw: bytes,
+                                provenance_raw: bytes,
+                                expected_provenance_sha256: str) -> dict:
+    if (not isinstance(expected_provenance_sha256, str)
+            or not SHA256.fullmatch(expected_provenance_sha256)
+            or _sha(provenance_raw) != expected_provenance_sha256):
+        raise ValueError("anchor_provenance_hash_invalid")
+    provenance = _strict_json(provenance_raw)
+    keys = {"schema_version", "purpose", "status", "execution_authorization",
+            "input_sha256", "source_sha256", "plan_sha256", "created_at_utc",
+            "python_version", "pyav_version", "ffmpeg_library_versions",
+            "joint_freeze_receipt_sha256", "records"}
+    if (not isinstance(plan, dict) or not isinstance(plan.get("records"), list)
+            or not isinstance(provenance, dict) or set(provenance) != keys
+            or type(provenance.get("schema_version")) is not int
+            or provenance.get("schema_version") != 1
+            or provenance.get("purpose") != "private_clock_anchor_plan_candidate_provenance"
+            or provenance.get("status") != "candidate_not_jointly_frozen"
+            or provenance.get("execution_authorization") != "not_granted"
+            or provenance.get("plan_sha256") != _sha(plan_raw)
+            or not _utc(provenance.get("created_at_utc"))
+            or provenance.get("joint_freeze_receipt_sha256") is not None):
+        raise ValueError("anchor_provenance_schema_or_plan_mismatch")
+    inputs = provenance.get("input_sha256")
+    if (not isinstance(inputs, dict) or set(inputs) != {
+            "worksheet", "lineage_manifest", "custody_manifest"}
+            or any(not isinstance(value, str) or not SHA256.fullmatch(value)
+                   for value in inputs.values())):
+        raise ValueError("anchor_provenance_input_hashes_invalid")
+    sources = provenance.get("source_sha256")
+    if (not isinstance(sources, dict) or set(sources) != {
+            "builder", "decoder", "custody_auditor", "private_output_policy"}
+            or any(not isinstance(value, str) or not SHA256.fullmatch(value)
+                   for value in sources.values())):
+        raise ValueError("anchor_provenance_source_hashes_invalid")
+    if (not isinstance(provenance.get("python_version"), str)
+            or not provenance["python_version"]
+            or not isinstance(provenance.get("pyav_version"), str)
+            or not provenance["pyav_version"]
+            or not isinstance(provenance.get("ffmpeg_library_versions"), dict)
+            or not provenance["ffmpeg_library_versions"]):
+        raise ValueError("anchor_provenance_runtime_invalid")
+    rows, plan_rows = provenance.get("records"), plan.get("records")
+    if not isinstance(rows, list) or len(rows) != 3 or not isinstance(plan_rows, list) or len(plan_rows) != 3:
+        raise ValueError("anchor_provenance_record_count_invalid")
+    for row, planned in zip(rows, plan_rows, strict=True):
+        row_keys = {"review_token", "staged_media_sha256", "decoded_frame_count",
+                    "decoded_pts_sequence_sha256", "time_base", "pixel_spec",
+                    "decoder_stream_info"}
+        if (not isinstance(row, dict) or set(row) != row_keys
+                or not isinstance(planned, dict)
+                or row.get("review_token") != planned.get("review_token")
+                or row.get("staged_media_sha256") != planned.get("source_media_sha256")
+                or type(row.get("decoded_frame_count")) is not int
+                or row["decoded_frame_count"] < 5
+                or not isinstance(row.get("decoded_pts_sequence_sha256"), str)
+                or not SHA256.fullmatch(row["decoded_pts_sequence_sha256"])
+                or not isinstance(row.get("time_base"), list) or len(row["time_base"]) != 2
+                or any(type(value) is not int for value in row["time_base"])
+                or row["time_base"][0] <= 0 or row["time_base"][1] <= 0
+                or not isinstance(row.get("pixel_spec"), list) or len(row["pixel_spec"]) != 3
+                or type(row["pixel_spec"][0]) is not int or row["pixel_spec"][0] <= 0
+                or type(row["pixel_spec"][1]) is not int or row["pixel_spec"][1] <= 0
+                or not isinstance(row["pixel_spec"][2], str) or not row["pixel_spec"][2]
+                or not isinstance(row.get("decoder_stream_info"), dict)
+                or set(row["decoder_stream_info"]) != {
+                    "stream_index", "codec_name", "stream_time_base",
+                    "decoder_thread_count", "container_format", "reported_stream_frame_count"}
+                or type(row["decoder_stream_info"]["stream_index"]) is not int
+                or not isinstance(row["decoder_stream_info"]["codec_name"], str)
+                or not isinstance(row["decoder_stream_info"]["stream_time_base"], str)
+                or type(row["decoder_stream_info"]["decoder_thread_count"]) is not int
+                or row["decoder_stream_info"]["decoder_thread_count"] < 1
+                or not isinstance(row["decoder_stream_info"]["container_format"], str)
+                or type(row["decoder_stream_info"]["reported_stream_frame_count"]) is not int):
+            raise ValueError("anchor_provenance_record_mismatch")
+    return provenance
+
+
 def _utc(value: Any) -> bool:
     if not isinstance(value, str):
         return False
@@ -71,16 +150,25 @@ def _number(value: Any, field: str, *, positive: bool = False) -> float:
 
 
 def prepare_capture_bundle(observations_raw: bytes, index_raw: bytes,
-                           plan_raw: bytes, expected_plan_sha256: str) -> dict:
+                           plan_raw: bytes, expected_plan_sha256: str,
+                           plan_provenance_raw: bytes,
+                           expected_plan_provenance_sha256: str) -> dict:
     """Validate exact observation/plan bindings and prepare raw per-video inputs."""
     if any(not isinstance(x, bytes) or len(x) > 2_000_000
            for x in (observations_raw, index_raw, plan_raw)):
         raise ValueError("input_bytes_invalid")
+    if (not isinstance(plan_provenance_raw, bytes) or len(plan_provenance_raw) > 2_000_000):
+        raise ValueError("anchor_provenance_bytes_invalid")
+    if (not isinstance(expected_plan_provenance_sha256, str)
+            or not SHA256.fullmatch(expected_plan_provenance_sha256)):
+        raise ValueError("anchor_provenance_hash_invalid")
     if not isinstance(expected_plan_sha256, str) or not SHA256.fullmatch(expected_plan_sha256):
         raise ValueError("expected_plan_hash_invalid")
     if _sha(plan_raw) != expected_plan_sha256:
         raise ValueError("frozen_plan_hash_mismatch")
     obs, index, plan = map(_strict_json, (observations_raw, index_raw, plan_raw))
+    _validate_anchor_provenance(
+        plan, plan_raw, plan_provenance_raw, expected_plan_provenance_sha256)
     index_keys = {"schema_version", "purpose", "payload_sha256", "created_at_utc",
                   "status", "execution_authorization"}
     if (not isinstance(index, dict) or set(index) != index_keys
@@ -261,7 +349,7 @@ def prepare_capture_bundle(observations_raw: bytes, index_raw: bytes,
                 "heldout_anchors": [event_by_id[a["anchor_id"]] for a in heldout],
             },
         })
-    return {
+    result = {
         "schema_version": 1,
         "purpose": "unvalidated_html5_clock_calibration_input_bundle",
         "status": "raw_observations_paired_with_declared_plan_unvalidated",
@@ -277,6 +365,8 @@ def prepare_capture_bundle(observations_raw: bytes, index_raw: bytes,
             "calibration results remain empirical held-out diagnostics and do not authorize scoring",
         ],
     }
+    result["anchor_plan_provenance_sha256"] = _sha(plan_provenance_raw)
+    return result
 
 
 def _write_private_exclusive(path: Path, obj: dict) -> None:
@@ -307,17 +397,21 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--index", required=True, type=Path)
     parser.add_argument("--plan", required=True, type=Path)
     parser.add_argument("--expected-plan-sha256", required=True)
+    parser.add_argument("--plan-provenance", required=True, type=Path)
+    parser.add_argument("--expected-plan-provenance-sha256", required=True)
     parser.add_argument("--output", required=True, type=Path)
     args = parser.parse_args(argv)
     try:
-        for path in (args.observations, args.index, args.plan):
+        for path in (args.observations, args.index, args.plan, args.plan_provenance):
             info = path.lstat()
             if (stat.S_ISLNK(info.st_mode) or not stat.S_ISREG(info.st_mode)
                     or info.st_uid != os.geteuid() or stat.S_IMODE(info.st_mode) != 0o600):
                 raise ValueError("private_input_file_invalid")
         output = validate_private_output(args.output, repo)
         bundle = prepare_capture_bundle(args.observations.read_bytes(), args.index.read_bytes(),
-                                        args.plan.read_bytes(), args.expected_plan_sha256)
+                                        args.plan.read_bytes(), args.expected_plan_sha256,
+                                        args.plan_provenance.read_bytes(),
+                                        args.expected_plan_provenance_sha256)
         _write_private_exclusive(output, bundle)
     except FileExistsError:
         parser.error("refusing_to_overwrite_output")

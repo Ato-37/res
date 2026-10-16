@@ -33,6 +33,12 @@ Outputs are local-only, exclusive-create, mode 0600, and explicitly
 - Independent audit verified the same-byte hash/decode repair, sanitized
   invalid time-base handling, omission of private digests from stdout, and the
   limited meaning of the downstream `predeclared_frozen` status.
+- The capture-input converter now requires the private sidecar and expected
+  sidecar SHA-256 through both its CLI and Python API. The calibration binder
+  rejects legacy bundles without that digest and carries it into the bound
+  artifact. Focused tests pass 21/21; the complete `scripts` suite passes
+  1155/1155 in 14.342 seconds. These checks establish structural byte linkage,
+  not provenance authenticity or visual correspondence.
 
 ## Interpretation and limitations
 

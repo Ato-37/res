@@ -40,16 +40,18 @@ def build_bound_html5_clock_calibration(*, prepared_bundle: dict,
     """
     if (not isinstance(prepared_bundle, dict)
             or set(prepared_bundle) != {"schema_version", "purpose", "status",
-                                        "observations_sha256", "observation_index_sha256",
-                                        "anchor_plan_sha256", "captures",
-                                        "execution_authorization", "limitations"}
+                                             "observations_sha256", "observation_index_sha256",
+                                             "anchor_plan_sha256", "anchor_plan_provenance_sha256",
+                                             "captures", "execution_authorization", "limitations"}
             or type(prepared_bundle.get("schema_version")) is not int
             or prepared_bundle.get("schema_version") != 1
             or prepared_bundle.get("purpose") != BUNDLE_PURPOSE
             or prepared_bundle.get("status") != BUNDLE_STATUS
             or prepared_bundle.get("execution_authorization") != "not_granted"):
         raise ValueError("prepared_bundle_invalid")
-    for field in ("observations_sha256", "observation_index_sha256", "anchor_plan_sha256"):
+    hash_fields = ["observations_sha256", "observation_index_sha256", "anchor_plan_sha256",
+                   "anchor_plan_provenance_sha256"]
+    for field in hash_fields:
         if not isinstance(prepared_bundle.get(field), str) or not SHA256.fullmatch(prepared_bundle[field]):
             raise ValueError("prepared_bundle_hash_invalid")
     if not isinstance(review_token, str) or not TOKEN.fullmatch(review_token):
@@ -98,6 +100,7 @@ def build_bound_html5_clock_calibration(*, prepared_bundle: dict,
             "this record does not authorize scoring or inference",
         ],
     })
+    record["anchor_plan_provenance_sha256"] = prepared_bundle["anchor_plan_provenance_sha256"]
     artifact_raw = _canonical(record)
     record["artifact_sha256"] = hashlib.sha256(artifact_raw).hexdigest()
     record["artifact_raw"] = artifact_raw

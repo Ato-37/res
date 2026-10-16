@@ -12,7 +12,7 @@ import unittest
 from prepare_html5_clock_calibration_inputs import (
     _write_private_exclusive,
     main,
-    prepare_capture_bundle,
+    prepare_capture_bundle as _prepare_capture_bundle,
 )
 from html5_clock_capture_calibration import build_html5_clock_calibration
 from bind_html5_clock_calibration_provenance import build_bound_html5_clock_calibration
@@ -104,7 +104,104 @@ def fixture():
     return observations_raw, enc(index), enc(plan)
 
 
+def provenance_fixture(plan_raw):
+    plan = json.loads(plan_raw)
+    return enc({
+        "schema_version": 1,
+        "purpose": "private_clock_anchor_plan_candidate_provenance",
+        "status": "candidate_not_jointly_frozen",
+        "execution_authorization": "not_granted",
+        "input_sha256": {name: h(name) for name in
+                          ("worksheet", "lineage_manifest", "custody_manifest")},
+        "source_sha256": {name: h(name) for name in
+                          ("builder", "decoder", "custody_auditor", "private_output_policy")},
+        "plan_sha256": hashlib.sha256(plan_raw).hexdigest(),
+        "created_at_utc": "2026-10-16T08:00:00Z",
+        "python_version": "3.12.0", "pyav_version": "18.1.0",
+        "ffmpeg_library_versions": {"libavcodec": [62, 28, 102]},
+        "joint_freeze_receipt_sha256": None,
+        "records": [{
+            "review_token": row["review_token"],
+            "staged_media_sha256": row["source_media_sha256"],
+            "decoded_frame_count": 100,
+            "decoded_pts_sequence_sha256": h(f"pts-{i}"),
+            "time_base": [1, 30], "pixel_spec": [640, 360, "yuv420p"],
+            "decoder_stream_info": {
+                "stream_index": 0, "codec_name": "synthetic",
+                "stream_time_base": "1/30", "decoder_thread_count": 1,
+                "container_format": "mp4", "reported_stream_frame_count": 100,
+            },
+        } for i, row in enumerate(plan["records"])],
+    })
+
+
+def prepare_capture_bundle(*args):
+    """Tests default to a synthetic sidecar; production API requires it explicitly."""
+    if len(args) == 4:
+        plan_raw = args[2]
+        provenance_raw = provenance_fixture(plan_raw)
+        args = (*args, provenance_raw, hashlib.sha256(provenance_raw).hexdigest())
+    return _prepare_capture_bundle(*args)
+
+
 class PrepareHtml5ClockInputsTests(unittest.TestCase):
+    def test_python_api_rejects_omitted_provenance(self):
+        obs_raw, index_raw, plan_raw = fixture()
+        with self.assertRaises(TypeError):
+            _prepare_capture_bundle(obs_raw, index_raw, plan_raw,
+                                    hashlib.sha256(plan_raw).hexdigest())
+
+    def test_binder_rejects_legacy_bundle_without_provenance_digest(self):
+        obs_raw, index_raw, plan_raw = fixture()
+        bundle = prepare_capture_bundle(obs_raw, index_raw, plan_raw,
+                                        hashlib.sha256(plan_raw).hexdigest())
+        legacy = dict(bundle)
+        legacy.pop("anchor_plan_provenance_sha256")
+        item = legacy["captures"][0]
+        with self.assertRaisesRegex(ValueError, "prepared_bundle_invalid"):
+            build_bound_html5_clock_calibration(
+                prepared_bundle=legacy,
+                review_token=item["review_token"],
+                capture_raw=enc(item["capture"]),
+                media_bytes=b"video-0",
+                frozen_tolerance_pts_seconds="1/20",
+            )
+
+    def test_provenance_sidecar_binds_plan_and_remains_non_authorizing(self):
+        obs_raw, index_raw, plan_raw = fixture()
+        provenance_raw = provenance_fixture(plan_raw)
+        result = prepare_capture_bundle(
+            obs_raw, index_raw, plan_raw, hashlib.sha256(plan_raw).hexdigest(),
+            provenance_raw, hashlib.sha256(provenance_raw).hexdigest())
+        self.assertEqual(result["anchor_plan_provenance_sha256"],
+                         hashlib.sha256(provenance_raw).hexdigest())
+        self.assertEqual(result["execution_authorization"], "not_granted")
+        item = result["captures"][0]
+        bound = build_bound_html5_clock_calibration(
+            prepared_bundle=result, review_token=item["review_token"],
+            capture_raw=enc(item["capture"]), media_bytes=b"video-0",
+            frozen_tolerance_pts_seconds="1/20")
+        self.assertEqual(bound["anchor_plan_provenance_sha256"],
+                         hashlib.sha256(provenance_raw).hexdigest())
+        self.assertEqual(bound["execution_authorization"], "not_granted")
+
+    def test_provenance_cannot_be_replayed_for_another_plan(self):
+        obs_raw, index_raw, plan_raw = fixture()
+        provenance_raw = provenance_fixture(plan_raw)
+        changed_plan = plan_raw + b" "
+        with self.assertRaisesRegex(ValueError, "anchor_provenance_schema_or_plan_mismatch"):
+            prepare_capture_bundle(
+                obs_raw, index_raw, changed_plan, hashlib.sha256(changed_plan).hexdigest(),
+                provenance_raw, hashlib.sha256(provenance_raw).hexdigest())
+
+    def test_provenance_digest_mismatch_fails_closed(self):
+        obs_raw, index_raw, plan_raw = fixture()
+        provenance_raw = provenance_fixture(plan_raw)
+        with self.assertRaisesRegex(ValueError, "anchor_provenance_hash_invalid"):
+            prepare_capture_bundle(
+                obs_raw, index_raw, plan_raw, hashlib.sha256(plan_raw).hexdigest(),
+                provenance_raw, "0" * 64)
+
     def test_pairs_exact_plan_events_and_remains_unvalidated(self):
         obs_raw, index_raw, plan_raw = fixture()
         result = prepare_capture_bundle(obs_raw, index_raw, plan_raw,
@@ -371,14 +468,18 @@ class PrepareHtml5ClockInputsTests(unittest.TestCase):
         obs_raw, index_raw, plan_raw = fixture()
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
-            inputs = [root / name for name in ("observations.json", "index.json", "plan.json")]
-            for path, raw in zip(inputs, (obs_raw, index_raw, plan_raw), strict=True):
+            provenance_raw = provenance_fixture(plan_raw)
+            inputs = [root / name for name in
+                      ("observations.json", "index.json", "plan.json", "provenance.json")]
+            for path, raw in zip(inputs, (obs_raw, index_raw, plan_raw, provenance_raw), strict=True):
                 path.write_bytes(raw)
                 path.chmod(0o600)
             output = root / "bundle.json"
             args = ["--observations", str(inputs[0]), "--index", str(inputs[1]),
                     "--plan", str(inputs[2]), "--expected-plan-sha256",
-                    hashlib.sha256(plan_raw).hexdigest(), "--output", str(output)]
+                    hashlib.sha256(plan_raw).hexdigest(), "--plan-provenance", str(inputs[3]),
+                    "--expected-plan-provenance-sha256", hashlib.sha256(provenance_raw).hexdigest(),
+                    "--output", str(output)]
             with contextlib.redirect_stdout(io.StringIO()):
                 self.assertEqual(main(args), 0)
             self.assertEqual(stat.S_IMODE(output.stat().st_mode), 0o600)
