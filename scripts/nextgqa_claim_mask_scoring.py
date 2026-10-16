@@ -1,0 +1,164 @@
+"""Compute fixed five-choice margins for a preflighted 3 x 3 input bundle.
+
+This module is the inference/math core only. It does not authenticate inputs,
+load a model, authorize execution, or make a draft protocol scoreable. A
+production caller must complete and hash-freeze every all-row review, clock,
+source, target, condition-input, and code gate before loading model weights.
+"""
+from __future__ import annotations
+
+import math
+from collections.abc import Mapping
+from typing import Any, Callable
+
+
+CONDITIONS = ("full", "claim_evidence_black", "temporal_control_black")
+REQUESTED_RECORDS = 3
+LABEL_COUNT = 5
+
+
+def validate_scoring_inputs(triplets: Any, token_ids: Any) -> None:
+    """Validate the entire fixed cohort's container shape before forwarding."""
+    if (not isinstance(token_ids, (list, tuple)) or len(token_ids) != LABEL_COUNT
+            or any(type(token) is not int or token < 0 for token in token_ids)
+            or len(set(token_ids)) != LABEL_COUNT):
+        raise ValueError("answer_label_token_contract_invalid")
+    if not isinstance(triplets, (list, tuple)) or len(triplets) != REQUESTED_RECORDS:
+        raise ValueError("requested_record_count_mismatch")
+    for row_index, row in enumerate(triplets):
+        if not isinstance(row, Mapping) or set(row) != {"gold_index", "batches"}:
+            raise ValueError(f"record_{row_index + 1}_schema_invalid")
+        gold = row["gold_index"]
+        if type(gold) is not int or not 0 <= gold < LABEL_COUNT:
+            raise ValueError(f"record_{row_index + 1}_gold_index_invalid")
+        batches = row["batches"]
+        if not isinstance(batches, Mapping) or set(batches) != set(CONDITIONS):
+            raise ValueError(f"record_{row_index + 1}_condition_set_invalid")
+        for condition in CONDITIONS:
+            batch = batches[condition]
+            if not isinstance(batch, Mapping) or not callable(getattr(batch, "to", None)):
+                raise ValueError(f"record_{row_index + 1}_{condition}_batch_invalid")
+            try:
+                cpu_batch = batch.to("cpu")
+            except Exception:
+                raise ValueError(f"record_{row_index + 1}_{condition}_cpu_materialization_failed") from None
+            if not isinstance(cpu_batch, Mapping):
+                raise ValueError(f"record_{row_index + 1}_{condition}_cpu_batch_invalid")
+
+
+def _margin(log_probabilities: list[float], gold_index: int) -> float:
+    gold = log_probabilities[gold_index]
+    foil = max(value for index, value in enumerate(log_probabilities)
+               if index != gold_index)
+    return gold - foil
+
+
+def score_preflighted_triplets(*, model: Any, triplets: Any, token_ids: Any,
+                               torch_module: Any, device: str = "cuda",
+                               before_forward: Callable[[int, int, str], None] | None = None
+                               ) -> dict:
+    """Run the fixed nine forwards and return a finite-cohort descriptive result.
+
+    ``before_forward`` is a caller-provided live resource guard; it receives
+    1-based row/condition positions and runs immediately before each forward.
+    A failure stops execution and leaves ``D3`` null. This function assumes the
+    caller has already authenticated and frozen all nine exact model inputs.
+    """
+    validate_scoring_inputs(triplets, token_ids)
+    if model is None or torch_module is None or not isinstance(device, str) or not device:
+        raise ValueError("scoring_runtime_invalid")
+
+    try:
+        token_tensor = torch_module.tensor(list(token_ids), device=device)
+    except Exception as exc:
+        return {
+            "status": "failed",
+            "scope": "finite_three_record_descriptive_only",
+            "requested_records": REQUESTED_RECORDS,
+            "cohort_denominator": REQUESTED_RECORDS,
+            "requested_forwards": REQUESTED_RECORDS * len(CONDITIONS),
+            "attempted_forwards": 0,
+            "completed_forwards": 0,
+            "completed_triplets": 0,
+            "failure_code": "answer_token_tensor_creation_failed_" + type(exc).__name__,
+            "records": [],
+            "D3_control_minus_claim_mask_nats": None,
+            "confidence_interval": None,
+            "p_value": None,
+            "execution_authorization": "not_granted",
+        }
+    records: list[dict] = []
+    attempted = completed = 0
+    failure: str | None = None
+    for row_position, row in enumerate(triplets, start=1):
+        row_scores: dict[str, list[float]] = {}
+        for condition_position, condition in enumerate(CONDITIONS, start=1):
+            try:
+                if before_forward is not None:
+                    before_forward(row_position, condition_position, condition)
+                batch = row["batches"][condition].to(device)
+                attempted += 1
+                with torch_module.inference_mode():
+                    output = model(**batch, use_cache=False, logits_to_keep=1)
+                logits = output.logits[0, -1].float()
+                if not bool(torch_module.isfinite(logits).all()):
+                    failure = "nonfinite_next_token_logits"
+                    break
+                log_probs = torch_module.log_softmax(logits, dim=-1)
+                scores = log_probs[token_tensor].float().detach().cpu().tolist()
+                if (len(scores) != LABEL_COUNT
+                        or any(not math.isfinite(float(value)) for value in scores)):
+                    failure = "answer_label_log_probability_invalid"
+                    break
+                row_scores[condition] = [float(value) for value in scores]
+                completed += 1
+            except Exception as exc:
+                # Do not serialize exception text; it may contain paths or input data.
+                failure = "forward_or_score_failed_" + type(exc).__name__
+                break
+        if row_scores:
+            margins = {condition: _margin(values, row["gold_index"])
+                       for condition, values in row_scores.items()}
+            row_result = {
+                "record_position": row_position,
+                "choice_log_probabilities_nats": row_scores,
+                "gold_vs_best_foil_margins_nats": margins,
+                "best_foil_index_by_condition": {
+                    condition: max((index for index in range(LABEL_COUNT)
+                                   if index != row["gold_index"]),
+                                  key=lambda index: values[index])
+                    for condition, values in row_scores.items()
+                },
+                "d_control_minus_claim_mask_nats": None,
+            }
+            if set(margins) == set(CONDITIONS):
+                row_result["d_control_minus_claim_mask_nats"] = (
+                    margins["temporal_control_black"] - margins["claim_evidence_black"])
+            records.append(row_result)
+        if failure is not None:
+            break
+
+    complete = (failure is None and completed == REQUESTED_RECORDS * len(CONDITIONS)
+                and len(records) == REQUESTED_RECORDS
+                and all(row["d_control_minus_claim_mask_nats"] is not None
+                        for row in records))
+    complete_triplets = sum(row["d_control_minus_claim_mask_nats"] is not None
+                            for row in records)
+    return {
+        "status": "completed" if complete else "failed",
+        "scope": "finite_three_record_descriptive_only",
+        "requested_records": REQUESTED_RECORDS,
+        "cohort_denominator": REQUESTED_RECORDS,
+        "completed_triplets": complete_triplets,
+        "requested_forwards": REQUESTED_RECORDS * len(CONDITIONS),
+        "attempted_forwards": attempted,
+        "completed_forwards": completed,
+        "failure_code": failure,
+        "records": records,
+        "D3_control_minus_claim_mask_nats": (
+            sum(row["d_control_minus_claim_mask_nats"] for row in records) / REQUESTED_RECORDS
+            if complete else None),
+        "confidence_interval": None,
+        "p_value": None,
+        "execution_authorization": "not_granted",
+    }
