@@ -5,7 +5,9 @@ import unittest
 from nextgqa_atomic_batch_freeze import (
     CONDITIONS, PreflightError, batch_sha256, freeze_all_batches,
 )
-from nextgqa_claim_mask_scoring import validate_scoring_inputs
+from nextgqa_claim_mask_scoring import (
+    score_preflighted_triplets, validate_scoring_inputs,
+)
 
 
 class FakeTensor:
@@ -78,6 +80,53 @@ class AtomicBatchFreezeTests(unittest.TestCase):
         self.assertEqual(len(result["triplets"]), 3)
         validate_scoring_inputs(result["triplets"], result["token_ids"])
         self.assertEqual(events, ["gate"])
+
+    def test_freeze_to_nine_forward_scorer_integration(self):
+        """Synthetic software-path check only; D3 is not a research result."""
+        try:
+            import torch
+        except ImportError:  # pragma: no cover - repository environment has torch
+            self.skipTest("torch unavailable")
+        rows, hashes = fixture()
+        for row_pos, row in enumerate(rows):
+            gold = row["gold_index"]
+            for condition, gold_score, foil_score in (
+                    ("full", 2.0, 0.0),
+                    ("claim_evidence_black", 0.0, 2.0),
+                    ("temporal_control_black", 1.0, 0.0)):
+                scores = [0.0] * 20
+                scores[11 + gold] = gold_score
+                scores[11 + (gold + 1) % 5] = foil_score
+                row["batches"][condition]["synthetic_logits"] = torch.tensor(scores)
+                hashes[f"r{row_pos + 1}"][condition] = batch_sha256(
+                    row["batches"][condition])
+        frozen = freeze_all_batches(
+            triplets=rows, token_ids=[11, 12, 13, 14, 15],
+            expected_record_ids=["r1", "r2", "r3"],
+            expected_batch_hashes=hashes,
+            authenticated_gate_check=lambda: True)
+
+        class Model:
+            def __init__(self):
+                self.calls = 0
+
+            def __call__(self, synthetic_logits, **_kwargs):
+                self.calls += 1
+                return type("Output", (), {
+                    "logits": synthetic_logits.reshape(1, 1, -1),
+                })()
+
+        model = Model()
+        scored = score_preflighted_triplets(
+            model=model, triplets=frozen["triplets"],
+            token_ids=frozen["token_ids"], record_ids=frozen["record_ids"],
+            expected_batch_hashes=frozen["batch_sha256"],
+            torch_module=torch, device="cpu")
+        self.assertEqual(model.calls, 9)
+        self.assertEqual(scored["completed_forwards"], 9)
+        self.assertAlmostEqual(scored["D3_control_minus_claim_mask_nats"], 3.0,
+                               delta=1e-6)
+        self.assertEqual(frozen["execution_authorization"], "not_granted")
 
     def test_missing_condition_rejected_before_gate(self):
         rows, hashes = fixture()
