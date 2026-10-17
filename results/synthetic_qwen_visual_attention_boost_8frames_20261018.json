@@ -1,0 +1,49 @@
+{
+  "cuda_version": "12.8",
+  "device_name": "NVIDIA GeForce RTX 5070 Ti",
+  "elapsed_seconds": 14.85154295599932,
+  "faithfulness_result": false,
+  "finite_final_logits": true,
+  "fixed_answer_query_position": 1067,
+  "forward_calls": 2,
+  "free_vram_after_gib": 7.8623046875,
+  "free_vram_before_forward_gib": 8.6826171875,
+  "free_vram_before_load_gib": 14.6572265625,
+  "intervention_helper_sha256": "c267e170725578b57f046ca69f46c1830779f55d82ffda906ea374682926723e",
+  "intervention_layers_1_based": [
+    5,
+    16
+  ],
+  "key_attention_logit_bias": 0.6931471805599453,
+  "limitations": [
+    "deterministic synthetic video only; no dataset or human review",
+    "fixed top-10-percent self-attention selector is an engineering choice",
+    "positive ln(2) key-logit bias is a Qwen adaptation, not STEAR",
+    "two-forward logit change does not estimate evidence dependence or efficacy"
+  ],
+  "max_abs_logit_change": 1.0,
+  "model_revision": "cc594898137f460bfe9f0759e9844b3ce807cfb5",
+  "odds_multiplier": 2.0,
+  "peak_allocated_gib": 6.216032028198242,
+  "peak_reserved_gib": 6.73046875,
+  "precision": "bf16_4bit_bf16_compute",
+  "rms_logit_change": 0.4473167061805725,
+  "scope": "synthetic_hook_and_forward_response_only",
+  "selected_video_token_count": 103,
+  "selected_video_token_ratio": 0.1,
+  "source_code_sha256": "d2aa693a355d786e7b706d21b5d4379f7b28f6d5921eb9c6006c43680b0f894f",
+  "started_at_utc": "2026-10-17T17:51:48.006213+00:00",
+  "status": "passed",
+  "synthetic_frames": 8,
+  "temporal_groups": 4,
+  "top_choice_changed": false,
+  "torch_version": "2.11.0+cu128",
+  "total_vram_gib": 15.89398193359375,
+  "transformers_version": "5.18.0",
+  "video_grid_thw": [
+    4,
+    32,
+    32
+  ],
+  "video_token_count": 1024
+}
