@@ -50,6 +50,7 @@ CODE_FILES = {
     "review_media_stager": "scripts/stage_nextgqa_review_media.py",
     "review_export_stager": "scripts/stage_nextgqa_review_exports.py",
     "review_handoff_audit": "scripts/audit_nextgqa_review_handoff.py",
+    "completed_review_attestation": "scripts/nextgqa_completed_review_attestation.py",
     "pre_review_integrity_receipt_verifier": "scripts/nextgqa_pre_review_integrity_receipt.py",
     "review_release_order_auditor": "scripts/audit_nextgqa_review_release_order.py",
     "claim_lineage_audit": "scripts/audit_nextgqa_claim_packet_lineage.py",

@@ -151,6 +151,21 @@ files mode 0600 in directories mode 0700; do not publish them. The custodian che
 package/media hashes, and source mapping with the existing handoff audit. A
 structural pass does not authenticate reviewer identity or semantic support.
 
+An optional detached reviewer-key attestation is available in
+`scripts/nextgqa_completed_review_attestation.py`. Only after a real review
+export exists and the custodian's structural audit passes, the claim reviewer
+may sign the exact frozen worksheet, lineage, review JSON, and review index
+using the `sign` subcommand. The CLI writes a new 0600 file under an existing
+0700 directory and refuses to overwrite. Obtain the receipt digest, reviewer
+key ID, and reviewer public-key fingerprint from the independently verified
+release roster; the CLI does not verify that roster or receipt itself. Keep the
+attestation and all source files private. The matching `verify` command checks
+the detached signature and the same structural handoff audit. Its result only
+means that the holder of the supplied key signed/adopted those bytes; reviewer
+identity, actual viewing, source-media custody, semantic truth, and score
+authorization all remain unverified/denied. This step does not replace the
+separate clock/frame evidence audit or the later score freeze.
+
 ## Browser-clock and frame correspondence
 
 Using the exact staged media and the frozen plan, perform all 15 planned

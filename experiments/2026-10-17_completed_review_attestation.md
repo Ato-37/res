@@ -31,9 +31,9 @@ was used for this change.
 - Focused attestation tests: 12/12 passed, including private CLI sign/verify,
   output permissions, overwrite refusal without changing prior bytes, and
   symlinked private-input rejection.
-- Full repository test discovery after CLI and final adversarial checks:
-  1,337/1,337 passed in 25.4 seconds.
-- Compilation and whitespace checks after CLI change passed.
+- Full repository test discovery after CLI, inventory registration, and final
+  handoff documentation: 1,337/1,337 passed in 25.7 seconds.
+- Compilation and whitespace checks passed.
 
 Adversarial coverage includes exact-byte changes, stale policy/index bindings,
 incomplete review rows, duplicate JSON keys, exponent-overflow nonfinite values,
@@ -52,6 +52,12 @@ workflow. The structural handoff audit does not prove that a person watched the
 source video or that the decisions are true, and it does not perform the
 separate on-disk media custody audit. The attestation is not a review receipt,
 human-authentication result, score freeze, or scoring permission.
+
+The human-review runbook now documents when to call the local `sign`/`verify`
+commands and where their trust inputs must come from. The pre-review inventory
+builder registers the attestation code as a required source artifact; a fresh
+local inventory contains 62/62 roles with zero missing slots and remains
+`candidate_only`, not frozen or score-ready. The inventory itself stays private.
 
 Direct generated-claim faithfulness remains 0/3 independently human-reviewed
 and 0/3 scored, with no direct estimate, confidence interval, or test. The
