@@ -1,6 +1,7 @@
 import json
 import hashlib
 import stat
+import subprocess
 import tempfile
 import unittest
 from pathlib import Path
@@ -18,6 +19,8 @@ from run_nextgqa_gold_interval_margin_pilot import (
     finalize_cuda_scoring,
     gold_vs_best_foil_margin,
     helper_source_hashes,
+    SOURCE_PATHS,
+    verify_committed_source_snapshot,
     prepare_conditions,
     validate_cohort_cardinality,
     validate_cohort_lock_payload,
@@ -33,6 +36,26 @@ from run_nextgqa_gold_interval_margin_pilot import (
 
 
 class GoldIntervalAnswerMarginTests(unittest.TestCase):
+    def test_source_snapshot_requires_exact_committed_bytes(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            repo = Path(tmp)
+            for relative in SOURCE_PATHS:
+                path = repo / relative
+                path.parent.mkdir(parents=True, exist_ok=True)
+                path.write_text("synthetic source " + relative, encoding="utf-8")
+            subprocess.run(["git", "init", "-q", str(repo)], check=True)
+            subprocess.run(["git", "-C", str(repo), "config", "user.email", "test@example.invalid"], check=True)
+            subprocess.run(["git", "-C", str(repo), "config", "user.name", "Synthetic Test"], check=True)
+            subprocess.run(["git", "-C", str(repo), "add", "."], check=True)
+            subprocess.run(["git", "-C", str(repo), "commit", "-q", "-m", "fixture"], check=True)
+            commit, hashes = verify_committed_source_snapshot(repo)
+            self.assertEqual(commit, subprocess.check_output(
+                ["git", "-C", str(repo), "rev-parse", "HEAD"], text=True).strip())
+            self.assertEqual(set(hashes), set(SOURCE_PATHS))
+            (repo / SOURCE_PATHS[0]).write_text("uncommitted mutation", encoding="utf-8")
+            with self.assertRaisesRegex(ValueError, "uncommitted_research_source"):
+                verify_committed_source_snapshot(repo)
+
     def test_private_json_snapshot_checks_schema_permissions_and_same_bytes_hash(self):
         payload = {"schema_version": 1, "pair_sha256": ["a" * 64]}
         raw = json.dumps(payload, separators=(",", ":")).encode("utf-8")

@@ -45,6 +45,12 @@ MAX_VIDEOS = 10
 CONDITION_NAMES = ("full", "black_gold_interval_mask", "black_equal_count_control_mask",
                    "blur_gold_interval_mask", "blur_equal_count_control_mask")
 BLUR_RADIUS = 12.0
+SOURCE_PATHS = (
+    "scripts/run_nextgqa_gold_interval_margin_pilot.py",
+    "scripts/claim_mask_video_decoder.py",
+    "scripts/necessity_choice_margin_utils.py",
+    "scripts/presentation_time_utils.py",
+)
 
 
 def validate_cohort_cardinality(requested: int, effective: int) -> None:
@@ -66,6 +72,24 @@ def helper_source_hashes(repo: Path) -> dict:
         name: sha256_file(repo / "scripts" / name)
         for name in ("necessity_choice_margin_utils.py", "presentation_time_utils.py")
     }
+
+
+def verify_committed_source_snapshot(repo: Path) -> tuple[str, dict[str, str]]:
+    """Require every executed project-code source byte to match the recorded HEAD."""
+    repo = Path(repo).resolve(strict=True)
+    commit = subprocess.check_output(
+        ["git", "rev-parse", "HEAD"], cwd=repo, text=True).strip()
+    hashes = {}
+    for relative in SOURCE_PATHS:
+        committed = subprocess.check_output(
+            ["git", "show", f"HEAD:{relative}"], cwd=repo)
+        current = (repo / relative).read_bytes()
+        committed_hash = hashlib.sha256(committed).hexdigest()
+        current_hash = hashlib.sha256(current).hexdigest()
+        if current_hash != committed_hash:
+            raise ValueError(f"uncommitted_research_source:{relative}")
+        hashes[relative] = current_hash
+    return commit, hashes
 
 
 def validate_cohort_lock_payload(payload: dict, requested: int) -> list[dict]:
@@ -606,6 +630,10 @@ def main():
         except ValueError as exc:
             parser.error(str(exc))
     repo = Path(__file__).resolve().parents[1]
+    try:
+        source_commit, source_hashes = verify_committed_source_snapshot(repo)
+    except (OSError, subprocess.CalledProcessError, ValueError) as exc:
+        parser.error(f"research_source_not_committed:{exc}")
     video_root = Path(args.video_root).resolve()
     model_path = (Path.home() / ".cache/huggingface/hub/models--Qwen--Qwen2.5-VL-7B-Instruct"
                   / "snapshots" / MODEL_REVISION)
@@ -692,9 +720,9 @@ def main():
             "purpose": "exploratory_nextgqa_gold_interval_answer_margin_dependence",
             "mode": "outcome_blind_preflight",
             "status": "passed",
-            "source_commit": subprocess.check_output(
-                ["git", "rev-parse", "HEAD"], cwd=repo, text=True).strip(),
+            "source_commit": source_commit,
             "runner_sha256": sha256_file(Path(__file__)),
+            "source_file_sha256": source_hashes,
             "decoder_sha256": sha256_file(repo / "scripts/claim_mask_video_decoder.py"),
             "helper_source_sha256": helper_source_hashes(repo),
             "candidate_input_sha256": {
@@ -776,6 +804,8 @@ def main():
                 != f"first {MAX_VIDEOS} outcome-blind eligible videos in deterministic hash order after prior-media exclusion"
             or gate.get("condition_names") != list(CONDITION_NAMES)
             or gate.get("blur_radius_pixels") != BLUR_RADIUS
+            or gate.get("source_commit") != source_commit
+            or gate.get("source_file_sha256") != source_hashes
             or gate.get("cohort_sha256") != cohort_hash
             or gate.get("effective_videos") != len(selected)
             or gate.get("runner_sha256") != sha256_file(Path(__file__))
@@ -907,9 +937,9 @@ def main():
         "mode": "score",
         "status": "passed" if not failures and len(records) == len(selected) else "partial",
         "started_utc": started_utc,
-        "source_commit": subprocess.check_output(
-            ["git", "rev-parse", "HEAD"], cwd=repo, text=True).strip(),
+        "source_commit": source_commit,
         "runner_sha256": sha256_file(Path(__file__)),
+        "source_file_sha256": source_hashes,
         "preflight_summary_sha256": sha256_file(Path(args.preflight_summary)),
         "cohort_sha256": cohort_hash,
         "model": "Qwen/Qwen2.5-VL-7B-Instruct",
@@ -929,6 +959,8 @@ def main():
         "prior_cohort_media_excluded": counts["prior_cohort_media_excluded"],
         "prior_cohort_exclusion_file_sha256": expected_exclusion_sha,
         "prior_cohort_exclusion_media_digest_sha256": excluded_media_digest,
+        "candidate_pair_filter_sha256": candidate_filter_sha256,
+        "candidate_pair_filter_digest_sha256": candidate_filter_digest,
             "cohort_lock_sha256": (cohort_lock_input_sha256
                                if cohort_lock_path else None),
         "selection_rule": f"first {MAX_VIDEOS} outcome-blind eligible videos in deterministic hash order after prior-media exclusion",
