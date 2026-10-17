@@ -53,6 +53,7 @@ CODE_FILES = {
     "completed_review_attestation": "scripts/nextgqa_completed_review_attestation.py",
     "pre_review_integrity_receipt_verifier": "scripts/nextgqa_pre_review_integrity_receipt.py",
     "review_release_order_auditor": "scripts/audit_nextgqa_review_release_order.py",
+    "review_ceremony_signing_cli": "scripts/nextgqa_review_ceremony_signing.py",
     "claim_lineage_audit": "scripts/audit_nextgqa_claim_packet_lineage.py",
     "claim_video_mapping_audit": "scripts/audit_nextgqa_video_mapping.py",
     "claim_mapping_packet_builder": "scripts/build_nextgqa_claim_mapping_packet.py",

@@ -215,6 +215,36 @@ class ReviewReleaseOrderTests(unittest.TestCase):
         report = self._verify(release_roster_raw=roster, attestation_raw=attest)
         self.assertTrue(report["package_opening_permitted"])
 
+    def test_owner_custodian_id_and_key_must_alias_together(self):
+        roster = json.loads(self.release_roster_raw)
+        entries = json.loads(json.dumps(roster["keys"]))
+        owner = next(row for row in entries if row["role"] == "freeze_owner")
+        custodian = next(row for row in entries if row["role"] == "custodian")
+
+        # Same key ID with a distinct public key is ambiguous and must fail.
+        custodian["key_id"] = owner["key_id"]
+        malformed = self._signed_roster(
+            purpose="nextgqa_review_release_roster_v1",
+            roster_id="ambiguous-owner-custodian", entries=entries,
+            domain=_ROSTER_DOMAIN)
+        with self.assertRaisesRegex(
+                ValueError, "release_roster_owner_custodian_alias_mismatch"):
+            self._verify(release_roster_raw=malformed)
+
+        # Same public key under distinct IDs is equally ambiguous.
+        entries = json.loads(json.dumps(roster["keys"]))
+        owner = next(row for row in entries if row["role"] == "freeze_owner")
+        custodian = next(row for row in entries if row["role"] == "custodian")
+        custodian["public_key_pem_base64"] = owner["public_key_pem_base64"]
+        custodian["public_key_der_sha256"] = owner["public_key_der_sha256"]
+        malformed = self._signed_roster(
+            purpose="nextgqa_review_release_roster_v1",
+            roster_id="ambiguous-owner-custodian-key", entries=entries,
+            domain=_ROSTER_DOMAIN)
+        with self.assertRaisesRegex(
+                ValueError, "release_roster_owner_custodian_alias_mismatch"):
+            self._verify(release_roster_raw=malformed)
+
     def test_custodian_cannot_be_reviewer(self):
         roster = self._release_roster(names={
             "freeze_owner": "owner", "custodian": "claim",

@@ -88,6 +88,7 @@ class SyntheticPreReviewInventoryTests(unittest.TestCase):
         required_code_roles = {
             "pre_review_integrity_receipt_verifier",
             "review_release_order_auditor",
+            "review_ceremony_signing_cli",
             "completed_review_attestation",
             "actual_qa_source_adapter",
             "annotation_clock_calibration",

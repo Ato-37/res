@@ -182,3 +182,43 @@ and actual frame correspondences remain absent (0/15). This is a design audit,
 not an outcome. Next, establish which explanation-faithfulness construct should
 be the thesis endpoint before any score outcomes exist; continue no-go on GPU
 claim-mask scoring until human/trust/capture gates and production preflight pass.
+
+## 22:07–22:13 JST — implement and audit local ceremony signing
+
+Added `scripts/nextgqa_review_ceremony_signing.py`, a local CLI that signs the
+three-role integrity roster, five-role release roster, and witnessed
+pre-opening statement using supplied Ed25519 keys. Witness signing checks the
+root-pinned rosters, signed integrity receipt, exact inventory and artifact
+bytes, and rostered witness key before writing a new private output. The CLI
+does not generate keys, authenticate people, prove that a ceremony occurred,
+or authorize package opening/model loading/scoring. Its code is included in
+the inventory's executable-source closure, and the runbook now describes the
+inputs and human observation required before using the witness-confirmation
+flag.
+
+Independent code review found an ambiguity in the existing release-roster
+validator: freeze owner and custodian could reuse only the key ID or only the
+public key. The validator now requires those two alias fields to agree
+together. Synthetic regressions reject both mismatch cases while preserving
+the permitted same-ID/same-key alias. The independent auditor reran the
+release-order suite (13/13); the combined ceremony, release-order, and
+inventory suites passed 33/33. Full repository discovery passed 1,358/1,358
+tests in 30.0 seconds; `compileall` and `git diff --check` passed.
+
+A newly generated local inventory binds 63 roles with zero missing slots,
+including the signing CLI. Its SHA-256 is
+`0f91cb5395e6e2d7cbbebb8355f0d789cad7928009bb056734b76bd11e4f705b`; the
+directory/file permissions are 0700/0600. It remains `candidate_only`,
+`review_started=false`, `review_completed=false`, `joint_freeze=false`,
+`score_ready=false`, `execution_authorization=not_granted`, and
+`rights_status=unverified_local_only`. Inventory contents are hash/size
+metadata only and remain local. No actual review package was opened, no human
+key was used, and no GPU job ran.
+
+This closes a software-preparation gap only. Direct explanation faithfulness
+is still not measured: independent review 0/3, scored 0/3, with no effect,
+confidence interval, or hypothesis test. Actual browser-to-decoder frame
+correspondences remain 0/15. The real human-reviewed trust root, role keys,
+freeze receipt, witnessed handoff, independent frame review, and score-freeze
+preflight are still absent. The scoring branch remains closed pending those
+conditions and the thesis construct decision.

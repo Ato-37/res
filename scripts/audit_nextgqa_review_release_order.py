@@ -123,6 +123,17 @@ def _validate_release_roster(roster_raw: bytes, root_public_key_pem: bytes,
     if set(public_by_role) != set(RELEASE_ROLES):
         _fail("release_roster_role_set_invalid")
 
+    # The runbook permits a freeze owner to double as custodian. That alias
+    # must identify the same key in both fields; otherwise a repeated key ID
+    # or fingerprint could ambiguously name different role credentials.
+    owner_id, custodian_id = (key_id_by_role["freeze_owner"],
+                              key_id_by_role["custodian"])
+    owner_fingerprint = fingerprints["freeze_owner"]
+    custodian_fingerprint = fingerprints["custodian"]
+    if ((owner_id == custodian_id) !=
+            (owner_fingerprint == custodian_fingerprint)):
+        _fail("release_roster_owner_custodian_alias_mismatch")
+
     # Reuse the original three-role, root-signed roster as the identity source
     # for its roles; the release roster adds explicit custody and witness.
     _, original_keys = _validate_roster(

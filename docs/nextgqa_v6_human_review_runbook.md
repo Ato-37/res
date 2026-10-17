@@ -86,6 +86,25 @@ procedural permission for the witnessed offline review step only. It never
 permits model loading or scoring. Do not open the package based solely on the
 older integrity-only verifier.
 
+`scripts/nextgqa_review_ceremony_signing.py` can create the root-signed
+integrity/release rosters and the detached witness statement from supplied
+keys and exact local files. It never creates keys or confirms a person's
+identity. For either roster command, supply the root key pair, an independently
+obtained root DER fingerprint, a fresh roster ID, and one
+`--role-key ROLE=KEY_ID=PUBLIC_KEY_PEM` argument per role. For
+`sign-release-roster`, also supply the already signed `--integrity-roster`.
+After the freeze owner has established the exact inventory and signed integrity
+receipt, the witness may run `sign-witness` with both rosters, inventory,
+receipt, one `--artifact ROLE=PATH` argument for every inventoried artifact,
+the witness private key, and a fresh `--ceremony-id`. The witness must
+explicitly pass `--witness-confirms-unopened-preopen-handoff` only after
+personally observing that statement to be true. All inputs must be regular
+0600 files and output must be a new file under an existing 0700 directory.
+The CLI verifies the signatures, receipt, and exact artifact bytes before
+signing; its successful output still does not prove identity or that the
+ceremony occurred. Run the independent release-order auditor immediately
+before opening the page. Keep all signing material private and local.
+
 The release witness must be independently trusted through the out-of-band
 root pin and must personally observe the release ceremony: exact frozen bytes
 and signed receipt are established while the page is unopened, then the owner
