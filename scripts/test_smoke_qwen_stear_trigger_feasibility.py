@@ -3,8 +3,62 @@ import unittest
 
 from smoke_qwen_stear_trigger_feasibility import (
     _capture_projected_logits,
+    _capture_attention_row,
     _layer_entropies,
+    _select_engineering_kes,
 )
+
+
+class EngineeringKesTests(unittest.TestCase):
+    def test_attention_capture_averages_heads_at_last_query(self):
+        import torch
+
+        weights = torch.tensor([[[[0.1, 0.9], [0.8, 0.2]],
+                                 [[0.3, 0.7], [0.4, 0.6]]]])
+        rows = {}
+        _capture_attention_row(output=(None, weights), layer_index=4,
+                               attention_rows=rows, torch_module=torch)
+        self.assertTrue(torch.equal(rows[4], torch.tensor([0.6, 0.4])))
+        self.assertEqual(rows[4].device.type, "cpu")
+
+    def test_attention_capture_rejects_invalid_batch_contract(self):
+        import torch
+
+        with self.assertRaisesRegex(RuntimeError, "self_attention_weights_unavailable"):
+            _capture_attention_row(
+                output=(None, torch.zeros((2, 1, 2, 2))), layer_index=4,
+                attention_rows={}, torch_module=torch)
+
+    def test_engineering_kes_uses_selected_layer_neighborhood_and_top_ten_percent(self):
+        import torch
+
+        # Twelve compact rows, with deliberately highest attention on visual
+        # positions 3 and 17 across the selected layer's radius-one window.
+        rows = {}
+        for layer in range(4, 16):
+            row = torch.zeros((20,), dtype=torch.float32)
+            if layer in (13, 14, 15):
+                row[3] = 1.0
+                row[17] = 0.9
+            rows[layer] = row
+        neighborhood, chosen = _select_engineering_kes(
+            attention_rows=rows, visual_positions=tuple(range(20)),
+            selected_layer=14, layer_range=(4, 15), radius=1,
+            sequence_length=20)
+        self.assertEqual(neighborhood, (13, 14, 15))
+        self.assertEqual(chosen, (3, 17))
+
+    def test_engineering_kes_clips_neighborhood_at_layer_boundary(self):
+        import torch
+
+        rows = {layer: torch.arange(20, dtype=torch.float32)
+                for layer in range(4, 16)}
+        neighborhood, chosen = _select_engineering_kes(
+            attention_rows=rows, visual_positions=tuple(range(20)),
+            selected_layer=4, layer_range=(4, 15), radius=1,
+            sequence_length=20)
+        self.assertEqual(neighborhood, (4, 5))
+        self.assertEqual(chosen, (18, 19))
 
 
 class LayerEntropySummaryTests(unittest.TestCase):
