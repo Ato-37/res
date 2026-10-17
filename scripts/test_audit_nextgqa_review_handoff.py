@@ -197,9 +197,16 @@ class AuditNextgqaReviewHandoffTests(unittest.TestCase):
                        "claim_review_policy_sha256": worksheet["claim_review_policy_sha256"],
                        "record_count": 3, "records": rows}
             raw = encode(custody)
+            media_snapshot = {path.name: path.read_bytes() for path in media_dir.iterdir()}
             self.assertEqual(audit_custody(worksheet, worksheet_raw, lineage, lineage_raw, custody, raw,
                                            media_dir, hashlib.sha256(raw).hexdigest()), [])
             (media_dir / rows[0]["media_file"]).write_bytes(b"tampered")
+            # When a caller supplies a validated immutable snapshot, subsequent
+            # disk replacement cannot silently change the bytes used by the
+            # aggregate audit and its signed-role join.
+            self.assertEqual(audit_custody(
+                worksheet, worksheet_raw, lineage, lineage_raw, custody, raw,
+                media_dir, hashlib.sha256(raw).hexdigest(), media_snapshot), [])
             self.assertIn("custody_media_hash_mismatch", audit_custody(
                 worksheet, worksheet_raw, lineage, lineage_raw, custody, raw, media_dir,
                 hashlib.sha256(raw).hexdigest()))

@@ -303,8 +303,13 @@ status remains unverified; protected data/results remain local.
 
 The corrected estimand and exact gate contract have passed an independent
 protocol audit. The combined synthetic baseline/QTA/sham runner and score
-adapter have also passed an independent code/result audit. Next bind the
-reviewed-claim mapper and three-stage cohort preflight into a real-data runner,
-with CPU tests before any authorized real smoke. Keep real-data scoring blocked
-until human and clock gates pass and the runner receives independent audit.
+adapter have also passed an independent code/result audit. A CPU-only stage-1
+bundle aggregate now reruns and binds the source-byte, custody, release, and
+reviewer-key-adoption checks, including exact joins for the signed HTML and
+media roles. It is non-authorizing and does not cover browser-clock,
+frame-correspondence, calibration, or semantic-review validity. Next integrate
+the audited 15-pair clock/frame evidence and calibration artifacts with the
+joint-freeze/trust-root gate; actual browser captures and blinded human frame
+decisions are still absent. Keep real-data scoring blocked until the human and
+clock gates pass and the complete cohort runner receives independent audit.
 Do not use synthetic results as faithfulness evidence.

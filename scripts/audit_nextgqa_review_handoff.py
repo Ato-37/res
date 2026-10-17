@@ -197,7 +197,8 @@ def audit(worksheet: Any, worksheet_raw: bytes, lineage: Any, lineage_raw: bytes
 
 def audit_custody(worksheet: Any, worksheet_raw: bytes, lineage: Any, lineage_raw: bytes,
                   custody: Any, custody_raw: bytes, media_dir: Path,
-                  expected_custody_sha256: str) -> list[str]:
+                  expected_custody_sha256: str,
+                  media_bytes_by_name: dict[str, bytes] | None = None) -> list[str]:
     failures = set()
     if (not isinstance(worksheet, dict) or not isinstance(worksheet.get("records"), list)
             or not isinstance(lineage, dict) or not isinstance(lineage.get("records"), list)):
@@ -233,6 +234,11 @@ def audit_custody(worksheet: Any, worksheet_raw: bytes, lineage: Any, lineage_ra
             failures.add("custody_media_directory_contents_invalid")
     except OSError:
         failures.add("custody_media_directory_unreadable")
+    if media_bytes_by_name is not None and (
+            not isinstance(media_bytes_by_name, dict)
+            or set(media_bytes_by_name) != expected_files
+            or any(not isinstance(raw, bytes) for raw in media_bytes_by_name.values())):
+        failures.add("custody_media_snapshot_invalid")
     for ordinal, (source, row) in enumerate(zip(expected, rows, strict=True), start=1):
         row_keys = {"review_token", "row_ordinal", "media_file", "source_media_sha256", "staged_media_sha256", "size_bytes",
                     "media_check_salt", "media_check_sha256"}
@@ -253,7 +259,12 @@ def audit_custody(worksheet: Any, worksheet_raw: bytes, lineage: Any, lineage_ra
             if (path.is_symlink() or not stat.S_ISREG(info.st_mode) or info.st_uid != os.geteuid()
                     or stat.S_IMODE(info.st_mode) != 0o600 or path.resolve().parent != media_dir.resolve()):
                 failures.add("custody_media_file_invalid"); continue
-            raw = path.read_bytes()
+            if media_bytes_by_name is None:
+                raw = path.read_bytes()
+            else:
+                raw = media_bytes_by_name.get(filename)
+                if not isinstance(raw, bytes):
+                    failures.add("custody_media_snapshot_invalid"); continue
             if len(raw) != row.get("size_bytes") or hashlib.sha256(raw).hexdigest() != source.get("video_sha256"):
                 failures.add("custody_media_hash_mismatch")
             salt = bytes.fromhex(row["media_check_salt"])
