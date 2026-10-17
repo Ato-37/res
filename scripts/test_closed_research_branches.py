@@ -89,6 +89,7 @@ ALLOWED_ENGINEERING_LOADERS = {
     "smoke_qwen_stear_attention_feasibility.py",
     "smoke_qwen_stear_trigger_feasibility.py",
     "smoke_qwen_question_temporal_selector.py",
+    "smoke_qwen_question_selector_intervention.py",
     "smoke_qwen_internal_attention_ablation.py",
     "smoke_qwen_temporal_hook_wiring.py",
     "smoke_qwen_attention.py",

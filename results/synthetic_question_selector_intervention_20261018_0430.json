@@ -1,0 +1,187 @@
+{
+  "attempted_forwards": 9,
+  "bitsandbytes_version": "0.50.2",
+  "captured_layers_1_based": [
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11,
+    12,
+    13,
+    14,
+    15,
+    16
+  ],
+  "checkpoint_weights_hash_status": "not_computed_local_cached_revision_only",
+  "completed_forwards": 9,
+  "completed_records": 1,
+  "condition_forward_checks": {
+    "baseline_control_ablation": {
+      "logits_finite": true,
+      "logits_shape": [
+        1,
+        1,
+        152064
+      ]
+    },
+    "baseline_evidence_ablation": {
+      "logits_finite": true,
+      "logits_shape": [
+        1,
+        1,
+        152064
+      ]
+    },
+    "baseline_full": {
+      "forward_reused": true,
+      "logits_finite": true
+    },
+    "sham_control_ablation": {
+      "logits_finite": true,
+      "logits_shape": [
+        1,
+        1,
+        152064
+      ]
+    },
+    "sham_evidence_ablation": {
+      "logits_finite": true,
+      "logits_shape": [
+        1,
+        1,
+        152064
+      ]
+    },
+    "sham_full": {
+      "logits_finite": true,
+      "logits_shape": [
+        1,
+        1,
+        152064
+      ]
+    },
+    "target_control_ablation": {
+      "logits_finite": true,
+      "logits_shape": [
+        1,
+        1,
+        152064
+      ]
+    },
+    "target_evidence_ablation": {
+      "logits_finite": true,
+      "logits_shape": [
+        1,
+        1,
+        152064
+      ]
+    },
+    "target_full": {
+      "logits_finite": true,
+      "logits_shape": [
+        1,
+        1,
+        152064
+      ]
+    }
+  },
+  "condition_names": [
+    "baseline_full",
+    "baseline_evidence_ablation",
+    "baseline_control_ablation",
+    "target_full",
+    "target_evidence_ablation",
+    "target_control_ablation",
+    "sham_full",
+    "sham_evidence_ablation",
+    "sham_control_ablation"
+  ],
+  "cuda_version": "12.8",
+  "device_name": "NVIDIA GeForce RTX 5070 Ti",
+  "elapsed_seconds": 40.83836619900103,
+  "evidence_control_key_counts_equal": true,
+  "execution_authorization": "not_granted",
+  "faithfulness_result": false,
+  "free_vram_after_gib": 1.9040412902832031,
+  "free_vram_before_forward_gib": 8.6103515625,
+  "free_vram_before_load_gib": 14.6572265625,
+  "intervention_layers_1_based": [
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11,
+    12,
+    13,
+    14,
+    15,
+    16
+  ],
+  "limitations": [
+    "synthetic video only; no semantic evidence or treatment efficacy",
+    "the selector layer range, 10-percent group budget, ln(2) dose, and sham seed are engineering smoke settings",
+    "synthetic evidence/control groups have no annotation meaning",
+    "no answer score, effect estimate, interval, or hypothesis test is computed"
+  ],
+  "logit_bias": 0.6931471805599453,
+  "model_revision": "cc594898137f460bfe9f0759e9844b3ce807cfb5",
+  "numpy_version": "2.5.2",
+  "peak_allocated_gib": 10.754877090454102,
+  "peak_reserved_gib": 12.439453125,
+  "pillow_version": "12.3.0",
+  "precision": "bf16_4bit_bf16_compute_eager",
+  "processor_fingerprint_sha256": "a8aa40930855b070f83b7d559409013d4d0f2f8bcf8c08300c92d826821015dc",
+  "python_version": "3.12.14",
+  "question_token_count": 9,
+  "qwen_vl_utils_version": "0.0.14",
+  "requested_forwards": 9,
+  "requested_records": 1,
+  "scope": "synthetic_question_selector_bias_and_key_ablation_wiring_only",
+  "selected_sham_group_indices": [
+    5,
+    6
+  ],
+  "selected_target_group_indices": [
+    0,
+    5
+  ],
+  "sham_seed": 20261018,
+  "source_sha256": {
+    "attention_bias": "c267e170725578b57f046ca69f46c1830779f55d82ffda906ea374682926723e",
+    "claim_mask_builder": "686ff9264d4ebf46749af78adad0a3693172ef1bc2f59cbfa35d79e29e3613f9",
+    "claim_mask_video_decoder": "bef8a096c4de423a98ae5590a55f3e564f9398ec692ebd03343e4b207fea7351",
+    "condition_batch_builder": "7486c6e959e507add3190b2af91b92ddf3d9dc84035a11cd44b3c0f36cee14e7",
+    "internal_ablation": "a96175d796ee4cfab0ffc40dbf8666d7313bf72a6d4c50555222aa4b94ab4109",
+    "mask_condition_dependency": "5e61fa36a60abc03795c5c2206a0f80c0c6a6684716743336c156dd9790f9164",
+    "presentation_time_utils": "515b26ecca9a7e917b1c050ba0cede8dce3d9c837955dec28def31bbc48669a5",
+    "processor_batch_mapping": "625ce32bbba614d8dc91db959096e690d3a0216f02b43cb26e646fd85f605da1",
+    "prompt_processor_adapter": "5842867ac9a263455707de1dacb8d84d257912a72df78a69707675d3cc721a37",
+    "qwen_vl_utils_video_impl": "f3710ced8ffe735da57d08cf5236cf9d326ff646ed1bdad2e62593a7801adc33",
+    "runner": "04983176e369764edf917d915f5c9ed594c1efd2e6206d5a1d211545cbee6fa6",
+    "selector": "8c898dcd413624291dc0e31bad6779b73f48ce0a3e5a3f7b2c505ebda6419ab5",
+    "selector_runner_fixture": "37fc0fd7a05887f12ccf256758e6b102901f4f9137911bba9e78532275860be2",
+    "synthetic_fixture": "7f50633859e07d1ad88e4c2764c659d3309b75c637f509f0ca1fc9fd834abb3a",
+    "temporal_group_mapping": "98ee69dd153e679cc6a9e564967592a6f808816bd8bd748609c14779f8d6373b",
+    "transformers_qwen_image_processor_impl": "ebdb484798a6aefebc5dbe5431d3e4af8f460404d95d4cb67165fdff624ed333",
+    "transformers_qwen_model_impl": "1b7a2a6403d309cdfe1ba31184708ed1a9f14b0ffd8e5bd4992f05a699e4f630",
+    "transformers_qwen_processing_impl": "dcecc3dff4ebb07c58e66923f1d62c73edee1edf572d27947c27ee5f5f2e654f",
+    "transformers_video_processor_impl": "524ee43d756e97bbc5ad6e2509cab922db09c8632f79031b3ef8835919be09ab",
+    "typed_batch_hash": "b6e5c60bc51cdf913c91ec6a2d8acfdee2c4f715eadaf851d7d9ce7f1d569c92"
+  },
+  "started_at_utc": "2026-10-17T19:15:57.784130+00:00",
+  "status": "passed",
+  "target_sham_overlap_count": 1,
+  "temporal_group_count": 16,
+  "tokens_per_temporal_group": 256,
+  "top_k_budget_rule": "ceil(temporal_groups*0.10)_engineering_smoke_only",
+  "torch_version": "2.11.0+cu128",
+  "total_vram_gib": 15.89398193359375,
+  "transformers_version": "5.18.0",
+  "treatment_frozen": false,
+  "typed_batch_sha256": "3d3f7fba9e5e49cbbf61f6669d9ee9cc96aed50293e73fbb8fc47d395caf4cf6"
+}
