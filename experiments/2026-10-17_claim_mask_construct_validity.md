@@ -530,3 +530,53 @@ authorized synthetic engineering loaders. The runner was explicitly
 classified, both guard tests then passed, and final repository test discovery
 passed **1,392/1,392**. The final run also passed `git diff --check`; the source
 and result hashes above were re-read directly after execution.
+
+### Forced-trigger synthetic attention-selection integration check
+
+To exercise the conditional selector path that the paper-threshold smoke had
+not reached, the runner gained a clearly labeled engineering-only threshold
+override. The fixed paper threshold remains 0.85; this run deliberately used
+0.50 and records `trigger_threshold_mode=synthetic_engineering_override`. This
+is a pathway test, not a threshold calibration and not a STEAR setting. An
+independent source audit found that the imported attention-selector file was
+not hashed in the first integrated artifact; the runner was updated to record
+that dependency, and the attention capture now rejects non-tensor or non-batch
+one outputs with a stable contract error. The first artifact is superseded by
+the final source-closed artifact below.
+
+The final rerun used one synthetic 8-frame Qwen2.5-VL-7B prefill on the RTX
+5070 Ti, BF16 with 4-bit BF16 compute, pinned revision
+`cc594898137f460bfe9f0759e9844b3ce807cfb5`, Transformers 5.18.0,
+PyTorch 2.11.0+cu128, and CUDA 12.8. One forward took 13.54 seconds. The
+override caused the max-entropy layer 15 to trigger; radius-one layer aggregation
+used layers 14–16 and the synthetic top-10% selector chose 103 of 1,024 video
+tokens. Final-layer shared-norm/LM-head projection again matched the ordinary
+logits exactly (maximum absolute error 0.0). Forward peak allocated/reserved
+memory was 6.213/6.730 GiB after resetting counters before the forward;
+free VRAM was 14.657 GiB before load, 8.683 GiB before forward, 7.862 GiB
+after forward before cleanup, and 14,848 MiB in a separate post-exit check.
+
+Artifact:
+`results/synthetic_qwen_stear_trigger_kes_forced_verified_20261017.json`,
+SHA-256 `4d43d8f9e86b593fcb7bd834a76b2b656214344d6b3a57cfc2ef0211df737ccd`.
+Independent recomputation matched all three source hashes: runner
+`ed9c74995d7f68aa1c1e2d05223da8db08701d62fe2365207199ca2b5f4cfab3`, trigger
+helper `5434f3bae2847f1742828aa651f94872248f04bef7d8ed40ba988b47227b8b5d`,
+and attention selector
+`061fa5dc96f1ac685953f4c0316873a4a0118c2db326668e76741f8e6802f161`.
+The independent code review checked trigger threshold metadata, attention
+capture contract, video-token-only ranking, radius boundary behavior, and
+selector output scope. Focused tests passed **17/17** and full repository
+discovery passed **1,396/1,396**; compilation and `git diff --check` passed.
+
+This remains synthetic integration evidence only. It verifies a manually
+forced conditional path and does not show that natural claims trigger STEAR,
+that selected frames support claims, or that any internal intervention improves
+claim-level video-evidence dependence. Direct faithfulness remains **0/3
+reviewed, 0/3 scored, no `ΔF` estimate/interval/test**; actual
+browser-to-decoder/frame correspondence remains **0/15**. The preregistered
+head branch remains closed, and these synthetic results do not justify
+reopening it. The next efficacy step still requires completion of the local
+review and evidence-correspondence gates, followed by a frozen intervention and
+scoring/control protocol; until then, engineering can proceed only where it
+reduces a concrete implementation or audit uncertainty.
