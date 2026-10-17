@@ -151,6 +151,42 @@ class PredictionLinkReviewTests(unittest.TestCase):
             self._validate(receipt={**self.receipt,
                                     "gold_and_branch_outcomes_hidden": False})
 
+    def test_boolean_schema_versions_and_malformed_scores_or_unicode_are_rejected(self):
+        with self.assertRaisesRegex(PredictionLinkReviewError,
+                                    "prediction_link_receipt_status_invalid"):
+            self._validate(receipt={**self.receipt, "schema_version": True})
+
+        bool_manifest = json.dumps(
+            {"schema_version": True,
+             "purpose": "qta_baseline_prediction_link_manifest",
+             "records": self.rows}, separators=(",", ":")).encode()
+        bool_hash = hashlib.sha256(bool_manifest).hexdigest()
+        with self.assertRaisesRegex(PredictionLinkReviewError,
+                                    "baseline_manifest_schema_invalid"):
+            self._validate(
+                baseline_manifest_raw=bool_manifest,
+                expected_baseline_manifest_sha256=bool_hash,
+                receipt={**self.receipt, "baseline_manifest_sha256": bool_hash})
+
+        for changed_row in (
+                {**self.rows[0], "option_log_probabilities": [10**4000, -2, -3, -4, -5]},
+                {**self.rows[0], "question": "invalid-\ud800-surrogate"}):
+            rows = [changed_row, self.rows[1]]
+            raw = json.dumps(
+                {"schema_version": 1,
+                 "purpose": "qta_baseline_prediction_link_manifest",
+                 "records": rows}, ensure_ascii=True,
+                separators=(",", ":")).encode()
+            digest = hashlib.sha256(raw).hexdigest()
+            with self.subTest(row=changed_row["review_token"]):
+                with self.assertRaisesRegex(PredictionLinkReviewError,
+                                            "baseline_row_fields_invalid"):
+                    self._validate(
+                        baseline_manifest_raw=raw,
+                        expected_baseline_manifest_sha256=digest,
+                        receipt={**self.receipt,
+                                 "baseline_manifest_sha256": digest})
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -54,6 +54,15 @@ def _sha(value: Any, code: str) -> str:
     return value
 
 
+def _is_finite_score(value: Any) -> bool:
+    if isinstance(value, bool) or not isinstance(value, Real):
+        return False
+    try:
+        return math.isfinite(float(value))
+    except (OverflowError, TypeError, ValueError):
+        return False
+
+
 def displayed_fields_sha256(row: dict[str, Any]) -> str:
     """Digest only the question, five options, claim and frozen p/q shown."""
     if not isinstance(row, dict):
@@ -71,23 +80,26 @@ def displayed_fields_sha256(row: dict[str, Any]) -> str:
             or p_index not in range(5) or q_index not in range(5)
             or p_index == q_index or not isinstance(log_probs, list)
             or len(log_probs) != 5
-            or any(isinstance(score, bool) or not isinstance(score, Real)
-                   or not math.isfinite(float(score)) for score in log_probs)):
+            or any(not _is_finite_score(score) for score in log_probs)):
         _fail("baseline_row_fields_invalid")
-    expected_p = min(range(5), key=lambda index: (-float(log_probs[index]), index))
+    try:
+        scores = [float(score) for score in log_probs]
+        displayed = {
+            "question": question,
+            "options": options,
+            "claim": claim,
+            "p": {"label": "ABCDE"[p_index], "text": options[p_index]},
+            "q": {"label": "ABCDE"[q_index], "text": options[q_index]},
+        }
+        encoded = json.dumps(displayed, ensure_ascii=False, sort_keys=True,
+                             separators=(",", ":")).encode("utf-8")
+    except (UnicodeError, OverflowError, TypeError, ValueError):
+        _fail("baseline_row_fields_invalid")
+    expected_p = min(range(5), key=lambda index: (-scores[index], index))
     expected_q = min((index for index in range(5) if index != expected_p),
-                     key=lambda index: (-float(log_probs[index]), index))
+                     key=lambda index: (-scores[index], index))
     if (p_index, q_index) != (expected_p, expected_q):
         _fail("baseline_prediction_rule_mismatch")
-    displayed = {
-        "question": question,
-        "options": options,
-        "claim": claim,
-        "p": {"label": "ABCDE"[p_index], "text": options[p_index]},
-        "q": {"label": "ABCDE"[q_index], "text": options[q_index]},
-    }
-    encoded = json.dumps(displayed, ensure_ascii=False, sort_keys=True,
-                         separators=(",", ":")).encode("utf-8")
     return hashlib.sha256(encoded).hexdigest()
 
 
@@ -101,7 +113,8 @@ def validate_prediction_link_receipt(
     """Return cohort eligibility without implying human authentication/authority."""
     if not isinstance(receipt, dict) or set(receipt) != RECEIPT_KEYS:
         _fail("prediction_link_receipt_schema_invalid")
-    if (receipt.get("schema_version") != 1
+    if (type(receipt.get("schema_version")) is not int
+            or receipt.get("schema_version") != 1
             or receipt.get("purpose") != "qta_prediction_link_adjudication"
             or receipt.get("status") != "prediction_link_review_recorded_unvalidated"
             or receipt.get("execution_authorization") != "not_granted"):
@@ -118,6 +131,7 @@ def validate_prediction_link_receipt(
     except (UnicodeError, json.JSONDecodeError, ValueError, RecursionError):
         _fail("baseline_manifest_json_invalid")
     if (not isinstance(manifest, dict) or set(manifest) != BASELINE_MANIFEST_KEYS
+            or type(manifest.get("schema_version")) is not int
             or manifest.get("schema_version") != 1
             or manifest.get("purpose") != "qta_baseline_prediction_link_manifest"):
         _fail("baseline_manifest_schema_invalid")

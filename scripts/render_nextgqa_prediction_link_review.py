@@ -75,6 +75,7 @@ def render_prediction_link_review_page(
     except (UnicodeError, json.JSONDecodeError, ValueError, RecursionError):
         raise ValueError("baseline_manifest_json_invalid") from None
     if (not isinstance(manifest, dict) or set(manifest) != BASELINE_MANIFEST_KEYS
+            or type(manifest.get("schema_version")) is not int
             or manifest.get("schema_version") != 1
             or manifest.get("purpose") != "qta_baseline_prediction_link_manifest"):
         raise ValueError("baseline_manifest_schema_invalid")

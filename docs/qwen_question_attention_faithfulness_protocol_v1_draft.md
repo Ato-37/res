@@ -118,8 +118,10 @@ manifest bytes, externally frozen cohort/source digests, and `p/q` recomputed
 from baseline A–E log-probabilities. It remains non-authorizing: its expected
 hashes and token list must come from independently verified frozen inputs, and
 it cannot authenticate who reviewed the material or whether the judgment is
-semantically correct. No human packet renderer or production cohort caller is
-currently connected to the validator.
+semantically correct. A static offline packet renderer and local structural
+validator CLI now exist, but no real baseline/receipt/source bundle exists and
+the validator is not connected to the production scorer or a cohort-wide
+release/review/clock preflight.
 
 All outcome branches use the **same original full-video processor batch**.
 `evidence_ablation` and `control_ablation` are not black-frame input masks:

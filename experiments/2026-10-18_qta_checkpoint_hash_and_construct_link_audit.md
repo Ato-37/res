@@ -93,7 +93,7 @@ Five synthetic CPU regression tests passed: hostile markup escaping and frozen
 P/Q display, hash/schema/prediction fail-closed behavior, private output mode and
 exclusive creation, symlink/unsafe-root rejection, and partial-write cleanup.
 The renderer also passed `node --check` on its emitted inline JavaScript. Full
-repository tests passed 1,484/1,484 in 29.391 seconds; `py_compile` and
+repository tests subsequently passed 1,488/1,488 in 29.593 seconds; `py_compile` and
 `git diff --check` passed. The CLI pins its root to
 `data/private_nextgqa`, requires current-user ownership and private root/input
 modes, and accepts only direct-child names. It has not been exercised in a
@@ -121,6 +121,46 @@ ceremony, first-stage human video review, browser-to-decoder clock receipts, and
 post-baseline prediction-link receipt. Do not score real data before all these
 gates and cohort bindings pass.
 
+The receipt validator received an independent robustness audit. It found that
+Python treated JSON `true` as schema version `1`, and that an enormous integer
+or unpaired Unicode surrogate could escape the intended stable validation
+error. Both manifest/receipt schema version checks now require an actual JSON
+integer; non-finite/out-of-range conversions and invalid UTF-8 encodings fail
+closed. New synthetic regressions cover all three classes. The independent
+auditor also confirmed the core cohort/order/source/display hash checks and
+that the result remains explicitly self-reported and non-authorizing.
+
+Added `scripts/validate_nextgqa_prediction_link_review.py` as a local private-file
+entry point. It reads the baseline manifest, reviewer receipt, and a separately
+frozen cohort/source-digest file as exact mode-0600 direct children of
+`data/private_nextgqa`; requires pinned bytes for baseline, source manifest, and
+protocol; and writes a mode-0600 structural summary. Its synthetic integration
+tests check a successful structural receipt, changed cohort pin and receipt
+binding failures, direct-child path restrictions, private mode, and refusal to
+overwrite. A structural pass still sets `other_score_gates_verified=false` and
+`execution_authorization=not_granted`. It does not verify the source file's
+signing/trust-root chain; that must be independently frozen and audited by the
+eventual cohort-wide production preflight.
+
+The independent CLI auditor verified the expected source pin, baseline and
+protocol bindings, exact token order, private reads/writes, and non-authorizing
+summary. It noted that path replacement by a same-user concurrent process is
+not fully eliminated on input reads; this is outside the normal local threat
+model but should be closed if same-UID adversarial concurrency is included.
+
+The updated focused tests passed 7/7 for the structural validator, 5/5 for the
+review page, and 3/3 for the private validation CLI. The complete scripts suite
+passed 1,488/1,488 in 29.593 seconds. `py_compile` and `git diff --check` passed.
+The emitted review HTML's inline JavaScript also passed `node --check` on a
+synthetic manifest. No real receipt, baseline, or source bundle was read or
+created.
+
+Current source hashes: validator
+`69cea1e22af129268951aaebec693d4cd79c2cfb67a16c018f3ee9d274d8da61`, validator
+tests `a7df1b5bb16024c3d980c54d0e457d564894344f7bd093d02f5dfb57d2024507`, CLI
+`f32cae3d129ab1b0bcd7a58aced0a6c7e2e6d979c4d55d220f791df59c12606e`, CLI tests
+`4a23dbb170b701436b4dee57cc1b8f08b5fa4037f57e020c68c407291faaae4a`.
+
 The future local invocation (not run because no frozen baseline manifest exists)
 is:
 
@@ -130,4 +170,19 @@ is:
   --output-name <new-private-review-page.html> \
   --expected-manifest-sha256 <64-hex-frozen-manifest-hash> \
   --protocol-sha256 <64-hex-frozen-protocol-hash>
+```
+
+After the reviewer returns a secured receipt, the structural validator's
+future invocation (also not run; no real receipt or independent source bundle
+exists yet) is:
+
+```bash
+.venv/bin/python scripts/validate_nextgqa_prediction_link_review.py \
+  --baseline-name <frozen-baseline-manifest.json> \
+  --receipt-name <secured-human-receipt.json> \
+  --cohort-source-name <independently-frozen-source-digests.json> \
+  --output-name <new-private-validation-summary.json> \
+  --expected-baseline-sha256 <64-hex-baseline-hash> \
+  --expected-cohort-source-sha256 <64-hex-source-bundle-hash> \
+  --expected-protocol-sha256 <64-hex-protocol-hash>
 ```
