@@ -151,20 +151,27 @@ files mode 0600 in directories mode 0700; do not publish them. The custodian che
 package/media hashes, and source mapping with the existing handoff audit. A
 structural pass does not authenticate reviewer identity or semantic support.
 
-An optional detached reviewer-key attestation is available in
+An optional detached reviewer-key attestation v2 is available in
 `scripts/nextgqa_completed_review_attestation.py`. Only after a real review
 export exists and the custodian's structural audit passes, the claim reviewer
 may sign the exact frozen worksheet, lineage, review JSON, and review index
-using the `sign` subcommand. The CLI writes a new 0600 file under an existing
-0700 directory and refuses to overwrite. Obtain the receipt digest, reviewer
-key ID, and reviewer public-key fingerprint from the independently verified
-release roster; the CLI does not verify that roster or receipt itself. Keep the
-attestation and all source files private. The matching `verify` command checks
-the detached signature and the same structural handoff audit. Its result only
-means that the holder of the supplied key signed/adopted those bytes; reviewer
-identity, actual viewing, source-media custody, semantic truth, and score
-authorization all remain unverified/denied. This step does not replace the
-separate clock/frame evidence audit or the later score freeze.
+using the `sign` subcommand. Supply the integrity roster, root public key, and
+root DER fingerprint obtained through separate trusted channels; the CLI
+validates the root signature and derives the claim-reviewer key from that
+roster. The caller still supplies the pre-review receipt digest, which is only
+bound as a declaration: this CLI does not verify the receipt or its connection
+to the roster/cohort. The root fingerprint must not come from the same
+untrusted handoff as the root key. Signing also requires the claim-reviewer
+private/public key pair and checks that it matches the roster entry. The CLI
+writes a new 0600 file under an existing 0700 directory and refuses to
+overwrite. Keep the attestation, roster, keys, receipt, and all source files
+private. The matching `verify` command independently rechecks the root-signed
+roster, derived reviewer key, detached signature, and structural handoff audit.
+It proves only that the rostered key signed/adopted those exact bytes under the
+presented root pin; key-to-person identity, actual viewing, source-media
+custody, semantic truth, and score authorization remain unverified/denied. This
+step does not replace the separate clock/frame evidence audit or later score
+freeze.
 
 ## Browser-clock and frame correspondence
 

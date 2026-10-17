@@ -111,3 +111,39 @@ or hypothesis test. This is handoff integrity engineering, not faithfulness
 evidence. No GPU run was justified. Next, independently close a real
 trust-root/release-order and frame-correspondence gate, or document which
 specific artifact is still absent before any real review or scoring attempt.
+
+## 22:00–22:08 JST — recheck the real human-review prerequisites
+
+Independent metadata-only inspections of the local release and clock-evidence
+areas confirm that the trust ceremony cannot currently be instantiated with
+real materials. No externally pinned root, root-signed integrity/release
+rosters, freeze-owner receipt, witnessed release attestation, or complete
+release evidence set is present. The latest candidate inventory is only a
+candidate inventory; it is not a freeze or release receipt. These missing
+artifacts require trusted human role assignment and a witnessed pre-opening
+ceremony, so local synthetic testing cannot substitute.
+
+The clock path has the 15 planned decoder PNGs and plan/provenance files, but no
+actual browser screenshots, capture observations, screenshot receipts, crop
+map/crops, frame-review export, or signed evidence manifest. Verified
+correspondences therefore remain **0/15**. The screenshot helper requires an
+operator to use the active Windows browser and foreground-window capture; a
+prior validate-only or permission smoke does not count as a capture. The
+runbook has been corrected to describe attestation v2's externally pinned
+roster inputs and its still-unverified receipt-digest declaration.
+
+Rebuilt local candidate inventory
+`data/private_nextgqa/pre_review_inventory_v6_20261017_2206_01/`: 62 roles,
+zero missing, 0700/0600, candidate-only; review, freeze, and score flags all
+false, execution denied, rights unverified-local-only. Inventory SHA-256 is
+`2ba107edfff577ac466fd16f664ac686dfafe4b1e9fa45ea2c72c9c608994cb0`; attestation
+code hash is `3987052283985f59daf271ff9627292ee9940b8f7f76410cca6b4186687f06e0`.
+
+Direct generated-claim faithfulness remains **0/3 independently reviewed,
+0/3 scored**, with no direct estimate/CI/test. Fifteen decoder anchors are
+prepared but there are zero verified screenshot correspondences. No GPU run
+was justified because neither real human review nor its release/capture
+prerequisites exist. The exact external blocker is the absence of trusted
+human role/key setup and witnessed release, followed by interactive browser
+capture and independent visual frame-pair review. Continue only preparation
+that can reduce those gates; do not call the synthetic checks research evidence.
