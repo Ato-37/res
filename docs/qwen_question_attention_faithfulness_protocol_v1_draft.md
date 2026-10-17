@@ -173,6 +173,19 @@ none of them and always returns `model_load_permitted=false`,
 `branch_forwards=0`, and `execution_authorization=not_granted`, even when all
 rows agree. No production runner currently supplies this complete bundle.
 
+Two small projections are provided around that join. The review-row
+adapter consumes the exact worksheet/review objects and bytes plus a
+successful handoff-audit summary, then propagates its bundle-level review hash
+onto rows in frozen worksheet order. The supplied summary itself is caller
+controlled and is not authenticated as the audit function's output. The
+processor-row adapter copies only the serializable batch/sampling/group fields
+from one successful CPU mapper result and omits its private tensor snapshot.
+The clock-row adapter checks the bound calibration envelope, fixed fit/heldout
+anchor IDs, and canonical rational times before projecting its payload. It
+still cannot authenticate the upstream bundle, browser telemetry, reviewer,
+or decoder-frame correspondence. These projections prevent caller-side field
+assembly errors; none authenticates upstream signatures or source provenance.
+
 All outcome branches use the **same original full-video processor batch**.
 `evidence_ablation` and `control_ablation` are not black-frame input masks:
 they set the chosen visual-key entries to `-inf` only on the fixed answer-query
