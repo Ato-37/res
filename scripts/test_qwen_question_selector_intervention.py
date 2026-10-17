@@ -14,7 +14,8 @@ import torch
 from qwen_internal_attention_ablation import compose_video_key_bias_and_ablation
 from smoke_qwen_question_selector_intervention import (
     _choice_log_probabilities, _close_private_output, _prepare_private_output,
-    _score_target_branches, _write_private_json,
+    _resolve_choice_continuation_ids, _score_target_branches,
+    _validate_processed_choice_suffix, _write_private_json,
     build_smoke_condition_plan,
 )
 
@@ -80,6 +81,50 @@ class QuestionSelectorInterventionCompositionTests(unittest.TestCase):
         for ids in ([0, 1, 2, 3, 6], [0, 1, 2, 3, 3], [0, 1, 2, 3]):
             with self.subTest(ids=ids), self.assertRaises(ValueError):
                 _choice_log_probabilities(logits, ids, torch)
+
+    def test_choice_ids_come_from_exact_prompt_continuation(self):
+        class ContextTokenizer:
+            def encode(self, text, add_special_tokens=False):
+                del add_special_tokens
+                prefix = "assistant\n"
+                if text == prefix:
+                    return [100, 101]
+                if text.startswith(prefix) and len(text) == len(prefix) + 1:
+                    return [100, 101, ord(text[-1])]
+                raise ValueError("unexpected_text")
+
+        self.assertEqual(_resolve_choice_continuation_ids(
+            ContextTokenizer(), "assistant\n"), list(map(ord, "ABCDE")))
+
+        class RetokenizingTokenizer:
+            def encode(self, text, add_special_tokens=False):
+                del add_special_tokens
+                return [100] if text == "prefix" else [99, 102]
+
+        with self.assertRaisesRegex(ValueError, "prefix_retokenized"):
+            _resolve_choice_continuation_ids(RetokenizingTokenizer(), "prefix")
+
+        class MultiTokenTokenizer:
+            def encode(self, text, add_special_tokens=False):
+                del add_special_tokens
+                return [100] if text == "prefix" else [100, 102, 103]
+
+        with self.assertRaisesRegex(ValueError, "single_continuation_token"):
+            _resolve_choice_continuation_ids(MultiTokenTokenizer(), "prefix")
+
+    def test_multimodal_processor_must_preserve_prefix_and_append_expected_id(self):
+        base = torch.tensor([[4, 5, 6]])
+        _validate_processed_choice_suffix(
+            base, torch.tensor([[4, 5, 6, 10]]), 10, torch)
+        with self.assertRaisesRegex(ValueError, "prefix_mismatch"):
+            _validate_processed_choice_suffix(
+                base, torch.tensor([[4, 5, 7, 10]]), 10, torch)
+        with self.assertRaisesRegex(ValueError, "token_mismatch"):
+            _validate_processed_choice_suffix(
+                base, torch.tensor([[4, 5, 6, 11]]), 10, torch)
+        with self.assertRaisesRegex(ValueError, "shape_invalid"):
+            _validate_processed_choice_suffix(
+                base, torch.tensor([[4, 5, 6, 10, 12]]), 10, torch)
 
     def test_target_branch_projection_reads_branch_bindings_and_maps_names(self):
         row = {

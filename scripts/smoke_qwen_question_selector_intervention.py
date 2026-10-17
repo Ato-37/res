@@ -91,6 +91,52 @@ def _choice_log_probabilities(logits, token_ids, torch_module):
     return [float(value) for value in selected]
 
 
+def _resolve_choice_continuation_ids(tokenizer, rendered_prefix, labels="ABCDE"):
+    """Resolve single-token labels as continuations of the exact rendered prefix."""
+    if (not isinstance(rendered_prefix, str) or not rendered_prefix
+            or not isinstance(labels, str) or not labels
+            or len(set(labels)) != len(labels)):
+        raise ValueError("choice_continuation_prefix_or_labels_invalid")
+    try:
+        prefix_ids = tokenizer.encode(rendered_prefix, add_special_tokens=False)
+    except Exception:
+        raise ValueError("choice_continuation_prefix_tokenization_failed") from None
+    if (not isinstance(prefix_ids, list) or not prefix_ids
+            or any(type(value) is not int or value < 0 for value in prefix_ids)):
+        raise ValueError("choice_continuation_prefix_ids_invalid")
+    result = []
+    for label in labels:
+        try:
+            extended_ids = tokenizer.encode(rendered_prefix + label,
+                                            add_special_tokens=False)
+        except Exception:
+            raise ValueError("choice_continuation_tokenization_failed") from None
+        if (not isinstance(extended_ids, list)
+                or extended_ids[:len(prefix_ids)] != prefix_ids):
+            raise ValueError("choice_continuation_prefix_retokenized")
+        suffix = extended_ids[len(prefix_ids):]
+        if (len(suffix) != 1 or type(suffix[0]) is not int or suffix[0] < 0):
+            raise ValueError("choice_label_not_single_continuation_token")
+        result.append(suffix[0])
+    if len(set(result)) != len(result):
+        raise ValueError("choice_continuation_token_ids_not_distinct")
+    return result
+
+
+def _validate_processed_choice_suffix(base_ids, extended_ids, expected_token_id,
+                                      torch_module):
+    """Require the full multimodal processor batch to append exactly one label ID."""
+    if (not torch_module.is_tensor(base_ids) or not torch_module.is_tensor(extended_ids)
+            or base_ids.ndim != 2 or tuple(base_ids.shape[:1]) != (1,)
+            or tuple(extended_ids.shape) != (1, int(base_ids.shape[1]) + 1)
+            or type(expected_token_id) is not int or expected_token_id < 0):
+        raise ValueError("processed_choice_suffix_shape_invalid")
+    if not torch_module.equal(extended_ids[:, :-1], base_ids):
+        raise ValueError("processed_choice_suffix_prefix_mismatch")
+    if int(extended_ids[0, -1].item()) != expected_token_id:
+        raise ValueError("processed_choice_suffix_token_mismatch")
+
+
 def _score_target_branches(six_condition_binding, branch_logits, torch_module):
     """Project baseline/target runner names into the fixed six-condition scorer."""
     expected = {
@@ -370,14 +416,16 @@ def main(argv=None):
         ids = batch["input_ids"]
         if ids.ndim != 2 or int(ids.shape[0]) != 1:
             raise RuntimeError("synthetic_prompt_batch_invalid")
-        option_token_ids = []
-        for label in "ABCDE":
-            encoded = processor.tokenizer.encode(label, add_special_tokens=False)
-            if len(encoded) != 1:
-                raise RuntimeError("synthetic_answer_label_not_single_token")
-            option_token_ids.append(int(encoded[0]))
-        if len(set(option_token_ids)) != 5:
-            raise RuntimeError("synthetic_answer_label_token_collision")
+        option_token_ids = _resolve_choice_continuation_ids(
+            processor.tokenizer, rendered_text, labels="ABCDE")
+        for label, expected_token_id in zip("ABCDE", option_token_ids, strict=True):
+            extended_batch = process_qa_video(
+                processor, rendered_text + label, images, pixels, metadata)
+            _validate_processed_choice_suffix(
+                batch["input_ids"], extended_batch["input_ids"],
+                expected_token_id, torch_module=torch,
+            )
+        del extended_batch
         six_condition_names = (
             "baseline_full", "baseline_evidence_ablation", "baseline_control_ablation",
             "intervention_full", "intervention_evidence_ablation",
