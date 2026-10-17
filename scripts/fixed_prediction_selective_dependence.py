@@ -182,6 +182,8 @@ def validate_six_condition_input_binding(branch_bindings: Mapping[str, Mapping])
         "attention_mask_sha256", "tokenizer_sha256", "model_revision",
         "prompt_sha256", "input_length", "score_position",
     }
+
+
     canonical = None
     for condition in INTERVENTION_CONDITIONS:
         row = branch_bindings[condition]
@@ -234,5 +236,82 @@ def validate_six_condition_input_binding(branch_bindings: Mapping[str, Mapping])
         "interpretation_limit": (
             "caller-supplied binding declarations only; does not authenticate tokenizer, "
             "prompt, model input, human review, or faithfulness score"
+        ),
+    }
+def score_six_condition_logits(
+    *, condition_outputs: Mapping[str, object], answer_token_ids: Sequence[int],
+    input_lengths: Mapping[str, int], torch_module: object,
+) -> dict:
+    """Extract fixed A–E next-token log-probabilities from six model outputs.
+
+    Accepts either full-sequence logits or a `logits_to_keep=1` output, always
+    taking the last returned row and binding it to the caller's recorded final
+    prompt position. This validates tensor shape and arithmetic; it cannot
+    authenticate the model inputs or establish a treatment/faithfulness result.
+    """
+    if (not isinstance(condition_outputs, Mapping)
+            or set(condition_outputs) != INTERVENTION_CONDITIONS
+            or not isinstance(input_lengths, Mapping)
+            or set(input_lengths) != INTERVENTION_CONDITIONS):
+        raise ValueError("exact_six_intervention_outputs_required")
+    if (not isinstance(answer_token_ids, Sequence)
+            or isinstance(answer_token_ids, (str, bytes))
+            or len(answer_token_ids) != ANSWER_COUNT
+            or any(type(token_id) is not int or token_id < 0
+                   for token_id in answer_token_ids)
+            or len(set(answer_token_ids)) != ANSWER_COUNT):
+        raise ValueError("answer_token_ids_invalid")
+    if torch_module is None or not callable(getattr(torch_module, "log_softmax", None)):
+        raise ValueError("torch_module_invalid")
+    if (any(type(value) is not int or value <= 0 for value in input_lengths.values())
+            or len(set(input_lengths.values())) != 1):
+        raise ValueError("six_condition_input_length_mismatch")
+
+    scores = {}
+    common_vocab_size = None
+    bound_positions = {}
+    for condition in sorted(INTERVENTION_CONDITIONS):
+        input_length = input_lengths[condition]
+        if type(input_length) is not int or input_length <= 0:
+            raise ValueError("input_length_invalid")
+        output = condition_outputs[condition]
+        logits = (output.get("logits") if isinstance(output, Mapping)
+                  else getattr(output, "logits", None))
+        shape = getattr(logits, "shape", None)
+        if (logits is None or shape is None or len(shape) != 3
+                or int(shape[0]) != 1 or int(shape[1]) not in (1, input_length)
+                or int(shape[2]) <= 0):
+            raise ValueError("next_token_logits_shape_invalid")
+        vocab_size = int(shape[2])
+        if common_vocab_size is None:
+            common_vocab_size = vocab_size
+        elif vocab_size != common_vocab_size:
+            raise ValueError("condition_vocab_size_mismatch")
+        if any(token_id >= vocab_size for token_id in answer_token_ids):
+            raise ValueError("answer_token_id_out_of_range")
+        try:
+            last_logits = logits[0, -1].float()
+            if not bool(torch_module.isfinite(last_logits).all()):
+                raise ValueError("next_token_logits_nonfinite")
+            log_probs = torch_module.log_softmax(last_logits, dim=-1)
+            selected = log_probs[list(answer_token_ids)].detach().cpu().tolist()
+        except ValueError:
+            raise
+        except Exception:
+            raise ValueError("next_token_logits_scoring_failed") from None
+        values = _finite_five(selected)
+        scores[condition] = list(values)
+        bound_positions[condition] = input_length - 1
+
+    contrast = fixed_prediction_intervention_contrast(scores)
+    return {
+        "status": "logits_adapter_contract_only",
+        "answer_token_ids": list(answer_token_ids),
+        "score_position_by_condition": bound_positions,
+        "choice_log_probabilities_by_condition": scores,
+        "contrast": contrast,
+        "interpretation_limit": (
+            "extracts six caller-supplied model output tensors only; input, tokenizer, "
+            "treatment, video provenance, human review, and faithfulness are unauthenticated"
         ),
     }
