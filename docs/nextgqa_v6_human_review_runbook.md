@@ -77,7 +77,7 @@ Passing this checklist is a procedural precondition for human review, not
 proof of identity, semantic review quality, actual viewing, or scoring
 authorization. The claim reviewer, capture operator, and independent
 frame-pair reviewer must then complete the separate steps below. Scoring stays
-denied until the later score freeze passes.
+denied until both sequential score freezes pass.
 
 ## Review-only release freeze before anyone views a video
 
@@ -115,10 +115,15 @@ The release freeze must also bind the exact v6 claim/cohort inputs,
 source and media lineage/custody, staged media, reviewer page and renderer,
 review policy and disclosure, capture helper/policy, 15-anchor plan and its
 provenance, crop and pair-review procedure, thresholds, and the designated
-reviewers' public-key hashes. The v2 sampler rule is pinned at this stage, but
-the concrete scoring sampler/configuration and executable scorer are not thereby
-approved; bind and validate those in the later score freeze. Freeze the exact
-bytes before anyone opens the page. An independently established trusted
+reviewers' public-key hashes. The QTA draft does not define its own frame
+sampler. Before review begins, version and hash-bind the exact 32-frame
+endpoint-inclusive sampler contract, including source code, PTS interpretation,
+processor sampling metadata, and guard, from
+`docs/nextgqa_finite_claim_descriptive_protocol_v2.md` or a separately reviewed
+QTA-specific replacement. Do not choose or tune it after viewing review
+intervals. The review-only freeze must bind those exact bytes; this pins design
+but does not authorize scoring. Freeze the exact bytes before anyone opens the
+page. An independently established trusted
 roster/key root must bind the freeze-owner identity and signing key as well as
 the reviewer identities and keys; a key hash supplied only by the receipt
 being verified is not a trust anchor. A signed local timestamp is only a
@@ -142,8 +147,16 @@ not a release receipt and does not satisfy this opening gate. Do not create a
 real receipt until the roster/trust-root pin is established, and do not open
 the page based on its output.
 
-The helper's current roster schema covers only the freeze owner, claim
-reviewer, and frame-pair reviewer. The custodian role is not independently
+The helper's integrity-roster schema covers only the freeze owner, claim
+reviewer, and frame-pair reviewer. The release roster adds custody and witness
+roles, but neither roster currently includes the QTA prediction-link reviewer
+or an independent stage-2 receipt auditor. A future scoring roster must bind
+both keys before the first review opens and enforce distinct key fingerprints
+from each other, the claim reviewer, freeze owner, custodian, and release
+witness. Stage-2 signatures can attest adoption of exact bytes; they cannot
+establish real-world identity or semantic correctness. Until this roster and
+signature verifier exist, the self-reported stage-2 receipt cannot pass the
+score gate. The custodian role is not independently
 bound by this integrity-only receipt. If the freeze owner also acts as
 custodian, that assignment still needs to be recorded in the eventual witnessed
 release procedure; if a separate custodian is assigned, the actual release
@@ -203,16 +216,38 @@ permits only the frozen human annotation and capture/review work. It must not
 be accepted by any scoring runner. If the claim text, cohort, review policy,
 estimand, metric, conditions, eligibility/failure rule, or mask/control rule
 changes, stop and version the study; affected reviews must be repeated before
-scoring. The later score freeze must bind the completed review exports, audited
-clock/frame evidence, all three source-backed targets, exact prompt prefixes and
-answer-token IDs, the QTA scoring sampler and treatment configuration,
-model checkpoint/configuration, tokenizer/processor, precision, condition
-builder/scorer code, all nine exact processor batches per record, and a
-production all-three-row atomic preflight bound to the QTA draft plus the
-legacy v2 review/export contract before model loading. The legacy
+scoring. Scoring requires two sequential phases because baseline `p/q` does
+not exist until after the first three baseline forwards, while independent
+prediction-link review cannot occur before those predictions are shown to a
+reviewer.
+
+The **pre-baseline gate** must bind completed stage-1 review exports,
+audited clock/frame evidence, all three source-backed targets, exact prompt
+prefixes and answer-token IDs, the QTA sampler and model/runtime configuration,
+condition-builder/scorer code, one immutable unmodified full-video processor
+batch per record, and an all-three-row atomic preflight. A signed,
+independently verified phase receipt may authorize only three baseline forwards
+total (one per row); it must not authorize treatment or ablation forwards. This
+gate and baseline-only runner do not currently exist.
+
+After baseline `p/q` is produced, bind the baseline manifest and the
+independently attested stage-2 prediction-link review. The **post-baseline
+gate** must additionally bind the exact nine branch plans per row (including
+the common processor-batch hash, selected and sham token positions, hook
+specification, and condition labels), scorer code, and accepted stage-2
+judgments. A separate signed, independently verified phase receipt may
+authorize only the remaining 24 forwards total (eight per row). The
+same exact processor batch is reused for all nine branches; there are not nine
+separately processed or masked processor batches. Neither freeze is currently
+implemented as a production score-freeze receipt, and neither may be inferred
+from a review-only receipt or structural artifacts alone. The phase-1 receipt
+must bind the QTA draft, frozen sampler, and legacy v2 review/export contract
+before baseline model loading; phase 2 must bind that receipt plus all baseline
+and stage-2 artifacts before treatment forwards. These phase schemas, signature
+verification, and runners do not yet exist. The legacy
 `protocol_v2_status` field records only the annotation/export contract status;
-it does not identify or freeze QTA scoring. No production score-freeze receipt
-currently exists.
+it does not identify or freeze QTA scoring. No production score-freeze
+receipt currently exists.
 
 Assign people to these roles before opening the package. The freeze owner may
 also serve as custodian, but must not serve as either reviewer.
@@ -231,6 +266,12 @@ also serve as custodian, but must not serve as either reviewer.
    and scoring. After capture artifacts are prepared, reviews all 15 blinded
    screenshot-crop/decoder-frame pairs and records match, mismatch, or
    ambiguous decisions.
+5. **Prediction-link reviewer and stage-2 auditor:** independent of the
+   stage-1 claim reviewer, one another, generation, scoring, and custody. Their
+   separate root-pinned keys must be bound before the first package opening.
+   The reviewer sees only the post-baseline blinded worksheet; the auditor
+   independently reruns exact-byte and structural checks. Neither role has a
+   trusted-roster signature path in the current implementation.
 
 If no independent people can fill these roles, leave the gate blocked; do not
 substitute an agent-generated label or an operator self-attestation.
@@ -296,9 +337,10 @@ Once the review exports and clock evidence exist, retain the original bytes,
 recompute hashes, and run the existing structural handoff and signed clock
 evidence audits. Resolve every audit failure before constructing masks. A real
 score still requires a production atomic preflight that binds all three rows,
-the exact 32-frame sampler, actual source target and prompt/token IDs, all nine
-processor batches, and the pre-outcome joint freeze before model loading. For
-every row, the calibrated 32-frame sample must overlap at least one reviewed
+the pre-review frozen 32-frame sampler, actual source target and prompt/token
+IDs, one exact full-video processor batch per row, and the pre-baseline phase
+receipt before baseline model loading. For every row, the calibrated 32-frame
+sample must overlap at least one reviewed
 evidence interval and admit an equal-count set of distinct non-evidence control
 ranks under the frozen distance/tie rule. Zero evidence overlap or too few
 controls blocks the full cohort before model loading. Any other missing/failed
