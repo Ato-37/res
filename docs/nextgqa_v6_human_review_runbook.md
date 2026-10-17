@@ -38,7 +38,8 @@ being verified is not a trust anchor. A signed local timestamp is only a
 machine-clock assertion, so record the witnessed release order separately if
 no trusted timestamp service is used.
 
-No review-only release receipt or independent roster/key pin currently exists.
+No real review-only release receipt, independent roster/key pin, or witnessed
+handoff currently exists; the verifier is only an implementation, not evidence.
 Do not open the package until the exact receipt and its independently
 established trust-root pin have been checked against the frozen bytes, and
 release order is supported by either trusted timestamp evidence or a witnessed
@@ -61,6 +62,32 @@ custodian, that assignment still needs to be recorded in the eventual witnessed
 release procedure; if a separate custodian is assigned, the actual release
 roster must bind that identity and key. The helper cannot infer or verify
 either arrangement.
+
+For the separate witnessed handoff, `scripts/audit_nextgqa_review_release_order.py`
+rechecks the integrity receipt and every current inventory-bound artifact,
+then verifies a second root-signed roster with explicit freeze-owner,
+custodian, two reviewer, and release-witness roles. The custodian may share the
+freeze owner's key; the witness must have a separate key and key ID from all
+other roles. The witness signature binds the exact receipt, both rosters,
+inventory, artifact bindings, and a fresh ceremony ID, and asserts that the
+freeze/package handoff occurred before first opening while review had not
+started. Supply the ceremony ID independently to the verifier and do not reuse
+it intentionally. The report's `review_release_order_witness_attestation_valid`
+status verifies the signature and statement bytes only: it does not prove the
+real-world event, human identity, or chronology, and it has no one-shot replay
+registry or file-access enforcement. Its `package_opening_permitted=true` is a
+procedural permission for the witnessed offline review step only. It never
+permits model loading or scoring. Do not open the package based solely on the
+older integrity-only verifier.
+
+The release witness must be independently trusted through the out-of-band
+root pin and must personally observe the release ceremony: exact frozen bytes
+and signed receipt are established while the page is unopened, then the owner
+hands the package to the custodian before the first opening. A detached
+signature cannot repair a ceremony that did not occur. Because the gate cannot
+prevent someone opening readable files outside the procedure, record the
+witnessed handoff locally and run the verifier immediately before opening.
+Keep all keys, receipts, attestations, and output reports local and private.
 
 The review-only receipt must say `review_only`, keep
 `protocol_v2_status=design_draft_not_frozen`, `score_ready=false`,
