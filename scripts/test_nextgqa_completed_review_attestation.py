@@ -1,14 +1,18 @@
 from __future__ import annotations
 
 import json
+import io
+import os
 from pathlib import Path
 import subprocess
 import tempfile
 import unittest
+from contextlib import redirect_stdout
 
 from nextgqa_completed_review_attestation import (
     AttestationError,
     create_attestation,
+    main as attestation_cli,
     verify_attestation,
 )
 from nextgqa_pre_review_integrity_receipt import _public_der
@@ -138,6 +142,99 @@ class CompletedReviewAttestationTests(unittest.TestCase):
             self._create(expected_lineage_sha256="0" * 64)
         with self.assertRaisesRegex(AttestationError, "review_bytes_mismatch"):
             self._create(review={**self.review, "review_completed": False})
+
+    def test_private_cli_signs_and_verifies_without_overwrite(self):
+        root = Path(self.temp.name)
+        paths = {}
+        for name, raw in (("worksheet", self.worksheet_raw),
+                          ("lineage", self.lineage_raw),
+                          ("review", self.review_raw),
+                          ("review-index", self.review_index_raw),
+                          ("public-key", self.public_pem)):
+            path = root / name
+            path.write_bytes(raw)
+            os.chmod(path, 0o600)
+            paths[name] = path
+        common = [
+            "--worksheet", str(paths["worksheet"]),
+            "--lineage", str(paths["lineage"]),
+            "--review", str(paths["review"]),
+            "--review-index", str(paths["review-index"]),
+            "--expected-lineage-sha256", self.expected_lineage_sha256,
+            "--pre-review-receipt-sha256", self.receipt_sha,
+            "--reviewer-key-id", self.key_id,
+            "--reviewer-public-key", str(paths["public-key"]),
+            "--reviewer-key-fingerprint-sha256", self.key_pin,
+        ]
+        (root / "signed").mkdir(mode=0o700)
+        signed_output = root / "signed" / "review-attestation.json"
+        stdout = io.StringIO()
+        with redirect_stdout(stdout):
+            self.assertEqual(attestation_cli([
+                "sign", *common,
+                "--reviewer-private-key", str(root / "synthetic-reviewer-private.pem"),
+                "--output", str(signed_output),
+            ]), 0)
+        self.assertEqual(signed_output.stat().st_mode & 0o777, 0o600)
+        self.assertEqual(json.loads(stdout.getvalue())["execution_authorization"], "not_granted")
+        signed_bytes = signed_output.read_bytes()
+        (root / "verified").mkdir(mode=0o700)
+        verified_output = root / "verified" / "report.json"
+        with redirect_stdout(io.StringIO()):
+            self.assertEqual(attestation_cli([
+                "verify", *common,
+                "--attestation", str(signed_output),
+                "--output", str(verified_output),
+            ]), 0)
+        report = json.loads(verified_output.read_bytes())
+        self.assertFalse(report["semantic_review_authenticated"])
+        self.assertFalse(report["reviewer_role_roster_verified"])
+        self.assertEqual(report["execution_authorization"], "not_granted")
+        with redirect_stdout(io.StringIO()):
+            self.assertEqual(attestation_cli([
+                "sign", *common,
+                "--reviewer-private-key", str(root / "synthetic-reviewer-private.pem"),
+                "--output", str(signed_output),
+            ]), 2)
+        self.assertEqual(signed_output.read_bytes(), signed_bytes)
+
+    def test_cli_rejects_symlinked_private_input(self):
+        root = Path(self.temp.name)
+        raw_by_name = {
+            "worksheet": self.worksheet_raw, "lineage": self.lineage_raw,
+            "review": self.review_raw, "review-index": self.review_index_raw,
+            "public-key": self.public_pem,
+            "attestation": self._create(),
+        }
+        paths = {}
+        for name, raw in raw_by_name.items():
+            path = root / name
+            path.write_bytes(raw)
+            os.chmod(path, 0o600)
+            paths[name] = path
+        worksheet_path = paths["worksheet"]
+        worksheet_link = root / "worksheet-link.json"
+        worksheet_link.symlink_to(worksheet_path)
+        stdout = io.StringIO()
+        args = [
+            "verify", "--worksheet", str(worksheet_link),
+            "--lineage", str(paths["lineage"]),
+            "--review", str(paths["review"]),
+            "--review-index", str(paths["review-index"]),
+            "--expected-lineage-sha256", self.expected_lineage_sha256,
+            "--pre-review-receipt-sha256", self.receipt_sha,
+            "--reviewer-key-id", self.key_id,
+            "--reviewer-public-key", str(paths["public-key"]),
+            "--reviewer-key-fingerprint-sha256", self.key_pin,
+            "--attestation", str(paths["attestation"]),
+            "--output", str(root / "uncreated" / "report.json"),
+        ]
+        with redirect_stdout(stdout):
+            result = attestation_cli(args)
+        self.assertEqual(result, 2)
+        report = json.loads(stdout.getvalue())
+        self.assertEqual(report["failure_code"], "worksheet_file_invalid")
+        self.assertEqual(report["execution_authorization"], "not_granted")
 
     def test_receipt_or_reviewer_key_mismatch_is_rejected(self):
         signed = self._create()

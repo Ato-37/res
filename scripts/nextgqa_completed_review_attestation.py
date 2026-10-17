@@ -13,9 +13,11 @@ role roster or the receipt itself.
 from __future__ import annotations
 
 import base64
+import argparse
 import hashlib
 import json
 import math
+from pathlib import Path
 import re
 from typing import Any
 
@@ -26,8 +28,10 @@ from nextgqa_pre_review_integrity_receipt import (
     _canonical,
     _decode_signature,
     _public_der,
+    _read_file,
     _sign,
     _verify_signature,
+    _write_private_output,
 )
 
 MAX_JSON_BYTES = 2 * 1024 * 1024
@@ -239,3 +243,91 @@ def verify_attestation(*, attestation_raw: bytes, review_raw: bytes,
         "semantic_review_authenticated": False,
         "execution_authorization": "not_granted",
     }
+
+
+def _read_json(path: Path, label: str) -> tuple[Any, bytes]:
+    raw = _read_file(path, private=True, max_bytes=MAX_JSON_BYTES,
+                     failure_code=f"{label}_file_invalid")
+    return _parse(raw, f"{label}_json_invalid"), raw
+
+
+def main(argv: list[str] | None = None) -> int:
+    parser = argparse.ArgumentParser(description=__doc__)
+    subparsers = parser.add_subparsers(dest="command", required=True)
+
+    def add_artifacts(command_parser: argparse.ArgumentParser) -> None:
+        command_parser.add_argument("--worksheet", required=True, type=Path)
+        command_parser.add_argument("--lineage", required=True, type=Path)
+        command_parser.add_argument("--review", required=True, type=Path)
+        command_parser.add_argument("--review-index", required=True, type=Path)
+        command_parser.add_argument("--expected-lineage-sha256", required=True)
+        command_parser.add_argument("--pre-review-receipt-sha256", required=True)
+        command_parser.add_argument("--reviewer-key-id", required=True)
+        command_parser.add_argument("--reviewer-public-key", required=True, type=Path)
+        command_parser.add_argument("--reviewer-key-fingerprint-sha256", required=True)
+        command_parser.add_argument("--output", required=True, type=Path)
+
+    sign_parser = subparsers.add_parser("sign", help="sign structurally valid exact review bytes")
+    add_artifacts(sign_parser)
+    sign_parser.add_argument("--reviewer-private-key", required=True, type=Path)
+
+    verify_parser = subparsers.add_parser("verify", help="verify a detached review attestation")
+    add_artifacts(verify_parser)
+    verify_parser.add_argument("--attestation", required=True, type=Path)
+
+    args = parser.parse_args(argv)
+    try:
+        worksheet, worksheet_raw = _read_json(args.worksheet, "worksheet")
+        lineage, lineage_raw = _read_json(args.lineage, "lineage")
+        review, review_raw = _read_json(args.review, "review")
+        review_index, review_index_raw = _read_json(args.review_index, "review_index")
+        public_key = _read_file(args.reviewer_public_key, private=True,
+                                max_bytes=64_000, failure_code="reviewer_public_key_file_invalid")
+        common = {
+            "worksheet": worksheet, "worksheet_raw": worksheet_raw,
+            "lineage": lineage, "lineage_raw": lineage_raw,
+            "review": review, "review_raw": review_raw,
+            "review_index": review_index, "review_index_raw": review_index_raw,
+            "expected_lineage_sha256": args.expected_lineage_sha256,
+            "pre_review_receipt_sha256": args.pre_review_receipt_sha256,
+            "reviewer_key_id": args.reviewer_key_id,
+            "expected_reviewer_key_fingerprint_sha256": args.reviewer_key_fingerprint_sha256,
+        }
+        if args.command == "sign":
+            private_key = _read_file(args.reviewer_private_key, private=True,
+                                     max_bytes=64_000, failure_code="reviewer_private_key_file_invalid")
+            output = create_attestation(
+                **common, reviewer_private_key_pem=private_key,
+                reviewer_public_key_pem=public_key)
+            _write_private_output(args.output, output)
+            summary = {"status": "reviewer_key_attested_unvalidated",
+                       "execution_authorization": "not_granted"}
+        else:
+            attestation_raw = _read_file(args.attestation, private=True,
+                                         max_bytes=MAX_JSON_BYTES,
+                                         failure_code="attestation_file_invalid")
+            common["expected_reviewer_key_id"] = common.pop("reviewer_key_id")
+            report = verify_attestation(
+                **common, attestation_raw=attestation_raw,
+                reviewer_public_key_pem=public_key)
+            output = (json.dumps(report, sort_keys=True, indent=2,
+                                 allow_nan=False) + "\n").encode("utf-8")
+            _write_private_output(args.output, output)
+            summary = {"status": report["status"],
+                       "reviewer_key_signature_valid": report["reviewer_key_signature_valid"],
+                       "semantic_review_authenticated": False,
+                       "execution_authorization": "not_granted"}
+        print(json.dumps(summary, sort_keys=True))
+        return 0
+    except (AttestationError, ReceiptError) as exc:
+        print(json.dumps({"status": "blocked", "failure_code": str(exc),
+                          "execution_authorization": "not_granted"}, sort_keys=True))
+        return 2
+    except Exception:
+        print(json.dumps({"status": "blocked", "failure_code": "internal_error",
+                          "execution_authorization": "not_granted"}, sort_keys=True))
+        return 2
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

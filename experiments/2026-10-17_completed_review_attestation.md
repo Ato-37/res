@@ -17,7 +17,10 @@ manifest, review JSON, review index, v6 policy fingerprint, pre-review receipt
 digest, reviewer key ID, and an externally supplied reviewer public-key
 fingerprint. Before signing or verification, it invokes the existing structural
 handoff audit and requires its unvalidated, non-authorizing pass. The module
-does not read real review/video files unless a caller supplies them.
+provides `sign` and `verify` CLI subcommands. It requires private input files
+(0600), creates outputs without overwrite under private directories (0700),
+and prints only sanitized status. It does not read real review/video files
+unless a caller supplies them.
 
 Tests use only generated synthetic review artifacts and temporary Ed25519 keys.
 No protected candidate, real review output, existing private key, or GPU model
@@ -25,9 +28,12 @@ was used for this change.
 
 ## Verified checks
 
-- Focused attestation tests: 10/10 passed.
-- Full repository test discovery: 1,335/1,335 passed in 25.5 seconds.
-- Compilation and whitespace checks passed.
+- Focused attestation tests: 12/12 passed, including private CLI sign/verify,
+  output permissions, overwrite refusal without changing prior bytes, and
+  symlinked private-input rejection.
+- Full repository test discovery after CLI and final adversarial checks:
+  1,337/1,337 passed in 25.4 seconds.
+- Compilation and whitespace checks after CLI change passed.
 
 Adversarial coverage includes exact-byte changes, stale policy/index bindings,
 incomplete review rows, duplicate JSON keys, exponent-overflow nonfinite values,
