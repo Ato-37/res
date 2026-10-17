@@ -123,7 +123,7 @@ def audit_qta_prescore_mapping_bundle(
         expected = expected_processor_groups_by_token[token]
         if (not isinstance(expected, dict)
                 or set(expected) != {"evidence_group_indices", "control_group_indices",
-                                     "video_grid_thw"}):
+                                     "video_grid_thw", "temporal_group_token_positions"}):
             raise ValueError("expected_processor_groups_invalid")
         expected_evidence = _group_indices(expected["evidence_group_indices"],
                                            "expected_evidence_groups")
@@ -133,7 +133,11 @@ def audit_qta_prescore_mapping_bundle(
         if (not isinstance(expected_grid, list) or len(expected_grid) != 3
                 or any(type(value) is not int or value <= 0 for value in expected_grid)):
             raise ValueError("expected_processor_groups_invalid")
-        expected_groups[token] = (expected_evidence, expected_control, expected_grid)
+        expected_temporal = _temporal_group_positions(
+            expected["temporal_group_token_positions"], expected_grid[0],
+            "expected_temporal_groups")
+        expected_groups[token] = (expected_evidence, expected_control, expected_grid,
+                                  expected_temporal)
     expected_calibration_hashes = {token: _digest(expected_calibration_sha256_by_token[token],
                                                    "expected_calibration_sha256") for token in tokens}
     source_fields = ("question_sha256", "options_sha256", "claim_sha256")
@@ -247,11 +251,14 @@ def audit_qta_prescore_mapping_bundle(
                     or any(type(value) is not int or value <= 0 for value in grid)):
                 raise ValueError("processor_video_grid_invalid")
             temporal_group_count = grid[0]
+            temporal_positions = _temporal_group_positions(
+                processor.get("temporal_group_token_positions"), temporal_group_count,
+                "processor_temporal_groups")
             if any(index >= temporal_group_count for index in (*evidence, *control)):
                 raise ValueError("processor_group_index_out_of_range")
             if len(evidence) != len(control) or set(evidence) & set(control):
                 raise ValueError("evidence_control_group_contract_invalid")
-            if (evidence, control, grid) != expected_groups[token]:
+            if (evidence, control, grid, temporal_positions) != expected_groups[token]:
                 raise ValueError("processor_group_mapping_mismatch")
             payload = {
                 "review_token": token,
@@ -267,6 +274,7 @@ def audit_qta_prescore_mapping_bundle(
                 "video_grid_thw": grid,
                 "evidence_group_indices": evidence,
                 "control_group_indices": control,
+                "temporal_group_token_positions": temporal_positions,
             }
             for field in source_fields:
                 observed = _digest(baseline.get(field), field)
@@ -301,6 +309,20 @@ def _group_indices(value: Any, field: str) -> list[int]:
             or any(type(index) is not int or index < 0 for index in value)
             or value != sorted(set(value))):
         raise ValueError(f"{field}_invalid")
+    return value
+
+
+def _temporal_group_positions(value: Any, expected_count: int, field: str) -> list[list[int]]:
+    if (not isinstance(value, list) or len(value) != expected_count or not value
+            or any(not isinstance(group, list) or not group
+                   or any(type(position) is not int or position < 0 for position in group)
+                   or group != sorted(set(group)) for group in value)):
+        raise ValueError(f"{field}_invalid")
+    flattened = [position for group in value for position in group]
+    if (len(flattened) != len(set(flattened))
+            or any(len(group) != len(value[0]) for group in value)
+            or flattened != list(range(flattened[0], flattened[0] + len(flattened)))):
+        raise ValueError(f"{field}_geometry_invalid")
     return value
 
 

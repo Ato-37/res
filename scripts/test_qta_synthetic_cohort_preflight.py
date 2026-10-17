@@ -61,6 +61,7 @@ def synthetic_mapping_inputs() -> dict:
             "reviewed_intervals_rational_seconds": [["1/10", "2/5"]],
             "interval_boundary_guard_rational_seconds": "1/20",
             "evidence_group_indices": [1, 3], "control_group_indices": [0, 4],
+            "temporal_group_token_positions": [[0], [1], [2], [3], [4]],
         })
         baselines.append({
             "review_token": token, "source_video_sha256": video_sha,
@@ -83,7 +84,8 @@ def synthetic_mapping_inputs() -> dict:
         "expected_sampling_metadata_sha256_by_token": sampling_hashes,
         "expected_processor_groups_by_token": {
             token: {"evidence_group_indices": [1, 3],
-                    "control_group_indices": [0, 4], "video_grid_thw": [5, 1, 1]}
+                    "control_group_indices": [0, 4], "video_grid_thw": [5, 1, 1],
+                    "temporal_group_token_positions": [[0], [1], [2], [3], [4]]}
             for token in tokens
         },
         "expected_calibration_sha256_by_token": calibration_hashes,

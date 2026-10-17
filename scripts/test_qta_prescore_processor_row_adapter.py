@@ -21,6 +21,7 @@ class QtaPrescoreProcessorRowAdapterTests(unittest.TestCase):
             "interval_boundary_guard_rational_seconds": "1/20",
             "evidence_group_indices": [1, 3],
             "control_group_indices": [0, 4],
+            "groups": [{"token_positions": [i]} for i in range(5)],
             "_processor_batch_snapshot": {"private": "must not copy"},
         }
 
@@ -34,10 +35,13 @@ class QtaPrescoreProcessorRowAdapterTests(unittest.TestCase):
             "reviewed_intervals_rational_seconds",
             "interval_boundary_guard_rational_seconds",
             "evidence_group_indices", "control_group_indices",
+            "temporal_group_token_positions",
         })
         self.assertEqual(result["reviewed_intervals_rational_seconds"],
                          [["1/10", "2/5"]])
         self.assertNotIn("_processor_batch_snapshot", result)
+        self.assertEqual(result["temporal_group_token_positions"],
+                         [[0], [1], [2], [3], [4]])
 
     def test_rejects_failed_mapping_or_malformed_digest(self):
         with self.assertRaisesRegex(ValueError, "processor_mapping_status_invalid"):
@@ -54,6 +58,19 @@ class QtaPrescoreProcessorRowAdapterTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "processor_video_grid_invalid"):
             processor_binding_row(review_token="token", source_video_sha256=sha("video"),
                                   mapping={**self.mapping, "video_grid_thw": [0, 2, 2]})
+
+    def test_rejects_noncontiguous_or_unequal_temporal_token_groups(self):
+        for groups in (
+                [{"token_positions": [0]}, {"token_positions": [2]},
+                 {"token_positions": [3]}, {"token_positions": [4]},
+                 {"token_positions": [5]}],
+                [{"token_positions": [0, 1]}, {"token_positions": [2]},
+                 {"token_positions": [3, 4]}, {"token_positions": [5]},
+                 {"token_positions": [6, 7]}]):
+            with self.subTest(groups=groups), self.assertRaisesRegex(
+                    ValueError, "processor_row_temporal_groups_geometry_invalid"):
+                processor_binding_row(review_token="token", source_video_sha256=sha("video"),
+                                      mapping={**self.mapping, "groups": groups})
 
 
 if __name__ == "__main__":

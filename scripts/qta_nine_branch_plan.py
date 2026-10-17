@@ -170,21 +170,23 @@ def validate_qta_nine_branch_plan(plan):
                              "branches", "requested_forwards", "plan_sha256",
                              "execution_authorization"}):
         raise ValueError("qta_plan_schema_invalid")
-    if (plan["schema_version"] != 1
+    if (type(plan["schema_version"]) is not int or plan["schema_version"] != 1
             or plan["status"] != "constructed_unvalidated"
             or plan["scope"] != "synthetic_or_preflighted_input_plan_only"
             or plan["execution_authorization"] != "not_granted"
+            or type(plan["requested_forwards"]) is not int
             or plan["requested_forwards"] != 9
             or plan["branch_order"] != list(BRANCH_ORDER)
             or not isinstance(plan["branches"], list)
             or len(plan["branches"]) != 9):
         raise ValueError("qta_plan_contract_invalid")
-    if not _SHA256.fullmatch(str(plan["typed_batch_sha256"])) or not _SHA256.fullmatch(
-            str(plan["score_binding_sha256"])) or not _SHA256.fullmatch(
-            str(plan["row_binding_sha256"])):
+    if (any(not isinstance(plan[field], str) or not _SHA256.fullmatch(plan[field])
+            for field in ("typed_batch_sha256", "score_binding_sha256",
+                          "row_binding_sha256"))):
         raise ValueError("qta_plan_binding_hash_invalid")
     raw_groups = plan["temporal_groups"]
     if (not isinstance(raw_groups, list) or not raw_groups
+            or type(plan["temporal_group_count"]) is not int
             or plan["temporal_group_count"] != len(raw_groups)):
         raise ValueError("qta_plan_temporal_groups_invalid")
     groups = tuple(_indices(group, name="temporal_group") for group in raw_groups)

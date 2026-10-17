@@ -42,6 +42,17 @@ def processor_binding_row(*, review_token: str, source_video_sha256: str,
         raise ValueError("processor_clock_guard_invalid")
     evidence = _indices(mapping.get("evidence_group_indices"), "evidence_groups")
     control = _indices(mapping.get("control_group_indices"), "control_groups")
+    raw_groups = mapping.get("groups")
+    if (not isinstance(raw_groups, list) or len(raw_groups) != grid[0]
+            or any(not isinstance(group, dict) for group in raw_groups)):
+        raise ValueError("processor_row_temporal_groups_invalid")
+    temporal_positions = [_indices(group.get("token_positions"), "temporal_group_positions")
+                          for group in raw_groups]
+    flattened = [position for group in temporal_positions for position in group]
+    if (len(flattened) != len(set(flattened))
+            or any(len(group) != len(temporal_positions[0]) for group in temporal_positions)
+            or flattened != list(range(flattened[0], flattened[0] + len(flattened)))):
+        raise ValueError("processor_row_temporal_groups_geometry_invalid")
     return {
         "review_token": review_token,
         "source_video_sha256": source_video_sha256,
@@ -52,6 +63,7 @@ def processor_binding_row(*, review_token: str, source_video_sha256: str,
         "interval_boundary_guard_rational_seconds": guard,
         "evidence_group_indices": evidence,
         "control_group_indices": control,
+        "temporal_group_token_positions": temporal_positions,
     }
 
 

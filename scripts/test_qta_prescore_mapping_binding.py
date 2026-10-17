@@ -71,6 +71,7 @@ class QtaPrescoreMappingBindingTests(unittest.TestCase):
                 "interval_boundary_guard_rational_seconds": "1/20",
                 "evidence_group_indices": [1, 3],
                 "control_group_indices": [0, 4],
+                "temporal_group_token_positions": [[0], [1], [2], [3], [4]],
             })
             self.baseline_rows.append({
                 "review_token": token,
@@ -99,7 +100,8 @@ class QtaPrescoreMappingBindingTests(unittest.TestCase):
             "expected_processor_groups_by_token": {
                 token: {"evidence_group_indices": [1, 3],
                         "control_group_indices": [0, 4],
-                        "video_grid_thw": [5, 1, 1]}
+                        "video_grid_thw": [5, 1, 1],
+                        "temporal_group_token_positions": [[0], [1], [2], [3], [4]]}
                 for token in self.tokens
             },
             "expected_calibration_sha256_by_token": self.calibration_hashes,
@@ -195,6 +197,18 @@ class QtaPrescoreMappingBindingTests(unittest.TestCase):
         wrong_mapping[0] = {**wrong_mapping[0], "evidence_group_indices": [1, 2]}
         self.assertEqual(self._audit(processor_rows=wrong_mapping)["failure_code"],
                          "processor_group_mapping_mismatch")
+
+        wrong_temporal = [dict(row) for row in self.processor_rows]
+        wrong_temporal[0] = {**wrong_temporal[0],
+                             "temporal_group_token_positions": [[0], [1], [2], [3], [8]]}
+        self.assertEqual(self._audit(processor_rows=wrong_temporal)["failure_code"],
+                         "processor_temporal_groups_geometry_invalid")
+
+        gap_temporal = [dict(row) for row in self.processor_rows]
+        gap_temporal[0] = {**gap_temporal[0],
+                           "temporal_group_token_positions": [[0], [2], [3], [4], [5]]}
+        self.assertEqual(self._audit(processor_rows=gap_temporal)["failure_code"],
+                         "processor_temporal_groups_geometry_invalid")
 
         wrong_baseline = [dict(row) for row in self.baseline_rows]
         wrong_baseline[0] = {**wrong_baseline[0], "claim_sha256": sha("other-claim")}

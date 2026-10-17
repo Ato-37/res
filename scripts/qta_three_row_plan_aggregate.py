@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import math
 import re
 from collections.abc import Mapping, Sequence
 
@@ -16,6 +17,8 @@ from qta_nine_branch_plan import validate_qta_nine_branch_plan
 
 ROW_COUNT = 3
 BRANCHES_PER_ROW = 9
+FROZEN_QTA_LAYERS_1_BASED = list(range(5, 17))
+FROZEN_QTA_LOGIT_BIAS = math.log(2.0)
 _SHA256 = re.compile(r"^[0-9a-f]{64}$")
 
 
@@ -57,6 +60,7 @@ def aggregate_qta_nine_branch_plans(*, rows, expected_rows):
                     or set(expected) != {"row_binding_sha256", "typed_batch_sha256",
                                          "score_binding_sha256", "video_grid_thw",
                                          "evidence_group_indices", "control_group_indices",
+                                         "temporal_group_token_positions",
                                          "selection_spec_sha256"}):
                 return _blocked("row_schema_invalid")
             row_hash = row["row_binding_sha256"]
@@ -82,6 +86,22 @@ def aggregate_qta_nine_branch_plans(*, rows, expected_rows):
                         or any(type(value) is not int or value < 0 for value in values)
                         or values != sorted(set(values))):
                     return _blocked("expected_processor_groups_invalid")
+            temporal_groups = expected["temporal_group_token_positions"]
+            if (not isinstance(temporal_groups, list) or len(temporal_groups) != grid[0]
+                    or not temporal_groups
+                    or any(not isinstance(group, list) or not group
+                           or any(type(value) is not int or value < 0 for value in group)
+                           or group != sorted(set(group)) for group in temporal_groups)
+                    or any(len(group) != len(temporal_groups[0])
+                           for group in temporal_groups)
+                    or len({value for group in temporal_groups for value in group})
+                    != sum(map(len, temporal_groups))
+                    or any(len(group) != len(temporal_groups[0])
+                           for group in temporal_groups)
+                    or [value for group in temporal_groups for value in group]
+                    != list(range(temporal_groups[0][0], temporal_groups[0][0]
+                                  + sum(map(len, temporal_groups))))):
+                return _blocked("expected_temporal_groups_invalid")
             plan = row["plan"]
             try:
                 validate_qta_nine_branch_plan(plan)
@@ -91,11 +111,17 @@ def aggregate_qta_nine_branch_plans(*, rows, expected_rows):
                     or plan["score_binding_sha256"] != expected["score_binding_sha256"]
                     or plan["selection_spec_sha256"] != expected["selection_spec_sha256"]):
                 return _blocked("row_plan_expected_hash_mismatch")
+            if (plan["intervention_layers_1_based"] != FROZEN_QTA_LAYERS_1_BASED
+                    or plan["selection_spec"]["selector_layers_1_based"]
+                    != FROZEN_QTA_LAYERS_1_BASED
+                    or plan["logit_bias"] != FROZEN_QTA_LOGIT_BIAS):
+                return _blocked("row_treatment_differs_from_frozen_qta_protocol")
             if (plan["temporal_group_count"] != grid[0]
                     or plan["selected_groups"]["evidence"]
                     != expected["evidence_group_indices"]
                     or plan["selected_groups"]["control"]
                     != expected["control_group_indices"]
+                    or plan["temporal_groups"] != temporal_groups
                     or any(index >= grid[0] for field in
                            ("evidence_group_indices", "control_group_indices")
                            for index in expected[field])):

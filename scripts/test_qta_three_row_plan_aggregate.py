@@ -6,11 +6,12 @@ from qta_nine_branch_plan import build_qta_nine_branch_plan
 from qta_three_row_plan_aggregate import aggregate_qta_nine_branch_plans
 
 
-def _plan(index, *, row_hash, layers=(5, 6), bias=0.6931471805599453,
+def _plan(index, *, row_hash, temporal_groups=None, layers=tuple(range(5, 17)),
+          bias=0.6931471805599453,
           sham_seed="fixed-test-seed"):
     return build_qta_nine_branch_plan(
         row_binding_sha256=row_hash,
-        temporal_groups=((0, 1), (2, 3), (4, 5), (6, 7)),
+        temporal_groups=(temporal_groups or ((0, 1), (2, 3), (4, 5), (6, 7))),
         target_group_indices=(index % 2,), sham_group_indices=((index + 2) % 4,),
         evidence_group_indices=(0,), control_group_indices=(2,),
         typed_batch_sha256=chr(97 + index) * 64,
@@ -31,6 +32,7 @@ def _inputs(count=3):
             "video_grid_thw": [4, 1, 1],
             "evidence_group_indices": [0],
             "control_group_indices": [2],
+            "temporal_group_token_positions": [[0, 1], [2, 3], [4, 5], [6, 7]],
             "selection_spec_sha256": plan["selection_spec_sha256"],
         })
         rows.append({"record_position": index + 1,
@@ -121,6 +123,33 @@ class QtaThreeRowPlanAggregateTests(unittest.TestCase):
         expected[1]["video_grid_thw"] = [5, 1, 1]
         self.assert_blocked_without_partial_acceptance(
             aggregate_qta_nine_branch_plans(rows=rows, expected_rows=expected))
+
+    def test_invalid_expected_temporal_group_geometry_blocks_all_three(self):
+        for malformed in (
+                [[0], [1, 2], [3], [4]],
+                [[0, 1], [3, 4], [5, 6], [7, 8]]):
+            with self.subTest(malformed=malformed):
+                rows, expected = _inputs()
+                expected[0]["temporal_group_token_positions"] = malformed
+                self.assert_blocked_without_partial_acceptance(
+                    aggregate_qta_nine_branch_plans(rows=rows, expected_rows=expected))
+
+        rows, expected = _inputs()
+        rows[0]["plan"] = _plan(
+            0, row_hash=expected[0]["row_binding_sha256"],
+            temporal_groups=((100, 101), (102, 103), (104, 105), (106, 107)))
+        self.assert_blocked_without_partial_acceptance(
+            aggregate_qta_nine_branch_plans(rows=rows, expected_rows=expected))
+
+    def test_bool_cannot_masquerade_as_plan_integer_fields(self):
+        import copy
+        for field in ("schema_version", "temporal_group_count", "requested_forwards"):
+            with self.subTest(field=field):
+                rows, expected = _inputs()
+                rows[0]["plan"] = copy.deepcopy(rows[0]["plan"])
+                rows[0]["plan"][field] = True
+                self.assert_blocked_without_partial_acceptance(
+                    aggregate_qta_nine_branch_plans(rows=rows, expected_rows=expected))
         rows, expected = _inputs()
         expected[1]["evidence_group_indices"] = [1]
         self.assert_blocked_without_partial_acceptance(
@@ -133,6 +162,34 @@ class QtaThreeRowPlanAggregateTests(unittest.TestCase):
         expected[1]["score_binding_sha256"] = rows[1]["plan"]["score_binding_sha256"]
         self.assert_blocked_without_partial_acceptance(
             aggregate_qta_nine_branch_plans(rows=rows, expected_rows=expected))
+
+    def test_cohort_wide_consistent_nonprimary_layers_are_rejected(self):
+        rows, expected = _inputs()
+        for i, row in enumerate(rows):
+            row["plan"] = _plan(i, row_hash=row["row_binding_sha256"], layers=(5, 7))
+            expected[i]["typed_batch_sha256"] = row["plan"]["typed_batch_sha256"]
+            expected[i]["score_binding_sha256"] = row["plan"]["score_binding_sha256"]
+            expected[i]["selection_spec_sha256"] = row["plan"]["selection_spec_sha256"]
+        self.assert_blocked_without_partial_acceptance(
+            aggregate_qta_nine_branch_plans(rows=rows, expected_rows=expected))
+
+    def test_treatment_layer_edges_and_one_ulp_bias_changes_are_rejected(self):
+        import math
+        for layers, bias in (
+                (tuple(range(4, 16)), 0.6931471805599453),
+                (tuple(range(6, 18)), 0.6931471805599453),
+                (tuple(range(5, 17)), math.nextafter(math.log(2.0), -math.inf)),
+                (tuple(range(5, 17)), math.nextafter(math.log(2.0), math.inf))):
+            with self.subTest(layers=layers, bias=bias):
+                rows, expected = _inputs()
+                rows[0]["plan"] = _plan(
+                    0, row_hash=expected[0]["row_binding_sha256"],
+                    layers=layers, bias=bias)
+                expected[0]["typed_batch_sha256"] = rows[0]["plan"]["typed_batch_sha256"]
+                expected[0]["score_binding_sha256"] = rows[0]["plan"]["score_binding_sha256"]
+                expected[0]["selection_spec_sha256"] = rows[0]["plan"]["selection_spec_sha256"]
+                self.assert_blocked_without_partial_acceptance(
+                    aggregate_qta_nine_branch_plans(rows=rows, expected_rows=expected))
 
         rows, expected = _inputs()
         rows[1]["plan"] = _plan(
