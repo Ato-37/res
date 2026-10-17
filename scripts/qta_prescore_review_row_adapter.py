@@ -3,10 +3,10 @@
 This small CPU-only adapter accepts the exact objects and raw bytes supplied
 to ``audit_nextgqa_review_handoff.audit``. It checks the returned audit summary
 and copies only the fields required by ``audit_qta_prescore_mapping_bundle``.
-The caller-supplied report dictionary is not authenticated as originating from
-that audit function; this is a structural adapter, not an attestation boundary.
-It does not authenticate a reviewer, verify custody/clock evidence, load a
-model, or authorize scoring.
+It reruns the handoff audit from the exact supplied source bytes instead of
+trusting a caller-supplied success summary. It remains structural: it does not
+authenticate a reviewer, verify custody/clock evidence, load a model, or
+authorize scoring.
 """
 from __future__ import annotations
 
@@ -15,6 +15,8 @@ import json
 import re
 from copy import deepcopy
 from typing import Any
+
+from audit_nextgqa_review_handoff import audit as audit_review_handoff
 
 
 ROW_COUNT = 3
@@ -60,20 +62,26 @@ def _sha256(raw: bytes) -> str:
     return hashlib.sha256(raw).hexdigest()
 
 
-def adapt_review_audit_to_qta_rows(
-    *, audit_report: dict[str, Any],
-    worksheet: dict[str, Any], worksheet_raw: bytes,
-    review: dict[str, Any], review_raw: bytes,
+def adapt_review_bundle_to_qta_rows(
+    *, worksheet_raw: bytes, lineage_raw: bytes,
+    review_raw: bytes, review_index_raw: bytes,
+    expected_lineage_sha256: str,
 ) -> list[dict[str, Any]]:
-    """Return the three review rows expected by the QTA mapping binder.
+    """Audit exact handoff bytes and return rows expected by the QTA binder.
 
-    ``audit_report`` must be the successful result returned by
-    ``audit_nextgqa_review_handoff.audit`` for these exact worksheet/review
-    objects and raw byte strings. The returned rows retain worksheet order;
-    the single audited review-payload digest is repeated for every row.
+    The handoff validator is rerun here, so a caller-created success dict cannot
+    stand in for source-byte checks. These rows retain worksheet order; the
+    single audited review-payload digest is repeated for every row.
     """
+    lineage = _strict_json(lineage_raw, "lineage_json_invalid")
+    worksheet = _strict_json(worksheet_raw, "worksheet_json_invalid")
+    review = _strict_json(review_raw, "review_payload_json_invalid")
+    review_index = _strict_json(review_index_raw, "review_index_json_invalid")
+    audit_report = audit_review_handoff(
+        worksheet, worksheet_raw, lineage, lineage_raw, review, review_raw,
+        review_index, review_index_raw, expected_lineage_sha256)
     if not isinstance(audit_report, dict):
-        _fail("audit_report_invalid")
+        _fail("review_audit_not_successful")
     if (audit_report.get("status") != "unvalidated_handoff_structurally_valid"
             or audit_report.get("failure_codes") != []
             or type(audit_report.get("reviewed_records")) is not int

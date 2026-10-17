@@ -167,7 +167,8 @@ def audit(worksheet: Any, worksheet_raw: bytes, lineage: Any, lineage_raw: bytes
             failures.add("review_declaration_incomplete"); continue
         intervals, rationales, decision = item.get("evidence_intervals_seconds"), item.get("interval_rationales"), item.get("support_decision")
         duration = item.get("media_duration_seconds")
-        if (decision not in DECISIONS or isinstance(duration, bool)
+        if (not isinstance(decision, str) or decision not in DECISIONS
+                or isinstance(duration, bool)
                 or not isinstance(duration, (int, float)) or not math.isfinite(duration) or duration <= 0
                 or not isinstance(intervals, list) or not isinstance(rationales, list)
                 or len(intervals) != len(rationales) or (decision == "supports_claim" and not intervals)):

@@ -175,9 +175,9 @@ rows agree. No production runner currently supplies this complete bundle.
 
 Two small projections are provided around that join. The review-row
 adapter consumes the exact worksheet/review objects and bytes plus a
-successful handoff-audit summary, then propagates its bundle-level review hash
-onto rows in frozen worksheet order. The supplied summary itself is caller
-controlled and is not authenticated as the audit function's output. The
+worksheet, lineage, review and index byte bundle, reruns the structural handoff
+audit, then propagates its bundle-level review hash onto rows in frozen
+worksheet order. It does not consume a caller-supplied success summary. The
 processor-row adapter copies only the serializable batch/sampling/group fields
 from one successful CPU mapper result and omits its private tensor snapshot.
 The clock-row adapter checks the bound calibration envelope, fixed fit/heldout

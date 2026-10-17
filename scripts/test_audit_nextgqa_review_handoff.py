@@ -132,6 +132,18 @@ class AuditNextgqaReviewHandoffTests(unittest.TestCase):
         result = audit(v[0], v[1], v[2], v[3], review, encode(review), v[6], v[7], hashlib.sha256(v[3]).hexdigest())
         self.assertIn("review_intervals_invalid", result["failure_codes"])
 
+    def test_unhashable_support_decisions_fail_with_stable_validation_result(self):
+        for decision in ([], {}):
+            with self.subTest(decision=decision):
+                v = fixture()
+                review = json.loads(v[5])
+                review["records"][0]["review"]["support_decision"] = decision
+                review_raw = encode(review)
+                index = dict(v[6], review_payload_sha256=hashlib.sha256(review_raw).hexdigest())
+                result = audit(v[0], v[1], v[2], v[3], review, review_raw,
+                               index, encode(index), hashlib.sha256(v[3]).hexdigest())
+                self.assertIn("review_intervals_invalid", result["failure_codes"])
+
     def test_exact_duplicate_interval_is_retained_and_structurally_accepted(self):
         v = fixture()
         review = json.loads(v[5])
