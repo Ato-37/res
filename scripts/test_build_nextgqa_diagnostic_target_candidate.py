@@ -31,14 +31,15 @@ class FakeTokenizer:
 
 class FakeProcessor:
     tokenizer = FakeTokenizer()
-    video_processor = type("VP", (), {"temporal_patch_size": 2})()
+    video_token_id = 99
+    video_processor = type("VP", (), {"temporal_patch_size": 2, "merge_size": 1})()
 
     def apply_chat_template(self, messages, tokenize=False, add_generation_prompt=True):
         text = messages[0]["content"][1]["text"]
         return "rendered-prefix:" + text
 
     def __call__(self, **kwargs):
-        return {"input_ids": torch.tensor([[5, 7, 11]]),
+        return {"input_ids": torch.tensor([[5] + [99] * 16 + [7, 11]]),
                 "video_grid_thw": torch.tensor([[16, 1, 1]]),
                 "second_per_grid_ts": torch.tensor([2.0])}
 
@@ -206,7 +207,10 @@ def make_model_snapshot(root: Path) -> Path:
 def synthetic_decoder(path, *, num_frames, uniform_tolerance_seconds):
     raw_sha = sha(path.read_bytes())
     frames = [Image.new("RGB", (2, 2), (i % 255, 1, 2)) for i in range(num_frames)]
-    return frames, {"source_sha256": raw_sha, "effective_sample_fps": (1, 1)}
+    return frames, {"source_sha256": raw_sha, "effective_sample_fps": (1, 1),
+                    "sampled_frames": [
+                        {"relative_presentation_time": [index, 1]}
+                        for index in range(num_frames)]}
 
 
 def synthetic_vision(messages, return_video_metadata=True):
@@ -262,6 +266,14 @@ class DiagnosticTargetCandidateTests(unittest.TestCase):
         self.assertTrue(pyav_versions is None or isinstance(pyav_versions, dict))
         json.dumps(pyav_versions)
         self.assertEqual(len(payload["records"]), 3)
+        self.assertEqual(payload["records"][0]["video_token_count"], 16)
+        temporal_groups = payload["records"][0]["temporal_video_token_groups"]
+        self.assertEqual(len(temporal_groups), 16)
+        self.assertEqual(temporal_groups[0]["sampled_frame_indices"], [0, 1])
+        self.assertEqual(temporal_groups[-1]["sampled_frame_indices"], [30, 31])
+        self.assertEqual(temporal_groups[0]["sampled_pts_seconds"], ["0", "1"])
+        self.assertEqual(payload["records"][0]["temporal_video_token_mapping_scope"],
+                         "processor_order_to_sampled_decoder_frames_only")
         self.assertEqual(payload["records"][0]["answer_label_token_ids"], list(map(ord, "ABCDE")))
         self.assertEqual(payload["records"][0]["answer_label_token_piece_counts"], [1] * 5)
         self.assertTrue(all(len(row["rendered_scoring_prefix_sha256"]) == 64
@@ -274,6 +286,29 @@ class DiagnosticTargetCandidateTests(unittest.TestCase):
         self.assertNotIn("synthetic question", encoded)
         self.assertNotIn("synthetic claim", encoded)
         self.assertNotIn("gold-0", encoded)
+
+    def test_temporal_token_mapper_partitions_contiguous_slices(self):
+        groups = candidate.map_temporal_video_token_groups(
+            input_ids=[5, *([99] * 8), 6], video_token_id=99,
+            grid_thw=[4, 2, 4], merge_size=2, temporal_patch_size=2,
+            frame_count=8, sampled_pts=[str(i) for i in range(8)])
+        self.assertEqual(len(groups), 4)
+        self.assertEqual(groups[0]["first_video_token_position"], 1)
+        self.assertEqual(groups[0]["last_video_token_position_exclusive"], 3)
+        self.assertEqual(groups[1]["sampled_frame_indices"], [2, 3])
+        self.assertEqual(groups[-1]["sampled_pts_seconds"], ["6", "7"])
+
+    def test_temporal_token_mapper_rejects_noncontiguous_or_mismatched_grid(self):
+        args = dict(video_token_id=99, grid_thw=[2, 2, 2], merge_size=1,
+                    temporal_patch_size=2, frame_count=4,
+                    sampled_pts=["0", "1", "2", "3"])
+        with self.assertRaisesRegex(candidate.CandidateError, "token_count_or_order"):
+            candidate.map_temporal_video_token_groups(
+                input_ids=[99, 99, 5, 99, 99], **args)
+        with self.assertRaisesRegex(candidate.CandidateError, "frame_count_mismatch"):
+            candidate.map_temporal_video_token_groups(
+                input_ids=[99] * 4, grid_thw=[1, 2, 2], **{k: v for k, v in args.items()
+                                                           if k != "grid_thw"})
 
     def test_candidate_binds_claim_manifest_and_sidecar_without_authorizing_scores(self):
         with tempfile.TemporaryDirectory() as temp:

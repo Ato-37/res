@@ -19,6 +19,22 @@ Qwen2.5-VLの推論時内部介入により、回答claimを支える時間的�
 
 対象は長い自由形式CoT全体ではなく、一つの検証可能な回答claimと時間区間に限定する。これは旧head群faithfulness実験とは異なる新estimandである。
 
+### 2026-10-17：卒研の中心対象を明確化
+
+卒研の中心対象は、**モデルの説明が指す動画証拠に、説明対象の予測が選択的に依存するか**とする。主指標候補は、その選択的依存が**事前に固定した内部介入によって向上するか**である。したがって、単なるQA回答marginの動画入力感度やgrounding精度は主指標ではなく、補助的な測定となる。
+
+結果閲覧前に固定する測定候補を次のように置く。`g`はbaselineまたは内部介入、`m_{g,i}(z)`は動画iの固定した元予測と固定foilのteacher-forced log-margin、`z`はfull、claim-evidence internal ablation、matched-control internal ablationのいずれかとする。
+
+`F_{g,i} = [m_{g,i}(full) - m_{g,i}(evidence-ablation)] - [m_{g,i}(full) - m_{g,i}(control-ablation)]`
+
+`ΔF_i = F_{intervention,i} - F_{baseline,i}`
+
+正の`ΔF`は、指定モデル・内部状態の介入条件下で、説明が指すレビュー済み時間証拠の選択的依存がmatched controlに対して増えたことを表す操作的指標候補である。これは説明の真偽、完全な内部推論、自由生成説明全体の忠実性を証明しない。claim-to-timeの独立レビュー、時間区間とprocessor visual-tokenの検証、同じ回答/foilの固定、介入とablation双方のsham/control、layer/strengthの事前固定が必要である。式、介入、token score、成功基準、sample sizeはまだ凍結していない。
+
+**介入の循環性チェック（2026-10-17）。** 説明が指したtoken残差そのものを増幅し、同じtokenのablationで`ΔF`を評価する案は、選択対象と評価対象が一致して正の結果を操作的に作り込むおそれがある。この案は主介入候補から外し、残す場合も実装のpositive controlに限る。主介入はclaim spanやgold intervalを介入先に使わず、質問依存の内部信号だけで時間chunkを選ぶ候補を検討する。claim-to-time対応は評価専用に保つ。選択信号・層・強度を固定する根拠と、全体的なlogit/confidence上昇では説明できない対照が定まるまで処置は凍結しない。
+
+既存のv2 black-mask studyはこの内部介入estimandを測らないため、別の準備用feasibility branchに留める。広い「動画VLM初のactivation engineering」はTA-AE (NeurIPS 2025)等と重なるため新規性として主張しない。LLM向けActivation Patching/Causal Faithfulness研究は方法論上近いが、同じclaim/time-mapped visual tokenへの依存向上を動画VLMで測る設定とは区別し、本文・実装の差分を確認する。
+
 ## 2. 根拠と引き継ぐ制約
 
 - 旧head-faithfulness独立確認は79/79件完了、推定値−0.0756 nat、95% t CI [−0.1578,+0.0065]で、事前境界+0.25 natを支持しなかった。gradient×activation top-4 head仮説は閉じる。head/layer/alpha探索を再開しない。
@@ -30,6 +46,8 @@ Qwen2.5-VLの推論時内部介入により、回答claimを支える時間的�
 ## 3. 介入と条件（候補）
 
 **主介入候補：KFP-inspired temporal evidence propagation。** 生成stepの質問依存な中間層信号からkey temporal chunkを選び、中間層のvisual-token表現を限定された時間近傍内で再重み付けする。まず論文で使われた層範囲を候補にし、Qwen2.5-VLの実層数・video token/chunk構造と対応するかCPU監査する。成立しなければGPUへ進まない。
+
+ただし、[VERHallu/KFP論文](https://arxiv.org/html/2601.10010)の公開記述は層8–15、Gaussian幅`σ=1`、近傍幅`m=5`、混合係数`β=0.6`を示す一方、key-frameの`top-k`値は確認できず、パラメータablationは別モデルを含む。[著者の公開コードリポジトリ](https://github.com/zefanZhang-cn/VERHallu)も2026-10-17時点ではREADME/LICENSEのみで、再現用実装が見当たらない。このため、KFPは根拠のある設計候補ではあるが、そのまま再現できる固定treatmentではない。`top-k`などを本データ上で探索して埋めることはせず、先に仕様・実装の再現可能性を解決する。
 
 - Baseline：介入なし。
 - Treatment：論文に沿う単一の固定設定。確認結果を見てtop-k・層・時間幅・強度を探索しない。

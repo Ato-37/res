@@ -78,6 +78,8 @@ CODE_FILES = {
     "clock_decoder_exporter": "scripts/export_clock_anchor_decoder_pngs.py",
     "video_decoder": "scripts/claim_mask_video_decoder.py",
     "diagnostic_target_builder": "scripts/build_nextgqa_diagnostic_target_candidate.py",
+    "cohort_fingerprint_audit": "scripts/audit_nextgqa_claim_cohort_fingerprint.py",
+    "cohort_fingerprint_audit_test": "scripts/test_audit_nextgqa_claim_cohort_fingerprint.py",
     "mask_condition_builder": "scripts/nextgqa_claim_mask_conditions.py",
     "sampler_config_audit": "scripts/audit_claim_sampling_config.py",
     "condition_batch_builder": "scripts/nextgqa_condition_batch_builder.py",

@@ -132,3 +132,62 @@ the temporal hidden-state intervention is a third candidate. Its relative
 merit depends on whether the thesis endpoint is evidence attribution or
 faithfulness of a free-text explanation, while the actual direct-claim and
 frame-review gates stay outstanding.
+
+## Follow-up: thesis target selected, internal-intervention metric remains draft
+
+On 2026-10-17, the user selected the thesis target as **selective prediction
+dependence on video evidence indicated by the explanation**, and selected
+**improvement under an internal intervention** as the main metric candidate.
+This rules out treating the current v2 QA-margin mask as the thesis endpoint:
+the generated claim is used only to choose frames and is absent from the scored
+QA prompt.
+
+The internal-intervention plan now records a candidate difference-in-differences
+estimand. For each fixed prediction, compare the drop in its fixed gold-versus-
+foil margin after ablating claim-mapped evidence tokens with the drop after an
+equal-count matched-control token ablation; then compare this selectivity between
+baseline and the prespecified intervention. A positive treatment contrast would
+mean increased operational dependence on the reviewed evidence tokens relative
+to that control, under this model and setup. It would not establish claim truth,
+complete internal-process faithfulness, or generalization beyond the tested
+cohort.
+
+This estimand and intervention are still **not frozen**. The internal treatment,
+fixed foil rule, ablation/control construction, inclusion rule, sample size, and
+smallest effect of interest need outcome-blind specification. The close prior
+work also limits novelty: Yeo et al. study activation-patching attribution for
+textual NLE faithfulness, while Cai et al. study temporal-aware activation
+engineering to reduce VideoLLM hallucination. A possible contribution must be
+the narrowly defined combination and evaluation, not either broad idea alone.
+[Yeo et al. (EMNLP 2025)](https://aclanthology.org/2025.emnlp-main.529/),
+[Cai et al. (NeurIPS 2025)](https://proceedings.neurips.cc/paper_files/paper/2025/hash/5683583b88da51c79d2eb263f295286e-Abstract-Conference.html).
+
+An independent design review proposed directly amplifying the reviewed
+claim-span visual-token residuals. This was rejected as the primary treatment:
+because the treatment and selective-ablation outcome target the same tokens, a
+positive effect could be built into the measurement by construction. A
+question-conditioned internal selector, independent of reviewer/gold spans,
+would be a stronger candidate, but its selection signal, intervention point,
+strength, and global-shift control are not yet justified. The `ΔF` metric
+therefore remains a draft and no efficacy experiment is authorized by this
+design work.
+
+Implementation work added a fail-closed local cohort-fingerprint auditor and
+processor-grid-to-source-frame temporal-token mapping diagnostics. A synthetic
+end-to-end test now exercises the auditor's full metadata/hash/evidence/control
+recomputation path; mapper tests cover valid and malformed temporal layouts.
+Full script test discovery passed **1,370/1,370**. A fresh local-only
+candidate inventory bound 65 required roles with no missing slot; independent
+file-hash recomputation found 0 mismatches. The inventory remains non-authorizing
+and marks review incomplete, scoring unavailable, and rights unverified. These
+are provenance and geometry checks, not faithfulness outcomes; protected
+diagnostic artifacts remain local.
+
+Direct generated-explanation faithfulness remains **0/3 independently reviewed,
+0/3 scored**, with no direct effect estimate, interval, or test. Actual
+browser-player-to-decoder-frame correspondences remain **0/15**. No efficacy
+inference follows from the implementation checks, and no activation-treatment
+score has been run. The next valid research step is to specify one intervention
+and all controls before outcomes, then complete the external human-review,
+trusted-release, and clock-correspondence steps needed to attach reviewed claims
+to the mapped tokens.

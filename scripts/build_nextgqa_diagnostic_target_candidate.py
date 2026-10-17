@@ -626,6 +626,23 @@ def build_candidate(*, csv_raw: bytes, generation_raw: bytes, lineage_raw: bytes
                 or grid_list[0] != frame_count // temporal_patch
                 or abs(second_value - 2 / (sample_fps[0] / sample_fps[1])) > 1e-6):
             _fail("processor_geometry_invalid")
+        decoded_frame_rows = decode.get("sampled_frames")
+        if not isinstance(decoded_frame_rows, list) or len(decoded_frame_rows) != frame_count:
+            _fail("sampled_decoder_pts_missing")
+        try:
+            sampled_pts = [str(Fraction(*record["relative_presentation_time"]))
+                           for record in decoded_frame_rows]
+        except (KeyError, TypeError, ValueError, ZeroDivisionError):
+            _fail("sampled_decoder_pts_invalid")
+        temporal_token_groups = map_temporal_video_token_groups(
+            input_ids=input_id_list,
+            video_token_id=int(processor.video_token_id),
+            grid_thw=[int(value) for value in grid_list],
+            merge_size=int(processor.video_processor.merge_size),
+            temporal_patch_size=temporal_patch,
+            frame_count=frame_count,
+            sampled_pts=sampled_pts,
+        )
         row = next((r for r in binding["source_row_bindings"]
                     if r["video_id"] == item["video_id"]), None)
         if not isinstance(row, dict):
@@ -649,6 +666,10 @@ def build_candidate(*, csv_raw: bytes, generation_raw: bytes, lineage_raw: bytes
             "video_sha256": lineage_row["video_sha256"],
             "frame_count": len(frames), "video_grid_thw": grid_list,
             "second_per_grid_ts": second_value,
+            "video_token_count": sum(group["tokens_in_grid"]
+                                      for group in temporal_token_groups),
+            "temporal_video_token_groups": temporal_token_groups,
+            "temporal_video_token_mapping_scope": "processor_order_to_sampled_decoder_frames_only",
         })
         del batch, pixels, metadata, messages, images, videos, text, frames
 
@@ -739,6 +760,55 @@ def _write_exclusive_private(path: Path, payload: dict, repo_root: Path) -> str:
         except FileNotFoundError:
             pass
     return _file_sha(final)
+
+
+def map_temporal_video_token_groups(*, input_ids: list[int], video_token_id: int,
+                                    grid_thw: list[int], merge_size: int,
+                                    temporal_patch_size: int, frame_count: int,
+                                    sampled_pts: list[str]) -> list[dict[str, Any]]:
+    """Map contiguous processor video-token slices to sampled decoder frames.
+
+    This is an ordered processor-layout mapping only. It does not establish
+    browser-clock correspondence, semantic support, or model faithfulness.
+    """
+    if (not isinstance(input_ids, list) or not input_ids
+            or any(type(value) is not int for value in input_ids)
+            or type(video_token_id) is not int or video_token_id < 0
+            or not isinstance(grid_thw, list) or len(grid_thw) != 3
+            or any(type(value) is not int or value <= 0 for value in grid_thw)
+            or type(merge_size) is not int or merge_size <= 0
+            or type(temporal_patch_size) is not int or temporal_patch_size <= 0
+            or type(frame_count) is not int or frame_count <= 0
+            or frame_count % temporal_patch_size != 0
+            or not isinstance(sampled_pts, list) or len(sampled_pts) != frame_count
+            or any(not isinstance(value, str) or not value for value in sampled_pts)):
+        _fail("temporal_video_token_map_inputs_invalid")
+    temporal_size, height, width = grid_thw
+    if height % merge_size or width % merge_size:
+        _fail("temporal_video_token_grid_invalid")
+    frames_per_grid = temporal_patch_size
+    if temporal_size != frame_count // frames_per_grid:
+        _fail("temporal_video_grid_frame_count_mismatch")
+    token_positions = [index for index, token in enumerate(input_ids)
+                       if token == video_token_id]
+    tokens_per_grid = (height // merge_size) * (width // merge_size)
+    if (len(token_positions) != temporal_size * tokens_per_grid or not token_positions
+            or token_positions != list(range(token_positions[0],
+                                             token_positions[0] + len(token_positions)))):
+        _fail("temporal_video_token_count_or_order_mismatch")
+    groups = []
+    for grid_index in range(temporal_size):
+        token_start = grid_index * tokens_per_grid
+        frame_start = grid_index * frames_per_grid
+        groups.append({
+            "temporal_grid_index": grid_index,
+            "first_video_token_position": token_positions[token_start],
+            "last_video_token_position_exclusive": token_positions[token_start + tokens_per_grid - 1] + 1,
+            "tokens_in_grid": tokens_per_grid,
+            "sampled_frame_indices": list(range(frame_start, frame_start + frames_per_grid)),
+            "sampled_pts_seconds": sampled_pts[frame_start:frame_start + frames_per_grid],
+        })
+    return groups
 
 
 def main(argv: list[str] | None = None) -> int:
