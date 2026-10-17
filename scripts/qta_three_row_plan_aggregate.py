@@ -19,6 +19,7 @@ ROW_COUNT = 3
 BRANCHES_PER_ROW = 9
 FROZEN_QTA_LAYERS_1_BASED = list(range(5, 17))
 FROZEN_QTA_LOGIT_BIAS = math.log(2.0)
+FROZEN_QTA_SHAM_SEED = "qta-sham-seed-20261018-v1"
 _SHA256 = re.compile(r"^[0-9a-f]{64}$")
 
 
@@ -92,8 +93,6 @@ def aggregate_qta_nine_branch_plans(*, rows, expected_rows):
                     or any(not isinstance(group, list) or not group
                            or any(type(value) is not int or value < 0 for value in group)
                            or group != sorted(set(group)) for group in temporal_groups)
-                    or any(len(group) != len(temporal_groups[0])
-                           for group in temporal_groups)
                     or len({value for group in temporal_groups for value in group})
                     != sum(map(len, temporal_groups))
                     or any(len(group) != len(temporal_groups[0])
@@ -114,7 +113,8 @@ def aggregate_qta_nine_branch_plans(*, rows, expected_rows):
             if (plan["intervention_layers_1_based"] != FROZEN_QTA_LAYERS_1_BASED
                     or plan["selection_spec"]["selector_layers_1_based"]
                     != FROZEN_QTA_LAYERS_1_BASED
-                    or plan["logit_bias"] != FROZEN_QTA_LOGIT_BIAS):
+                    or plan["logit_bias"] != FROZEN_QTA_LOGIT_BIAS
+                    or plan["selection_spec"]["sham_seed"] != FROZEN_QTA_SHAM_SEED):
                 return _blocked("row_treatment_differs_from_frozen_qta_protocol")
             if (plan["temporal_group_count"] != grid[0]
                     or plan["selected_groups"]["evidence"]

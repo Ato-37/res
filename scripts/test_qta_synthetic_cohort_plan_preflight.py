@@ -26,7 +26,7 @@ def _bundle():
             score_binding_sha256=score,
             intervention_layers_1_based=tuple(range(5, 17)),
             logit_bias=0.6931471805599453,
-            sham_seed="fixed-synthetic-seed")
+            sham_seed="qta-sham-seed-20261018-v1")
         plans.append(plan)
         score_pins[token] = score
         selection_pins[token] = plan["selection_spec_sha256"]

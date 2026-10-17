@@ -8,7 +8,7 @@ from qta_three_row_plan_aggregate import aggregate_qta_nine_branch_plans
 
 def _plan(index, *, row_hash, temporal_groups=None, layers=tuple(range(5, 17)),
           bias=0.6931471805599453,
-          sham_seed="fixed-test-seed"):
+          sham_seed="qta-sham-seed-20261018-v1"):
     return build_qta_nine_branch_plan(
         row_binding_sha256=row_hash,
         temporal_groups=(temporal_groups or ((0, 1), (2, 3), (4, 5), (6, 7))),
@@ -167,6 +167,17 @@ class QtaThreeRowPlanAggregateTests(unittest.TestCase):
         rows, expected = _inputs()
         for i, row in enumerate(rows):
             row["plan"] = _plan(i, row_hash=row["row_binding_sha256"], layers=(5, 7))
+            expected[i]["typed_batch_sha256"] = row["plan"]["typed_batch_sha256"]
+            expected[i]["score_binding_sha256"] = row["plan"]["score_binding_sha256"]
+            expected[i]["selection_spec_sha256"] = row["plan"]["selection_spec_sha256"]
+        self.assert_blocked_without_partial_acceptance(
+            aggregate_qta_nine_branch_plans(rows=rows, expected_rows=expected))
+
+    def test_cohort_wide_alternate_sham_seed_is_rejected(self):
+        rows, expected = _inputs()
+        for i, row in enumerate(rows):
+            row["plan"] = _plan(i, row_hash=row["row_binding_sha256"],
+                                sham_seed="alternate-seed")
             expected[i]["typed_batch_sha256"] = row["plan"]["typed_batch_sha256"]
             expected[i]["score_binding_sha256"] = row["plan"]["score_binding_sha256"]
             expected[i]["selection_spec_sha256"] = row["plan"]["selection_spec_sha256"]

@@ -81,12 +81,37 @@ denied until the later score freeze passes.
 
 ## Review-only release freeze before anyone views a video
 
-The current v2 protocol is a draft and is not frozen for scoring. Its exact
-bytes and its already stated finite-cohort estimand, three-record denominator,
-conditions, 32-frame sampler, mask/control rule, and failure rule must still be
-hash-bound in the review-only release freeze. This records which fixed study
-contract the annotations serve; it does not mark v2 frozen, score-ready, or
-authorized. The release freeze must also bind the exact v6 claim/cohort inputs,
+The legacy claim-mask v2 protocol is a draft and is not frozen for scoring.
+The current thesis candidate is separately described in
+`docs/qwen_question_attention_faithfulness_protocol_v1_draft.md`; it too is an
+engineering draft, not preregistered, frozen, or authorized for real-data
+scoring. Before any reviewer opens the package, the review-only release freeze
+must bind the exact bytes of the QTA draft and the selected-treatment record
+`experiments/2026-10-18_qta_treatment_selection.md`, alongside the legacy v2
+review/export contract used to collect the claim and interval annotations.
+This makes clear which draft estimand those annotations are intended to inform;
+it does not freeze either scoring protocol or authorize scoring. The QTA draft
+specifies question-attention selection (layers 5–16, `k=max(1,ceil(0.10*T))`,
+earlier-index tie break), `ln(2)` answer-query bias, a fixed baseline-full
+prediction/foil pair, evidence/control key ablations, and a deterministic sham
+seed. A review-only freeze must hash-bind those exact draft and selection-log
+bytes; the concrete cohort plan, branch tensors, and executable scorer still
+require later score-freeze validation.
+
+Stage 1 review records whether the entire claim is supported by visible video
+evidence and every sufficient occurrence interval. It does not establish that
+the claim distinguishes the model's later baseline prediction `p` from foil
+`q`. Under the QTA draft, a separate blind stage-2 prediction-link adjudication
+must therefore occur after baseline `p/q` is frozen and before any treatment or
+ablation branch. The stage-2 judgment currently applies to the claim and the
+union of its reviewed intervals; it does not map a particular claim clause to
+each interval. Consequently, any resulting score is only fixed-`p/q` score
+dependence on that reviewed interval set under the stated intervention and
+ablation, not a general measure of explanation faithfulness or claim truth.
+The current review package does not collect stage-2 judgments and does not
+authorize them or scoring.
+
+The release freeze must also bind the exact v6 claim/cohort inputs,
 source and media lineage/custody, staged media, reviewer page and renderer,
 review policy and disclosure, capture helper/policy, 15-anchor plan and its
 provenance, crop and pair-review procedure, thresholds, and the designated
@@ -180,10 +205,13 @@ estimand, metric, conditions, eligibility/failure rule, or mask/control rule
 changes, stop and version the study; affected reviews must be repeated before
 scoring. The later score freeze must bind the completed review exports, audited
 clock/frame evidence, all three source-backed targets, exact prompt prefixes and
-answer-token IDs, sampler/config/code, model checkpoint/configuration,
-tokenizer/processor, precision, condition builder/scorer code, all nine exact
-processor batches, and a production all-three-row atomic preflight bound to the
-same v2 contract before model loading. No production score-freeze receipt
+answer-token IDs, the QTA scoring sampler and treatment configuration,
+model checkpoint/configuration, tokenizer/processor, precision, condition
+builder/scorer code, all nine exact processor batches per record, and a
+production all-three-row atomic preflight bound to the QTA draft plus the
+legacy v2 review/export contract before model loading. The legacy
+`protocol_v2_status` field records only the annotation/export contract status;
+it does not identify or freeze QTA scoring. No production score-freeze receipt
 currently exists.
 
 Assign people to these roles before opening the package. The freeze owner may
