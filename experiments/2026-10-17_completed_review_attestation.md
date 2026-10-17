@@ -72,3 +72,42 @@ receipt digest and reviewer key fingerprint, then validate this tool against a
 real completed export only after the separately required witnessed review
 release. Continue to deny scoring until all upstream human, timing, and atomic
 score-freeze gates pass. Do not run another GPU claim-score job before then.
+
+## 21:53–22:00 JST — bind completed-review signature to the trusted role roster
+
+An independent trust-boundary audit found that the first CLI version accepted
+the reviewer key ID and fingerprint from its caller. It therefore proved
+control of a selected key, not that the key had the `claim_reviewer` role. The
+attestation now validates the root-signed three-role integrity roster against
+an externally pinned root key, derives the reviewer ID and public key from its
+`claim_reviewer` entry, and signs/verifies against that key. The body binds both
+the exact roster hash and trust-root fingerprint. This is a new envelope v2;
+the frozen v6 review exports and policy are unchanged.
+
+Synthetic verification passed: 12 attestation tests and the 17 existing
+integrity-receipt tests (29 total in the focused module invocation); full
+repository discovery passed 1,354/1,354 tests in 27.9 seconds. Compilation and
+`git diff --check` passed. A new private inventory at
+`data/private_nextgqa/pre_review_inventory_v6_20261017_2158_01/` has 62 roles,
+zero missing, candidate-only status, and modes 0700/0600. Its local SHA-256 is
+`dc4b1d4f587703b3a46daa816a7bf438d23e5ec2d281a87f591a053f7f88fcbe`; the
+registered attestation source is 17,389 bytes with SHA-256
+`3987052283985f59daf271ff9627292ee9940b8f7f76410cca6b4186687f06e0`. The
+inventory contains only derived byte hashes and remains local.
+
+The independent code audit found no critical defect. The trust root still
+requires a genuinely out-of-band fingerprint: a caller who supplies both a
+self-chosen root and its matching fingerprint can create a self-signed roster.
+The pre-review receipt digest remains a caller-supplied, format-checked value;
+the receipt itself, roster-to-cohort link, witness ceremony, key-to-person
+identity, actual video viewing, and semantic review are not verified by this
+attestation. `reviewer_role_roster_verified=true` now means only that the
+presented roster validates under the presented root pin; scoring remains
+`not_granted` and all identity/semantic/media-custody flags remain false.
+
+Faithfulness progress is unchanged: direct generated-claim evaluation is
+0/3 independently reviewed and 0/3 scored, with no direct estimate, interval,
+or hypothesis test. This is handoff integrity engineering, not faithfulness
+evidence. No GPU run was justified. Next, independently close a real
+trust-root/release-order and frame-correspondence gate, or document which
+specific artifact is still absent before any real review or scoring attempt.

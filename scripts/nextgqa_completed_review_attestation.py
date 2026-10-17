@@ -1,14 +1,13 @@
 #!/usr/bin/env python3
 """Create and verify a detached reviewer signature for completed v6 exports.
 
-This additive envelope binds exact review JSON/index bytes to a reviewer key
-whose DER fingerprint is pinned out of band. It does not alter the frozen v6
+This additive envelope binds exact review JSON/index bytes to the claim-reviewer
+key in an externally pinned, root-signed roster. It does not alter the frozen v6
 page, policy, review payload, or integrity index. A valid signature attests
-only that the key holder signed/adopted these bytes; it does not authenticate
+only that the rostered key signed/adopted these bytes; it does not authenticate
 the human, prove viewing, validate semantics, verify media custody, or
-authorize scoring. The caller must obtain the receipt digest and reviewer key
-ID/fingerprint from the trusted workflow; this module does not verify a signed
-role roster or the receipt itself.
+authorize scoring or validate the receipt. The root pin must come from a
+separate trusted channel.
 """
 from __future__ import annotations
 
@@ -32,10 +31,11 @@ from nextgqa_pre_review_integrity_receipt import (
     _sign,
     _verify_signature,
     _write_private_output,
+    _validate_roster,
 )
 
 MAX_JSON_BYTES = 2 * 1024 * 1024
-DOMAIN = b"nextgqa_completed_review_attestation_v1\0"
+DOMAIN = b"nextgqa_completed_review_attestation_v2\0"
 POLICY_ID = "nextgqa_claim_review_v6"
 _SHA = re.compile(r"^[0-9a-f]{64}$")
 _KEY_ID = re.compile(r"^[A-Za-z0-9._-]{1,64}$")
@@ -122,13 +122,22 @@ def _validate_bindings(policy_sha256: str, pre_review_receipt_sha256: str,
         _fail("reviewer_key_id_invalid")
 
 
+def _validated_roster(roster_raw: bytes, root_public_key_pem: bytes,
+                      root_pin: str) -> tuple[dict[str, Any], dict[str, bytes]]:
+    try:
+        return _validate_roster(roster_raw, root_public_key_pem, root_pin)
+    except ReceiptError as exc:
+        _fail(str(exc))
+
+
 def _body(*, review_raw: bytes, review_index_raw: bytes,
           worksheet_raw: bytes, lineage_raw: bytes,
           pre_review_receipt_sha256: str, reviewer_key_id: str,
-          reviewer_key_fingerprint_sha256: str) -> dict[str, Any]:
+          reviewer_key_fingerprint_sha256: str, roster_raw: bytes,
+          root_pin: str) -> dict[str, Any]:
     return {
-        "schema_version": 1,
-        "purpose": "nextgqa_completed_review_bytes_adoption_attestation",
+        "schema_version": 2,
+        "purpose": "nextgqa_completed_review_bytes_adoption_attestation_v2",
         "status": "reviewer_key_attested_unvalidated",
         "policy_id": POLICY_ID,
         "policy_sha256": FROZEN_POLICY_SHA256,
@@ -140,6 +149,8 @@ def _body(*, review_raw: bytes, review_index_raw: bytes,
         "reviewer_role": "claim_reviewer",
         "reviewer_key_id": reviewer_key_id,
         "reviewer_key_fingerprint_sha256": reviewer_key_fingerprint_sha256,
+        "integrity_roster_sha256": _sha(roster_raw),
+        "trust_root_der_sha256": root_pin,
         "statement_id": "key_holder_adopts_exact_review_export_bytes_v1",
         "semantic_review_authenticated": False,
         "execution_authorization": "not_granted",
@@ -150,31 +161,35 @@ def create_attestation(*, worksheet: Any, worksheet_raw: bytes, lineage: Any,
                        lineage_raw: bytes, review: Any, review_raw: bytes,
                        review_index: Any, review_index_raw: bytes,
                        expected_lineage_sha256: str,
-                       pre_review_receipt_sha256: str, reviewer_key_id: str,
+                       pre_review_receipt_sha256: str, integrity_roster_raw: bytes,
+                       root_public_key_pem: bytes,
+                       expected_root_public_der_sha256: str,
                        reviewer_private_key_pem: bytes,
-                       reviewer_public_key_pem: bytes,
-                       expected_reviewer_key_fingerprint_sha256: str) -> bytes:
-    """Return signed JSON bytes; key fingerprint pin must come from outside this call."""
+                       reviewer_public_key_pem: bytes) -> bytes:
+    """Return signed JSON bytes bound to a separately pinned trust root."""
     _validate_exports(worksheet=worksheet, worksheet_raw=worksheet_raw,
                       lineage=lineage, lineage_raw=lineage_raw,
                       review=review, review_raw=review_raw,
                       review_index=review_index, review_index_raw=review_index_raw,
                       expected_lineage_sha256=expected_lineage_sha256)
+    roster, public_by_role = _validated_roster(
+        integrity_roster_raw, root_public_key_pem, expected_root_public_der_sha256)
+    reviewer_entry = next(item for item in roster["keys"] if item["role"] == "claim_reviewer")
+    reviewer_key_id = reviewer_entry["key_id"]
     _validate_bindings(FROZEN_POLICY_SHA256, pre_review_receipt_sha256, reviewer_key_id)
-    if (not isinstance(expected_reviewer_key_fingerprint_sha256, str)
-            or not _SHA.fullmatch(expected_reviewer_key_fingerprint_sha256)):
-        _fail("reviewer_key_fingerprint_invalid")
     try:
         fingerprint = _sha(_public_der(reviewer_public_key_pem))
     except (AttestationError, ValueError, OSError):
         _fail("reviewer_public_key_invalid")
-    if fingerprint != expected_reviewer_key_fingerprint_sha256:
-        _fail("reviewer_public_key_pin_mismatch")
+    if fingerprint != reviewer_entry["public_key_der_sha256"]:
+        _fail("reviewer_key_does_not_match_root_signed_roster")
     body = _body(review_raw=review_raw, review_index_raw=review_index_raw,
                  worksheet_raw=worksheet_raw, lineage_raw=lineage_raw,
                  pre_review_receipt_sha256=pre_review_receipt_sha256,
                  reviewer_key_id=reviewer_key_id,
-                 reviewer_key_fingerprint_sha256=fingerprint)
+                 reviewer_key_fingerprint_sha256=fingerprint,
+                 roster_raw=integrity_roster_raw,
+                 root_pin=expected_root_public_der_sha256)
     try:
         signature = _sign(reviewer_private_key_pem, reviewer_public_key_pem,
                          DOMAIN + _canonical(body))
@@ -193,32 +208,35 @@ def verify_attestation(*, attestation_raw: bytes, review_raw: bytes,
                        lineage_raw: bytes, review: Any, review_index: Any,
                        review_index_raw: bytes, expected_lineage_sha256: str,
                        pre_review_receipt_sha256: str,
-                       expected_reviewer_key_id: str,
-                       reviewer_public_key_pem: bytes,
-                       expected_reviewer_key_fingerprint_sha256: str) -> dict[str, Any]:
-    """Verify exact-byte adoption under an externally pinned reviewer key."""
+                       integrity_roster_raw: bytes, root_public_key_pem: bytes,
+                       expected_root_public_der_sha256: str) -> dict[str, Any]:
+    """Verify exact-byte adoption under a root-roster-bound reviewer key."""
     _validate_exports(worksheet=worksheet, worksheet_raw=worksheet_raw,
                       lineage=lineage, lineage_raw=lineage_raw,
                       review=review, review_raw=review_raw,
                       review_index=review_index, review_index_raw=review_index_raw,
                       expected_lineage_sha256=expected_lineage_sha256)
+    roster, public_by_role = _validated_roster(
+        integrity_roster_raw, root_public_key_pem, expected_root_public_der_sha256)
+    reviewer_entry = next(item for item in roster["keys"] if item["role"] == "claim_reviewer")
+    expected_reviewer_key_id = reviewer_entry["key_id"]
+    reviewer_public_key_pem = public_by_role["claim_reviewer"]
     _validate_bindings(FROZEN_POLICY_SHA256, pre_review_receipt_sha256,
                        expected_reviewer_key_id)
-    if (not isinstance(expected_reviewer_key_fingerprint_sha256, str)
-            or not _SHA.fullmatch(expected_reviewer_key_fingerprint_sha256)):
-        _fail("reviewer_key_fingerprint_invalid")
     try:
         fingerprint = _sha(_public_der(reviewer_public_key_pem))
     except (ValueError, OSError):
         _fail("reviewer_public_key_invalid")
-    if fingerprint != expected_reviewer_key_fingerprint_sha256:
-        _fail("reviewer_public_key_pin_mismatch")
+    if fingerprint != reviewer_entry["public_key_der_sha256"]:
+        _fail("reviewer_key_does_not_match_root_signed_roster")
     attestation = _parse(attestation_raw, "attestation_json_invalid")
     expected = _body(review_raw=review_raw, review_index_raw=review_index_raw,
                      worksheet_raw=worksheet_raw, lineage_raw=lineage_raw,
                      pre_review_receipt_sha256=pre_review_receipt_sha256,
                      reviewer_key_id=expected_reviewer_key_id,
-                     reviewer_key_fingerprint_sha256=fingerprint)
+                     reviewer_key_fingerprint_sha256=fingerprint,
+                     roster_raw=integrity_roster_raw,
+                     root_pin=expected_root_public_der_sha256)
     signature_key = "signature_ed25519_base64"
     if not isinstance(attestation, dict) or set(attestation) != set(expected) | {signature_key}:
         _fail("attestation_schema_invalid")
@@ -237,7 +255,7 @@ def verify_attestation(*, attestation_raw: bytes, review_raw: bytes,
         "reviewer_key_signature_valid": True,
         "key_holder_adoption_attested": True,
         "pre_review_receipt_verified": False,
-        "reviewer_role_roster_verified": False,
+        "reviewer_role_roster_verified": True,
         "source_media_custody_verified": False,
         "human_identity_verified": False,
         "semantic_review_authenticated": False,
@@ -262,14 +280,15 @@ def main(argv: list[str] | None = None) -> int:
         command_parser.add_argument("--review-index", required=True, type=Path)
         command_parser.add_argument("--expected-lineage-sha256", required=True)
         command_parser.add_argument("--pre-review-receipt-sha256", required=True)
-        command_parser.add_argument("--reviewer-key-id", required=True)
-        command_parser.add_argument("--reviewer-public-key", required=True, type=Path)
-        command_parser.add_argument("--reviewer-key-fingerprint-sha256", required=True)
+        command_parser.add_argument("--integrity-roster", required=True, type=Path)
+        command_parser.add_argument("--root-public-key", required=True, type=Path)
+        command_parser.add_argument("--root-key-fingerprint-sha256", required=True)
         command_parser.add_argument("--output", required=True, type=Path)
 
     sign_parser = subparsers.add_parser("sign", help="sign structurally valid exact review bytes")
     add_artifacts(sign_parser)
     sign_parser.add_argument("--reviewer-private-key", required=True, type=Path)
+    sign_parser.add_argument("--reviewer-public-key", required=True, type=Path)
 
     verify_parser = subparsers.add_parser("verify", help="verify a detached review attestation")
     add_artifacts(verify_parser)
@@ -281,8 +300,9 @@ def main(argv: list[str] | None = None) -> int:
         lineage, lineage_raw = _read_json(args.lineage, "lineage")
         review, review_raw = _read_json(args.review, "review")
         review_index, review_index_raw = _read_json(args.review_index, "review_index")
-        public_key = _read_file(args.reviewer_public_key, private=True,
-                                max_bytes=64_000, failure_code="reviewer_public_key_file_invalid")
+        _, roster_raw = _read_json(args.integrity_roster, "integrity_roster")
+        root_key = _read_file(args.root_public_key, private=True,
+                              max_bytes=64_000, failure_code="root_public_key_file_invalid")
         common = {
             "worksheet": worksheet, "worksheet_raw": worksheet_raw,
             "lineage": lineage, "lineage_raw": lineage_raw,
@@ -290,15 +310,18 @@ def main(argv: list[str] | None = None) -> int:
             "review_index": review_index, "review_index_raw": review_index_raw,
             "expected_lineage_sha256": args.expected_lineage_sha256,
             "pre_review_receipt_sha256": args.pre_review_receipt_sha256,
-            "reviewer_key_id": args.reviewer_key_id,
-            "expected_reviewer_key_fingerprint_sha256": args.reviewer_key_fingerprint_sha256,
+            "integrity_roster_raw": roster_raw,
+            "root_public_key_pem": root_key,
+            "expected_root_public_der_sha256": args.root_key_fingerprint_sha256,
         }
         if args.command == "sign":
             private_key = _read_file(args.reviewer_private_key, private=True,
                                      max_bytes=64_000, failure_code="reviewer_private_key_file_invalid")
             output = create_attestation(
                 **common, reviewer_private_key_pem=private_key,
-                reviewer_public_key_pem=public_key)
+                reviewer_public_key_pem=_read_file(
+                    args.reviewer_public_key, private=True, max_bytes=64_000,
+                    failure_code="reviewer_public_key_file_invalid"))
             _write_private_output(args.output, output)
             summary = {"status": "reviewer_key_attested_unvalidated",
                        "execution_authorization": "not_granted"}
@@ -306,10 +329,8 @@ def main(argv: list[str] | None = None) -> int:
             attestation_raw = _read_file(args.attestation, private=True,
                                          max_bytes=MAX_JSON_BYTES,
                                          failure_code="attestation_file_invalid")
-            common["expected_reviewer_key_id"] = common.pop("reviewer_key_id")
             report = verify_attestation(
-                **common, attestation_raw=attestation_raw,
-                reviewer_public_key_pem=public_key)
+                **common, attestation_raw=attestation_raw)
             output = (json.dumps(report, sort_keys=True, indent=2,
                                  allow_nan=False) + "\n").encode("utf-8")
             _write_private_output(args.output, output)

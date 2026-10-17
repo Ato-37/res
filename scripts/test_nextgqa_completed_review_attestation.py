@@ -17,6 +17,7 @@ from nextgqa_completed_review_attestation import (
 )
 from nextgqa_pre_review_integrity_receipt import _public_der
 from test_audit_nextgqa_review_handoff import fixture as review_fixture
+from test_nextgqa_pre_review_integrity_receipt import SignedReviewReceiptTests
 import hashlib
 
 
@@ -38,6 +39,16 @@ class CompletedReviewAttestationTests(unittest.TestCase):
          self.review, self.review_raw, self.review_index,
          self.review_index_raw) = review_fixture()
         self.expected_lineage_sha256 = hashlib.sha256(self.lineage_raw).hexdigest()
+        self.trust = SignedReviewReceiptTests()
+        self.trust.setUp()
+        self.addCleanup(self.trust.tearDown)
+        self.roster_raw = self.trust.roster_raw
+        self.root_pem = self.trust.keys["root"][1]
+        self.root_pin = self.trust.root_pin
+        self.public_pem = self.trust.keys["claim"][1]
+        self.private_pem = self.trust.keys["claim"][0]
+        self.key_pin = hashlib.sha256(_public_der(self.public_pem)).hexdigest()
+        self.key_id = "claim-synthetic"
 
     def tearDown(self):
         self.temp.cleanup()
@@ -54,10 +65,11 @@ class CompletedReviewAttestationTests(unittest.TestCase):
             "review_index_raw": self.review_index_raw,
             "expected_lineage_sha256": self.expected_lineage_sha256,
             "pre_review_receipt_sha256": self.receipt_sha,
-            "reviewer_key_id": self.key_id,
+            "integrity_roster_raw": self.roster_raw,
+            "root_public_key_pem": self.root_pem,
+            "expected_root_public_der_sha256": self.root_pin,
             "reviewer_private_key_pem": self.private_pem,
             "reviewer_public_key_pem": self.public_pem,
-            "expected_reviewer_key_fingerprint_sha256": self.key_pin,
         }
         args.update(overrides)
         return create_attestation(**args)
@@ -75,9 +87,9 @@ class CompletedReviewAttestationTests(unittest.TestCase):
             "review_index_raw": self.review_index_raw,
             "expected_lineage_sha256": self.expected_lineage_sha256,
             "pre_review_receipt_sha256": self.receipt_sha,
-            "expected_reviewer_key_id": self.key_id,
-            "reviewer_public_key_pem": self.public_pem,
-            "expected_reviewer_key_fingerprint_sha256": self.key_pin,
+            "integrity_roster_raw": self.roster_raw,
+            "root_public_key_pem": self.root_pem,
+            "expected_root_public_der_sha256": self.root_pin,
         }
         args.update(overrides)
         return verify_attestation(**args)
@@ -89,7 +101,7 @@ class CompletedReviewAttestationTests(unittest.TestCase):
         self.assertFalse(report["human_identity_verified"])
         self.assertFalse(report["semantic_review_authenticated"])
         self.assertFalse(report["pre_review_receipt_verified"])
-        self.assertFalse(report["reviewer_role_roster_verified"])
+        self.assertTrue(report["reviewer_role_roster_verified"])
         self.assertFalse(report["source_media_custody_verified"])
         self.assertEqual(report["execution_authorization"], "not_granted")
 
@@ -100,12 +112,15 @@ class CompletedReviewAttestationTests(unittest.TestCase):
         with self.assertRaisesRegex(AttestationError, "attestation_binding_or_statement_mismatch"):
             self._verify(signed, review_index_raw=self.review_index_raw + b" ")
 
-    def test_external_fingerprint_pin_is_required(self):
-        with self.assertRaisesRegex(AttestationError, "reviewer_public_key_pin_mismatch"):
-            self._create(expected_reviewer_key_fingerprint_sha256="0" * 64)
+    def test_external_root_pin_and_rostered_key_are_required(self):
+        with self.assertRaisesRegex(AttestationError, "external_trust_root_pin_mismatch"):
+            self._create(expected_root_public_der_sha256="0" * 64)
         signed = self._create()
-        with self.assertRaisesRegex(AttestationError, "reviewer_public_key_pin_mismatch"):
-            self._verify(signed, expected_reviewer_key_fingerprint_sha256="0" * 64)
+        with self.assertRaisesRegex(AttestationError, "external_trust_root_pin_mismatch"):
+            self._verify(signed, expected_root_public_der_sha256="0" * 64)
+        with self.assertRaisesRegex(AttestationError, "reviewer_key_does_not_match_root_signed_roster"):
+            self._create(reviewer_public_key_pem=self.trust.keys["frame"][1],
+                         reviewer_private_key_pem=self.trust.keys["frame"][0])
 
     def test_signing_private_key_must_match_pinned_public_key(self):
         other_private = Path(self.temp.name) / "other-private.pem"
@@ -150,11 +165,16 @@ class CompletedReviewAttestationTests(unittest.TestCase):
                           ("lineage", self.lineage_raw),
                           ("review", self.review_raw),
                           ("review-index", self.review_index_raw),
+                          ("integrity-roster", self.roster_raw),
+                          ("root-public-key", self.root_pem),
                           ("public-key", self.public_pem)):
             path = root / name
             path.write_bytes(raw)
             os.chmod(path, 0o600)
             paths[name] = path
+        private_path = root / "reviewer-private-key"
+        private_path.write_bytes(self.private_pem)
+        private_path.chmod(0o600)
         common = [
             "--worksheet", str(paths["worksheet"]),
             "--lineage", str(paths["lineage"]),
@@ -162,9 +182,9 @@ class CompletedReviewAttestationTests(unittest.TestCase):
             "--review-index", str(paths["review-index"]),
             "--expected-lineage-sha256", self.expected_lineage_sha256,
             "--pre-review-receipt-sha256", self.receipt_sha,
-            "--reviewer-key-id", self.key_id,
-            "--reviewer-public-key", str(paths["public-key"]),
-            "--reviewer-key-fingerprint-sha256", self.key_pin,
+            "--integrity-roster", str(paths["integrity-roster"]),
+            "--root-public-key", str(paths["root-public-key"]),
+            "--root-key-fingerprint-sha256", self.root_pin,
         ]
         (root / "signed").mkdir(mode=0o700)
         signed_output = root / "signed" / "review-attestation.json"
@@ -172,7 +192,8 @@ class CompletedReviewAttestationTests(unittest.TestCase):
         with redirect_stdout(stdout):
             self.assertEqual(attestation_cli([
                 "sign", *common,
-                "--reviewer-private-key", str(root / "synthetic-reviewer-private.pem"),
+                "--reviewer-private-key", str(private_path),
+                "--reviewer-public-key", str(paths["public-key"]),
                 "--output", str(signed_output),
             ]), 0)
         self.assertEqual(signed_output.stat().st_mode & 0o777, 0o600)
@@ -188,12 +209,13 @@ class CompletedReviewAttestationTests(unittest.TestCase):
             ]), 0)
         report = json.loads(verified_output.read_bytes())
         self.assertFalse(report["semantic_review_authenticated"])
-        self.assertFalse(report["reviewer_role_roster_verified"])
+        self.assertTrue(report["reviewer_role_roster_verified"])
         self.assertEqual(report["execution_authorization"], "not_granted")
         with redirect_stdout(io.StringIO()):
             self.assertEqual(attestation_cli([
                 "sign", *common,
-                "--reviewer-private-key", str(root / "synthetic-reviewer-private.pem"),
+                "--reviewer-private-key", str(private_path),
+                "--reviewer-public-key", str(paths["public-key"]),
                 "--output", str(signed_output),
             ]), 2)
         self.assertEqual(signed_output.read_bytes(), signed_bytes)
@@ -203,6 +225,7 @@ class CompletedReviewAttestationTests(unittest.TestCase):
         raw_by_name = {
             "worksheet": self.worksheet_raw, "lineage": self.lineage_raw,
             "review": self.review_raw, "review-index": self.review_index_raw,
+            "integrity-roster": self.roster_raw, "root-public-key": self.root_pem,
             "public-key": self.public_pem,
             "attestation": self._create(),
         }
@@ -223,9 +246,9 @@ class CompletedReviewAttestationTests(unittest.TestCase):
             "--review-index", str(paths["review-index"]),
             "--expected-lineage-sha256", self.expected_lineage_sha256,
             "--pre-review-receipt-sha256", self.receipt_sha,
-            "--reviewer-key-id", self.key_id,
-            "--reviewer-public-key", str(paths["public-key"]),
-            "--reviewer-key-fingerprint-sha256", self.key_pin,
+            "--integrity-roster", str(paths["integrity-roster"]),
+            "--root-public-key", str(paths["root-public-key"]),
+            "--root-key-fingerprint-sha256", self.root_pin,
             "--attestation", str(paths["attestation"]),
             "--output", str(root / "uncreated" / "report.json"),
         ]
@@ -236,12 +259,12 @@ class CompletedReviewAttestationTests(unittest.TestCase):
         self.assertEqual(report["failure_code"], "worksheet_file_invalid")
         self.assertEqual(report["execution_authorization"], "not_granted")
 
-    def test_receipt_or_reviewer_key_mismatch_is_rejected(self):
+    def test_receipt_or_roster_mismatch_is_rejected(self):
         signed = self._create()
         with self.assertRaisesRegex(AttestationError, "attestation_binding_or_statement_mismatch"):
             self._verify(signed, pre_review_receipt_sha256="b" * 64)
         with self.assertRaisesRegex(AttestationError, "attestation_binding_or_statement_mismatch"):
-            self._verify(signed, expected_reviewer_key_id="other-reviewer")
+            self._verify(signed, integrity_roster_raw=self.roster_raw + b" ")
 
     def test_unsigned_or_modified_envelope_is_rejected(self):
         signed = json.loads(self._create())
