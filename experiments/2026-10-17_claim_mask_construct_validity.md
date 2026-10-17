@@ -633,3 +633,68 @@ or inferential test**; actual browser-to-decoder/frame correspondence remains
 **0/15**. The recent GPU result contributes a verified synthetic integration
 path only. The independent head confirmation remains negative and closed; no
 head/layer/alpha search was resumed.
+
+### Six-branch fixed-prediction scoring contract
+
+The user's selected thesis direction is selective prediction dependence on
+video evidence identified by an explanation, with improvement under an
+internal intervention as the primary candidate. The existing pure helper
+froze baseline answer/foil indices and computed the difference-in-differences,
+but did not provide one integrated contract that consumes all six branches.
+Added `fixed_prediction_intervention_contrast()` to
+`scripts/fixed_prediction_selective_dependence.py`. It requires exactly
+baseline/treatment × full/evidence-ablation/control-ablation, freezes the
+highest baseline-full A–E label and the highest-scoring competitor with
+alphabetical tie-breaking, then reuses those indices for all six margins even
+if a later condition changes the argmax. It computes
+`ΔF = (m_t,control − m_t,evidence) − (m_b,control − m_b,evidence)` and labels
+the output as a synthetic arithmetic contract only. Because inputs are
+specified as natural-log probabilities, positive values are rejected.
+
+The focused suite passed **9/9**, including a switched intervention argmax,
+fixed label reuse, `ΔF` sign/algebra, malformed/missing branches, nonfinite
+and positive pseudo-log-probabilities, and six-condition checks for identical
+answer-token IDs, input-ID/attention-mask hashes, tokenizer/model/prompt
+bindings, input length, and score position. Compilation and `git diff --check`
+passed. Independent code audit confirmed the branch set, selection rule, and
+algebra, and found the positive-value validation gap; that gap was fixed and
+covered. The full repository suite passed **1,401/1,401** after all changes;
+`git diff --check` and compilation passed.
+
+This is protocol/scoring engineering, not an experiment: it performs no
+tokenization, model call, GPU work, or human review. The binding validator
+checks only caller-supplied matching declarations; it does not compute them
+from the actual tokenizer and six model batches. Hook treatment and the
+real-data scorer remain unimplemented. Direct generated-claim
+faithfulness remains **0/3 independently reviewed, 0/3 scored, no `ΔF`
+estimate/interval/test**; actual browser-to-decoder correspondence remains
+**0/15**. The next action is to bind exact option IDs and the final processor
+score position to each frozen six-branch batch, then validate one complete
+real-video intervention pipeline only after an outcome-independent treatment
+and upstream review/timing gates are fixed. No GPU efficacy job is justified
+by this CPU arithmetic check.
+
+### TLVS configuration detail check
+
+To judge whether TLVS can be frozen as the chosen internal treatment, the
+primary paper's method and appendix were checked beyond the initial summary.
+It ranks `|Δ_t|`, takes the top and bottom 5% of response tokens for
+Qwen2.5-VL-7B (reported induced cutoffs 3.0 and 0.125), L2-normalizes token
+states, forms a per-layer difference of means, and obtains the direction as
+the first principal component across calibration samples. It steers Qwen
+layers 1–26. The reported image-model adaptive schedule uses full/no-image KL
+visual sensitivity, normalization `(μ, σ)=(0.0913, 0.293)`, gate `(b,s)=(2.25,
+1.0)`, strength range `[0,1.5]`, no smoothing, and an optional margin-based
+confidence cap of 2.0. Calibration examples are RLHF-V image-question pairs;
+experiments use image hallucination benchmarks, not video. Source:
+[TLVS primary paper, Method and Appendix D](https://arxiv.org/html/2606.07647v1).
+
+These details make the image procedure better specified, but they do not
+resolve the video adaptation: no-image replacement with fixed video placeholder
+structure, temporal evidence mapping, independent video calibration, and
+whether per-condition adaptive strengths are recalculated remain treatment
+choices. Image-derived calibration constants cannot be presumed valid for
+video. TLVS is therefore a plausible engineering candidate, not a frozen
+treatment or direct faithfulness result. Current direct progress remains
+**0/3 reviewed, 0/3 scored, no `ΔF` estimate/interval/test; frame correspondence
+0/15**.
