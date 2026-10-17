@@ -29,6 +29,8 @@ Qwen2.5-VLの推論時内部介入により、回答claimを支える時間的�
 
 `ΔF_i = F_{intervention,i} - F_{baseline,i}`
 
+代数的には`F_{g,i}=m_{g,i}(control-ablation)-m_{g,i}(evidence-ablation)`となり、full項は相殺される。したがって`ΔF`は介入とablation種別の交互作用であり、同じ固定回答/foilを使う限り全条件へ同量だけ加わるmargin offsetには不変である。ただし、介入がevidence/control branchへ異なる形で作用する場合やfoil・token位置が変わる場合はこの保護は成り立たない。fullスコアは解釈用・品質診断用に保存し、primary計算へ重複加算しない。
+
 正の`ΔF`は、指定モデル・内部状態の介入条件下で、説明が指すレビュー済み時間証拠の選択的依存がmatched controlに対して増えたことを表す操作的指標候補である。これは説明の真偽、完全な内部推論、自由生成説明全体の忠実性を証明しない。claim-to-timeの独立レビュー、時間区間とprocessor visual-tokenの検証、同じ回答/foilの固定、介入とablation双方のsham/control、layer/strengthの事前固定が必要である。式、介入、token score、成功基準、sample sizeはまだ凍結していない。
 
 比較対象のbaseline生成回答・claim・時間区間は、全`g`条件で固定する。介入条件下でclaimを再生成すると主estimandの対象が変わるため、それを「同じclaimの証拠依存改善」と混ぜない。介入後の自由生成claimの品質やgroundingを測る場合は、別の副次評価群として報告する。また、もしKFP系処置を採るなら、key frameのquestion-conditioned選択は一度、通常のfull-video入力で行い、同じ選択をbaseline/treatmentと各ablation条件へ固定する必要がある。ablationごとに再選択すると、証拠除去とselectorの変化が混ざる。

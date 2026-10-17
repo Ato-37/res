@@ -161,6 +161,13 @@ internal key-frame selector, its selection must also be fixed from one ordinary
 full-video pass and reused under evidence/control ablations; reselecting after
 each ablation would mix the ablation effect with selector changes.
 
+The proposed contrast simplifies algebraically to
+`F_g = m_g(control-ablation) - m_g(evidence-ablation)`: the full-input term
+cancels. Thus `ΔF` is an intervention-by-ablation interaction and is invariant
+to a margin offset added equally to both ablation branches, provided answer and
+foil stay fixed. Condition-specific shifts, changing foils, or mismatched token
+positions are not canceled and remain alternative explanations to control.
+
 This estimand and intervention are still **not frozen**. The internal treatment,
 fixed foil rule, ablation/control construction, inclusion rule, sample size, and
 smallest effect of interest need outcome-blind specification. The close prior
