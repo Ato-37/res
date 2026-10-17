@@ -1,0 +1,41 @@
+{
+  "attempted_forwards": 9,
+  "completed_forwards": 9,
+  "completed_records": 1,
+  "condition_branch_count": 9,
+  "condition_plan_sha256": "71fd7da21d1847d0b70c7d53add64e439cc61997b9d37ce9cce6acb14cf4ea9a",
+  "cuda_version": "12.8",
+  "device_name": "NVIDIA GeForce RTX 5070 Ti",
+  "elapsed_seconds": 50.04610732800211,
+  "faithfulness_result": false,
+  "limitations": [
+    "One synthetic fixture only; no annotation semantics or real-data evidence.",
+    "Plan and branch hashes provide integrity checks only; they do not authenticate provenance.",
+    "Rights status remains unverified; protected data remain local."
+  ],
+  "peak_allocated_gib": 10.754877090454102,
+  "peak_reserved_gib": 12.439453125,
+  "precision": "bf16_4bit_bf16_compute_eager",
+  "private_run_artifact_sha256": "a9b5bd7f1509beb0abcc8721e1d0f6cf6bfd18c4fc85bb8c8bd8cd6e231ae108",
+  "purpose": "synthetic_qta_row_bound_budgeted_plan_gpu_smoke",
+  "requested_forwards": 9,
+  "requested_records": 1,
+  "schema_version": 1,
+  "scope": "synthetic_only_engineering_wiring_no_faithfulness_result",
+  "score_binding_statuses": {
+    "sham": "bound_logits_adapter_contract_only",
+    "target": "bound_logits_adapter_contract_only"
+  },
+  "selection_spec_sha256": "c99afa24cff8d2a3a85f3e3f3ea096b5aa8384e903703d1209312da0d522ef48",
+  "source_sha256": {
+    "fixed_prediction_scorer": "84ba18241668fd659ddce0ab25a4e3dfa2cacc656ef43fb494fdc056a5c21744",
+    "internal_ablation": "a96175d796ee4cfab0ffc40dbf8666d7313bf72a6d4c50555222aa4b94ab4109",
+    "qta_nine_branch_plan": "007591f768e650f249463bcb722f016c39689b798ca176a6d6a512f3e7c3ddbc",
+    "runner": "8db0ddcb631cacaeaf6e5327c4179b271a8cc98c0edfe8b4b9cfdc22cdf10d0c",
+    "selector": "3f56fe1e992ffca5a035864ced7472cbe1f12af9978c1559d1b82e0b938712f8"
+  },
+  "status": "passed",
+  "top_k_budget_rule": "max(1,ceil(temporal_groups/10))_engineering_smoke_only",
+  "torch_version": "2.11.0+cu128",
+  "transformers_version": "5.18.0"
+}

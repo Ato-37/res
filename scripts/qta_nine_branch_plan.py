@@ -21,6 +21,9 @@ BRANCH_ORDER = (
 )
 CONDITION_SUFFIXES = ("full", "evidence_ablation", "control_ablation")
 _SHA256 = re.compile(r"^[0-9a-f]{64}$")
+SELECTOR_ID = "question_token_attention_mean_layers"
+SHAM_SELECTOR_ID = "sha256_utf8_qta-sham-v1_seed_opaque-token_group-index"
+TOP_K_BUDGET_RULE = "max(1,ceil(temporal_group_count/10))"
 
 
 def _canonical_hash(value) -> str:
@@ -39,11 +42,11 @@ def _indices(values, *, name, upper=None, allow_empty=False):
     return tuple(values)
 
 
-def build_qta_nine_branch_plan(*, temporal_groups, target_group_indices,
-                               sham_group_indices, evidence_group_indices,
+def build_qta_nine_branch_plan(*, row_binding_sha256, temporal_groups,
+                               target_group_indices, sham_group_indices, evidence_group_indices,
                                control_group_indices, typed_batch_sha256,
                                score_binding_sha256, intervention_layers_1_based,
-                               logit_bias):
+                               logit_bias, sham_seed):
     """Build and self-check an ordered nine-branch intervention plan.
 
     The model input is shared unchanged across all nine forwards. Evidence and
@@ -58,12 +61,17 @@ def build_qta_nine_branch_plan(*, temporal_groups, target_group_indices,
     if len(set(flattened)) != len(flattened):
         raise ValueError("temporal_group_positions_overlap")
     group_count = len(groups)
+    if not isinstance(row_binding_sha256, str) or not _SHA256.fullmatch(row_binding_sha256):
+        raise ValueError("row_binding_sha256_invalid")
     target = _indices(target_group_indices, name="target_group", upper=group_count)
     sham = _indices(sham_group_indices, name="sham_group", upper=group_count)
     evidence = _indices(evidence_group_indices, name="evidence_group", upper=group_count)
     control = _indices(control_group_indices, name="control_group", upper=group_count)
     if len(target) != len(sham):
         raise ValueError("target_sham_group_count_mismatch")
+    expected_top_k = max(1, (group_count + 9) // 10)
+    if len(target) != expected_top_k:
+        raise ValueError("selector_group_budget_mismatch")
     if len(evidence) != len(control) or set(evidence) & set(control):
         raise ValueError("evidence_control_group_contract_invalid")
 
@@ -77,7 +85,18 @@ def build_qta_nine_branch_plan(*, temporal_groups, target_group_indices,
     if (isinstance(logit_bias, bool) or not isinstance(logit_bias, (int, float))
             or not math.isfinite(float(logit_bias))):
         raise ValueError("logit_bias_invalid")
+    if not isinstance(sham_seed, str) or not sham_seed or len(sham_seed) > 128:
+        raise ValueError("sham_seed_invalid")
     bias = float(logit_bias)
+    selection_spec = {
+        "selector_id": SELECTOR_ID,
+        "selector_layers_1_based": list(layers),
+        "top_k_budget_rule": TOP_K_BUDGET_RULE,
+        "tie_break": "earliest_temporal_group_index",
+        "sham_selector_id": SHAM_SELECTOR_ID,
+        "sham_seed": sham_seed,
+    }
+    selection_spec_sha256 = _canonical_hash(selection_spec)
 
     positions = {
         name: tuple(sorted(position for index in selected for position in groups[index]))
@@ -98,6 +117,7 @@ def build_qta_nine_branch_plan(*, temporal_groups, target_group_indices,
             "name": name,
             "treatment": treatment,
             "condition": suffix,
+            "row_binding_sha256": row_binding_sha256,
             "typed_batch_sha256": typed_batch_sha256,
             "score_binding_sha256": score_binding_sha256,
             "biased_visual_key_positions": list(bias_positions),
@@ -112,6 +132,7 @@ def build_qta_nine_branch_plan(*, temporal_groups, target_group_indices,
         "scope": "synthetic_or_preflighted_input_plan_only",
         "typed_batch_sha256": typed_batch_sha256,
         "score_binding_sha256": score_binding_sha256,
+        "row_binding_sha256": row_binding_sha256,
         "temporal_group_count": group_count,
         "temporal_groups": [list(group) for group in groups],
         "selected_groups": {
@@ -120,6 +141,8 @@ def build_qta_nine_branch_plan(*, temporal_groups, target_group_indices,
         },
         "intervention_layers_1_based": list(layers),
         "logit_bias": bias,
+        "selection_spec": selection_spec,
+        "selection_spec_sha256": selection_spec_sha256,
         "branch_order": list(BRANCH_ORDER),
         "branches": branches,
         "requested_forwards": len(BRANCH_ORDER),
@@ -140,9 +163,11 @@ def validate_qta_nine_branch_plan(plan):
     """Reject branch omission, mutation, changed hashes, or authorization claims."""
     if (not isinstance(plan, Mapping)
             or set(plan) != {"schema_version", "status", "scope", "typed_batch_sha256",
-                             "score_binding_sha256", "temporal_group_count", "temporal_groups",
+                             "score_binding_sha256", "row_binding_sha256",
+                             "temporal_group_count", "temporal_groups",
                              "selected_groups", "intervention_layers_1_based", "logit_bias",
-                             "branch_order", "branches", "requested_forwards", "plan_sha256",
+                             "selection_spec", "selection_spec_sha256", "branch_order",
+                             "branches", "requested_forwards", "plan_sha256",
                              "execution_authorization"}):
         raise ValueError("qta_plan_schema_invalid")
     if (plan["schema_version"] != 1
@@ -155,7 +180,8 @@ def validate_qta_nine_branch_plan(plan):
             or len(plan["branches"]) != 9):
         raise ValueError("qta_plan_contract_invalid")
     if not _SHA256.fullmatch(str(plan["typed_batch_sha256"])) or not _SHA256.fullmatch(
-            str(plan["score_binding_sha256"])):
+            str(plan["score_binding_sha256"])) or not _SHA256.fullmatch(
+            str(plan["row_binding_sha256"])):
         raise ValueError("qta_plan_binding_hash_invalid")
     raw_groups = plan["temporal_groups"]
     if (not isinstance(raw_groups, list) or not raw_groups
@@ -171,6 +197,8 @@ def validate_qta_nine_branch_plan(plan):
     normalized = {name: _indices(selected[name], name=f"{name}_group",
                                  upper=len(groups))
                   for name in ("target", "sham", "evidence", "control")}
+    if len(normalized["target"]) != max(1, (len(groups) + 9) // 10):
+        raise ValueError("qta_plan_selector_budget_invalid")
     if (len(normalized["target"]) != len(normalized["sham"])
             or len(normalized["evidence"]) != len(normalized["control"])
             or set(normalized["evidence"]) & set(normalized["control"])):
@@ -181,6 +209,19 @@ def validate_qta_nine_branch_plan(plan):
     bias = plan["logit_bias"]
     if isinstance(bias, bool) or not isinstance(bias, (int, float)) or not math.isfinite(bias):
         raise ValueError("qta_plan_logit_bias_invalid")
+    spec = plan["selection_spec"]
+    if (not isinstance(spec, Mapping)
+            or set(spec) != {"selector_id", "selector_layers_1_based", "top_k_budget_rule",
+                             "tie_break", "sham_selector_id", "sham_seed"}
+            or spec["selector_id"] != SELECTOR_ID
+            or spec["selector_layers_1_based"] != list(layers)
+            or spec["top_k_budget_rule"] != TOP_K_BUDGET_RULE
+            or spec["tie_break"] != "earliest_temporal_group_index"
+            or spec["sham_selector_id"] != SHAM_SELECTOR_ID
+            or not isinstance(spec["sham_seed"], str) or not spec["sham_seed"]
+            or len(spec["sham_seed"]) > 128
+            or plan["selection_spec_sha256"] != _canonical_hash(spec)):
+        raise ValueError("qta_plan_selection_spec_invalid")
     positions = {
         name: [position for index in selected_groups for position in groups[index]]
         for name, selected_groups in normalized.items()
@@ -194,12 +235,14 @@ def validate_qta_nine_branch_plan(plan):
         expected_ablation = (positions["evidence"] if suffix == "evidence_ablation" else
                              positions["control"] if suffix == "control_ablation" else [])
         descriptor = {key: value for key, value in branch.items() if key != "branch_sha256"}
-        if (set(branch) != {"name", "treatment", "condition", "typed_batch_sha256",
+        if (set(branch) != {"name", "treatment", "condition", "row_binding_sha256",
+                            "typed_batch_sha256",
                             "score_binding_sha256", "biased_visual_key_positions",
                             "ablated_visual_key_positions", "intervention_layers_1_based",
                             "logit_bias", "branch_sha256"}
                 or branch.get("treatment") != treatment
                 or branch.get("condition") != suffix
+                or branch["row_binding_sha256"] != plan["row_binding_sha256"]
                 or branch["typed_batch_sha256"] != plan["typed_batch_sha256"]
                 or branch["score_binding_sha256"] != plan["score_binding_sha256"]
                 or branch["biased_visual_key_positions"] != expected_bias

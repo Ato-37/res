@@ -56,11 +56,13 @@ class QuestionSelectorInterventionCompositionTests(unittest.TestCase):
 
     def test_condition_plan_has_nine_unique_reusable_branches(self):
         plan = build_qta_nine_branch_plan(
+            row_binding_sha256="9" * 64,
             temporal_groups=tuple((2 * i, 2 * i + 1) for i in range(8)),
             target_group_indices=(2,), sham_group_indices=(6,),
             evidence_group_indices=(0, 1), control_group_indices=(6, 7),
             typed_batch_sha256="a" * 64, score_binding_sha256="b" * 64,
-            intervention_layers_1_based=(5, 6), logit_bias=math.log(2.0))
+            intervention_layers_1_based=(5, 6), logit_bias=math.log(2.0),
+            sham_seed="test-sham-seed")
         branches = plan["branches"]
         self.assertEqual(len(branches), 9)
         self.assertEqual(len({branch["name"] for branch in branches}), 9)
@@ -83,11 +85,13 @@ class QuestionSelectorInterventionCompositionTests(unittest.TestCase):
 
     def test_condition_plan_digest_detects_branch_mutation_and_omission(self):
         plan = build_qta_nine_branch_plan(
+            row_binding_sha256="8" * 64,
             temporal_groups=((0, 1), (2, 3), (4, 5), (6, 7)),
             target_group_indices=(0,), sham_group_indices=(3,),
             evidence_group_indices=(0,), control_group_indices=(2,),
             typed_batch_sha256="c" * 64, score_binding_sha256="d" * 64,
-            intervention_layers_1_based=(5, 6), logit_bias=math.log(2.0))
+            intervention_layers_1_based=(5, 6), logit_bias=math.log(2.0),
+            sham_seed="test-sham-seed")
         changed = json.loads(json.dumps(plan))
         changed["branches"][4]["ablated_visual_key_positions"] = [999]
         with self.assertRaisesRegex(ValueError, "qta_plan_branch_semantics_invalid"):
@@ -99,11 +103,13 @@ class QuestionSelectorInterventionCompositionTests(unittest.TestCase):
 
     def test_condition_plan_rejects_contradictory_rehashed_metadata(self):
         plan = build_qta_nine_branch_plan(
+            row_binding_sha256="7" * 64,
             temporal_groups=((0, 1), (2, 3), (4, 5), (6, 7)),
             target_group_indices=(0,), sham_group_indices=(3,),
             evidence_group_indices=(0,), control_group_indices=(2,),
             typed_batch_sha256="1" * 64, score_binding_sha256="2" * 64,
-            intervention_layers_1_based=(5, 6), logit_bias=math.log(2.0))
+            intervention_layers_1_based=(5, 6), logit_bias=math.log(2.0),
+            sham_seed="test-sham-seed")
         changed = json.loads(json.dumps(plan))
         changed["selected_groups"]["target"] = [1]
         changed.pop("plan_sha256")
@@ -129,11 +135,13 @@ class QuestionSelectorInterventionCompositionTests(unittest.TestCase):
 
     def test_condition_plan_rejects_invalid_group_assignment(self):
         common = dict(
+            row_binding_sha256="6" * 64,
             temporal_groups=((0, 1), (2, 3), (4, 5), (6, 7)),
             target_group_indices=(0,), sham_group_indices=(3,),
             evidence_group_indices=(0,), control_group_indices=(2,),
             typed_batch_sha256="e" * 64, score_binding_sha256="f" * 64,
-            intervention_layers_1_based=(5, 6), logit_bias=math.log(2.0))
+            intervention_layers_1_based=(5, 6), logit_bias=math.log(2.0),
+            sham_seed="test-sham-seed")
         with self.assertRaisesRegex(ValueError, "evidence_control_group_contract_invalid"):
             build_qta_nine_branch_plan(**dict(common, control_group_indices=(0,)))
         with self.assertRaisesRegex(ValueError, "target_group_invalid"):
@@ -142,6 +150,28 @@ class QuestionSelectorInterventionCompositionTests(unittest.TestCase):
             build_qta_nine_branch_plan(**dict(common, intervention_layers_1_based=(0, 5)))
         with self.assertRaisesRegex(ValueError, "logit_bias_invalid"):
             build_qta_nine_branch_plan(**dict(common, logit_bias=True))
+        with self.assertRaisesRegex(ValueError, "selector_group_budget_mismatch"):
+            build_qta_nine_branch_plan(**dict(
+                common, target_group_indices=(0, 1), sham_group_indices=(2, 3)))
+
+    def test_condition_plan_validator_rejects_rehashed_oversized_selector(self):
+        plan = build_qta_nine_branch_plan(
+            row_binding_sha256="5" * 64,
+            temporal_groups=((0, 1), (2, 3), (4, 5), (6, 7)),
+            target_group_indices=(0,), sham_group_indices=(3,),
+            evidence_group_indices=(0,), control_group_indices=(2,),
+            typed_batch_sha256="4" * 64, score_binding_sha256="3" * 64,
+            intervention_layers_1_based=(5, 6), logit_bias=math.log(2.0),
+            sham_seed="test-sham-seed")
+        changed = json.loads(json.dumps(plan))
+        changed["selected_groups"]["target"] = [0, 1]
+        changed["selected_groups"]["sham"] = [2, 3]
+        changed.pop("plan_sha256")
+        changed["plan_sha256"] = hashlib.sha256(json.dumps(
+            changed, sort_keys=True, separators=(",", ":"),
+            ensure_ascii=True, allow_nan=False).encode("ascii")).hexdigest()
+        with self.assertRaisesRegex(ValueError, "qta_plan_selector_budget_invalid"):
+            validate_qta_nine_branch_plan(changed)
 
     def test_overlap_report_binds_group_and_visual_key_intersections(self):
         overlap = temporal_group_overlap(

@@ -612,12 +612,14 @@ def main(argv=None):
 
         stage = "nine_branch_hook_composition"
         branch_plan = build_qta_nine_branch_plan(
+            row_binding_sha256=hashlib.sha256(b"synthetic-record-0").hexdigest(),
             temporal_groups=groups, target_group_indices=target_groups,
             sham_group_indices=sham_groups, evidence_group_indices=evidence_groups,
             control_group_indices=control_groups,
             typed_batch_sha256=preload_batch_digest,
             score_binding_sha256=six_condition_binding["full_binding_sha256"],
-            intervention_layers_1_based=LAYERS_1_BASED, logit_bias=LOGIT_BIAS)
+            intervention_layers_1_based=LAYERS_1_BASED, logit_bias=LOGIT_BIAS,
+            sham_seed=SHAM_SEED)
         branch_inputs = {branch["name"]: branch for branch in branch_plan["branches"]}
         # Reuse the already completed baseline full pass.
         condition_outputs["baseline_full"] = {
@@ -665,7 +667,7 @@ def main(argv=None):
             "question_token_count": len(question_positions),
             "temporal_group_count": temporal_steps,
             "tokens_per_temporal_group": tokens_per_group,
-            "top_k_budget_rule": "ceil(temporal_groups*0.10)_engineering_smoke_only",
+            "top_k_budget_rule": "max(1,ceil(temporal_groups/10))_engineering_smoke_only",
             "selected_target_group_indices": target_groups,
             "selected_sham_group_indices": sham_groups,
             "target_sham_overlap_count": len(set(target_groups) & set(sham_groups)),
@@ -679,6 +681,7 @@ def main(argv=None):
             "intervention_layers_1_based": list(LAYERS_1_BASED),
             "condition_names": [branch["name"] for branch in branch_plan["branches"]],
             "condition_plan_sha256": branch_plan["plan_sha256"],
+            "selection_spec_sha256": branch_plan["selection_spec_sha256"],
             "condition_branch_sha256": {
                 branch["name"]: branch["branch_sha256"]
                 for branch in branch_plan["branches"]},
