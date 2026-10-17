@@ -142,6 +142,10 @@ def map_review_interval_from_processor_batch(
             or any(len(interval) != 2 or interval[0] >= interval[1]
                    for interval in intervals)):
         raise ValueError("sampled_frame_metadata_grid_mismatch")
+    if (len(pts) < 2 or pts[0] != 0 or pts[-1] <= pts[0]
+            or abs(fps - float(Fraction(len(pts) - 1, 1) / (pts[-1] - pts[0]))
+                   ) > 1e-7):
+        raise ValueError("sample_fps_pts_endpoint_mismatch")
 
     geometry = map_review_intervals_to_qwen_groups(
         input_ids=ids[0].tolist(), video_token_id=video_token_id,
@@ -150,6 +154,7 @@ def map_review_interval_from_processor_batch(
         video_duration_seconds=duration_fraction,
         reviewed_intervals_seconds=intervals,
         interval_boundary_guard_seconds=guard,
+        require_processor_uniform_grid_assignment=True,
     )
     nominal_frame_step = 1.0 / fps
     max_pts_cadence_deviation = max(

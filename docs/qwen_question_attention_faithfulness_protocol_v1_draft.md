@@ -24,6 +24,48 @@ this operation on independently reviewed claim-indicated evidence. It would
 not show that the intervention itself selected the claim's frames or followed
 the explanation.
 
+## Frozen video-frame sampling contract
+
+Use exactly 32 endpoint-inclusive uniformly sampled **decoded RGB frames**
+from each entire source video. For `N` decoded frames, the ordered indices are
+`[round(i * (N - 1) / 31) for i in range(32)]`, using Python 3.12's built-in
+round-to-nearest, ties-to-even behavior. Reject a source if it has fewer than
+32 distinct selectable decoded frames, a missing/non-increasing PTS sequence,
+or a sampled temporal grid that fails the fixed **50 ms** maximum-deviation
+tolerance. Do not replace failed rows or adapt the count/tolerance to reviewed
+interval overlap or model outcomes.
+
+The implementation contract is `claim_mask_video_decoder.decode_sampled_video`
+plus `necessity_choice_margin_utils.uniform_sample_indices` and
+`presentation_time_utils.uniform_sampling_rate_from_times`. It decodes one
+video stream twice from the same pinned file, with one decoder thread, checks
+source integrity and full PTS consistency across passes, and checks pixel
+consistency across passes for the selected sampled frames. It records exact
+sampled PTS and RGB hashes. The timestamp origin is the first decoded frame's
+PTS. The fixed 50 ms tolerance is carried from a prior three-video timing
+feasibility census before human interval review or model-outcome inspection; it
+is therefore outcome-blind, but informed by sample timing properties. It is an
+engineering acceptance rule, not an empirically calibrated uncertainty bound.
+Freeze the exact draft and sampler source bytes before any reviewer opens the
+videos. Report each video's observed maximum grid deviation and fail the full
+cohort if any row fails.
+
+Pass the resulting exact 32-frame RGB list and its measured effective sample
+rate to the pinned Qwen processor with frame resampling disabled. Since the
+processor receives scalar effective FPS while accepted source timestamps may
+deviate from an ideal uniform grid by up to 50 ms, record each row's actual PTS,
+maximum deviation, and processor timing metadata. Map reviewed intervals using
+actual decoded PTS and also compute groups on the processor's implied uniform
+timestamps (`i / FPS`, origin at the first decoded frame). Require the actual-
+PTS and implied-grid group sets to match for every reviewed interval; reject
+the row before scoring on any mismatch. The batch mapper implements this
+fail-closed check. Freeze the processor metadata and resulting single
+full-video batch per record; every
+baseline, QTA, sham, evidence-ablation, and control-ablation forward must reuse
+that batch unchanged. This sampler pins the input representation; it does not
+verify player-to-decoder clock correspondence, human evidence intervals, or
+the semantic validity of any mask.
+
 ## Selected outcome-independent treatment for feasibility
 
 Select **Qwen Question-Temporal Attention Bias (QTA-Bias)** as the sole

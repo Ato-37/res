@@ -116,14 +116,16 @@ The release freeze must also bind the exact v6 claim/cohort inputs,
 source and media lineage/custody, staged media, reviewer page and renderer,
 review policy and disclosure, capture helper/policy, 15-anchor plan and its
 provenance, crop and pair-review procedure, thresholds, and the designated
-reviewers' public-key hashes. The QTA draft does not define its own frame
-sampler. Before review begins, version and hash-bind the exact 32-frame
-endpoint-inclusive sampler contract, including source code, PTS interpretation,
-processor sampling metadata, and guard, from
-`docs/nextgqa_finite_claim_descriptive_protocol_v2.md` or a separately reviewed
-QTA-specific replacement. Do not choose or tune it after viewing review
-intervals. The review-only freeze must bind those exact bytes; this pins design
-but does not authorize scoring. Freeze the exact bytes before anyone opens the
+reviewers' public-key hashes. The QTA draft now defines a fixed 32-frame
+endpoint-inclusive sampler, Python round-to-nearest/ties-to-even index rule,
+50 ms uniform-grid tolerance, PyAV two-pass source/full-PTS integrity and
+sampled-pixel checks, and Qwen processor metadata contract. Preserve each
+video's maximum observed grid deviation and require actual-PTS and
+processor-implied uniform-grid group assignments to match for every interval;
+any mismatch fails the row before scoring. Before review begins, hash-bind
+these exact draft and implementation bytes in the review-only inventory. Do not
+choose or tune the sampler after viewing review intervals. The inventory pins design bytes but
+does not authorize scoring. Freeze the exact bytes before anyone opens the
 page. An independently established trusted
 roster/key root must bind the freeze-owner identity and signing key as well as
 the reviewer identities and keys; a key hash supplied only by the receipt

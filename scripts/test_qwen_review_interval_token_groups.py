@@ -235,6 +235,59 @@ class ReviewIntervalTokenGroupTests(unittest.TestCase):
         )
         self.assertEqual(result["evidence_group_indices"], [0, 5])
 
+    def test_processor_scalar_fps_gate_rejects_group_boundary_disagreement(self):
+        kwargs = {
+            "input_ids": [99] * 16,
+            "video_token_id": 99,
+            "video_grid_thw": [4, 2, 2],
+            "spatial_merge_size": 1,
+            "temporal_patch_size": 1,
+            "sampled_pts_seconds": [0, Fraction(101, 100), 2, 3],
+            "video_duration_seconds": 4,
+            "reviewed_intervals_seconds": [[Fraction(502, 1000), Fraction(504, 1000)]],
+            "interval_boundary_guard_seconds": 0,
+        }
+        actual_only = map_review_intervals_to_qwen_groups(**kwargs)
+        self.assertEqual(actual_only["evidence_group_indices"], [0])
+        with self.assertRaisesRegex(
+                ValueError, "processor_implied_grid_changes_group_assignment"):
+            map_review_intervals_to_qwen_groups(
+                **kwargs, require_processor_uniform_grid_assignment=True)
+
+    def test_processor_scalar_fps_gate_records_matching_uniform_grid(self):
+        kwargs = {
+            "input_ids": [99] * 16,
+            "video_token_id": 99,
+            "video_grid_thw": [4, 2, 2],
+            "spatial_merge_size": 1,
+            "temporal_patch_size": 1,
+            "sampled_pts_seconds": [0, 1, 2, 3],
+            "video_duration_seconds": 4,
+            "reviewed_intervals_seconds": [[Fraction(52, 100), Fraction(54, 100)]],
+            "interval_boundary_guard_seconds": 0,
+            "require_processor_uniform_grid_assignment": True,
+        }
+        result = map_review_intervals_to_qwen_groups(**kwargs)
+        self.assertEqual(
+            result["processor_uniform_grid_assignment_check"],
+            "passed_actual_pts_and_scalar_fps_group_sets_equal")
+        self.assertEqual(result["processor_uniform_grid_max_pts_deviation_seconds"], 0.0)
+
+    def test_processor_scalar_fps_gate_supports_temporal_patches(self):
+        result = map_review_intervals_to_qwen_groups(
+            input_ids=[99] * 12, video_token_id=99,
+            video_grid_thw=[3, 2, 2], spatial_merge_size=1,
+            temporal_patch_size=2, sampled_pts_seconds=[0, 1, 2, 3, 4, 5],
+            video_duration_seconds=6,
+            reviewed_intervals_seconds=[[Fraction(21, 10), Fraction(29, 10)]],
+            interval_boundary_guard_seconds=0,
+            require_processor_uniform_grid_assignment=True,
+        )
+        self.assertEqual(result["evidence_group_indices"], [1])
+        self.assertEqual(
+            result["processor_uniform_grid_assignment_check"],
+            "passed_actual_pts_and_scalar_fps_group_sets_equal")
+
     def test_union_mapper_classifies_bad_shared_inputs(self):
         base = {k: v for k, v in self.kwargs.items()
                 if k != "reviewed_interval_seconds"}

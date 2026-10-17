@@ -232,8 +232,14 @@ def map_review_intervals_to_qwen_groups(
     video_duration_seconds: Real,
     reviewed_intervals_seconds: Sequence[Sequence[Real]],
     interval_boundary_guard_seconds: Real = 0.0,
+    require_processor_uniform_grid_assignment: bool = False,
 ) -> dict:
     """Map occurrences and require stable assignment under a clock guard.
+
+    This lower-level geometry helper does not check Qwen's scalar-FPS grid
+    unless `require_processor_uniform_grid_assignment=True`; production Qwen
+    callers must use `map_review_interval_from_processor_batch`, which always
+    enables that check.
 
     Each interval is mapped with the same midpoint-cell positive-overlap rule
     as the single-interval mapper. Evidence is the union of all covered groups;
@@ -243,6 +249,11 @@ def map_review_intervals_to_qwen_groups(
     exists, the row is ineligible and this function fails closed. The interval
     guard compares possible membership (expanded intervals) with certain
     membership (contracted intervals); any difference rejects the row.
+    When `require_processor_uniform_grid_assignment` is true, each interval's
+    actual-PTS group set must also equal its group set on the uniform grid
+    implied by endpoint-derived scalar FPS. A mismatch rejects the row before
+    scoring because the processor receives scalar FPS rather than each source
+    frame's actual PTS.
     """
     if (not isinstance(reviewed_intervals_seconds, Sequence)
             or isinstance(reviewed_intervals_seconds, (str, bytes))
@@ -290,6 +301,32 @@ def map_review_intervals_to_qwen_groups(
         **common, reviewed_interval_seconds=interval, _select_control=False)
         for interval in normalized_intervals]
     reference = mapped[0]
+    processor_grid_max_deviation = None
+    if require_processor_uniform_grid_assignment:
+        actual_pts = tuple(_finite_fraction(value, "sampled_pts")
+                           for value in frozen_pts)
+        if (len(actual_pts) < 2 or actual_pts[0] != 0
+                or actual_pts[-1] <= actual_pts[0]):
+            raise ValueError("processor_implied_grid_invalid")
+        frame_step = (actual_pts[-1] - actual_pts[0]) / (len(actual_pts) - 1)
+        processor_pts = tuple(frame_step * index
+                              for index in range(len(actual_pts)))
+        processor_grid_max_deviation = max(
+            abs(actual - implied)
+            for actual, implied in zip(actual_pts, processor_pts))
+        for interval, actual_row in zip(normalized_intervals, mapped):
+            try:
+                implied_row = map_review_interval_to_qwen_groups(
+                    **{**common, "sampled_pts_seconds": processor_pts},
+                    reviewed_interval_seconds=interval, _select_control=False)
+            except ValueError as exc:
+                if str(exc) == "reviewed_interval_has_no_sampled_grid":
+                    raise ValueError(
+                        "processor_implied_grid_changes_group_assignment") from None
+                raise
+            if (actual_row["evidence_group_indices"]
+                    != implied_row["evidence_group_indices"]):
+                raise ValueError("processor_implied_grid_changes_group_assignment")
     evidence = sorted({index for row in mapped for index in row["evidence_group_indices"]})
     temporal_group_count = len(reference["groups"])
     if guard:
@@ -334,6 +371,12 @@ def map_review_intervals_to_qwen_groups(
         "token_budget_per_arm": len(evidence_positions),
         "reviewed_interval_count": len(normalized_intervals),
         "interval_boundary_guard_seconds": float(guard),
+        "processor_uniform_grid_assignment_check": (
+            "passed_actual_pts_and_scalar_fps_group_sets_equal"
+            if require_processor_uniform_grid_assignment else "not_requested"),
+        "processor_uniform_grid_max_pts_deviation_seconds": (
+            float(processor_grid_max_deviation)
+            if processor_grid_max_deviation is not None else None),
         "reviewed_occurrence_group_indices": [
             row["evidence_group_indices"] for row in mapped],
         "control_rule": "equal_count_order_paired_rank_distance_sum_then_lexicographic_earlier",
