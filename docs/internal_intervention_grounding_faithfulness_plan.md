@@ -57,6 +57,12 @@ STEARの一次資料は、risk layers 5–16、normalized-entropy threshold `τ=
 
 [VERHallu/KFP論文](https://arxiv.org/html/2601.10010)は層8–15、Gaussian幅`σ=1`、近傍幅`m=5`、混合係数`β=0.6`を示す一方、key-frameの`top-k`値は確認できず、著者repoにも再現用実装が見当たらない。この不足を本データ上の探索で埋めない。KFPはSTEAR再現性監査の後に必要なら比較候補として再評価する。
 
+**関連介入の適合性監査（2026-10-17）：TLVS。** Zhang et al. のICML 2026論文は、Qwen2.5-VLを含む視覚言語モデルで、同じ生成回答を画像あり/なしのteacher forcingで比べ、token-level visual-sensitivityから層別方向を作って、出力tokenごとに介入力を調整する。補足設定ではQwenの層1–26、感度上位/下位各5%、任意のRLHF-V教師あり方向補正、KLに基づくtokenごとのsteeringを用いる。[一次資料](https://arxiv.org/html/2606.07647v1)、[ICML/PMLR掲載](https://proceedings.mlr.press/v306/zhang26cg.html)。これは「内部介入で視覚的依存を強める」という一般的発想の強い先行例であり、研究新規性を狭める。
+
+現primary候補は、固定baseline A–E予測と固定foilの単一next-token marginである。TLVSの感度上位/下位token群、方向推定、出力stepごとの強度配分をそのまま移植すると、生成回答token列またはclaim tokenを主採点へ加える必要があり、固定5択`ΔF` estimandを変える。単一tokenへ無理に縮約した版も、論文法の再現とは呼べず、方向・強度の根拠が欠けるため現時点では主処置に採用しない。TLVSを使うなら、別estimandの比較または独立した副次実験として設計する。
+
+STEARは動画QAの内部key-evidence routingを扱い、単一回答marginと形式上は整合する候補だが、補足実装が取得できず、Qwen temporal mappingとreinjection演算がまだ固定されていない。現在の合成runnerはentropy triggerと簡易attention top-10% selectorまでで、論文のreinjectionやcounterfactual branchを実装していない。したがって、STEAR再現または有効な治療候補とはまだ扱わず、次は公開本文・Qwen module contractから一つの明示的adaptation仕様を提案できるか監査する。人手review/trust/timeゲートが閉じている間は、直接`ΔF`採点を行わない。
+
 - Baseline：介入なし。
 - Treatment：STEAR候補を優先監査し、著者法を再現するか、適合しない場合は別名の明示的adaptationとして事前固定する。確認結果を見てtop-k・層・時間幅・強度を探索しない。
 - Outcome ablation control：同じclaim-mapped evidence以外から、temporal group数とactivation演算を対応させて選ぶcontrol groupを事前規則で固定する。この`F`用controlはSTEARのmethod-level random-selector/without-component ablationと区別して報告する。
