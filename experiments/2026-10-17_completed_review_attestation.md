@@ -112,7 +112,7 @@ evidence. No GPU run was justified. Next, independently close a real
 trust-root/release-order and frame-correspondence gate, or document which
 specific artifact is still absent before any real review or scoring attempt.
 
-## 22:00–22:08 JST — recheck the real human-review prerequisites
+## 22:00 JST — recheck the real human-review prerequisites
 
 Independent metadata-only inspections of the local release and clock-evidence
 areas confirm that the trust ceremony cannot currently be instantiated with
@@ -132,9 +132,8 @@ prior validate-only or permission smoke does not count as a capture. The
 runbook has been corrected to describe attestation v2's externally pinned
 roster inputs and its still-unverified receipt-digest declaration.
 
-Rebuilt local candidate inventory
-`data/private_nextgqa/pre_review_inventory_v6_20261017_2206_01/`: 62 roles,
-zero missing, 0700/0600, candidate-only; review, freeze, and score flags all
+Rebuilt private candidate inventory: 62 roles, zero missing, 0700/0600,
+candidate-only; review, freeze, and score flags all
 false, execution denied, rights unverified-local-only. Inventory SHA-256 is
 `2ba107edfff577ac466fd16f664ac686dfafe4b1e9fa45ea2c72c9c608994cb0`; attestation
 code hash is `3987052283985f59daf271ff9627292ee9940b8f7f76410cca6b4186687f06e0`.
@@ -147,3 +146,39 @@ prerequisites exist. The exact external blocker is the absence of trusted
 human role/key setup and witnessed release, followed by interactive browser
 capture and independent visual frame-pair review. Continue only preparation
 that can reduce those gates; do not call the synthetic checks research evidence.
+
+## 22:04 JST — audit whether v2 measures explanation faithfulness
+
+An independent source-and-method audit checked the v2 prompt, score, and
+intervention against the thesis construct. The QA scoring prompt contains the
+question and options but omits the generated claim. The claim selects which
+video frames are black-masked. The outcome is a gold-versus-best-foil QA
+next-token margin. Therefore, even after every human and score gate passes,
+v2 can support only a finite three-record description of claim-aligned visual
+input dependence. It cannot establish whether the model used the explanation
+text, whether the explanation reflects internal reasoning, or whether the
+explanation is faithful/true. A positive contrast also can come from a gold
+score change, a condition-specific best-foil change, or both; black fill can
+create OOD inputs and the control does not match semantic information.
+
+This construct distinction agrees with primary ACL work: Atanasova et al.
+propose NLE tests that intervene on counterfactual reasons absent from the
+explanation or reconstruct inputs from reasons in the generated explanation
+([ACL 2023 paper](https://aclanthology.org/2023.acl-short.25/)). Their later
+discussion separates causal output dependence from whether explanation text
+represents useful predictive factors ([ACL 2024 paper](https://aclanthology.org/2024.acl-short.49/)). This supports narrowing the current v2 result label; it does not itself prove a replacement video metric.
+
+No v2 outcomes have been inspected, so this is a pre-outcome construct-validity
+correction. Keep v2 unchanged only as a claim-aligned visual-evidence
+dependence feasibility study, or prepare a new pre-outcome protocol if the
+thesis requires a stronger explanation-faithfulness claim. The closed head
+search remains closed. The concrete v3 estimand is unresolved because the
+thesis target (textual rationale dependence, visual evidence attribution, or
+both) cannot be inferred from the current QA-margin endpoint.
+
+Faithfulness status: direct generated-explanation faithfulness **not measured**;
+review 0/3, scoring 0/3, no effect estimate/interval/test. Real release artifacts
+and actual frame correspondences remain absent (0/15). This is a design audit,
+not an outcome. Next, establish which explanation-faithfulness construct should
+be the thesis endpoint before any score outcomes exist; continue no-go on GPU
+claim-mask scoring until human/trust/capture gates and production preflight pass.
