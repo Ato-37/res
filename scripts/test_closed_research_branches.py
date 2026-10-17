@@ -88,6 +88,7 @@ ALLOWED_ENGINEERING_LOADERS = {
     "smoke_nextgqa_qwen_gpu_atomic_scoring.py",
     "smoke_qwen_stear_attention_feasibility.py",
     "smoke_qwen_stear_trigger_feasibility.py",
+    "smoke_qwen_visual_attention_boost.py",
     "smoke_qwen_temporal_hook_wiring.py",
     "smoke_qwen_attention.py",
     "smoke_qwen_video_time_alignment.py",
