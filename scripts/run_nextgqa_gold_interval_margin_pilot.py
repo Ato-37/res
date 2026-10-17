@@ -24,6 +24,7 @@ import math
 import os
 from pathlib import Path
 import random
+import stat
 import subprocess
 import time
 
@@ -71,7 +72,8 @@ def validate_cohort_lock_payload(payload: dict, requested: int) -> list[dict]:
     if not isinstance(payload, dict):
         raise ValueError("private_cohort_lock_invalid")
     assignments = payload.get("assignments")
-    if (type(payload.get("schema_version")) is not int
+    if (set(payload) != {"schema_version", "assignments"}
+            or type(payload.get("schema_version")) is not int
             or payload.get("schema_version") != 1
             or not isinstance(assignments, list)
             or not assignments
@@ -86,6 +88,150 @@ def validate_cohort_lock_payload(payload: dict, requested: int) -> list[dict]:
     if len(assignments) != requested:
         raise ValueError("private_cohort_lock_count_must_equal_requested_n")
     return assignments
+
+
+def build_cohort_lock_assignments(selected: list[dict]) -> list[dict]:
+    """Build the private hash-only lock for the exact selected video/QID pairs."""
+    assignments = [{
+        "media_sha256": item["decode"]["source_sha256"],
+        "qid_sha256": hashlib.sha256(str(item["qid"]).encode("utf-8")).hexdigest(),
+    } for item in selected]
+    hashes = [value for item in assignments for value in item.values()]
+    media_hashes = [item["media_sha256"] for item in assignments]
+    if (any(not isinstance(value, str) or len(value) != 64
+            or any(char not in "0123456789abcdef" for char in value) for value in hashes)
+            or len(set(media_hashes)) != len(media_hashes)):
+        raise ValueError("selected_cohort_lock_assignments_invalid")
+    return assignments
+
+
+def validate_locked_selection_assignments(selected: list[dict],
+                                         locked_assignments: list[dict]) -> None:
+    """Require the selected records to consume each locked pair exactly once."""
+    selected_pairs = build_cohort_lock_assignments(selected)
+    locked_pairs = [{"media_sha256": item["media_sha256"],
+                     "qid_sha256": item["qid_sha256"]}
+                    for item in locked_assignments]
+    if sorted((x["media_sha256"], x["qid_sha256"]) for x in selected_pairs) != sorted(
+            (x["media_sha256"], x["qid_sha256"]) for x in locked_pairs):
+        raise ValueError("cohort_lock_selected_assignment_mismatch")
+
+
+def finalize_cuda_scoring(torch_module, records: list[dict],
+                          failures: list[dict]) -> tuple[bool, int]:
+    """Synchronize before publishing scores; discard them if device completion is unknown."""
+    try:
+        torch_module.cuda.synchronize()
+    except Exception as exc:
+        discarded = len(records)
+        records.clear()
+        failures.append({"video_index": None,
+                         "failure_type": type(exc).__name__,
+                         "failed_condition": "final_cuda_synchronize",
+                         "completed_conditions": None})
+        return False, discarded
+    return True, 0
+
+
+def validate_candidate_pair_filter(payload: dict) -> list[str]:
+    """Validate the private SHA256 allowlist without accepting raw identifiers."""
+    values = payload.get("pair_sha256") if isinstance(payload, dict) else None
+    if (not isinstance(payload, dict)
+            or set(payload) != {"schema_version", "pair_sha256"}
+            or type(payload.get("schema_version")) is not int
+            or payload.get("schema_version") != 1 or not isinstance(values, list)
+            or not values
+            or any(not isinstance(value, str) or len(value) != 64
+                   or any(char not in "0123456789abcdef" for char in value)
+                   for value in values)
+            or len(set(values)) != len(values)):
+        raise ValueError("private_candidate_pair_filter_invalid")
+    return values
+
+
+def validate_private_media_exclusion(payload: dict) -> list[str]:
+    """Validate the local media exclusion manifest without raw identities."""
+    values = payload.get("media_sha256") if isinstance(payload, dict) else None
+    if (not isinstance(payload, dict)
+            or set(payload) != {"schema_version", "media_sha256"}
+            or type(payload.get("schema_version")) is not int
+            or payload.get("schema_version") != 1 or not isinstance(values, list)
+            or not values
+            or any(not isinstance(value, str) or len(value) != 64
+                   or any(char not in "0123456789abcdef" for char in value)
+                   for value in values)
+            or len(set(values)) != len(values)):
+        raise ValueError("private_media_exclusion_manifest_invalid")
+    return values
+
+
+def _unique_json_object(pairs):
+    result = {}
+    for key, value in pairs:
+        if key in result:
+            raise ValueError("private_json_duplicate_key")
+        result[key] = value
+    return result
+
+
+def read_private_json_snapshot(path: Path):
+    """Read and hash one verified private-file byte snapshot."""
+    flags = os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0)
+    fd = os.open(Path(path), flags)
+    try:
+        info = os.fstat(fd)
+        if (not stat.S_ISREG(info.st_mode) or info.st_uid != os.getuid()
+                or stat.S_IMODE(info.st_mode) != 0o600):
+            raise ValueError("private_json_file_permissions_invalid")
+        chunks = []
+        while True:
+            block = os.read(fd, 1024 * 1024)
+            if not block:
+                break
+            chunks.append(block)
+        raw = b"".join(chunks)
+    finally:
+        os.close(fd)
+    try:
+        payload = json.loads(raw.decode("utf-8"), object_pairs_hook=_unique_json_object)
+    except (UnicodeDecodeError, json.JSONDecodeError) as exc:
+        raise ValueError("private_json_invalid") from exc
+    return payload, hashlib.sha256(raw).hexdigest()
+
+
+def validate_new_output_path(path: Path, other_path: Path | None = None) -> Path:
+    path = Path(os.path.abspath(path))
+    if other_path is not None and path == Path(os.path.abspath(other_path)):
+        raise ValueError("output_paths_must_be_different")
+    if os.path.lexists(path):
+        raise ValueError("refusing_to_overwrite_output")
+    return path
+
+
+def candidate_pair_sha256(video_id: str, qid: str) -> str:
+    """Hash compact UTF-8 JSON for [contract, video_id, qid]."""
+    if not isinstance(video_id, str) or not video_id or not isinstance(qid, str) or not qid:
+        raise ValueError("candidate_pair_identity_invalid")
+    canonical = json.dumps(["nextgqa-gold-interval-pair-v1", video_id, qid],
+                           ensure_ascii=False, separators=(",", ":")).encode("utf-8")
+    return hashlib.sha256(canonical).hexdigest()
+
+
+def validate_candidate_filter_binding(gate: dict, expected_sha256: str | None) -> None:
+    if gate.get("candidate_pair_filter_sha256") != expected_sha256:
+        raise ValueError("candidate_pair_filter_binding_mismatch")
+
+
+def filter_candidate_groups(grouped: dict, allowed_pair_sha256):
+    if allowed_pair_sha256 is None:
+        return grouped
+    allowed_pair_sha256 = set(allowed_pair_sha256)
+    filtered = {
+        vid: [question for question in questions
+              if candidate_pair_sha256(vid, question["qid"]) in allowed_pair_sha256]
+        for vid, questions in grouped.items()
+    }
+    return {vid: questions for vid, questions in filtered.items() if questions}
 
 
 def sha256_file(path: Path) -> str:
@@ -122,7 +268,7 @@ def host_available_bytes() -> int:
     raise RuntimeError("host_memavailable_missing")
 
 
-def load_candidate_rows(repo: Path, video_root: Path):
+def load_candidate_rows(repo: Path, video_root: Path, allowed_pair_sha256=None):
     dataset = repo / "NExT-GQA" / "datasets" / "nextgqa"
     video_map = json.loads((dataset / "map_vid_vidorID.json").read_text(encoding="utf-8"))
     gsub = json.loads((dataset / "gsub_test.json").read_text(encoding="utf-8"))
@@ -187,6 +333,8 @@ def load_candidate_rows(repo: Path, video_root: Path):
                 "video_key": key,
             })
 
+    grouped = filter_candidate_groups(grouped, allowed_pair_sha256)
+
     ordered = []
     for vid, questions in grouped.items():
         q_order = sorted(questions, key=lambda record: hashlib.sha256(
@@ -205,8 +353,9 @@ def load_candidate_rows(repo: Path, video_root: Path):
 
 
 def freeze_cohort(repo: Path, video_root: Path, excluded_media_sha256=(),
-                  frame_count=FRAMES, locked_assignments=None):
-    candidates, meta = load_candidate_rows(repo, video_root)
+                  frame_count=FRAMES, locked_assignments=None,
+                  allowed_pair_sha256=None):
+    candidates, meta = load_candidate_rows(repo, video_root, allowed_pair_sha256)
     excluded_media_sha256 = set(excluded_media_sha256)
     selected = []
     counts = {"timing_rejected_videos": 0, "timing_pass_videos": 0,
@@ -278,6 +427,8 @@ def freeze_cohort(repo: Path, video_root: Path, excluded_media_sha256=(),
          "control_positions": item["control_positions"]}
         for item in selected
     ])
+    if locked_assignments is not None:
+        validate_locked_selection_assignments(selected, locked_assignments)
     return selected, counts, meta, cohort_fingerprint
 
 
@@ -428,6 +579,10 @@ def main():
                         help="private JSON media-hash list to prevent reusing prior pilot videos")
     parser.add_argument("--cohort-lock",
                         help="optional private hash-only video/question assignment lock")
+    parser.add_argument("--cohort-lock-output",
+                        help="preflight-only path for a private hash-only selected cohort lock")
+    parser.add_argument("--candidate-pair-filter",
+                        help="optional private JSON allowlist of eligible pair SHA256 hashes")
     parser.add_argument("--user-authorized-local-only", action="store_true",
                         help="asserts the user's local-only scope for this exploratory run")
     parser.add_argument("--video-root", default=str(Path.home() / "nextgqa_sample/NExTVideo"))
@@ -436,11 +591,20 @@ def main():
     frame_count = args.frames
     if not args.user_authorized_local_only:
         parser.error("explicit local-only authorization flag required")
-    output = Path(args.output).resolve()
-    if output.exists():
+    output = Path(os.path.abspath(args.output))
+    if os.path.lexists(output):
         parser.error("refusing to overwrite output")
     if args.mode == "score" and not args.preflight_summary:
         parser.error("score mode requires an outcome-blind --preflight-summary")
+    if args.mode == "score" and args.cohort_lock_output:
+        parser.error("--cohort-lock-output is preflight-only")
+    cohort_lock_output = None
+    if args.cohort_lock_output:
+        try:
+            cohort_lock_output = validate_new_output_path(
+                Path(args.cohort_lock_output), output)
+        except ValueError as exc:
+            parser.error(str(exc))
     repo = Path(__file__).resolve().parents[1]
     video_root = Path(args.video_root).resolve()
     model_path = (Path.home() / ".cache/huggingface/hub/models--Qwen--Qwen2.5-VL-7B-Instruct"
@@ -464,27 +628,39 @@ def main():
     torch.cuda.manual_seed_all(SEED)
     start = time.monotonic()
     started_utc = datetime.now(timezone.utc).isoformat()
-    exclusion_path = Path(args.exclude_media_sha256).resolve()
-    exclusion_payload = json.loads(exclusion_path.read_text(encoding="utf-8"))
-    excluded_media_sha256 = exclusion_payload.get("media_sha256")
-    if (exclusion_payload.get("schema_version") != 1
-            or not isinstance(excluded_media_sha256, list)
-            or not excluded_media_sha256
-            or any(not isinstance(value, str) or len(value) != 64
-                   or any(c not in "0123456789abcdef" for c in value)
-                   for value in excluded_media_sha256)):
-        parser.error("private_media_exclusion_manifest_invalid")
+    exclusion_path = Path(os.path.abspath(args.exclude_media_sha256))
+    try:
+        exclusion_payload, exclusion_manifest_sha256 = read_private_json_snapshot(
+            exclusion_path)
+        excluded_media_sha256 = validate_private_media_exclusion(exclusion_payload)
+    except (OSError, ValueError) as exc:
+        parser.error(f"private_media_exclusion_manifest_invalid:{exc}")
     excluded_media_digest = _hash(sorted(excluded_media_sha256))
-    cohort_lock_path = Path(args.cohort_lock).resolve() if args.cohort_lock else None
-    locked_assignments = None
-    if cohort_lock_path:
-        lock_payload = json.loads(cohort_lock_path.read_text(encoding="utf-8"))
+    candidate_filter_path = (Path(os.path.abspath(args.candidate_pair_filter))
+                             if args.candidate_pair_filter else None)
+    allowed_pair_sha256 = None
+    candidate_filter_sha256 = None
+    candidate_filter_digest = None
+    if candidate_filter_path:
         try:
+            pair_filter_payload, candidate_filter_sha256 = read_private_json_snapshot(
+                candidate_filter_path)
+            allowed_pair_sha256 = validate_candidate_pair_filter(pair_filter_payload)
+        except (OSError, ValueError) as exc:
+            parser.error(f"private_candidate_pair_filter_invalid:{exc}")
+        candidate_filter_digest = _hash(sorted(allowed_pair_sha256))
+    cohort_lock_path = Path(os.path.abspath(args.cohort_lock)) if args.cohort_lock else None
+    locked_assignments = None
+    cohort_lock_input_sha256 = None
+    if cohort_lock_path:
+        try:
+            lock_payload, cohort_lock_input_sha256 = read_private_json_snapshot(cohort_lock_path)
             locked_assignments = validate_cohort_lock_payload(lock_payload, args.n)
-        except ValueError as exc:
+        except (OSError, ValueError) as exc:
             parser.error(str(exc))
     selected, counts, candidate_meta, cohort_hash = freeze_cohort(
-        repo, video_root, excluded_media_sha256, frame_count, locked_assignments)
+        repo, video_root, excluded_media_sha256, frame_count, locked_assignments,
+        allowed_pair_sha256)
     try:
         validate_cohort_cardinality(args.n, len(selected))
     except ValueError as exc:
@@ -505,6 +681,12 @@ def main():
                                   retain_batches=False)
     preparation_seconds = time.monotonic() - start
     if args.mode == "preflight":
+        cohort_lock_output_sha256 = None
+        if cohort_lock_output:
+            lock_payload = {"schema_version": 1,
+                            "assignments": build_cohort_lock_assignments(selected)}
+            write_private_json_exclusive(cohort_lock_output, lock_payload)
+            cohort_lock_output_sha256 = sha256_file(cohort_lock_output)
         payload = {
             "schema_version": 1,
             "purpose": "exploratory_nextgqa_gold_interval_answer_margin_dependence",
@@ -523,10 +705,14 @@ def main():
             "candidate_videos_unscanned": candidate_meta["candidate_video_count"]
                 - counts["candidate_scan_count"],
             "prior_cohort_media_excluded": counts["prior_cohort_media_excluded"],
-            "prior_cohort_exclusion_file_sha256": sha256_file(exclusion_path),
+            "prior_cohort_exclusion_file_sha256": exclusion_manifest_sha256,
             "prior_cohort_exclusion_media_digest_sha256": excluded_media_digest,
-            "cohort_lock_sha256": (sha256_file(cohort_lock_path)
-                                   if cohort_lock_path else None),
+            "cohort_lock_sha256": (cohort_lock_input_sha256
+                                   if cohort_lock_path else cohort_lock_output_sha256),
+            "candidate_pair_filter_sha256": candidate_filter_sha256,
+            "candidate_pair_filter_entries": (len(allowed_pair_sha256)
+                                              if allowed_pair_sha256 is not None else None),
+            "candidate_pair_filter_digest_sha256": candidate_filter_digest,
             "ambiguous_media_keys_excluded": candidate_meta["ambiguous_local_media_key_count"],
             "private_exclusion_manifest_count": candidate_meta["private_exclusion_manifest_count"],
             "private_exclusion_manifest_digest_sha256": candidate_meta["private_exclusion_manifest_digest"],
@@ -576,7 +762,11 @@ def main():
     expected_versions = {name: importlib.metadata.version(name) for name in
                          ("torch", "transformers", "bitsandbytes", "qwen-vl-utils", "av")}
     expected_model_config = sha256_file(model_path / "config.json")
-    expected_exclusion_sha = sha256_file(exclusion_path)
+    expected_exclusion_sha = exclusion_manifest_sha256
+    try:
+        validate_candidate_filter_binding(gate, candidate_filter_sha256)
+    except ValueError as exc:
+        parser.error(f"frozen_preflight_binding_mismatch:{exc}; no score was run")
     if (gate.get("schema_version") != 1
             or gate.get("purpose") != "exploratory_nextgqa_gold_interval_answer_margin_dependence"
             or gate.get("mode") != "outcome_blind_preflight"
@@ -601,8 +791,11 @@ def main():
                 != counts["prior_cohort_media_excluded"]
             or gate.get("prior_cohort_exclusion_file_sha256") != expected_exclusion_sha
             or gate.get("prior_cohort_exclusion_media_digest_sha256") != excluded_media_digest
-            or gate.get("cohort_lock_sha256") != (sha256_file(cohort_lock_path)
+            or gate.get("cohort_lock_sha256") != (cohort_lock_input_sha256
                                                     if cohort_lock_path else None)
+            or gate.get("candidate_pair_filter_entries")
+                != (len(allowed_pair_sha256) if allowed_pair_sha256 is not None else None)
+            or gate.get("candidate_pair_filter_digest_sha256") != candidate_filter_digest
             or gate.get("requested_frames_per_video") != frame_count
             or gate.get("uniform_tolerance_seconds") != [UNIFORM_TOLERANCE.numerator,
                                                            UNIFORM_TOLERANCE.denominator]
@@ -702,7 +895,8 @@ def main():
         finally:
             del prepared_item
             gc.collect()
-    torch.cuda.synchronize()
+    final_cuda_sync_passed, discarded_records_after_sync_failure = finalize_cuda_scoring(
+        torch, records, failures)
     elapsed = time.monotonic() - start
     effects = [record["primary_black_control_minus_gold_interval_margin"] for record in records]
     blur_effects = [record["blur_control_minus_gold_interval_margin"] for record in records]
@@ -735,7 +929,7 @@ def main():
         "prior_cohort_media_excluded": counts["prior_cohort_media_excluded"],
         "prior_cohort_exclusion_file_sha256": expected_exclusion_sha,
         "prior_cohort_exclusion_media_digest_sha256": excluded_media_digest,
-        "cohort_lock_sha256": (sha256_file(cohort_lock_path)
+            "cohort_lock_sha256": (cohort_lock_input_sha256
                                if cohort_lock_path else None),
         "selection_rule": f"first {MAX_VIDEOS} outcome-blind eligible videos in deterministic hash order after prior-media exclusion",
         "effective_videos": len(records),
@@ -746,12 +940,16 @@ def main():
         "attempted_model_forwards": attempted,
         "completed_full_condition_sets": len(records),
         "failures": failures,
+        "final_cuda_synchronize_passed": final_cuda_sync_passed,
+        "discarded_completed_records_after_sync_failure": discarded_records_after_sync_failure,
         "primary_effect_summary": summarize_values(effects),
         "primary_effect_definition": "black-control gold-vs-best-foil margin minus black-gold-interval-mask margin",
         "blur_sensitivity_effect_summary": summarize_values(blur_effects),
         "blur_sensitivity_effect_definition": "blur-control gold-vs-best-foil margin minus blur-gold-interval-mask margin; Gaussian radius 12 pixels",
         "black_minus_blur_gold_interval_margin_summary": summarize_values(fill_differences),
-        "full_condition_correct_count": sum(r["baseline_restricted_choice_correct"] for r in records),
+        "full_condition_correct_count": (
+            sum(r["baseline_restricted_choice_correct"] for r in records)
+            if records else None),
         "full_condition_correct_fraction": (
             sum(r["baseline_restricted_choice_correct"] for r in records) / len(records)
             if records else None),
@@ -763,8 +961,9 @@ def main():
         "full_condition_accuracy_definition": "argmax among five next-token A-E label tokens; prompt-dependent restricted-choice accuracy",
         "confidence_scope": "descriptive selected timing-eligible finite cohort; not population-generalizable",
         "elapsed_seconds": elapsed,
-        "peak_allocated_gib": torch.cuda.max_memory_allocated() / 1024**3,
-        "gpu": torch.cuda.get_device_name(0),
+        "peak_allocated_gib": (torch.cuda.max_memory_allocated() / 1024**3
+                                if final_cuda_sync_passed else None),
+        "gpu": (torch.cuda.get_device_name(0) if final_cuda_sync_passed else None),
         "gpu_free_before_model_load_gib": free_before_load / 1024**3,
         "gpu_total_gib": total_before_load / 1024**3,
         "host_available_before_model_load_gib": host_free_before_load / 1024**3,

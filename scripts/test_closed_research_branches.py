@@ -83,6 +83,8 @@ ALLOWED_ENGINEERING_LOADERS = {
     "run_qwen_temporal_position_gpu_check.py",
     "run_qwen_video_batch_throughput_gpu_smoke.py",
     "run_qwen_video_cache_gpu_smoke.py",
+    "run_nextgqa_review_cohort_gpu_capacity_smoke.py",
+    "smoke_nextgqa_qwen_gpu_atomic_scoring.py",
     "smoke_qwen_attention.py",
     "smoke_qwen_video_time_alignment.py",
     "spike_test_attention.py",
@@ -91,6 +93,7 @@ ALLOWED_ENGINEERING_LOADERS = {
 PROCESSOR_ONLY_LOADERS = {
     "audit_nextgqa_prompt_tokenizer.py",
     "build_nextgqa_diagnostic_target_candidate.py",
+    "smoke_nextgqa_qwen_condition_batch_builder.py",
 }
 SYNTHETIC_CPU_MODEL_CONSTRUCTORS = {
     "audit_qwen_cache_positions_cpu.py": "Qwen2_5_VLForConditionalGeneration",

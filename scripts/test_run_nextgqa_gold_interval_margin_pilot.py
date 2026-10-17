@@ -1,3 +1,7 @@
+import json
+import hashlib
+import stat
+import tempfile
 import unittest
 from pathlib import Path
 from types import ModuleType, SimpleNamespace
@@ -8,16 +12,183 @@ import torch
 
 from run_nextgqa_gold_interval_margin_pilot import (
     control_minus_evidence_margin,
+    candidate_pair_sha256,
+    build_cohort_lock_assignments,
+    filter_candidate_groups,
+    finalize_cuda_scoring,
     gold_vs_best_foil_margin,
     helper_source_hashes,
     prepare_conditions,
     validate_cohort_cardinality,
     validate_cohort_lock_payload,
+    validate_locked_selection_assignments,
+    validate_candidate_filter_binding,
+    validate_candidate_pair_filter,
+    validate_private_media_exclusion,
     validate_preflight_cardinality,
+    read_private_json_snapshot,
+    validate_new_output_path,
+    write_private_json_exclusive,
 )
 
 
 class GoldIntervalAnswerMarginTests(unittest.TestCase):
+    def test_private_json_snapshot_checks_schema_permissions_and_same_bytes_hash(self):
+        payload = {"schema_version": 1, "pair_sha256": ["a" * 64]}
+        raw = json.dumps(payload, separators=(",", ":")).encode("utf-8")
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "filter.json"
+            path.write_bytes(raw)
+            path.chmod(0o600)
+            parsed, digest = read_private_json_snapshot(path)
+            self.assertEqual(parsed, payload)
+            self.assertEqual(digest, hashlib.sha256(raw).hexdigest())
+            validate_candidate_filter_binding(
+                {"candidate_pair_filter_sha256": digest}, digest)
+            path.write_text('{"schema_version":1,"pair_sha256":[]}', encoding="utf-8")
+            self.assertEqual(digest, hashlib.sha256(raw).hexdigest())
+            with self.assertRaisesRegex(ValueError, "duplicate_key"):
+                path.write_text('{"schema_version":1,"schema_version":1}', encoding="utf-8")
+                path.chmod(0o600)
+                read_private_json_snapshot(path)
+            with self.assertRaisesRegex(ValueError, "permissions_invalid"):
+                path.write_text(json.dumps(payload), encoding="utf-8")
+                path.chmod(0o644)
+                read_private_json_snapshot(path)
+
+    def test_candidate_filter_schema_rejects_extra_keys(self):
+        with self.assertRaisesRegex(ValueError, "private_candidate_pair_filter_invalid"):
+            validate_candidate_pair_filter({"schema_version": 1,
+                                            "pair_sha256": ["a" * 64],
+                                            "comment": "extra"})
+
+    def test_cohort_lock_private_snapshot_and_strict_top_level_schema(self):
+        raw_payload = {"schema_version": 1, "assignments": [
+            {"media_sha256": "a" * 64, "qid_sha256": "b" * 64}]}
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "lock.json"
+            path.write_text(json.dumps(raw_payload), encoding="utf-8")
+            path.chmod(0o600)
+            parsed, digest = read_private_json_snapshot(path)
+            self.assertEqual(digest, hashlib.sha256(path.read_bytes()).hexdigest())
+            self.assertEqual(validate_cohort_lock_payload(parsed, 1), raw_payload["assignments"])
+            parsed["extra"] = "reject"
+            with self.assertRaisesRegex(ValueError, "private_cohort_lock_invalid"):
+                validate_cohort_lock_payload(parsed, 1)
+
+    def test_locked_selection_must_consume_each_media_qid_pair_once(self):
+        def row(media, qid):
+            return {"decode": {"source_sha256": media}, "qid": qid}
+        media_a, media_b = "a" * 64, "b" * 64
+        qid_a = hashlib.sha256(b"q-a").hexdigest()
+        qid_b = hashlib.sha256(b"q-b").hexdigest()
+        lock = [{"media_sha256": media_a, "qid_sha256": qid_a},
+                {"media_sha256": media_b, "qid_sha256": qid_b}]
+        validate_locked_selection_assignments([row(media_a, "q-a"), row(media_b, "q-b")], lock)
+        with self.assertRaisesRegex(ValueError, "selected_cohort_lock_assignments_invalid"):
+            validate_locked_selection_assignments(
+                [row(media_a, "q-a"), row(media_a, "q-a")], lock)
+        with self.assertRaisesRegex(ValueError, "cohort_lock_selected_assignment_mismatch"):
+            validate_locked_selection_assignments([row(media_a, "q-a"), row(media_b, "q-other")], lock)
+
+    def test_final_cuda_sync_failure_discards_unverified_metrics(self):
+        class BrokenCuda:
+            @staticmethod
+            def synchronize():
+                raise RuntimeError("synthetic_cuda_sync_failure")
+        fake_torch = SimpleNamespace(cuda=BrokenCuda)
+        records = [{"primary_effect": 1.25}]
+        failures = []
+        passed, discarded = finalize_cuda_scoring(fake_torch, records, failures)
+        self.assertFalse(passed)
+        self.assertEqual(discarded, 1)
+        self.assertEqual(records, [])
+        self.assertEqual(failures, [{
+            "video_index": None,
+            "failure_type": "RuntimeError",
+            "failed_condition": "final_cuda_synchronize",
+            "completed_conditions": None,
+        }])
+
+    def test_lock_output_path_rejects_existing_and_symlink_paths(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            existing = root / "exists"
+            existing.write_text("", encoding="utf-8")
+            dangling_link = root / "dangling"
+            dangling_link.symlink_to(root / "missing")
+            for path in (existing, dangling_link):
+                with self.subTest(path=path), self.assertRaisesRegex(
+                        ValueError, "refusing_to_overwrite_output"):
+                    validate_new_output_path(path)
+            with self.assertRaisesRegex(ValueError, "output_paths_must_be_different"):
+                validate_new_output_path(root / "same", root / "same")
+
+    def test_cohort_lock_output_contains_selected_hashes_and_is_private_exclusive(self):
+        media_sha = "a" * 64
+        selected = [{"decode": {"source_sha256": media_sha}, "qid": "qid-private"}]
+        assignments = build_cohort_lock_assignments(selected)
+        self.assertEqual(assignments, [{
+            "media_sha256": media_sha,
+            "qid_sha256": hashlib.sha256(b"qid-private").hexdigest(),
+        }])
+        payload = {"schema_version": 1, "assignments": assignments}
+        with tempfile.TemporaryDirectory() as tmp:
+            output = Path(tmp) / "cohort-lock.json"
+            write_private_json_exclusive(output, payload)
+            self.assertEqual(json.loads(output.read_text(encoding="utf-8")), payload)
+            self.assertEqual(stat.S_IMODE(output.stat().st_mode), 0o600)
+            with self.assertRaises(FileExistsError):
+                write_private_json_exclusive(output, payload)
+
+    def test_private_pair_filter_keeps_only_exact_video_qid_pairs(self):
+        q_a = candidate_pair_sha256("video-a", "q1")
+        q_b = candidate_pair_sha256("video-a", "q2")
+        grouped = {"video-a": [{"qid": "q1"}, {"qid": "q2"}],
+                   "video-b": [{"qid": "q1"}]}
+        filtered = filter_candidate_groups(grouped, [q_a])
+        self.assertEqual(filtered, {"video-a": [{"qid": "q1"}]})
+        self.assertEqual(filter_candidate_groups(grouped, None), grouped)
+        self.assertNotEqual(q_a, candidate_pair_sha256("video-b", "q1"))
+        self.assertNotEqual(q_a, q_b)
+
+    def test_pair_filter_rejects_malformed_or_duplicate_hashes(self):
+        valid = "a" * 64
+        self.assertEqual(validate_candidate_pair_filter(
+            {"schema_version": 1, "pair_sha256": [valid]}), [valid])
+        for payload in (
+                {"schema_version": 1, "pair_sha256": [valid, valid]},
+                {"schema_version": 1, "pair_sha256": ["private-id"]},
+                {"schema_version": True, "pair_sha256": [valid]},
+                {"schema_version": 1, "pair_sha256": []},
+                {"schema_version": 1, "pair_sha256": ["A" * 64]}):
+            with self.subTest(payload=payload), self.assertRaisesRegex(
+                    ValueError, "private_candidate_pair_filter_invalid"):
+                validate_candidate_pair_filter(payload)
+
+    def test_media_exclusion_manifest_schema_and_uniqueness(self):
+        valid = "a" * 64
+        self.assertEqual(validate_private_media_exclusion(
+            {"schema_version": 1, "media_sha256": [valid]}), [valid])
+        for payload in (
+                {"schema_version": 1, "media_sha256": [valid, valid]},
+                {"schema_version": 1, "media_sha256": []},
+                {"schema_version": True, "media_sha256": [valid]},
+                {"schema_version": 1, "media_sha256": ["private-id"]},
+                {"schema_version": 1, "media_sha256": [valid], "extra": 1}):
+            with self.subTest(payload=payload), self.assertRaisesRegex(
+                    ValueError, "private_media_exclusion_manifest_invalid"):
+                validate_private_media_exclusion(payload)
+
+    def test_preflight_binds_exact_candidate_filter_file_hash(self):
+        validate_candidate_filter_binding(
+            {"candidate_pair_filter_sha256": "a" * 64}, "a" * 64)
+        for gate, expected in (({"candidate_pair_filter_sha256": "a" * 64}, "b" * 64),
+                               ({}, "a" * 64)):
+            with self.subTest(gate=gate, expected=expected), self.assertRaisesRegex(
+                    ValueError, "candidate_pair_filter_binding_mismatch"):
+                validate_candidate_filter_binding(gate, expected)
+
     def test_grid_preparation_discards_batches_and_score_can_retain_one_video(self):
         utility = ModuleType("qwen_vl_utils")
 
