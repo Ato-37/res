@@ -5,11 +5,61 @@ import os
 from pathlib import Path
 import tempfile
 import unittest
+import csv
 
-from smoke_qwen_real_video_attention_boost import _write_private_json
+from smoke_qwen_real_video_attention_boost import (
+    _write_private_json,
+    question_for_video,
+)
 
 
 class RealVideoAttentionBoostOutputTests(unittest.TestCase):
+    def test_question_selection_is_deterministic_and_requires_eligible_metadata(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            dataset, video_root = root / "dataset", root / "videos"
+            dataset.mkdir()
+            (video_root / "foo").mkdir(parents=True)
+            video = video_root / "foo" / "a.mp4"
+            video.touch()
+            (dataset / "map_vid_vidorID.json").write_text(
+                json.dumps({"v1": "foo/a.mp4"}), encoding="utf-8")
+            (dataset / "gsub_test.json").write_text(json.dumps({
+                "v1": {"duration": 10, "location": {
+                    "q1": [[0, 2]], "q2": [[2, 4]], "q3": []}},
+            }), encoding="utf-8")
+            with (dataset / "test.csv").open("w", newline="", encoding="utf-8") as stream:
+                writer = csv.DictWriter(stream, fieldnames=(
+                    "video_id", "qid", "question", "answer"))
+                writer.writeheader()
+                writer.writerow({"video_id": "v1", "qid": "q2",
+                                 "question": "Later question?", "answer": "secret"})
+                writer.writerow({"video_id": "v1", "qid": "q3",
+                                 "question": "No interval?", "answer": "secret"})
+                writer.writerow({"video_id": "v1", "qid": "q1",
+                                 "question": "First question?", "answer": "secret"})
+            self.assertEqual(question_for_video(dataset, video, video_root),
+                             "First question?")
+
+    def test_refuses_a_video_without_an_eligible_question(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            dataset, video_root = root / "dataset", root / "videos"
+            dataset.mkdir()
+            video_root.mkdir()
+            video = video_root / "a.mp4"
+            video.touch()
+            (dataset / "map_vid_vidorID.json").write_text(
+                json.dumps({"v1": "a.mp4"}), encoding="utf-8")
+            (dataset / "gsub_test.json").write_text(
+                json.dumps({"v1": {"duration": 1, "location": {}}}),
+                encoding="utf-8")
+            with (dataset / "test.csv").open("w", newline="", encoding="utf-8") as stream:
+                writer = csv.DictWriter(stream, fieldnames=("video_id", "qid", "question"))
+                writer.writeheader()
+            with self.assertRaisesRegex(ValueError, "eligible_question_unavailable"):
+                question_for_video(dataset, video, video_root)
+
     def test_output_is_exclusive_private_and_readable(self):
         with tempfile.TemporaryDirectory() as temporary:
             parent = Path(temporary) / "private-run"
