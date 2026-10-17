@@ -166,6 +166,7 @@ def main(argv=None):
             processor_revision=MODEL_REVISION,
             processor_fingerprint_sha256=processor_fingerprint,
             reviewed_intervals_seconds=records[0]["intervals"],
+            interval_boundary_guard_seconds=0.0,
         )
         batch = mapping.pop("_processor_batch_snapshot")
         ids = batch["input_ids"]

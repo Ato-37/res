@@ -1,9 +1,29 @@
 import unittest
 
-from annotation_clock_calibration import evaluate_affine_calibration
+from annotation_clock_calibration import (
+    evaluate_affine_calibration,
+    map_annotation_intervals_to_pts,
+)
 
 
 class AnnotationClockCalibrationTests(unittest.TestCase):
+    def test_review_intervals_are_inverse_mapped_to_pts_exactly(self):
+        # player_time = 3/2 * pts_time + 1/4
+        self.assertEqual(map_annotation_intervals_to_pts(
+            [["7/4", "13/4"], [4, 5]], "3/2", "1/4"),
+            [["1", "2"], ["5/2", "19/6"]])
+
+    def test_interval_mapping_rejects_bad_clock_or_ranges(self):
+        for intervals, slope, intercept in (
+                ([], "1", "0"), ([[1, 1]], "1", "0"),
+                ([[-1, 1]], "1", "0"), ([[1, 2]], "0", "0"),
+                ([[1, 2]], True, "0"), ([[float("nan"), 2]], "1", "0"),
+                ([["1/0", 2]], "1", "0"), ([[1, 2]], "1", "3"),
+                ([["1/3", "2/3"]], "1", "0")):
+            with self.subTest(intervals=intervals, slope=slope, intercept=intercept):
+                with self.assertRaises(ValueError):
+                    map_annotation_intervals_to_pts(intervals, slope, intercept)
+
     def test_affine_offset_and_drift_fit_then_independent_heldout_check(self):
         fit = [
             {"anchor_id": "fit-1", "pts_time": "0", "annotation_time": "5/4"},

@@ -10,6 +10,7 @@ the annotation-clock gate or authorize inference.
 """
 from __future__ import annotations
 
+import math
 from fractions import Fraction
 from typing import Any
 
@@ -22,6 +23,47 @@ def _rational(value: Any, field: str) -> Fraction:
     except (ValueError, ZeroDivisionError, TypeError, OverflowError):
         raise ValueError(f"{field}_invalid") from None
     return result
+
+
+def map_annotation_intervals_to_pts(intervals: Any, slope: Any,
+                                   intercept: Any) -> list[list[str]]:
+    """Map reviewed-player intervals onto decoder PTS using the frozen fit.
+
+    Calibration is defined as ``player_time = slope * pts_time + intercept``.
+    This helper applies its inverse before any PTS-based frame/group mapping.
+    It performs exact rational arithmetic, requires millisecond-grid source
+    endpoints, and does not establish that calibration evidence or source
+    clocks are valid.
+    """
+    m = _rational(slope, "slope")
+    b = _rational(intercept, "intercept")
+    if m <= 0:
+        raise ValueError("slope_not_positive")
+    if not isinstance(intervals, list) or not intervals:
+        raise ValueError("intervals_invalid")
+    mapped: list[list[str]] = []
+    for pair in intervals:
+        if not isinstance(pair, (list, tuple)) or len(pair) != 2:
+            raise ValueError("interval_invalid")
+        endpoints = []
+        for value in pair:
+            if isinstance(value, bool) or not isinstance(value, (str, int, float)):
+                raise ValueError("interval_invalid")
+            if isinstance(value, float) and not math.isfinite(value):
+                raise ValueError("interval_invalid")
+            try:
+                endpoints.append(Fraction(str(value)))
+            except (ValueError, ZeroDivisionError, TypeError, OverflowError):
+                raise ValueError("interval_invalid") from None
+        start, end = endpoints
+        if (start < 0 or end <= start
+                or any((value * 1000).denominator != 1 for value in endpoints)):
+            raise ValueError("interval_invalid")
+        pts_start, pts_end = (start - b) / m, (end - b) / m
+        if pts_start < 0 or pts_end <= pts_start:
+            raise ValueError("mapped_interval_invalid")
+        mapped.append([str(pts_start), str(pts_end)])
+    return mapped
 
 
 def _anchors(value: Any, field: str) -> list[tuple[str, Fraction, Fraction]]:

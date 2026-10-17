@@ -5,6 +5,7 @@ import unittest
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from nextgqa_atomic_batch_freeze import batch_sha256  # noqa: E402
+from annotation_clock_calibration import map_annotation_intervals_to_pts  # noqa: E402
 from qwen_processor_batch_review_mapping import (  # noqa: E402
     map_review_interval_from_processor_batch,
 )
@@ -35,6 +36,7 @@ class ProcessorBatchReviewMappingTests(unittest.TestCase):
             "processor_revision": "test-revision",
             "processor_fingerprint_sha256": "a" * 64,
             "reviewed_interval_seconds": [0.1, 0.4],
+            "interval_boundary_guard_seconds": 0.0,
         }
 
     def test_binds_mapping_to_exact_complete_cpu_processor_batch(self):
@@ -116,6 +118,31 @@ class ProcessorBatchReviewMappingTests(unittest.TestCase):
                 **self.kwargs,
                 "reviewed_intervals_seconds": [[0.1, 0.4]],
             })
+
+    def test_requires_and_enforces_calibrated_boundary_guard(self):
+        with self.assertRaisesRegex(ValueError, "clock_guard_required"):
+            map_review_interval_from_processor_batch(**{
+                key: value for key, value in self.kwargs.items()
+                if key != "interval_boundary_guard_seconds"})
+        stable = map_review_interval_from_processor_batch(**{
+            **self.kwargs, "interval_boundary_guard_seconds": 0.05})
+        self.assertEqual(stable["evidence_group_indices"], [0])
+        self.assertEqual(stable["interval_boundary_guard_seconds"], 0.05)
+        self.assertEqual(stable["reviewed_intervals_rational_seconds"], [["1/10", "2/5"]])
+        with self.assertRaisesRegex(ValueError,
+                                    "calibration_guard_changes_group_assignment"):
+            map_review_interval_from_processor_batch(**{
+                **self.kwargs, "interval_boundary_guard_seconds": 0.2})
+
+    def test_exact_interval_converter_output_flows_directly_to_batch_mapper(self):
+        mapped = map_annotation_intervals_to_pts([[0.1, 0.4]], "1", "0")
+        result = map_review_interval_from_processor_batch(**{
+            **self.kwargs,
+            "reviewed_interval_seconds": mapped[0],
+            "interval_boundary_guard_seconds": "0",
+        })
+        self.assertEqual(result["reviewed_intervals_rational_seconds"],
+                         [["1/10", "2/5"]])
 
     def test_rejects_padding_pixel_grid_and_sampling_disagreement(self):
         changes = [

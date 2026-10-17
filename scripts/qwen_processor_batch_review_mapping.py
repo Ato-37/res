@@ -1,8 +1,9 @@
 """Bind temporal review mapping inputs to one cloned CPU Qwen batch snapshot.
 
 This wrapper provides integrity bookkeeping, not source/reviewer/clock
-authentication. The caller remains responsible for authenticating all external
-metadata before using the mapping for scoring.
+authentication. The caller must provide the calibrated PTS-space guard
+explicitly; the function fails if it is omitted. The caller remains
+responsible for authenticating all external metadata before scoring.
 """
 from __future__ import annotations
 
@@ -10,6 +11,7 @@ import hashlib
 import json
 import math
 from collections.abc import Mapping, Sequence
+from fractions import Fraction
 from numbers import Real
 from typing import Any
 
@@ -26,12 +28,13 @@ _REQUIRED_BATCH_KEYS = {
 def map_review_interval_from_processor_batch(
     *, batch: Mapping[str, Any], torch_module: Any, video_token_id: int,
     spatial_merge_size: int, temporal_patch_size: int,
-    sampled_frame_indices: Sequence[int], sampled_pts_seconds: Sequence[Real],
-    source_frame_count: int, video_duration_seconds: Real,
+    sampled_frame_indices: Sequence[int], sampled_pts_seconds: Sequence[Real | str],
+    source_frame_count: int, video_duration_seconds: Real | str,
     sample_fps: Real, processor_revision: str,
     processor_fingerprint_sha256: str,
-    reviewed_interval_seconds: Sequence[Real] | None = None,
-    reviewed_intervals_seconds: Sequence[Sequence[Real]] | None = None,
+    reviewed_interval_seconds: Sequence[Real | str] | None = None,
+    reviewed_intervals_seconds: Sequence[Sequence[Real | str]] | None = None,
+    interval_boundary_guard_seconds: Real | str | None = None,
 ) -> dict:
     """Map a review window using grid/token data read from the same CPU batch.
 
@@ -53,7 +56,10 @@ def map_review_interval_from_processor_batch(
             or any(char not in "0123456789abcdef" for char in processor_fingerprint_sha256)):
         raise ValueError("processor_batch_binding_metadata_invalid")
     fps = _positive_finite(sample_fps, "sample_fps")
-    duration = _positive_finite(video_duration_seconds, "video_duration")
+    duration_fraction = _finite_fraction(video_duration_seconds, "video_duration")
+    duration = float(duration_fraction)
+    if duration <= 0:
+        raise ValueError("video_duration_invalid")
 
     snapshot = _snapshot_tree(batch, torch_module)
     batch_digest = batch_sha256(snapshot)
@@ -103,14 +109,19 @@ def map_review_interval_from_processor_batch(
 
     try:
         frame_indices = tuple(sampled_frame_indices)
-        pts = tuple(_finite(value, "sampled_pts") for value in sampled_pts_seconds)
+        pts = tuple(_finite_fraction(value, "sampled_pts") for value in sampled_pts_seconds)
     except (TypeError, ValueError):
         raise ValueError("sampled_frame_metadata_invalid") from None
     if (reviewed_interval_seconds is None) == (reviewed_intervals_seconds is None):
         raise ValueError("reviewed_intervals_argument_invalid")
+    if interval_boundary_guard_seconds is None:
+        raise ValueError("clock_guard_required")
+    guard = _finite_fraction(interval_boundary_guard_seconds, "interval_boundary_guard")
+    if guard < 0:
+        raise ValueError("interval_boundary_guard_invalid")
     try:
         if reviewed_interval_seconds is not None:
-            intervals = (tuple(_finite(value, "reviewed_interval")
+            intervals = (tuple(_finite_fraction(value, "reviewed_interval")
                                for value in reviewed_interval_seconds),)
         else:
             if (not isinstance(reviewed_intervals_seconds, Sequence)
@@ -118,7 +129,7 @@ def map_review_interval_from_processor_batch(
                     or not reviewed_intervals_seconds):
                 raise ValueError("reviewed_intervals_invalid")
             intervals = tuple(
-                tuple(_finite(value, "reviewed_interval") for value in interval)
+                tuple(_finite_fraction(value, "reviewed_interval") for value in interval)
                 for interval in reviewed_intervals_seconds
             )
     except (TypeError, ValueError):
@@ -136,8 +147,9 @@ def map_review_interval_from_processor_batch(
         input_ids=ids[0].tolist(), video_token_id=video_token_id,
         video_grid_thw=grid_values, spatial_merge_size=spatial_merge_size,
         temporal_patch_size=temporal_patch_size, sampled_pts_seconds=pts,
-        video_duration_seconds=duration,
+        video_duration_seconds=duration_fraction,
         reviewed_intervals_seconds=intervals,
+        interval_boundary_guard_seconds=guard,
     )
     nominal_frame_step = 1.0 / fps
     max_pts_cadence_deviation = max(
@@ -148,14 +160,20 @@ def map_review_interval_from_processor_batch(
         "processor_fingerprint_sha256": processor_fingerprint_sha256,
         "video_token_id": video_token_id,
         "sampled_frame_indices": list(frame_indices),
-        "sampled_pts_seconds": list(pts),
+        "sampled_pts_seconds": [float(value) for value in pts],
+        "sampled_pts_rational_seconds": [str(value) for value in pts],
         "source_frame_count": source_frame_count,
         "video_duration_seconds": duration,
         "sample_fps": fps,
         "video_grid_thw": grid_values,
         "spatial_merge_size": spatial_merge_size,
         "temporal_patch_size": temporal_patch_size,
-        "reviewed_intervals_seconds": [list(interval) for interval in intervals],
+        "reviewed_intervals_seconds": [[float(value) for value in interval]
+                                        for interval in intervals],
+        "reviewed_intervals_rational_seconds": [
+            [str(value) for value in interval] for interval in intervals],
+        "video_duration_rational_seconds": str(duration_fraction),
+        "interval_boundary_guard_rational_seconds": str(guard),
     }
     metadata_digest = hashlib.sha256(json.dumps(
         metadata, sort_keys=True, separators=(",", ":"), allow_nan=False
@@ -167,9 +185,14 @@ def map_review_interval_from_processor_batch(
         "processor_fingerprint_sha256": processor_fingerprint_sha256,
         "typed_batch_sha256": batch_digest,
         "sampling_metadata_sha256": metadata_digest,
-        "reviewed_intervals_seconds": [list(interval) for interval in intervals],
+        "sampled_pts_rational_seconds": [str(value) for value in pts],
+        "reviewed_intervals_seconds": [[float(value) for value in interval]
+                                        for interval in intervals],
+        "reviewed_intervals_rational_seconds": [
+            [str(value) for value in interval] for interval in intervals],
+        "interval_boundary_guard_seconds": float(guard),
         "reviewed_interval_count": len(intervals),
-        **({"reviewed_interval_seconds": list(intervals[0])}
+        **({"reviewed_interval_seconds": [float(value) for value in intervals[0]]}
            if len(intervals) == 1 else {}),
         "max_pts_cadence_deviation_from_nominal_seconds": max_pts_cadence_deviation,
         "source_authentication_status": "not_performed_by_this_helper",
@@ -191,6 +214,27 @@ def _finite(value: object, label: str) -> float:
     if not math.isfinite(number):
         raise ValueError(f"{label}_invalid")
     return number
+
+
+def _finite_fraction(value: object, label: str) -> Fraction:
+    if isinstance(value, bool):
+        raise ValueError(f"{label}_invalid")
+    try:
+        if isinstance(value, str):
+            if not value or value != value.strip() or len(value) > 128:
+                raise ValueError(f"{label}_invalid")
+            rational = Fraction(value)
+            if str(rational) != value:
+                raise ValueError(f"{label}_invalid")
+            return rational
+        if not isinstance(value, Real):
+            raise ValueError(f"{label}_invalid")
+        number = float(value)
+        if not math.isfinite(number):
+            raise ValueError(f"{label}_invalid")
+        return value if isinstance(value, Fraction) else Fraction(str(value))
+    except (OverflowError, TypeError, ValueError, ZeroDivisionError):
+        raise ValueError(f"{label}_invalid") from None
 
 
 def _snapshot_tree(value: Any, torch_module: Any) -> Any:

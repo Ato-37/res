@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import math
 from collections.abc import Sequence
+from fractions import Fraction
 from numbers import Real
 
 
@@ -22,6 +23,17 @@ def _finite_real(value: object, label: str) -> float:
     if not math.isfinite(result):
         raise ValueError(f"{label}_invalid")
     return result
+
+
+def _finite_fraction(value: object, label: str) -> Fraction:
+    if isinstance(value, bool) or not isinstance(value, Real):
+        raise ValueError(f"{label}_invalid")
+    try:
+        if not math.isfinite(float(value)):
+            raise ValueError(f"{label}_invalid")
+        return value if isinstance(value, Fraction) else Fraction(str(value))
+    except (OverflowError, TypeError, ValueError, ZeroDivisionError):
+        raise ValueError(f"{label}_invalid") from None
 
 
 def map_review_interval_to_qwen_groups(
@@ -38,8 +50,10 @@ def map_review_interval_to_qwen_groups(
     one cell span. The matched control is a contiguous, disjoint window with
     the same number of temporal groups, minimizing the difference in temporal
     duration, then center-time distance, then choosing the earlier start. If
-    no such window exists, the helper fails closed. Positions are absolute
-    token positions in the caller-validated unpadded, single-video sequence.
+    no such window exists, the helper fails closed. Time comparisons use exact
+    rational values derived from their decimal representations. Positions are
+    absolute token positions in the caller-validated unpadded, single-video
+    sequence.
     """
     try:
         ids = tuple(input_ids)
@@ -62,10 +76,10 @@ def map_review_interval_to_qwen_groups(
         raise ValueError("video_spatial_grid_not_divisible")
 
     try:
-        pts = tuple(_finite_real(value, "sampled_pts") for value in sampled_pts_seconds)
-        interval = tuple(_finite_real(value, "reviewed_interval")
+        pts = tuple(_finite_fraction(value, "sampled_pts") for value in sampled_pts_seconds)
+        interval = tuple(_finite_fraction(value, "reviewed_interval")
                          for value in reviewed_interval_seconds)
-        duration = _finite_real(video_duration_seconds, "video_duration")
+        duration = _finite_fraction(video_duration_seconds, "video_duration")
     except TypeError:
         raise ValueError("time_mapping_invalid") from None
     if (not pts or len(pts) != temporal_steps * temporal_patch_size
@@ -85,8 +99,8 @@ def map_review_interval_to_qwen_groups(
             or positions != tuple(range(positions[0], positions[0] + len(positions)))):
         raise ValueError("video_token_block_geometry_mismatch")
 
-    boundaries = [0.0]
-    boundaries.extend((left + right) / 2.0 for left, right in zip(pts, pts[1:]))
+    boundaries = [Fraction(0)]
+    boundaries.extend((left + right) / 2 for left, right in zip(pts, pts[1:]))
     boundaries.append(duration)
     sampled_gaps = [right - left for left, right in zip(pts, pts[1:])]
     groups = []
@@ -100,16 +114,16 @@ def map_review_interval_to_qwen_groups(
             "temporal_grid_index": grid_index,
             "frame_start": frame_start,
             "frame_stop_exclusive": frame_stop,
-            "sampled_pts_start_seconds": pts[frame_start],
-            "sampled_pts_end_seconds": pts[frame_stop - 1],
-            "coverage_start_seconds": group_start,
-            "coverage_end_seconds": group_end,
+            "sampled_pts_start_seconds": float(pts[frame_start]),
+            "sampled_pts_end_seconds": float(pts[frame_stop - 1]),
+            "coverage_start_seconds": float(group_start),
+            "coverage_end_seconds": float(group_end),
             "token_positions": list(positions[token_start:token_stop]),
         })
 
     evidence = [group["temporal_grid_index"] for group in groups
-                if group["coverage_start_seconds"] < interval[1]
-                and group["coverage_end_seconds"] > interval[0]]
+                if boundaries[group["frame_start"]] < interval[1]
+                and boundaries[group["frame_stop_exclusive"]] > interval[0]]
     if not evidence:
         raise ValueError("reviewed_interval_has_no_sampled_grid")
     evidence_count = len(evidence)
@@ -120,15 +134,15 @@ def map_review_interval_to_qwen_groups(
                       if not set(range(start, start + evidence_count)).intersection(evidence)]
         if not candidates:
             raise ValueError("equal_count_temporal_control_unavailable")
-        evidence_start = groups[evidence[0]]["coverage_start_seconds"]
-        evidence_end = groups[evidence[-1]]["coverage_end_seconds"]
+        evidence_start = boundaries[evidence[0] * temporal_patch_size]
+        evidence_end = boundaries[(evidence[-1] + 1) * temporal_patch_size]
         evidence_center = (evidence_start + evidence_end) / 2
         evidence_duration = evidence_end - evidence_start
         control = min(candidates, key=lambda row: (
-            abs((groups[row[-1]]["coverage_end_seconds"]
-                 - groups[row[0]]["coverage_start_seconds"]) - evidence_duration),
-            abs((groups[row[0]]["coverage_start_seconds"]
-                 + groups[row[-1]]["coverage_end_seconds"]) / 2 - evidence_center),
+            abs((boundaries[(row[-1] + 1) * temporal_patch_size]
+                 - boundaries[row[0] * temporal_patch_size]) - evidence_duration),
+            abs((boundaries[row[0] * temporal_patch_size]
+                 + boundaries[(row[-1] + 1) * temporal_patch_size]) / 2 - evidence_center),
             row[0]))
     evidence_positions = tuple(position for index in evidence
                                for position in groups[index]["token_positions"])
@@ -146,12 +160,13 @@ def map_review_interval_to_qwen_groups(
         "control_token_positions": list(control_positions),
         "temporal_group_count": evidence_count,
         "token_budget_per_arm": len(evidence_positions),
-        "max_sampled_pts_gap_seconds": max(sampled_gaps, default=0.0),
-        "first_edge_cell_duration_seconds": boundaries[1] - boundaries[0],
-        "last_edge_cell_duration_seconds": boundaries[-1] - boundaries[-2],
-        "max_temporal_group_coverage_seconds": max(
-            group["coverage_end_seconds"] - group["coverage_start_seconds"]
-            for group in groups),
+        "max_sampled_pts_gap_seconds": float(max(sampled_gaps, default=Fraction(0))),
+        "first_edge_cell_duration_seconds": float(boundaries[1] - boundaries[0]),
+        "last_edge_cell_duration_seconds": float(boundaries[-1] - boundaries[-2]),
+        "max_temporal_group_coverage_seconds": float(max(
+            boundaries[(index + 1) * temporal_patch_size]
+            - boundaries[index * temporal_patch_size]
+            for index in range(temporal_steps))),
         "temporal_diagnostics_status": "diagnostic_only_no_prespecified_acceptance_threshold",
         "temporal_support_rule": "frame_midpoint_cells_clipped_to_video_duration_positive_overlap",
         "control_rule": ("disjoint_equal_count_window_min_duration_difference_then_center_distance_then_earlier"
@@ -216,20 +231,27 @@ def map_review_intervals_to_qwen_groups(
     temporal_patch_size: int, sampled_pts_seconds: Sequence[Real],
     video_duration_seconds: Real,
     reviewed_intervals_seconds: Sequence[Sequence[Real]],
+    interval_boundary_guard_seconds: Real = 0.0,
 ) -> dict:
-    """Map all distinct reviewed occurrences, then select a rank-matched control.
+    """Map occurrences and require stable assignment under a clock guard.
 
     Each interval is mapped with the same midpoint-cell positive-overlap rule
     as the single-interval mapper. Evidence is the union of all covered groups;
     intervening groups are not filled. The control contains the same number of
     groups outside that union, minimizes order-paired summed absolute index
     distance, and lexicographically prefers earlier ties. If no such control
-    exists, the row is ineligible and this function fails closed.
+    exists, the row is ineligible and this function fails closed. The interval
+    guard compares possible membership (expanded intervals) with certain
+    membership (contracted intervals); any difference rejects the row.
     """
     if (not isinstance(reviewed_intervals_seconds, Sequence)
             or isinstance(reviewed_intervals_seconds, (str, bytes))
             or not reviewed_intervals_seconds):
         raise ValueError("reviewed_intervals_invalid")
+    guard = _finite_fraction(interval_boundary_guard_seconds,
+                             "interval_boundary_guard")
+    if guard < 0:
+        raise ValueError("interval_boundary_guard_invalid")
     try:
         frozen_input_ids = tuple(input_ids)
     except (TypeError, ValueError):
@@ -248,7 +270,7 @@ def map_review_intervals_to_qwen_groups(
                 or isinstance(interval, (str, bytes))):
             raise ValueError("reviewed_intervals_invalid")
         try:
-            normalized = tuple(_finite_real(value, "reviewed_interval")
+            normalized = tuple(_finite_fraction(value, "reviewed_interval")
                                for value in interval)
         except (TypeError, ValueError):
             raise ValueError("reviewed_intervals_invalid") from None
@@ -270,6 +292,26 @@ def map_review_intervals_to_qwen_groups(
     reference = mapped[0]
     evidence = sorted({index for row in mapped for index in row["evidence_group_indices"]})
     temporal_group_count = len(reference["groups"])
+    if guard:
+        guard_pts = tuple(_finite_fraction(value, "sampled_pts")
+                          for value in frozen_pts)
+        guard_duration = _finite_fraction(video_duration_seconds, "video_duration")
+        guard_boundaries = [Fraction(0)]
+        guard_boundaries.extend((left + right) / 2
+                                for left, right in zip(guard_pts, guard_pts[1:]))
+        guard_boundaries.append(guard_duration)
+        possible = set()
+        certain = set()
+        for start, end in normalized_intervals:
+            possible.update(index for index in range(temporal_group_count)
+                            if guard_boundaries[index * temporal_patch_size] < end + guard
+                            and guard_boundaries[(index + 1) * temporal_patch_size] > start - guard)
+            if end - start > 2 * guard:
+                certain.update(index for index in range(temporal_group_count)
+                               if guard_boundaries[index * temporal_patch_size] < end - guard
+                               and guard_boundaries[(index + 1) * temporal_patch_size] > start + guard)
+        if possible != certain:
+            raise ValueError("calibration_guard_changes_group_assignment")
     control = select_equal_count_rank_distance_control_groups(
         evidence, temporal_group_count)
     groups = reference["groups"]
@@ -291,6 +333,7 @@ def map_review_intervals_to_qwen_groups(
         "total_temporal_group_count": len(groups),
         "token_budget_per_arm": len(evidence_positions),
         "reviewed_interval_count": len(normalized_intervals),
+        "interval_boundary_guard_seconds": float(guard),
         "reviewed_occurrence_group_indices": [
             row["evidence_group_indices"] for row in mapped],
         "control_rule": "equal_count_order_paired_rank_distance_sum_then_lexicographic_earlier",

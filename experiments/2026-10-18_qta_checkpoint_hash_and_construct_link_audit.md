@@ -241,3 +241,64 @@ the three-record cohort). This corrects accounting only; no model run followed.
 ## Final post-change verification
 
 `PYTHONPATH=scripts .venv/bin/python -m unittest discover -s scripts -p 'test_*.py'` passed 1,489/1,489 in 30.245 seconds after the stage-link changes. The focused three modules passed 16/16, and `compileall` passed. The full suite includes intentionally failing-path tests that print argparse or synthetic diagnostic messages; the process exit code was 0 and unittest reported `OK`. Tests used synthetic fixtures; no model inference or protected input was used.
+
+## Player-clock to decoder-PTS interval mapping
+
+The QTA protocol previously said the review-to-decoder correspondence must be
+established but did not state the actual conversion at the mapper boundary.
+The existing calibration convention is
+`player_time = slope * decoder_PTS + intercept`; the temporal mapper consumes
+decoder PTS. The protocol now requires the exact inverse
+`decoder_PTS = (player_time - intercept) / slope` for every reviewed endpoint,
+using rational arithmetic, and binds converted intervals and calibration
+bytes in each frozen source row. It also requires a conservative assignment
+stability check: the union of temporal groups touched after expanding each
+interval by the empirical held-out PTS residual must equal the union touched
+after contracting by it. If not, the row is ambiguous and fails before model
+loading. The helper `map_annotation_intervals_to_pts()` implements the inverse;
+`map_review_intervals_to_qwen_groups(...,
+interval_boundary_guard_seconds=...)` now enforces possible/certain group-set
+equality. The guard remains an observed residual radius, not a confidence or
+future-error bound.
+
+Targeted clock/calibration/group-mapper tests passed 28/28, including affine
+offset/drift conversion, malformed values, a stable boundary assignment, and a
+guard large enough to change group assignment. The complete scripts suite then
+passed 1,493/1,493 in 28.966 seconds; compilation and `git diff --check` passed.
+This is synthetic CPU validation only. The tolerance and held-out anchor set
+must still be frozen independently before real captures; no actual clock
+capture, 15/15 frame correspondence, interval assignment, or real score exists.
+
+Independent follow-up found the new guard parameter had not yet been threaded
+through the processor-batch adapter, a concrete float midpoint could turn an
+exact zero-overlap touch into a tiny positive overlap, and the standalone
+interval converter did not enforce the v6 millisecond endpoint precision. The
+adapter now requires an explicit calibrated guard (omission fails), carries
+exact rational PTS, intervals, duration, and guard in its digest, and forwards
+the guard into the group mapper. Group membership and possible/certain guard
+sets now use `Fraction` comparisons through classification; float conversions
+occur only for human-readable diagnostics. The converter rejects endpoints
+off the 1 ms grid. Synthetic regressions cover an exact rational midpoint touch,
+guard propagation/omission, and sub-millisecond endpoints.
+
+The affected clock, group, and processor-batch suites passed 35/35; the entire
+scripts suite passed 1,495/1,495 in 30.567 seconds, with exit code 0. This
+closes the code-level clock-axis/guard path for future callers; it does not
+create a calibration, authenticate anchors, set an acceptable tolerance, or
+establish evidence for any real video. Anchors must cover the reviewed time
+range; max held-out residual remains descriptive and is not a future-error
+bound. A production preflight still must bind the exact calibration artifact,
+convert and store the rational intervals, pass the guard to this adapter, and
+verify the 15 human-browser/decoder correspondences before model loading.
+
+An independent final audit then found that the interval converter emits
+canonical rational strings while the processor-batch adapter initially
+accepted only numeric values. The adapter now parses only canonical rational
+strings (and continues to reject malformed forms); a direct converter-to-
+adapter regression test covers the handoff. After this correction, the focused
+clock/calibration/group/adapter tests passed 36/36 and the complete scripts
+suite passed 1,496/1,496 in 29.789 seconds. `compileall` and
+`git diff --check` also passed. These remain synthetic CPU checks. The 15
+browser-to-decoder correspondences, calibration anchors, reviewer decisions,
+and any real-data score remain absent, so this code does not authorize model
+loading or support an empirical faithfulness claim.

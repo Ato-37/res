@@ -64,8 +64,26 @@ multiple occurrences are marked, map each separately and take the union of their
 not fill gaps between occurrences. Duplicate intervals are retained in the
 review record but contribute the same groups once to the union.
 
-Intervals are seconds on the verified source-video clock, recorded at
-millisecond precision with inclusive endpoints as in review policy v6. The
+Intervals are seconds on the HTML5 review player's media-time clock, recorded
+at millisecond precision with inclusive endpoints as in review policy v6. The
+frozen calibration maps `player_time = slope * decoder_PTS + intercept`.
+Before interval-to-group mapping, convert both endpoints exactly as
+`decoder_PTS = (player_time - intercept) / slope`; never pass player times
+directly to a PTS-based mapper. `map_annotation_intervals_to_pts()` implements
+this inverse with rational arithmetic. Bind the calibration artifact and
+converted intervals into each row's source manifest. Apply the predeclared
+empirical held-out residual guard in PTS seconds to the mapped boundaries; if
+the union of groups touched by intervals expanded by that guard differs from
+the union touched by intervals contracted by that guard, fail the row before
+model loading. `map_review_intervals_to_qwen_groups()` enforces this
+possible-versus-certain group-set equality when given the guard. This is a
+conservative stability check under the observed residual radius; it is not a
+future-error bound or statistical uncertainty interval. Every mapped interval
+endpoint must lie within the observed PTS span of independently matched
+anchors; do not extrapolate beyond it. If an endpoint is outside the anchor
+span, that row fails this feasibility protocol.
+
+The
 mapper requires positive duration and positive-duration overlap, so a shared
 single endpoint has zero measure. A sampled temporal group's support cell is bounded by
 midpoints between strictly increasing decoded PTS values, clipped to

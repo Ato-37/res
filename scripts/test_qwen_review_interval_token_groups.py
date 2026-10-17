@@ -95,6 +95,18 @@ class ReviewIntervalTokenGroupTests(unittest.TestCase):
             **{**kwargs, "reviewed_interval_seconds": [5.5, 6]})
         self.assertEqual(boundary["evidence_group_indices"], [1])
 
+    def test_rational_exact_touch_does_not_create_float_overlap(self):
+        kwargs = {
+            "input_ids": [99] * 8, "video_token_id": 99,
+            "video_grid_thw": [2, 2, 2], "spatial_merge_size": 1,
+            "temporal_patch_size": 1,
+            "sampled_pts_seconds": [Fraction(1, 10), Fraction(1, 5)],
+            "video_duration_seconds": Fraction(3, 10),
+            "reviewed_interval_seconds": [Fraction(3, 20), Fraction(1, 5)],
+        }
+        result = map_review_interval_to_qwen_groups(**kwargs)
+        self.assertEqual(result["evidence_group_indices"], [1])
+
     def test_rejects_missing_geometry_pts_or_matched_control(self):
         cases = [
             ({**self.kwargs, "video_grid_thw": [5, 4, 4]}, "sampled_pts_grid_mismatch"),
@@ -131,6 +143,29 @@ class ReviewIntervalTokenGroupTests(unittest.TestCase):
         self.assertEqual(result["mapping_scope"], "union_of_all_distinct_reviewed_occurrences")
         self.assertFalse(set(result["evidence_group_indices"]) &
                          set(result["control_group_indices"]))
+
+    def test_guard_accepts_stable_group_union_and_rejects_ambiguous_boundary(self):
+        common = {k: v for k, v in self.kwargs.items()
+                  if k != "reviewed_interval_seconds"}
+        stable = map_review_intervals_to_qwen_groups(
+            **common, reviewed_intervals_seconds=[[4, 7]],
+            interval_boundary_guard_seconds=0.4)
+        self.assertEqual(stable["evidence_group_indices"], [2, 3])
+        self.assertEqual(stable["interval_boundary_guard_seconds"], 0.4)
+        with self.assertRaisesRegex(ValueError,
+                                    "calibration_guard_changes_group_assignment"):
+            map_review_intervals_to_qwen_groups(
+                **common, reviewed_intervals_seconds=[[4, 7]],
+                interval_boundary_guard_seconds=1.0)
+
+    def test_guard_must_be_finite_and_nonnegative(self):
+        common = {k: v for k, v in self.kwargs.items()
+                  if k != "reviewed_interval_seconds"}
+        for guard in (-0.1, float("nan"), float("inf"), True):
+            with self.subTest(guard=guard), self.assertRaises(ValueError):
+                map_review_intervals_to_qwen_groups(
+                    **common, reviewed_intervals_seconds=[[4, 7]],
+                    interval_boundary_guard_seconds=guard)
 
     def test_union_mapping_does_not_require_legacy_contiguous_control_per_occurrence(self):
         kwargs = {
