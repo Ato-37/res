@@ -1,0 +1,111 @@
+{
+  "execution": {
+    "attempted_forwards": 9,
+    "completed_forwards": 9,
+    "completed_records": 1,
+    "elapsed_seconds": 45.03425240200886,
+    "requested_forwards": 9,
+    "requested_records": 1
+  },
+  "fixed_settings": {
+    "evidence_control_key_counts_equal": true,
+    "intervention_layers_1_based": [
+      5,
+      6,
+      7,
+      8,
+      9,
+      10,
+      11,
+      12,
+      13,
+      14,
+      15,
+      16
+    ],
+    "logit_bias": 0.6931471805599453,
+    "selected_sham_group_count": 2,
+    "selected_target_group_count": 2,
+    "temporal_group_count": 16
+  },
+  "hardware": {
+    "cuda": "12.8",
+    "gpu": "NVIDIA GeForce RTX 5070 Ti",
+    "peak_allocated_gib": 10.754877090454102,
+    "peak_reserved_gib": 12.439453125,
+    "precision": "bf16_4bit_bf16_compute_eager",
+    "torch": "2.11.0+cu128",
+    "transformers": "5.18.0"
+  },
+  "interpretation": {
+    "faithfulness_result": false,
+    "limitations": [
+      "synthetic groups have no annotation semantics",
+      "no claim review, prediction-link adjudication, or real-video faithfulness score",
+      "overlap outputs validate reporting only; no efficacy estimate, CI, or test"
+    ],
+    "real_data_used": false,
+    "treatment_frozen": false
+  },
+  "private_synthetic_run_sha256": "527074d1e2759ef1ba9330a3a920ed13a5d09937e085b38fd677d5244bee2a7a",
+  "purpose": "synthetic_qta_overlap_report_gpu_wiring_smoke",
+  "schema_version": 1,
+  "scope": "synthetic_engineering_only_no_faithfulness_result",
+  "source_sha256": {
+    "fixed_prediction_scorer": "84ba18241668fd659ddce0ab25a4e3dfa2cacc656ef43fb494fdc056a5c21744",
+    "internal_ablation": "a96175d796ee4cfab0ffc40dbf8666d7313bf72a6d4c50555222aa4b94ab4109",
+    "runner": "c502992faece8bbf22873a1693eed6a7f02d4aeab3ea078f8fef9921ba8818cd",
+    "selector": "3f56fe1e992ffca5a035864ced7472cbe1f12af9978c1559d1b82e0b938712f8"
+  },
+  "status": "passed",
+  "synthetic_overlap_summaries": {
+    "question_selector_vs_synthetic_control_overlap": {
+      "comparison_group_count": 2,
+      "comparison_group_fraction": 0.0,
+      "comparison_visual_key_count": 512,
+      "comparison_visual_key_fraction": 0.0,
+      "overlap_group_count": 0,
+      "overlap_visual_key_count": 0,
+      "selector_group_count": 2,
+      "selector_group_fraction": 0.0,
+      "selector_visual_key_count": 512,
+      "selector_visual_key_fraction": 0.0
+    },
+    "question_selector_vs_synthetic_evidence_overlap": {
+      "comparison_group_count": 2,
+      "comparison_group_fraction": 0.5,
+      "comparison_visual_key_count": 512,
+      "comparison_visual_key_fraction": 0.5,
+      "overlap_group_count": 1,
+      "overlap_visual_key_count": 256,
+      "selector_group_count": 2,
+      "selector_group_fraction": 0.5,
+      "selector_visual_key_count": 512,
+      "selector_visual_key_fraction": 0.5
+    },
+    "sham_vs_synthetic_control_overlap": {
+      "comparison_group_count": 2,
+      "comparison_group_fraction": 0.5,
+      "comparison_visual_key_count": 512,
+      "comparison_visual_key_fraction": 0.5,
+      "overlap_group_count": 1,
+      "overlap_visual_key_count": 256,
+      "selector_group_count": 2,
+      "selector_group_fraction": 0.5,
+      "selector_visual_key_count": 512,
+      "selector_visual_key_fraction": 0.5
+    },
+    "sham_vs_synthetic_evidence_overlap": {
+      "comparison_group_count": 2,
+      "comparison_group_fraction": 0.0,
+      "comparison_visual_key_count": 512,
+      "comparison_visual_key_fraction": 0.0,
+      "overlap_group_count": 0,
+      "overlap_visual_key_count": 0,
+      "selector_group_count": 2,
+      "selector_group_fraction": 0.0,
+      "selector_visual_key_count": 512,
+      "selector_visual_key_fraction": 0.0
+    }
+  }
+}

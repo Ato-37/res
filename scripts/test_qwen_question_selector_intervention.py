@@ -17,6 +17,7 @@ from smoke_qwen_question_selector_intervention import (
     _resolve_choice_continuation_ids, _score_target_branches,
     _validate_processed_choice_suffix, _write_private_json,
     build_smoke_condition_plan,
+    temporal_group_overlap,
 )
 
 
@@ -67,6 +68,46 @@ class QuestionSelectorInterventionCompositionTests(unittest.TestCase):
         self.assertEqual(plan[4]["ablation"], evidence)
         self.assertEqual(plan[5]["ablation"], control)
         self.assertEqual(plan[6]["bias"], plan[7]["bias"])
+
+    def test_overlap_report_binds_group_and_visual_key_intersections(self):
+        overlap = temporal_group_overlap(
+            selector_groups=(1, 2), comparison_groups=(0, 1),
+            temporal_groups=((10, 11), (12, 13), (14, 15), (16, 17)))
+        self.assertEqual(overlap["overlap_group_indices"], [1])
+        self.assertEqual(overlap["overlap_group_count"], 1)
+        self.assertEqual(overlap["selector_group_fraction"], 0.5)
+        self.assertEqual(overlap["comparison_group_fraction"], 0.5)
+        self.assertEqual(overlap["overlap_visual_key_count"], 2)
+        self.assertEqual(overlap["selector_visual_key_fraction"], 0.5)
+        self.assertEqual(overlap["comparison_visual_key_fraction"], 0.5)
+
+    def test_overlap_report_rejects_empty_duplicate_or_unsorted_inputs(self):
+        valid = {
+            "selector_groups": (1,), "comparison_groups": (2,),
+            "temporal_groups": ((10,), (20,), (30,)),
+        }
+        for field, bad_values in (
+                ("selector_groups", ()),
+                ("comparison_groups", (1, 1)),
+                ("temporal_groups", ((10,), (10,)))):
+            arguments = dict(valid)
+            arguments[field] = bad_values
+            with self.subTest(field=field), self.assertRaises(ValueError):
+                temporal_group_overlap(**arguments)
+        with self.assertRaisesRegex(ValueError, "temporal_groups_invalid"):
+            temporal_group_overlap(
+                selector_groups=(4,), comparison_groups=(2,),
+                temporal_groups=((10,), (20,), (30,)))
+        for invalid_group in ((11, 10), (10, 10), (-1,)):
+            with self.subTest(invalid_group=invalid_group), self.assertRaises(ValueError):
+                temporal_group_overlap(
+                    selector_groups=(0,), comparison_groups=(1,),
+                    temporal_groups=(invalid_group, (20,)))
+        for invalid_group in ((11, 10), (10, 10), (-1,)):
+            with self.subTest(invalid_group=invalid_group), self.assertRaises(ValueError):
+                temporal_group_overlap(
+                    selector_groups=(0,), comparison_groups=(1,),
+                    temporal_groups=(invalid_group, (20,)))
 
     def test_choice_scorer_uses_full_vocab_log_softmax_at_single_final_row(self):
         logits = torch.tensor([[[1.0, 2.0, 3.0, 4.0, 5.0, 6.0]]])

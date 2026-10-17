@@ -74,6 +74,52 @@ def build_smoke_condition_plan(*, target_positions, sham_positions,
     ]
 
 
+def temporal_group_overlap(*, selector_groups, comparison_groups,
+                           temporal_groups):
+    """Derive group and visual-key overlap from one temporal partition."""
+    def checked_indices(values, name):
+        if (not isinstance(values, (tuple, list)) or not values
+                or any(type(value) is not int or value < 0 for value in values)
+                or tuple(sorted(set(values))) != tuple(values)):
+            raise ValueError(f"{name}_invalid")
+        return tuple(values)
+
+    left_groups = checked_indices(selector_groups, "selector_groups")
+    right_groups = checked_indices(comparison_groups, "comparison_groups")
+    if (not isinstance(temporal_groups, (tuple, list)) or not temporal_groups
+            or max((*left_groups, *right_groups)) >= len(temporal_groups)):
+        raise ValueError("temporal_groups_invalid")
+    normalized_groups = []
+    for group in temporal_groups:
+        if (not isinstance(group, (tuple, list)) or not group
+                or any(type(position) is not int or position < 0 for position in group)
+                or tuple(sorted(set(group))) != tuple(group)):
+            raise ValueError("temporal_group_positions_invalid")
+        normalized_groups.append(tuple(group))
+    flattened_positions = [position for group in normalized_groups for position in group]
+    if len(set(flattened_positions)) != len(flattened_positions):
+        raise ValueError("temporal_group_positions_overlap")
+    left_positions = tuple(sorted(
+        position for index in left_groups for position in normalized_groups[index]))
+    right_positions = tuple(sorted(
+        position for index in right_groups for position in normalized_groups[index]))
+    shared_groups = sorted(set(left_groups) & set(right_groups))
+    shared_positions = set(left_positions) & set(right_positions)
+    return {
+        "overlap_group_indices": shared_groups,
+        "overlap_group_count": len(shared_groups),
+        "selector_group_count": len(left_groups),
+        "comparison_group_count": len(right_groups),
+        "selector_group_fraction": len(shared_groups) / len(left_groups),
+        "comparison_group_fraction": len(shared_groups) / len(right_groups),
+        "overlap_visual_key_count": len(shared_positions),
+        "selector_visual_key_count": len(left_positions),
+        "comparison_visual_key_count": len(right_positions),
+        "selector_visual_key_fraction": len(shared_positions) / len(left_positions),
+        "comparison_visual_key_fraction": len(shared_positions) / len(right_positions),
+    }
+
+
 def _choice_log_probabilities(logits, token_ids, torch_module):
     """Extract full-vocabulary next-token log probabilities for A–E IDs."""
     if (not torch_module.is_tensor(logits) or logits.ndim != 3
@@ -526,6 +572,20 @@ def main(argv=None):
         # Synthetic diagnostic branches only. Group choices have no annotation semantics.
         evidence_positions = tuple(sorted(p for group in groups[:2] for p in group))
         control_positions = tuple(sorted(p for group in groups[-2:] for p in group))
+        target_evidence_overlap = temporal_group_overlap(
+            selector_groups=target_groups, comparison_groups=(0, 1),
+            temporal_groups=groups)
+        target_control_overlap = temporal_group_overlap(
+            selector_groups=target_groups,
+            comparison_groups=tuple(range(temporal_steps - 2, temporal_steps)),
+            temporal_groups=groups)
+        sham_evidence_overlap = temporal_group_overlap(
+            selector_groups=sham_groups, comparison_groups=(0, 1),
+            temporal_groups=groups)
+        sham_control_overlap = temporal_group_overlap(
+            selector_groups=sham_groups,
+            comparison_groups=tuple(range(temporal_steps - 2, temporal_steps)),
+            temporal_groups=groups)
         remove_hooks(capture_handles)
         capture_handles = []
         condition_outputs = {}
@@ -620,6 +680,10 @@ def main(argv=None):
             "selected_target_group_indices": target_groups,
             "selected_sham_group_indices": sham_groups,
             "target_sham_overlap_count": len(set(target_groups) & set(sham_groups)),
+            "question_selector_vs_synthetic_evidence_overlap": target_evidence_overlap,
+            "question_selector_vs_synthetic_control_overlap": target_control_overlap,
+            "sham_vs_synthetic_evidence_overlap": sham_evidence_overlap,
+            "sham_vs_synthetic_control_overlap": sham_control_overlap,
             "sham_seed": SHAM_SEED,
             "sham_selector": "sha256_utf8_qta-sham-v1_seed_opaque-token_group-index",
             "logit_bias": LOGIT_BIAS,
