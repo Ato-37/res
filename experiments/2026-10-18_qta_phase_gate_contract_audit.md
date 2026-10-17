@@ -19,8 +19,8 @@ fixed baseline prediction on reviewed video evidence.
 - The existing stage-2 receipt validator is structural only. It returns
   `reviewer_identity_verified=false`,
   `semantic_judgment_authenticated=false`, and
-  `execution_authorization=not_granted`. No trusted-roster signature/adoption
-  path for the stage-2 reviewer or independent receipt auditor exists.
+  `execution_authorization=not_granted`. At the start of this audit, no
+  trusted-roster signature/adoption path for the stage-2 reviewer existed.
 - The runbook required a 32-frame endpoint-inclusive sampler, but the QTA draft
   did not define the sampling algorithm/source/configuration. An independent
   audit confirmed that sampler choice affects interval overlap and eligibility,
@@ -36,7 +36,7 @@ row), and a post-baseline gate limited to the remaining 24 forwards (eight per
 row) after the stage-2 judgments. The runbook now binds one immutable
 full-video processor batch per row and nine branch plans to that batch. It also
 requires the sampler contract and source bytes to be frozen before review,
-calls out missing stage-2 reviewer/auditor keys and signature verification, and
+calls out the stage-2 reviewer key and signature verification requirement, and
 states that the phase schemas/runners are not implemented. The referenced
 32-frame sampler specification is the endpoint-inclusive contract in
 `docs/nextgqa_finite_claim_descriptive_protocol_v2.md`; this QTA binding still
@@ -52,16 +52,56 @@ semantic correctness.
 
 ## Verification and limits
 
-- `git diff --check`: passed.
-- No code, tests, media, model, or GPU execution changed or ran in this
-  documentation-only cycle.
-- The local candidate inventory now predates the edited runbook; it is not a
-  freeze and must be rebuilt with a unique name before any future release.
-- The current release-roster schema does not contain stage-2 reviewer/auditor
-  roles. The documentation records this as an explicit no-go rather than
-  suggesting the current roster can satisfy it.
+- Initial documentation pass: `git diff --check` passed; no code, tests, media,
+  model, or GPU execution ran in that sub-cycle.
+- The follow-up adds a distinct stage-2 reviewer to the release roster. It
+  does not add a second human auditor signature or authenticate real-world
+  identities.
 - The proposed phase limits are a design contract only. They do not grant
   authorization and are not backed by a production verifier or runner.
+
+## Follow-up implementation: stage-2 reviewer key adoption
+
+Added the distinct `prediction_link_reviewer` role to the root-signed release
+roster. It is required before the package-opening ceremony and is checked for
+key reuse against the claim reviewer, frame reviewer, freeze owner, custodian,
+and witness. Added `scripts/nextgqa_prediction_link_attestation.py`, which
+reruns the existing stage-2 receipt validator and requires every row to carry
+the self-reported `supports_p_over_q` judgment before allowing a rostered key to
+sign the exact baseline-manifest and stage-2-receipt hashes. Verification
+repeats structural checks and verifies the detached signature. The result
+explicitly keeps human identity and semantic judgment unauthenticated and
+execution unauthorized. There is no separate human auditor signature; the
+independent verifier reruns structural validation from the raw bytes.
+
+Five focused suites for prediction-link attestation, stage-2 structure,
+release-order auditing, ceremony signing, and inventory closure passed
+**50/50** after the CLI and edge-case additions. `py_compile` for the new
+module passed. These tests use synthetic manifests/receipts and temporary
+Ed25519 keys; they do not represent human review. They do not exercise the real
+private cohort or authorize scoring. The private-file CLI requires 0600 inputs
+and writes an exclusive 0600 output under a 0700 directory; an end-to-end
+synthetic CLI test confirmed sign, verify, denied authorization, and
+no-overwrite behavior.
+
+The first post-change candidate inventory registered the attestation module
+but failed its import-closure gate because the stage-2 validator was not
+registered. The closure now binds both the validator and offline worksheet
+renderer. A fresh private candidate inventory has **70/70** slots present and
+zero missing slots; it remains candidate-only, `joint_freeze=false`,
+`score_ready=false`, and `execution_authorization=not_granted`. The earlier
+candidate is left untouched. It was regenerated after the final runbook edit;
+the new JSON is mode 0600 in a mode-0700 directory. No model, video frames, or
+GPU was used.
+
+The independent auditor re-read the current role verifier, CLI, runbook, and
+inventory closure; independently recomputed the registered code/public-source
+hash inventory (47 code entries, no missing or stale hashes); and ran the
+focused suite **50/50**. The primary agent also ran the full scripts unittest
+suite: **1,593/1,593 passed** in **39.498 seconds**, exit code 0. It emitted
+expected negative-path fixture messages and a Transformers video-processor
+deprecation warning. `git diff --check` passed. The audit found no path that
+grants model-load or score authorization.
 
 ## Faithfulness progress
 
@@ -75,11 +115,9 @@ semantic correctness.
 
 ## Next action
 
-Implement and test an additive detached-signature envelope for the stage-2
-prediction-link receipt, rooted in a dedicated QTA scoring roster that is
-independent of the package-opening roster. Then independently audit the
-cryptographic role-separation and exact-byte binding. This still will not
-authorize scoring; after that, implement the two non-overlapping phase
-receipts and baseline-only/branch-only execution gates, including a strict
-all-three-row preflight. Do not start a real GPU score until human review,
-15/15 timing correspondence, sampler freeze, trust, and both phase gates pass.
+Have an independent reviewer re-audit the stage-2 signature envelope, role
+separation, and real import closure; repair any issues. Then implement the two
+non-overlapping phase receipts and
+baseline-only/branch-only execution gates, including a strict all-three-row
+preflight. Do not start a real GPU score until human review, 15/15 timing
+correspondence, sampler freeze, trust, and both phase gates pass.

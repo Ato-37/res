@@ -43,9 +43,10 @@ pre-open handoff and the independent auditor passes immediately before opening.
    to key IDs and public keys; it does not authenticate people. Through the
    separate trusted channel, independently establish and locally record which
    real person controls each key. Assign distinct keys to the freeze owner,
-   claim reviewer, frame-pair reviewer, and release witness. Name the
-   custodian too; the owner may also be custodian, but neither reviewer may
-   fill either role, and the witness must be separate from every other role.
+   claim reviewer, frame-pair reviewer, prediction-link reviewer, and release
+   witness. Name the custodian too; the owner may also be custodian, but no
+   reviewer may fill either role, and the witness must be separate from every
+   other role.
    Resolve and pin the identity-to-key mapping before any review content is
    opened.
 3. Rebuild a unique candidate inventory using the current builder. Verify its
@@ -148,15 +149,17 @@ real receipt until the roster/trust-root pin is established, and do not open
 the page based on its output.
 
 The helper's integrity-roster schema covers only the freeze owner, claim
-reviewer, and frame-pair reviewer. The release roster adds custody and witness
-roles, but neither roster currently includes the QTA prediction-link reviewer
-or an independent stage-2 receipt auditor. A future scoring roster must bind
-both keys before the first review opens and enforce distinct key fingerprints
-from each other, the claim reviewer, freeze owner, custodian, and release
-witness. Stage-2 signatures can attest adoption of exact bytes; they cannot
-establish real-world identity or semantic correctness. Until this roster and
-signature verifier exist, the self-reported stage-2 receipt cannot pass the
-score gate. The custodian role is not independently
+reviewer, and frame-pair reviewer. The release roster now includes a distinct
+QTA prediction-link reviewer key in addition to custody and witness roles.
+The detached stage-2 adoption verifier reruns structural checks against raw
+baseline and receipt bytes but does not provide a second human auditor
+signature. The release roster requires the prediction-link key to differ from
+the claim reviewer, freeze owner, custodian, frame-pair reviewer, and release
+witness. Stage-2 signatures attest adoption of exact bytes; they cannot
+establish real-world identity or semantic correctness. The attestation source
+and CLI pass focused synthetic tests and independent code audit, but are not
+integrated into a phase score gate; therefore the self-reported receipt still
+cannot pass the score gate. The custodian role is not independently
 bound by this integrity-only receipt. If the freeze owner also acts as
 custodian, that assignment still needs to be recorded in the eventual witnessed
 release procedure; if a separate custodian is assigned, the actual release
@@ -166,7 +169,8 @@ either arrangement.
 For the separate witnessed handoff, `scripts/audit_nextgqa_review_release_order.py`
 rechecks the integrity receipt and every current inventory-bound artifact,
 then verifies a second root-signed roster with explicit freeze-owner,
-custodian, two reviewer, and release-witness roles. The custodian may share the
+custodian, claim reviewer, frame-pair reviewer, prediction-link reviewer, and
+release-witness roles. The custodian may share the
 freeze owner's key; the witness must have a separate key and key ID from all
 other roles. The witness signature binds the exact receipt, both rosters,
 inventory, artifact bindings, and a fresh ceremony ID, and asserts that the
@@ -266,12 +270,11 @@ also serve as custodian, but must not serve as either reviewer.
    and scoring. After capture artifacts are prepared, reviews all 15 blinded
    screenshot-crop/decoder-frame pairs and records match, mismatch, or
    ambiguous decisions.
-5. **Prediction-link reviewer and stage-2 auditor:** independent of the
-   stage-1 claim reviewer, one another, generation, scoring, and custody. Their
-   separate root-pinned keys must be bound before the first package opening.
-   The reviewer sees only the post-baseline blinded worksheet; the auditor
-   independently reruns exact-byte and structural checks. Neither role has a
-   trusted-roster signature path in the current implementation.
+5. **Prediction-link reviewer:** independent of the stage-1 claim reviewer,
+   generation, scoring, and custody. The release-roster key is separate and
+   root-pinned before the first package opening. The reviewer sees only the
+   post-baseline blinded worksheet. The verification code must rerun the
+   structural check over exact raw bytes; it does not prove semantics.
 
 If no independent people can fill these roles, leave the gate blocked; do not
 substitute an agent-generated label or an operator self-attestation.

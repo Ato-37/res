@@ -44,7 +44,8 @@ from nextgqa_pre_review_integrity_receipt import (
 
 
 RELEASE_ROLES = ("freeze_owner", "custodian", "claim_reviewer",
-                 "frame_reviewer", "release_witness")
+                 "frame_reviewer", "prediction_link_reviewer",
+                 "release_witness")
 _ROSTER_DOMAIN = b"nextgqa_review_release_roster_v1\0"
 _ATTESTATION_DOMAIN = b"nextgqa_review_release_order_attestation_v1\0"
 _CEREMONY_ID = re.compile(r"^[A-Za-z0-9._:-]{1,128}$")
@@ -135,7 +136,7 @@ def _validate_release_roster(roster_raw: bytes, root_public_key_pem: bytes,
         _fail("release_roster_owner_custodian_alias_mismatch")
 
     # Reuse the original three-role, root-signed roster as the identity source
-    # for its roles; the release roster adds explicit custody and witness.
+    # for stage 1; the release roster adds custody, stage-2 review, and witness.
     _, original_keys = _validate_roster(
         integrity_roster_raw, root_public_key_pem,
         expected_root_public_der_sha256)
@@ -145,11 +146,11 @@ def _validate_release_roster(roster_raw: bytes, root_public_key_pem: bytes,
 
     # Custody may be assigned to the freeze owner as the runbook permits, but
     # never to either reviewer. The witness must be an independent role/key.
-    if key_id_by_role["custodian"] in {
-            key_id_by_role["claim_reviewer"], key_id_by_role["frame_reviewer"]}:
+    reviewer_roles = ("claim_reviewer", "frame_reviewer",
+                      "prediction_link_reviewer")
+    if key_id_by_role["custodian"] in {key_id_by_role[r] for r in reviewer_roles}:
         _fail("custodian_reviewer_role_collision")
-    if fingerprints["custodian"] in {
-            fingerprints["claim_reviewer"], fingerprints["frame_reviewer"]}:
+    if fingerprints["custodian"] in {fingerprints[r] for r in reviewer_roles}:
         _fail("custodian_reviewer_key_collision")
     witness = "release_witness"
     if (key_id_by_role[witness] in {key_id_by_role[r] for r in RELEASE_ROLES if r != witness}

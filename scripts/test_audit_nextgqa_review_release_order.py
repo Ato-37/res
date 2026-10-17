@@ -31,7 +31,8 @@ class ReviewReleaseOrderTests(unittest.TestCase):
         self.temp = tempfile.TemporaryDirectory()
         self.root_dir = Path(self.temp.name)
         self.keys: dict[str, tuple[bytes, bytes]] = {}
-        for name in ("root", "owner", "claim", "frame", "custodian", "witness"):
+        for name in ("root", "owner", "claim", "frame", "prediction",
+                     "custodian", "witness"):
             private = self.root_dir / f"{name}.private.pem"
             public = self.root_dir / f"{name}.public.pem"
             subprocess.run(["openssl", "genpkey", "-algorithm", "ED25519",
@@ -100,12 +101,16 @@ class ReviewReleaseOrderTests(unittest.TestCase):
 
     def _release_roster(self, *, aliases=None, names=None):
         aliases = aliases or {}
-        names = names or {"freeze_owner": "owner", "custodian": "custodian",
-                          "claim_reviewer": "claim", "frame_reviewer": "frame",
-                          "release_witness": "witness"}
+        defaults = {"freeze_owner": "owner", "custodian": "custodian",
+                    "claim_reviewer": "claim", "frame_reviewer": "frame",
+                    "prediction_link_reviewer": "prediction",
+                    "release_witness": "witness"}
+        defaults.update(names or {})
+        names = defaults
         entries = []
         key_ids = {"freeze_owner": "owner-key", "custodian": "custodian-key",
                    "claim_reviewer": "claim-key", "frame_reviewer": "frame-key",
+                   "prediction_link_reviewer": "prediction-key",
                    "release_witness": "witness-key"}
         for role, name in names.items():
             key_id = aliases.get(role, key_ids[role])
@@ -251,6 +256,12 @@ class ReviewReleaseOrderTests(unittest.TestCase):
             "claim_reviewer": "claim", "frame_reviewer": "frame",
             "release_witness": "witness"}, aliases={"custodian": "claim-key"})
         with self.assertRaisesRegex(ValueError, "release_roster_role_set_invalid|release_roster_role_keys_must_be_distinct"):
+            self._verify(release_roster_raw=roster)
+
+    def test_prediction_link_reviewer_cannot_reuse_another_role_key(self):
+        roster = self._release_roster(names={"prediction_link_reviewer": "claim"})
+        with self.assertRaisesRegex(ValueError,
+                                    "release_roster_role_keys_must_be_distinct"):
             self._verify(release_roster_raw=roster)
 
     def test_inventory_receipt_and_artifact_bytes_are_bound(self):
