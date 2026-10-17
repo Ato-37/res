@@ -112,3 +112,22 @@ video counterfactuals. That design is materially larger than the current
 pipeline; do not spend GPU time on a prompt-only contrast and relabel it as
 faithfulness. Direct generated-explanation faithfulness remains not measured
 (0/3 reviewed, 0/3 scored, no estimate/interval/test).
+
+There is also an existing, separate proposal in
+[`internal_intervention_grounding_faithfulness_plan.md`](../docs/internal_intervention_grounding_faithfulness_plan.md): generate a fixed
+answer/claim/timestamp output, then compare teacher-forced answer/claim scores
+under an intervention to a model-selected temporal chunk versus a matched
+control chunk. It avoids editing source videos and is a plausible lower-cost
+research branch, but it measures internal chunk dependence under a particular
+intervention. It would still need a pre-outcome fixed intervention and
+selection rule, verified processor-token-to-time mapping, independent review
+of claim/support correspondence, and a non-head control. It must not turn into
+a search over layers, strengths, or chunk policies, and a score decrease alone
+would not validate the claim's semantic truth. This proposal is separate from
+v2 and has not been implemented or run as a study.
+
+Accordingly, the decision is not simply between current v2 and visual editing:
+the temporal hidden-state intervention is a third candidate. Its relative
+merit depends on whether the thesis endpoint is evidence attribution or
+faithfulness of a free-text explanation, while the actual direct-claim and
+frame-review gates stay outstanding.
