@@ -101,8 +101,11 @@ def selective_dependence_contrast(
     base_control_drop = base["full"] - base["control_ablation"]
     treatment_evidence_drop = treated["full"] - treated["evidence_ablation"]
     treatment_control_drop = treated["full"] - treated["control_ablation"]
-    base_f = base_evidence_drop - base_control_drop
-    treatment_f = treatment_evidence_drop - treatment_control_drop
+    # Compute the algebraically equivalent reduced form directly. Subtracting
+    # two branch drops would reintroduce a large shared full margin and lose
+    # precision through cancellation, even though `full` cancels by definition.
+    base_f = base["control_ablation"] - base["evidence_ablation"]
+    treatment_f = treated["control_ablation"] - treated["evidence_ablation"]
     derived = (base_evidence_drop, base_control_drop, treatment_evidence_drop,
                treatment_control_drop, base_f, treatment_f, treatment_f - base_f)
     if any(not math.isfinite(value) for value in derived):

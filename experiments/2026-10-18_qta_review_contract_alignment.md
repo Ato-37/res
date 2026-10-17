@@ -24,12 +24,22 @@ drift gap in the all-three-row structural plan aggregator.
   drift. A redundant temporal-group-width check was removed; the subsequent
   contiguous, disjoint-position invariant already captures the structural
   requirement without forcing groups to have equal sizes.
+- Added direct estimand regression cases: arbitrary full-condition changes and
+  within-arm common offsets to evidence/control margins leave `DeltaF`
+  unchanged; lowering only the intervention evidence margin by 0.5 changes
+  `DeltaF` by +0.5. This fixes the sign and cancellation properties in tests.
+- An independent numerical audit noted that forming F by subtracting two
+  branch drops can lose precision when the common full margin is extremely
+  large. The implementation now computes the exact reduced form
+  `control - evidence` directly while retaining the four branch-drop
+  diagnostics. The invariance test uses full margins of `-1e16` and `+1e16`.
 
 ## Verification
 
-- Focused aggregation and synthetic cohort-plan tests: **17/17 passed**.
-- Complete `scripts` unittest discovery: **1,584/1,584 passed** in **35.944
-  seconds**; `git diff --check` passed. The suite emitted expected diagnostics
+- Focused arithmetic, aggregation, and synthetic cohort-plan tests: **34/34 passed**.
+- Complete `scripts` unittest discovery after the arithmetic additions:
+  **1,586/1,586 passed** in **36.126 seconds**; `git diff --check` passed.
+  The suite emitted expected diagnostics
   from negative-path fixtures and one Transformers deprecation warning.
 - Independent protocol audit found the score formula consistent with the QTA
   draft. It highlighted unresolved construct limits: the selector reads
@@ -37,6 +47,13 @@ drift gap in the all-three-row structural plan aggregator.
   to individual intervals, rank-distance controls do not ensure semantic or
   duration equivalence, and the metric is fixed single-token choice-log-odds
   dependence rather than complete answer probability or claim truth.
+- A follow-up independent arithmetic audit confirmed the expected invariance and
+  sign tests and identified the large-common-term rounding risk; the reduced
+  form is now used directly. The expanded focused test set passes **34/34**.
+  The four returned branch-drop diagnostics still subtract from `full` and can
+  lose precision at extreme magnitudes; the audit confirms that the new test
+  validates F/`DeltaF`, not those diagnostics. Real model log-probabilities are
+  far from the tested extreme, but the diagnostic numeric limitation remains.
 - The review runbook still requires a fresh exact-byte inventory, trusted root
   and signed role roster, signed review-only receipt, and witnessed pre-open
   handoff. None is created by this change.

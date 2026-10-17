@@ -256,6 +256,33 @@ class FixedPredictionTests(unittest.TestCase):
         )
         self.assertAlmostEqual(shifted["delta_f"], result["delta_f"])
 
+    def test_delta_f_is_invariant_to_within_arm_offsets_and_large_full_margins(self):
+        baseline = {"full": 1.0, "evidence_ablation": .4, "control_ablation": .7}
+        treatment = {"full": 5.0, "evidence_ablation": 3.8, "control_ablation": 4.4}
+        expected = selective_dependence_contrast(
+            baseline_margins=baseline, intervention_margins=treatment)["delta_f"]
+        shifted_baseline = {**baseline, "full": -1e16,
+                            "evidence_ablation": baseline["evidence_ablation"] + 11,
+                            "control_ablation": baseline["control_ablation"] + 11}
+        shifted_treatment = {**treatment, "full": 1e16,
+                             "evidence_ablation": treatment["evidence_ablation"] - 23,
+                             "control_ablation": treatment["control_ablation"] - 23}
+        actual = selective_dependence_contrast(
+            baseline_margins=shifted_baseline,
+            intervention_margins=shifted_treatment)["delta_f"]
+        self.assertAlmostEqual(actual, expected)
+
+    def test_evidence_only_margin_drop_changes_delta_f_with_expected_sign(self):
+        baseline = {"full": 1.0, "evidence_ablation": .4, "control_ablation": .7}
+        treatment = {"full": 5.0, "evidence_ablation": 3.8, "control_ablation": 4.4}
+        original = selective_dependence_contrast(
+            baseline_margins=baseline, intervention_margins=treatment)["delta_f"]
+        changed_treatment = {**treatment, "evidence_ablation": 3.3}
+        changed = selective_dependence_contrast(
+            baseline_margins=baseline,
+            intervention_margins=changed_treatment)["delta_f"]
+        self.assertAlmostEqual(changed, original + .5)
+
     def test_rejects_nonfinite_missing_or_invalid_inputs(self):
         for values in ([0.0] * 4, [0.0, 0.0, 0.0, 0.0, float("nan")],
                        [0.0, 0.0, 0.0, 0.0, True], [0.0, 0.0, 0.0, 0.0, "0.0"],
