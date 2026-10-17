@@ -1,0 +1,62 @@
+{
+  "attempted_forwards": 18,
+  "completed_forwards": 18,
+  "completed_records": 3,
+  "conditions": [
+    "baseline_full",
+    "baseline_evidence_ablation",
+    "baseline_control_ablation",
+    "intervention_full",
+    "intervention_evidence_ablation",
+    "intervention_control_ablation"
+  ],
+  "cuda_version": "12.8",
+  "derived_input_binding_records": 3,
+  "derived_input_binding_sha256": [
+    "4fcb4d10843add907686f1030cba2f4ff5860b2d1938bfe53786e517857c6546",
+    "26250890b0e84d0e30df84e6cb2f2123395ca1b34798a07d38cf854c49349a05",
+    "c1587edf9c5de586b061da6fdd7cf191cff65de8391cd85795ba92d28d2753a7"
+  ],
+  "device_name": "NVIDIA GeForce RTX 5070 Ti",
+  "elapsed_seconds": 93.15405241400003,
+  "execution_authorization": "not_granted",
+  "faithfulness_result": false,
+  "free_vram_after_gib": 8.6689453125,
+  "free_vram_before_load_gib": 14.6572265625,
+  "intervention_layers_1_based": [
+    5,
+    16
+  ],
+  "key_attention_logit_bias": 0.6931471805599453,
+  "limitations": [
+    "all three records and videos are synthetic; synthetic DeltaF has no research interpretation",
+    "selector and ln(2) strength are engineering constants, not efficacy-validated",
+    "human claim review, clock calibration, source authentication, and real-data gates are absent",
+    "no confidence interval or hypothesis test is computed"
+  ],
+  "model_revision": "cc594898137f460bfe9f0759e9844b3ce807cfb5",
+  "peak_allocated_gib": 10.828168392181396,
+  "peak_reserved_gib": 12.44140625,
+  "precision": "bf16_4bit_bf16_compute",
+  "requested_forwards": 18,
+  "requested_records": 3,
+  "scope": "synthetic_only_six_condition_integration_not_efficacy",
+  "selected_key_counts": [
+    410,
+    410,
+    410
+  ],
+  "selected_video_token_counts": [
+    4096,
+    4096,
+    4096
+  ],
+  "selector": "top_10_percent_mean_middle_layer_final_query_attention_from_baseline_full_frozen_per_record",
+  "started_at_utc": "2026-10-17T18:26:32.648409+00:00",
+  "status": "passed",
+  "synthetic_delta_f_mean_nats": -0.12500001986821493,
+  "synthetic_delta_f_sample_sd_nats": 0.1249999850988462,
+  "torch_version": "2.11.0+cu128",
+  "total_vram_gib": 15.89398193359375,
+  "transformers_version": "5.18.0"
+}

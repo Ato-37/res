@@ -95,3 +95,41 @@ withholds cohort summaries on any failure. First test every gate-failure path
 without loading weights. Only after independent review and clock-to-decoder
 calibration pass should the complete predeclared three-record real-video pilot
 run. Do not use this synthetic `ΔF` to select a more favorable treatment.
+
+## Complete-input binding follow-up (2026-10-18)
+
+The first binding prototype hashed input token IDs and attention masks only.
+Independent audit found this insufficient for visual inputs. The helper now
+requires `pixel_values_videos`, `video_grid_thw`, and `second_per_grid_ts` in
+each of its six batches, requires integer input IDs and binary integer/bool
+attention masks, hashes each complete typed batch with `batch_sha256`, and
+requires equality only for the three corresponding baseline/treatment branch
+pairs. It retains separate text and full-batch binding digests. CPU tests reject
+missing video payload/metadata, floating IDs, nonbinary masks, changed visual
+payloads, and mismatched paired branches.
+
+After this repair, the pinned GPU smoke completed **3/3 synthetic records and
+18/18 forwards**. The result records three full typed-batch binding digests.
+Peak allocated/reserved VRAM was **10.83/12.44 GiB**, and elapsed time was
+**93.15 seconds**. The fixture reproduced a synthetic `ΔF` mean of **−0.1250
+nat** and sample SD **0.1250 nat**; these remain fixture outputs, not an
+efficacy estimate. No real video, annotation, or user data entered this run.
+
+The smoke artifact is
+`results/synthetic_qwen_visual_attention_boost_six_condition_fullbind_20261018_0340.json`
+(SHA-256
+`0a44d6c6c2382b1cc6db656bfa2a83fc0e4f7ae1c604828cafc30473eccc3448`). The
+runner SHA-256 was
+`66e0ad09a44c87ba2a55c997262858d4118a87734c0107feb83cffb808859e9a`; binding
+helper SHA-256 was
+`a6c1b68abc93881be623ae71190b426e657d5d2fbe56a51efbfb5de95e00c21d`. The
+result is an engineering integration check only; both branches' evidence and
+control inputs are external black-masked videos, not internal activation
+ablations. Direct faithfulness progress remains 0/3 reviewed, 0/3 scored, and
+no real `ΔF` estimate.
+
+An earlier launch was interrupted during CPU construction/hash of the
+synthetic processor batches before model load or any forward; its output is
+marked `incomplete` and is not counted as a run. The final repository
+discovery, after the fail-closed mask guard and its regression test, passed
+**1,429/1,429** tests. `py_compile` and `git diff --check` also passed.

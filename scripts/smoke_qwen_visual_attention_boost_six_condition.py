@@ -26,6 +26,7 @@ from fixed_prediction_selective_dependence import (  # noqa: E402
     INTERVENTION_CONDITIONS,
     score_six_condition_logits,
 )
+from derive_six_condition_binding import derive_six_condition_binding  # noqa: E402
 from nextgqa_atomic_batch_freeze import (  # noqa: E402
     CONDITIONS,
     batch_sha256,
@@ -144,6 +145,7 @@ def main(argv=None):
     all_hooks = []
     attempted = completed = 0
     row_deltas = []
+    binding_digests = []
     report = {"status": "incomplete", "scope": "synthetic_only_six_condition_integration"}
     try:
         if not torch.cuda.is_available() or not torch.cuda.is_bf16_supported():
@@ -192,6 +194,44 @@ def main(argv=None):
                 or frozen.get("requested_forwards") != 9
                 or frozen.get("execution_authorization") != "not_granted"):
             raise RuntimeError("synthetic_all_batch_freeze_failed")
+
+        stage = "derive_synthetic_six_condition_bindings"
+        try:
+            tokenizer_payload = processor.tokenizer.backend_tokenizer.to_str()
+        except Exception:
+            raise RuntimeError("synthetic_tokenizer_serialization_unavailable") from None
+        tokenizer_hash = hashlib.sha256(tokenizer_payload.encode("utf-8")).hexdigest()
+        six_condition_source = {
+            "baseline_full": "full",
+            "baseline_evidence_ablation": "claim_evidence_black",
+            "baseline_control_ablation": "temporal_control_black",
+            "intervention_full": "full",
+            "intervention_evidence_ablation": "claim_evidence_black",
+            "intervention_control_ablation": "temporal_control_black",
+        }
+        if len(built.get("condition_metadata", [])) != len(frozen["triplets"]):
+            raise RuntimeError("synthetic_prompt_hash_count_invalid")
+        for position, row in enumerate(frozen["triplets"]):
+            source_batches = row["batches"]
+            six_batches = {
+                condition: source_batches[source_name]
+                for condition, source_name in six_condition_source.items()
+            }
+            binding = derive_six_condition_binding(
+                batches=six_batches,
+                answer_token_ids=label_ids,
+                model_revision=MODEL_REVISION,
+                tokenizer_sha256=tokenizer_hash,
+                prompt_sha256=built["condition_metadata"][position][
+                    "rendered_prompt_sha256"],
+            )
+            if (binding.get("status")
+                    != "derived_synthetic_batch_binding_contract_only"
+                    or binding.get("bound_conditions") != 6):
+                raise RuntimeError("synthetic_six_condition_binding_failed")
+            # Record the complete typed-batch binding (including pixel/video
+            # tensors and processor metadata), not only the text-token binding.
+            binding_digests.append(binding["full_binding_sha256"])
 
         free_before, total = torch.cuda.mem_get_info(device)
         if free_before < MIN_FREE_BEFORE_LOAD:
@@ -330,6 +370,8 @@ def main(argv=None):
             "requested_forwards": 18,
             "attempted_forwards": attempted,
             "completed_forwards": completed,
+            "derived_input_binding_records": len(binding_digests),
+            "derived_input_binding_sha256": binding_digests,
             "conditions": ["baseline_full", "baseline_evidence_ablation",
                            "baseline_control_ablation", "intervention_full",
                            "intervention_evidence_ablation", "intervention_control_ablation"],
