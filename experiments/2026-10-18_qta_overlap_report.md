@@ -66,3 +66,40 @@ review artifacts remain local.
 - Focused tests: `a544f52b47e82c06733127224b5b63e164f22baf7f0eb4f050c9dccc2a4386ad`
 - QTA selector: `3f56fe1e992ffca5a035864ced7472cbe1f12af9978c1559d1b82e0b938712f8`
 - Fixed-prediction scorer: `84ba18241668fd659ddce0ab25a4e3dfa2cacc656ef43fb494fdc056a5c21744`
+
+## Follow-up: target and sham use the same bound scorer
+
+A source-path audit found that the earlier synthetic runner passed the target
+through the bound six-condition scorer but calculated the sham contrast from a
+separate choice-log-probability path. This was an engineering inconsistency,
+not evidence about treatment outcomes. The runner now sends both target and
+sham logits through the same adapter and the same baseline binding; the
+sham-prefixed branch names are mapped to the scorer's intervention slots.
+The nine branch logits are retained on CPU and the runner records both binding
+statuses.
+
+- Independent source review confirmed the exact six-branch sets, common
+  fixed-token/prompt/score-position binding, batch digest checks around
+  forwards, and rejection of missing or extra branches. Its independent test
+  run passed **43/43** relevant tests.
+- Primary verification: focused QTA runner suite **19/19** and complete
+  scripts suite **1,562/1,562** passed; compilation and whitespace checks
+  passed.
+- New synthetic GPU smoke: **1/1 record, 9/9 forwards**, 46.262 s on RTX
+  5070 Ti, CUDA 12.8, Torch 2.11.0+cu128, Transformers 5.18.0,
+  bf16/4-bit-bf16 eager. Peak allocated/reserved VRAM was **10.755/12.439
+  GiB**. Both target and sham report
+  `bound_logits_adapter_contract_only`; `faithfulness_result=false`.
+  The protected local artifact is in a mode-0700 directory with mode 0600,
+  SHA-256 `f0fffa45dd5a8e61c80fe5e563a036a7a9ad740ae2814721348c1bb2c4cdfe59`.
+- GPU returned to 1% utilization with 14,863 MiB free after the run. A
+  privacy-reviewed aggregate is
+  [`results/synthetic_qta_target_sham_bound_gpu_20261018_0740.json`](../results/synthetic_qta_target_sham_bound_gpu_20261018_0740.json),
+  SHA-256 `3361d244d043966aec253b5409917e51e0a696a55d21b8b513033b0b067d1bcd`.
+
+This closes the scorer-path mismatch for the synthetic runner. It does not
+validate the claim-linked estimand or establish an intervention effect.
+Direct faithfulness evidence remains **0/3** human claim reviews, **0/3**
+prediction-link adjudications, **0/15** verified player-clock/decoder-frame
+correspondences, and **0/3** scored cases; no real-data `DeltaF`, interval,
+or test exists. Rights remain unverified and all protected data stay local.

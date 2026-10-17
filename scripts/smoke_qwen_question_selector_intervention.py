@@ -33,7 +33,6 @@ from qwen_question_temporal_attention_selector import (  # noqa: E402
     select_hash_sham_temporal_groups, select_top_temporal_groups,
 )
 from fixed_prediction_selective_dependence import (  # noqa: E402
-    fixed_prediction_intervention_contrast,
     score_bound_six_condition_logits,
 )
 from derive_six_condition_binding import derive_six_condition_binding  # noqa: E402
@@ -183,17 +182,24 @@ def _validate_processed_choice_suffix(base_ids, extended_ids, expected_token_id,
         raise ValueError("processed_choice_suffix_token_mismatch")
 
 
-def _score_target_branches(six_condition_binding, branch_logits, torch_module):
-    """Project baseline/target runner names into the fixed six-condition scorer."""
+def _score_treatment_branches(six_condition_binding, branch_logits, torch_module,
+                              *, treatment_prefix="target"):
+    """Bind baseline plus one treatment's three logits to the fixed scorer."""
+    if treatment_prefix not in {"target", "sham"}:
+        raise ValueError("treatment_prefix_invalid")
+    error_code = ("target_score_branch_set_invalid" if treatment_prefix == "target"
+                  else "sham_score_branch_set_invalid")
     expected = {
         "baseline_full", "baseline_evidence_ablation", "baseline_control_ablation",
-        "target_full", "target_evidence_ablation", "target_control_ablation",
+        f"{treatment_prefix}_full",
+        f"{treatment_prefix}_evidence_ablation",
+        f"{treatment_prefix}_control_ablation",
     }
     if not isinstance(branch_logits, dict) or set(branch_logits) != expected:
-        raise ValueError("target_score_branch_set_invalid")
+        raise ValueError(error_code)
     mapped = {
-        (name.replace("target_", "intervention_", 1)
-         if name.startswith("target_") else name): output
+        (name.replace(f"{treatment_prefix}_", "intervention_", 1)
+         if name.startswith(f"{treatment_prefix}_") else name): output
         for name, output in branch_logits.items()
     }
     binding_rows = (six_condition_binding.get("branch_bindings")
@@ -589,7 +595,7 @@ def main(argv=None):
         remove_hooks(capture_handles)
         capture_handles = []
         condition_outputs = {}
-        target_logits = {}
+        branch_logits = {}
 
         def forward_condition(name, *, bias_positions=(), ablation_positions=()):
             nonlocal attempted, completed
@@ -615,10 +621,7 @@ def main(argv=None):
                     "choice_log_probabilities": _choice_log_probabilities(
                         output.logits, option_token_ids, torch),
                 }
-                if name.startswith(("target_", "baseline_")):
-                    target_logits[name] = {
-                        "logits": output.logits.detach().to("cpu")
-                    }
+                branch_logits[name] = {"logits": output.logits.detach().to("cpu")}
                 completed += 1
                 del output
             finally:
@@ -634,30 +637,27 @@ def main(argv=None):
             "logits_finite": True, "forward_reused": True,
             "choice_log_probabilities": baseline_full_choice_log_probs,
         }
-        target_logits["baseline_full"] = {
-            "logits": baseline_full_logits
-        }
+        branch_logits["baseline_full"] = {"logits": baseline_full_logits}
         for branch in branch_plan[1:]:
             forward_condition(branch["name"], bias_positions=branch["bias"],
                               ablation_positions=branch["ablation"])
         if set(condition_outputs) != set(branch_inputs) or completed != 9 or attempted != 9:
             raise RuntimeError("synthetic_nine_condition_incomplete")
 
-        contrast_inputs = {
-            name: condition_outputs[name]["choice_log_probabilities"]
-            for name in condition_outputs
-        }
-        target_score = _score_target_branches(
-            six_condition_binding, target_logits, torch)
+        target_score = _score_treatment_branches(
+            six_condition_binding,
+            {name: branch_logits[name] for name in (
+                "baseline_full", "baseline_evidence_ablation", "baseline_control_ablation",
+                "target_full", "target_evidence_ablation", "target_control_ablation")},
+            torch)
         target_contrast = target_score["contrast"]
-        sham_contrast = fixed_prediction_intervention_contrast({
-            "baseline_full": contrast_inputs["baseline_full"],
-            "baseline_evidence_ablation": contrast_inputs["baseline_evidence_ablation"],
-            "baseline_control_ablation": contrast_inputs["baseline_control_ablation"],
-            "intervention_full": contrast_inputs["sham_full"],
-            "intervention_evidence_ablation": contrast_inputs["sham_evidence_ablation"],
-            "intervention_control_ablation": contrast_inputs["sham_control_ablation"],
-        })
+        sham_score = _score_treatment_branches(
+            six_condition_binding,
+            {name: branch_logits[name] for name in (
+                "baseline_full", "baseline_evidence_ablation", "baseline_control_ablation",
+                "sham_full", "sham_evidence_ablation", "sham_control_ablation")},
+            torch, treatment_prefix="sham")
+        sham_contrast = sham_score["contrast"]
 
         torch.cuda.synchronize(device)
         free_after, _ = torch.cuda.mem_get_info(device)
@@ -692,6 +692,8 @@ def main(argv=None):
             "condition_forward_checks": condition_outputs,
             "synthetic_fixed_prediction_score_diagnostic": {
                 "status": "synthetic_numerical_integration_only",
+                "target_score_binding_status": target_score["status"],
+                "sham_score_binding_status": sham_score["status"],
                 "option_label_order": list("ABCDE"),
                 "option_token_ids": option_token_ids,
                 "target_delta_f": target_contrast["delta_f"],
