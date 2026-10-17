@@ -19,7 +19,12 @@ still feeds the existing nine-forward scorer path.
 - Model: locally cached Qwen2.5-VL-7B-Instruct, revision
   `cc594898137f460bfe9f0759e9844b3ce807cfb5`.
 - Precision: BF16 model with 4-bit weights and BF16 compute.
-- Hardware/software: RTX 5070 Ti (16 GiB), CUDA 12.8, PyTorch 2.11.0+cu128.
+- Hardware/software: RTX 5070 Ti (16 GiB), CUDA 12.8, PyTorch 2.11.0+cu128,
+  Transformers 5.18.0, torchvision 0.26.0+cu128, and qwen-vl-utils 0.0.14.
+- Geometry policy in the installed utility: `MODEL_SEQ_LEN=128000`,
+  128/768 min/max video tokens per frame, and frame factor 2. The installed
+  `vision_process.py` SHA-256 was
+  `f3710ced8ffe735da57d08cf5236cf9d326ff646ed1bdad2e62593a7801adc33`.
 - Requested/effective: 3 synthetic records, 9 condition batches, 9/9 forwards.
 - Scoring command:
 
@@ -50,6 +55,10 @@ capacity check only. No real video, claim, human review, or faithfulness
 intervention score was measured. There is no efficacy estimate, confidence
 interval, hypothesis test, or multiplicity adjustment to report. GPU resource
 values describe this one synthetic run and are not a general capacity bound.
+
+The condition builder currently has synthetic CPU/GPU smoke callers and tests;
+source search found no production real-media orchestration caller. The smoke
+therefore validates the software integration fixture, not production readiness.
 
 The resize reconstruction matches the current fixed prompt contract, which
 contains `video` and `sample_fps` metadata. If future code adds explicit
