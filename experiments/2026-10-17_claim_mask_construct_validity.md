@@ -595,24 +595,37 @@ RLHF-V supervised refinement, and per-token KL/confidence schedules. Sources:
 [ICML/PMLR proceedings page](https://proceedings.mlr.press/v306/zhang26cg.html).
 
 The user's current primary candidate scores one fixed baseline-predicted A–E
-answer against one fixed foil at a single next-token position. Applying the
-published TLVS method directly would require a sequence of generated answer
-tokens for its sensitive/insensitive grouping and stepwise schedule; including
-claim or rationale tokens in the primary would change the selected estimand.
-A one-token reduction would be a new, unvalidated adaptation and cannot inherit
-the paper's performance claim or parameters by name. TLVS is therefore recorded
-as close prior art that narrows novelty, but is not the present treatment.
+answer against one fixed foil at a single next-token position. The independent
+design audit corrected the initial compatibility judgment: this one-token score
+can measure an intervention's effect at the answer position without adding
+claim/rationale token scores to the primary. However, TLVS learns its steering
+directions from multiple answer tokens on a separate calibration corpus; it
+cannot estimate sensitive/insensitive groups from the single scored token.
+Thus video adaptation of TLVS remains possible as a treatment candidate, but
+its calibration cohort must be disjoint and frozen, and its image/no-image
+contrast must be redesigned for video. TLVS itself does not select
+claim-specific temporal evidence or guarantee higher claim-evidence selectivity;
+the prespecified `ΔF` evidence/control contrast would test that question.
 
-The synthetic STEAR runner is structurally closer to a one-token QA margin and
-uses video evidence routing, but it still stops before the actual reinjection
-operation. The official supplement/code could not be retrieved in this
-environment, so no exact author-method reproduction is currently possible.
-Next action: independently audit whether a single, clearly named, pre-outcome
-STEAR-inspired adaptation can be specified from public equations and the pinned
-Qwen module contract without choosing parameters from outcomes. If not, retain
-the direct experiment as not ready rather than invent a treatment. No real-data
-faithfulness score or GPU efficacy test is justified before that design and the
-external review/time gates pass.
+One treatment-defining choice remains: recomputing the adaptive strength from
+each evidence/control-ablated input versus calculating it once on full video and
+replaying it across all branches. These define different treatment contrasts;
+the latter would be an explicit deviation from original TLVS. Layer range,
+visual/no-video construction, direction sign, and calibration must likewise be
+fixed before outcome access. The method is relevant prior art and a viable
+candidate for engineering evaluation, not a proven faithfulness intervention.
+
+The synthetic STEAR runner is structurally closer to video evidence routing but
+stops before reinjection. The paper describes cross-attention over visual
+patches, while the pinned Qwen decoder exposes joint self-attention rather than
+a separate cross-attention module; reproducing the retrieval projections and
+insertion path is not specified by the paper text. The official supplement/code
+could not be retrieved, so no exact author-method reproduction is currently
+possible. Next action: compare one explicitly named TLVS video adaptation and
+one STEAR adaptation against the pinned Qwen module contract, and choose only if
+all remaining projection, control, and strength rules can be fixed before
+outcomes. No real-data faithfulness score or GPU efficacy test is justified
+before that design and the external review/time gates pass.
 
 **Faithfulness checkpoint.** Direct generated-claim faithfulness remains
 **0/3 independently human-reviewed, 0/3 scored, with no `ΔF` estimate, interval,
