@@ -76,3 +76,39 @@ change this status. The immediate research task is to settle the intended
 faithfulness construct before freezing a revised outcome protocol. Independently,
 the current human-review branch remains blocked by absent trusted role/root
 artifacts and by 0/15 actual screenshot-to-decoder correspondences.
+
+## Follow-up literature audit: what a more direct test would require
+
+An outcome-blind review of rationale-faithfulness methods reinforces that
+simply inserting the generated claim into the QA prompt would measure
+**claim-conditioned answer sensitivity**, not whether the original prediction
+was actually produced from that rationale. Prompt-following, answer leakage,
+lexical cues, and changes in prompt length/position remain alternative causes.
+Such a result can be a behavior diagnostic, but should not be called semantic
+or internal-process faithfulness without a causal link to the original answer
+generation and independent validation of the claim's meaning.
+
+The more direct visual direction is an explanation-driven counterfactual test:
+identify a visual concept asserted as relevant by the explanation, intervene
+on that concept while preserving other evidence, and check the answer and
+explanation against the verified edit. Atanasova et al. (ACL 2023) provide
+textual NLE tests based on counterfactual reasons and reconstructed inputs;
+Siegel et al. (ACL 2024) motivate distribution-shift-sensitive counterfactual
+metrics rather than binary answer flips alone. A 2026 arXiv preprint, EDCT-
+Bench, adapts this idea to VLMs through verified localized edits and reports
+paired human validation of 128 concept-level interventions. This is a recent
+preprint, not a peer-reviewed standard, and its image-editing pipeline does
+not directly solve temporal video editing.
+[Atanasova et al. (ACL 2023)](https://aclanthology.org/2023.acl-short.25/),
+[Siegel et al. (ACL 2024)](https://aclanthology.org/2024.acl-short.49/),
+[EDCT-Bench (arXiv, September 2026)](https://arxiv.org/abs/2609.17953).
+
+For this project, the practical consequence is unchanged: the existing
+human-verified interval mask is closer to visual evidence attribution than
+claim-text sensitivity, but remains only a three-video proxy feasibility
+protocol and has not run. A genuine explanation-faithfulness extension would
+need independently reviewed claim propositions and localized, validity-checked
+video counterfactuals. That design is materially larger than the current
+pipeline; do not spend GPU time on a prompt-only contrast and relabel it as
+faithfulness. Direct generated-explanation faithfulness remains not measured
+(0/3 reviewed, 0/3 scored, no estimate/interval/test).
