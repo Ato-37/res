@@ -76,9 +76,58 @@ and predictor-link construct gate are prerequisites, not evidence of an effect.
 Rights status remains unverified; protected inputs and the private artifact
 remain local.
 
-## Next action
+## Offline prediction-link review packet
 
-Independently audit the new receipt validator and implement a separate human
-packet renderer. Then bind their results and all source/release receipts into
-fail-closed cohort preflight. Keep treatment branches unexecuted until review,
-clock, prediction-link, and release-order gates pass.
+The function-only renderer was not operational for a reviewer, so it now has a
+CLI that reads an exact manifest file and creates an exclusive new HTML file
+directly inside a mode-0700 private root. It opens the directory and children
+with directory-relative, no-follow operations; refuses non-regular or oversized
+input, refuses overwrite, writes output as mode 0600, and removes a partial
+output on write failure. The page is static, uses a restrictive CSP with no
+network/image/media access, HTML-escapes source text, and exports only the
+self-reported receipt with `execution_authorization=not_granted`. The browser's
+download flow for that receipt still needs an operator to verify and secure its
+destination; the page itself does not guarantee that downloaded receipt's mode.
+
+Five synthetic CPU regression tests passed: hostile markup escaping and frozen
+P/Q display, hash/schema/prediction fail-closed behavior, private output mode and
+exclusive creation, symlink/unsafe-root rejection, and partial-write cleanup.
+The renderer also passed `node --check` on its emitted inline JavaScript. Full
+repository tests passed 1,484/1,484 in 29.391 seconds; `py_compile` and
+`git diff --check` passed. The CLI pins its root to
+`data/private_nextgqa`, requires current-user ownership and private root/input
+modes, and accepts only direct-child names. It has not been exercised in a
+browser and no real manifest or reviewer receipt was created. Independent audit
+found that the original function-only implementation lacked a practical safe
+CLI; after the additions, it confirmed the path, mode, no-follow, size, escaping,
+and cleanup controls. Residual limitations are that power loss/process kill can
+leave an incomplete exclusively-created HTML file, and the browser's receipt
+download destination/mode is not controlled by the page; the reviewer must
+verify and secure that local file before custody validation.
+
+## Faithfulness progress and next action
+
+Direct empirical faithfulness remains **0/3 video-claim reviews, 0/3
+prediction-link adjudications, 0/3 scored records, 0/15 player-to-decoder
+correspondences, and no real-data ΔF, CI, or test**. The renderer and its tests
+improve the readiness of the review handoff only. They do not establish that an
+explanation predicts or supports a model answer, nor that the internal
+intervention improves faithfulness. Rights status remains unverified; the
+renderer is designed to keep its HTML inside local protected storage, and no
+protected content was published.
+
+Next, build fail-closed preflight binding the existing release/trust-root
+ceremony, first-stage human video review, browser-to-decoder clock receipts, and
+post-baseline prediction-link receipt. Do not score real data before all these
+gates and cohort bindings pass.
+
+The future local invocation (not run because no frozen baseline manifest exists)
+is:
+
+```bash
+.venv/bin/python scripts/render_nextgqa_prediction_link_review.py \
+  --manifest-name <frozen-baseline-manifest.json> \
+  --output-name <new-private-review-page.html> \
+  --expected-manifest-sha256 <64-hex-frozen-manifest-hash> \
+  --protocol-sha256 <64-hex-frozen-protocol-hash>
+```
