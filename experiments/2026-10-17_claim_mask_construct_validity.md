@@ -227,14 +227,25 @@ the generated claim is used only to choose frames and is absent from the scored
 QA prompt.
 
 The internal-intervention plan now records a candidate difference-in-differences
-estimand. For each fixed prediction, compare the drop in its fixed gold-versus-
-foil margin after ablating claim-mapped evidence tokens with the drop after an
-equal-count matched-control token ablation; then compare this selectivity between
-baseline and the prespecified intervention. A positive treatment contrast would
-mean increased operational dependence on the reviewed evidence tokens relative
-to that control, under this model and setup. It would not establish claim truth,
-complete internal-process faithfulness, or generalization beyond the tested
-cohort.
+estimand. For each fixed baseline-predicted option, compare the drop in its
+fixed predicted-option-versus-foil margin after ablating claim-mapped evidence
+tokens with the drop after an equal-count matched-control token ablation; then
+compare this selectivity between baseline and the prespecified intervention. A
+positive treatment contrast would mean increased operational dependence on
+the reviewed evidence tokens relative to that control, under this model and
+setup. It would not establish claim truth, complete internal-process
+faithfulness, or generalization beyond the tested cohort.
+
+An independent audit found the draft had used “fixed original prediction” in
+the internal-intervention plan but “gold-versus-foil” in this audit, which
+changes the target when the model is wrong. The working convention is now the
+unmodified baseline model's highest-scoring A–E option, with alphabetical
+tie-breaking; the foil is its highest-scoring competitor from that same full
+baseline distribution, also alphabetically tie-broken. Both labels remain
+fixed across all intervention and ablation conditions. Gold margin/accuracy
+are secondary outcomes. This is a pre-outcome construct-alignment decision,
+not a score freeze; the ablation operator, selector, treatment, cohort size,
+and inference plan remain unresolved.
 
 The candidate measurement fixes the baseline-generated answer, claim, and time
 span across intervention conditions. It therefore tests changed dependence of
@@ -261,6 +272,34 @@ engineering to reduce VideoLLM hallucination. A possible contribution must be
 the narrowly defined combination and evaluation, not either broad idea alone.
 [Yeo et al. (EMNLP 2025)](https://aclanthology.org/2025.emnlp-main.529/),
 [Cai et al. (NeurIPS 2025)](https://proceedings.neurips.cc/paper_files/paper/2025/hash/5683583b88da51c79d2eb263f295286e-Abstract-Conference.html).
+
+The source audit also verified that the existing v2 scorer computes gold minus
+the best non-gold option separately in each condition. It cannot be reused as
+the proposed fixed baseline-prediction/foil scorer: both the target answer and
+foil rule differ, and the current foil may change by condition. The next scorer
+must fix both label IDs from the untouched baseline full-video distribution,
+preserve the same next-token positions across all conditions, and keep gold
+margin as a secondary performance outcome. The exact internal ablation
+operator, application order relative to the selector treatment, and equal-count
+temporal control remain unspecified. The current 0/3 review and 0/15
+browser-to-decoder correspondence gates also remain open.
+
+An independent design review supplied one fully operational **hypothesis**,
+not a treatment decision: on an untouched full-video pass, select the temporal
+group whose mean layer-8 visual-token vector has the greatest cosine similarity
+to the final prompt-token vector (earliest group breaks ties); freeze that
+selection, multiply its layer-8 hidden rows by 1.1, and compare with an
+equal-size group selected by a fixed-seed uniform rule that does not inspect
+the question or claim. Apply the same assignment in every scoring branch and
+leave human-reviewed claim spans evaluation-only. This is non-circular at the
+assignment step, but cosine similarity, layer 8, top-1, and the 1.1 multiplier
+lack an independent rationale. The smoke tested only a fixed group-0 hook; it
+did not exercise this selector. Therefore this proposal is not frozen or
+efficacy-justified and must not be represented as an established faithfulness
+improvement. A second independent audit likewise concluded that a
+question-conditioned attention selector is plausible but still a hypothesis;
+published KFP does not specify its key selection sufficiently, and TA-AE's
+learned offsets/module classifier are not a drop-in treatment for this setup.
 
 An independent design review proposed directly amplifying the reviewed
 claim-span visual-token residuals. This was rejected as the primary treatment:
@@ -291,3 +330,29 @@ score has been run. The next valid research step is to specify one intervention
 and all controls before outcomes, then complete the external human-review,
 trusted-release, and clock-correspondence steps needed to attach reviewed claims
 to the mapped tokens.
+
+## Follow-up: fixed prediction/foil measurement component
+
+To close the label-rule portion of the scorer gap, a small CPU-only draft
+helper now freezes the baseline A–E prediction/foil using alphabetical
+tie-breaking, scores subsequent conditions with those same label IDs, and
+computes `ΔF` from full/evidence/control margins. Four focused tests cover
+fixed labels despite condition argmax changes, tie rules, the interaction
+algebra, and invalid/non-finite inputs. The helper does not choose the
+internal-ablation operation, selector, cohort, or treatment; it performs no
+model inference or actual-data scoring. It is a measurement component, not a
+frozen or validated study protocol.
+
+Verification after this addition: focused helper tests passed 4/4; repository
+test discovery passed **1,379/1,379**; `compileall` and `git diff --check`
+passed. Direct faithfulness evidence is unchanged at **0/3 reviewed, 0/3
+scored, no effect estimate/interval/test**, and **0/15** actual
+browser-to-decoder correspondences. The workflow remains gated on a frozen
+treatment and ablation/control protocol as well as the external human-review
+release and frame-correspondence evidence.
+
+Follow-up input-contract audit tightened the helper to reject booleans and
+numeric strings for answer log-probabilities and condition margins. Focused
+tests remain **4/4**, all repository tests remain **1,379/1,379**, Python
+compilation and `git diff --check` pass. This is measurement input hygiene;
+it does not alter the estimand or add any actual-data evidence.

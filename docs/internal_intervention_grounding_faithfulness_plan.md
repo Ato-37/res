@@ -23,13 +23,15 @@ Qwen2.5-VLの推論時内部介入により、回答claimを支える時間的�
 
 卒研の中心対象は、**モデルの説明が指す動画証拠に、説明対象の予測が選択的に依存するか**とする。主指標候補は、その選択的依存が**事前に固定した内部介入によって向上するか**である。したがって、単なるQA回答marginの動画入力感度やgrounding精度は主指標ではなく、補助的な測定となる。
 
-結果閲覧前に固定する測定候補を次のように置く。`g`はbaselineまたは内部介入、`m_{g,i}(z)`は動画iの固定した元予測と固定foilのteacher-forced log-margin、`z`はfull、claim-evidence internal ablation、matched-control internal ablationのいずれかとする。
+結果閲覧前に固定する測定候補を次のように置く。`g`はbaselineまたは内部介入、`m_{g,i}(z)`は動画iの固定した元予測と固定foilのteacher-forced log-margin、`z`はfull、claim-evidence internal ablation、matched-control internal ablationのいずれかとする。現時点の操作的候補では、5択QAの元予測を無介入full-video baselineで5ラベルのうち最も高いlog-probabilityを持つ回答とし、同点ならAからEの辞書順で選ぶ。foilはその同じbaseline full-video分布で元予測以外の最上位ラベルとし、同点規則も同じとする。元予測・foilのtoken IDは全介入/ablation条件で固定する。gold正答marginと正答率は副次的な性能指標にし、説明対象の元予測を測る主指標と混ぜない。この選択規則を含むestimand自体はまだ未凍結である。
 
 `F_{g,i} = [m_{g,i}(full) - m_{g,i}(evidence-ablation)] - [m_{g,i}(full) - m_{g,i}(control-ablation)]`
 
 `ΔF_i = F_{intervention,i} - F_{baseline,i}`
 
 代数的には`F_{g,i}=m_{g,i}(control-ablation)-m_{g,i}(evidence-ablation)`となり、full項は相殺される。したがって`ΔF`は介入とablation種別の交互作用であり、同じ固定回答/foilを使う限り全条件へ同量だけ加わるmargin offsetには不変である。ただし、介入がevidence/control branchへ異なる形で作用する場合やfoil・token位置が変わる場合はこの保護は成り立たない。fullスコアは解釈用・品質診断用に保存し、primary計算へ重複加算しない。
+
+この指標が測るのは、正答である保証のない元予測に対する説明証拠依存である。正答予測に限定した主分析は行わず、正答/誤答による分割は、標本と判定法を事前固定した副次分析に限る。生成claim自身のteacher-forced scoreは主評価に含めない。そうしないと説明が支持する予測への依存と、説明文の尤度変化を同じ指標に混ぜるためである。
 
 正の`ΔF`は、指定モデル・内部状態の介入条件下で、説明が指すレビュー済み時間証拠の選択的依存がmatched controlに対して増えたことを表す操作的指標候補である。これは説明の真偽、完全な内部推論、自由生成説明全体の忠実性を証明しない。claim-to-timeの独立レビュー、時間区間とprocessor visual-tokenの検証、同じ回答/foilの固定、介入とablation双方のsham/control、layer/strengthの事前固定が必要である。式、介入、token score、成功基準、sample sizeはまだ凍結していない。
 
@@ -82,15 +84,19 @@ NExT-GQAのgsub intervalが対象質問・claimに対応するかを先に監査
 
 ### 4.3 Faithfulness estimand候補
 
-baselineで生成した回答claim文字列を固定し、teacher-forced claim/answerスコアをSとする。内部時間chunkに同一強度の介入を行い、model-selected evidence chunkとmatched control chunkの差を比較する。
+primary候補は、説明が示す証拠への**固定したbaseline予測の選択的依存**とする。各動画の無介入full-video passで最高log-probabilityのA–E回答を`p_i`、その分布で`p_i`以外の最高log-probability回答を`q_i`として、両方を全条件で固定する。同点はA–E辞書順で決める。`m_{g,i}(z)=log p_g(p_i|z)-log p_g(q_i|z)`は同じnext-token位置でのteacher-forced marginである。gold回答margin・accuracyはsecondaryとし、生成claim token尤度もprimaryへ含めない。
 
-D(E) = S(full) − S(intervene on selected evidence chunk)
-D(C) = S(full) − S(intervene on matched control chunk)
-d(i) = D(E) − D(C)
+`D_g(E)=m_{g,i}(full)-m_{g,i}(evidence-ablation)`
 
-正のdは、このスコア尺度上で、モデル選択chunkの介入がcontrolより元claimを強く弱めたことを示す。これは操作的な選択的証拠依存であり、claimの真実性や機構全体の説明ではない。内部activationのOOD、chunk間依存、prompt依存も限界として扱う。
+`D_g(C)=m_{g,i}(full)-m_{g,i}(matched-control-ablation)`
 
-対象token（answer/claim）、score・符号、matching規則、SESOI（実質最小効果）は独立確認前に固定する。旧+0.25 natを根拠なく移植しない。pilot平均や有意性を見て指標・閾値を選び直さない。
+`F_{g,i}=D_g(E)-D_g(C)=m_{g,i}(control-ablation)-m_{g,i}(evidence-ablation)`
+
+`ΔF_i=F_{intervention,i}-F_{baseline,i}`
+
+正の`ΔF`は、この操作的尺度で、内部介入後にbaseline予測がclaim-mapped evidenceへmatched controlより選択的に依存する度合いが増したことを表す候補である。説明の真実性や完全な内部機構の忠実性は証明しない。固定marginの選び方、claim区間からtemporal tokenへの写像、internal-ablation演算、介入適用順、同数controlの作り方、対象標本、SESOI、推論法はまだ凍結していない。内部activationのOOD、時間群間依存、foil選択、正答/誤答による挙動差も限界として明示する。旧+0.25 natを根拠なく移植せず、pilot効果の向きや有意性を見て指標や閾値を選び直さない。
+
+既存の`nextgqa_claim_mask_scoring.py`は各条件でgold labelとcondition-specific best non-gold foilのmarginを計算するため、この候補の固定baseline-predicted option/foil marginとは異なる。primary scorerは別実装または厳密な新interfaceが必要であり、現行v2 score artifactをこのestimandの結果として再解釈しない。
 
 ### 4.4 統計
 
