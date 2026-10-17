@@ -466,3 +466,23 @@ before coding. Do not call such an adaptation STEAR reproduction or run
 efficacy scoring yet. Direct faithfulness remains **0/3 reviewed, 0/3 scored,
 no estimate/interval/test**; actual browser-to-decoder correspondence remains
 **0/15**. The human review and trusted-release gates remain open.
+
+The official HTML/PDF were independently checked. A direct source-archive
+download attempt to `https://arxiv.org/src/2604.03045v1` failed because this
+execution environment could not resolve `arxiv.org`; the web reader also could
+not fetch the archive. Public-code searches did not find a repository linked
+to the paper. Therefore the supplement contents and any implementation details
+inside it remain **unverified**, rather than presumed absent. This blocks only
+author-code reproduction; the paper equations still support a synthetic-only
+implementation of the normalized-entropy trigger. A small CPU helper now
+computes normalized entropy from per-layer next-token logits, selects the
+maximum-entropy layer with a fixed lower-index tie break, and applies the strict
+`u_t > 0.85` rule. Six tests cover uniform/high-entropy selection, strict
+threshold behavior, tie break, malformed/nonfinite inputs, and vocabulary
+mismatch. An independent audit caught fp32 roundoff that made 151,936-way
+uniform entropy exceed 1 and spuriously fire at threshold 1; float64 entropy
+calculation plus mathematical-range clamping now passes the regression. It is
+not connected to Qwen hooks and adds no faithfulness evidence. Final focused
+tests passed **6/6**, full repository suite passed **1,389/1,389**, compilation
+and `git diff --check` passed. The synthetic attention artifact and earlier
+source-matched GPU result are unchanged.
