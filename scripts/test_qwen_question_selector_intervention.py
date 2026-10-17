@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import math
 import json
+import hashlib
 import os
 from pathlib import Path
 import stat
@@ -16,9 +17,9 @@ from smoke_qwen_question_selector_intervention import (
     _choice_log_probabilities, _close_private_output, _prepare_private_output,
     _resolve_choice_continuation_ids, _score_treatment_branches,
     _validate_processed_choice_suffix, _write_private_json,
-    build_smoke_condition_plan,
     temporal_group_overlap,
 )
+from qta_nine_branch_plan import build_qta_nine_branch_plan, validate_qta_nine_branch_plan
 
 
 class QuestionSelectorInterventionCompositionTests(unittest.TestCase):
@@ -54,20 +55,93 @@ class QuestionSelectorInterventionCompositionTests(unittest.TestCase):
         self.assertTrue(torch.isneginf(combined[0, 0, 4, 2:4]).all())
 
     def test_condition_plan_has_nine_unique_reusable_branches(self):
-        target, sham = (1, 2), (7, 8)
-        evidence, control = (10, 11), (20, 21)
-        plan = build_smoke_condition_plan(
-            target_positions=target, sham_positions=sham,
-            evidence_positions=evidence, control_positions=control)
-        self.assertEqual(len(plan), 9)
-        self.assertEqual(len({branch["name"] for branch in plan}), 9)
-        self.assertEqual(plan[0], {"name": "baseline_full", "bias": (), "ablation": ()})
-        self.assertEqual([branch["name"].split("_")[0] for branch in plan],
+        plan = build_qta_nine_branch_plan(
+            temporal_groups=tuple((2 * i, 2 * i + 1) for i in range(8)),
+            target_group_indices=(2,), sham_group_indices=(6,),
+            evidence_group_indices=(0, 1), control_group_indices=(6, 7),
+            typed_batch_sha256="a" * 64, score_binding_sha256="b" * 64,
+            intervention_layers_1_based=(5, 6), logit_bias=math.log(2.0))
+        branches = plan["branches"]
+        self.assertEqual(len(branches), 9)
+        self.assertEqual(len({branch["name"] for branch in branches}), 9)
+        self.assertEqual(branches[0]["biased_visual_key_positions"], [])
+        self.assertEqual([branch["name"].split("_")[0] for branch in branches],
                          ["baseline"] * 3 + ["target"] * 3 + ["sham"] * 3)
-        self.assertEqual(plan[3]["bias"], plan[4]["bias"])
-        self.assertEqual(plan[4]["ablation"], evidence)
-        self.assertEqual(plan[5]["ablation"], control)
-        self.assertEqual(plan[6]["bias"], plan[7]["bias"])
+        self.assertEqual(branches[3]["biased_visual_key_positions"],
+                         branches[4]["biased_visual_key_positions"])
+        self.assertEqual(branches[4]["ablated_visual_key_positions"], [0, 1, 2, 3])
+        self.assertEqual(branches[5]["ablated_visual_key_positions"], [12, 13, 14, 15])
+        self.assertEqual(branches[6]["biased_visual_key_positions"],
+                         branches[7]["biased_visual_key_positions"])
+        self.assertEqual(branches[7]["ablated_visual_key_positions"], [0, 1, 2, 3])
+        self.assertEqual(branches[8]["ablated_visual_key_positions"], [12, 13, 14, 15])
+        self.assertTrue(all(branch["score_binding_sha256"] == "b" * 64
+                            for branch in branches))
+        self.assertTrue(all(branch["typed_batch_sha256"] == "a" * 64
+                            for branch in branches))
+        self.assertEqual(plan["execution_authorization"], "not_granted")
+
+    def test_condition_plan_digest_detects_branch_mutation_and_omission(self):
+        plan = build_qta_nine_branch_plan(
+            temporal_groups=((0, 1), (2, 3), (4, 5), (6, 7)),
+            target_group_indices=(0,), sham_group_indices=(3,),
+            evidence_group_indices=(0,), control_group_indices=(2,),
+            typed_batch_sha256="c" * 64, score_binding_sha256="d" * 64,
+            intervention_layers_1_based=(5, 6), logit_bias=math.log(2.0))
+        changed = json.loads(json.dumps(plan))
+        changed["branches"][4]["ablated_visual_key_positions"] = [999]
+        with self.assertRaisesRegex(ValueError, "qta_plan_branch_semantics_invalid"):
+            validate_qta_nine_branch_plan(changed)
+        missing = json.loads(json.dumps(plan))
+        missing["branches"].pop()
+        with self.assertRaisesRegex(ValueError, "qta_plan_contract_invalid"):
+            validate_qta_nine_branch_plan(missing)
+
+    def test_condition_plan_rejects_contradictory_rehashed_metadata(self):
+        plan = build_qta_nine_branch_plan(
+            temporal_groups=((0, 1), (2, 3), (4, 5), (6, 7)),
+            target_group_indices=(0,), sham_group_indices=(3,),
+            evidence_group_indices=(0,), control_group_indices=(2,),
+            typed_batch_sha256="1" * 64, score_binding_sha256="2" * 64,
+            intervention_layers_1_based=(5, 6), logit_bias=math.log(2.0))
+        changed = json.loads(json.dumps(plan))
+        changed["selected_groups"]["target"] = [1]
+        changed.pop("plan_sha256")
+        changed["plan_sha256"] = hashlib.sha256(json.dumps(
+            changed, sort_keys=True, separators=(",", ":"),
+            ensure_ascii=True, allow_nan=False).encode("ascii")).hexdigest()
+        with self.assertRaisesRegex(ValueError, "qta_plan_branch_semantics_invalid"):
+            validate_qta_nine_branch_plan(changed)
+
+        changed = json.loads(json.dumps(plan))
+        changed["branches"][3]["treatment"] = "sham"
+        descriptor = {key: value for key, value in changed["branches"][3].items()
+                      if key != "branch_sha256"}
+        changed["branches"][3]["branch_sha256"] = hashlib.sha256(json.dumps(
+            descriptor, sort_keys=True, separators=(",", ":"),
+            ensure_ascii=True, allow_nan=False).encode("ascii")).hexdigest()
+        changed.pop("plan_sha256")
+        changed["plan_sha256"] = hashlib.sha256(json.dumps(
+            changed, sort_keys=True, separators=(",", ":"),
+            ensure_ascii=True, allow_nan=False).encode("ascii")).hexdigest()
+        with self.assertRaisesRegex(ValueError, "qta_plan_branch_semantics_invalid"):
+            validate_qta_nine_branch_plan(changed)
+
+    def test_condition_plan_rejects_invalid_group_assignment(self):
+        common = dict(
+            temporal_groups=((0, 1), (2, 3), (4, 5), (6, 7)),
+            target_group_indices=(0,), sham_group_indices=(3,),
+            evidence_group_indices=(0,), control_group_indices=(2,),
+            typed_batch_sha256="e" * 64, score_binding_sha256="f" * 64,
+            intervention_layers_1_based=(5, 6), logit_bias=math.log(2.0))
+        with self.assertRaisesRegex(ValueError, "evidence_control_group_contract_invalid"):
+            build_qta_nine_branch_plan(**dict(common, control_group_indices=(0,)))
+        with self.assertRaisesRegex(ValueError, "target_group_invalid"):
+            build_qta_nine_branch_plan(**dict(common, target_group_indices=(4,)))
+        with self.assertRaisesRegex(ValueError, "intervention_layers_invalid"):
+            build_qta_nine_branch_plan(**dict(common, intervention_layers_1_based=(0, 5)))
+        with self.assertRaisesRegex(ValueError, "logit_bias_invalid"):
+            build_qta_nine_branch_plan(**dict(common, logit_bias=True))
 
     def test_overlap_report_binds_group_and_visual_key_intersections(self):
         overlap = temporal_group_overlap(

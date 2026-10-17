@@ -40,6 +40,7 @@ from smoke_qwen_question_temporal_selector import (  # noqa: E402
     LAYERS_1_BASED, MODEL_REVISION, _processor_fingerprint, synthetic_records,
 )
 from nextgqa_atomic_batch_freeze import FrozenBatch, batch_sha256  # noqa: E402
+from qta_nine_branch_plan import build_qta_nine_branch_plan  # noqa: E402
 from run_nextgqa_gold_interval_margin_pilot import (  # noqa: E402
     build_qa_prompt, process_qa_video,
 )
@@ -49,28 +50,6 @@ LOGIT_BIAS = math.log(2.0)
 SHAM_SEED = "qta-sham-seed-20261018-v1"
 MIN_FREE_BEFORE_LOAD = 11 * 1024**3
 MIN_FREE_BEFORE_FORWARD = 1024**3
-
-
-def build_smoke_condition_plan(*, target_positions, sham_positions,
-                               evidence_positions, control_positions):
-    """Return the fixed synthetic baseline/target/sham x full/E/C branch plan."""
-    return [
-        {"name": "baseline_full", "bias": (), "ablation": ()},
-        {"name": "baseline_evidence_ablation", "bias": (),
-         "ablation": tuple(evidence_positions)},
-        {"name": "baseline_control_ablation", "bias": (),
-         "ablation": tuple(control_positions)},
-        {"name": "target_full", "bias": tuple(target_positions), "ablation": ()},
-        {"name": "target_evidence_ablation", "bias": tuple(target_positions),
-         "ablation": tuple(evidence_positions)},
-        {"name": "target_control_ablation", "bias": tuple(target_positions),
-         "ablation": tuple(control_positions)},
-        {"name": "sham_full", "bias": tuple(sham_positions), "ablation": ()},
-        {"name": "sham_evidence_ablation", "bias": tuple(sham_positions),
-         "ablation": tuple(evidence_positions)},
-        {"name": "sham_control_ablation", "bias": tuple(sham_positions),
-         "ablation": tuple(control_positions)},
-    ]
 
 
 def temporal_group_overlap(*, selector_groups, comparison_groups,
@@ -380,6 +359,7 @@ def main(argv=None):
         "selector_runner_fixture": repo / "scripts/smoke_qwen_question_temporal_selector.py",
         "synthetic_fixture": repo / "scripts/smoke_qwen_internal_attention_ablation.py",
         "selector": repo / "scripts/qwen_question_temporal_attention_selector.py",
+        "qta_nine_branch_plan": repo / "scripts/qta_nine_branch_plan.py",
         "attention_bias": repo / "scripts/qwen_visual_attention_boost.py",
         "internal_ablation": repo / "scripts/qwen_internal_attention_ablation.py",
         "fixed_prediction_scorer": repo / "scripts/fixed_prediction_selective_dependence.py",
@@ -490,6 +470,7 @@ def main(argv=None):
             tokenizer_sha256=hashlib.sha256(tokenizer_json.encode("utf-8")).hexdigest(),
             prompt_sha256=hashlib.sha256(rendered_text.encode("utf-8")).hexdigest(),
         )
+        preload_batch_digest = batch_sha256(batch)
         question_positions = map_question_token_positions(
             tokenizer=processor.tokenizer, rendered_text=rendered_text,
             question_text=item["question"], processed_input_ids=ids,
@@ -528,7 +509,7 @@ def main(argv=None):
             raise RuntimeError("model_processor_or_layer_contract_invalid")
         device_batch = batch.to("cuda")
         batch_digest = batch_sha256(device_batch)
-        if batch_digest != batch_sha256(batch):
+        if batch_digest != preload_batch_digest:
             raise RuntimeError("synthetic_device_batch_digest_mismatch")
         free_before_forward, _ = torch.cuda.mem_get_info(device)
         if free_before_forward < MIN_FREE_BEFORE_FORWARD:
@@ -576,8 +557,10 @@ def main(argv=None):
         sham_positions = tuple(sorted(p for index in sham_groups for p in groups[index]))
 
         # Synthetic diagnostic branches only. Group choices have no annotation semantics.
-        evidence_positions = tuple(sorted(p for group in groups[:2] for p in group))
-        control_positions = tuple(sorted(p for group in groups[-2:] for p in group))
+        evidence_groups = tuple(range(2))
+        control_groups = tuple(range(temporal_steps - 2, temporal_steps))
+        evidence_positions = tuple(sorted(p for index in evidence_groups for p in groups[index]))
+        control_positions = tuple(sorted(p for index in control_groups for p in groups[index]))
         target_evidence_overlap = temporal_group_overlap(
             selector_groups=target_groups, comparison_groups=(0, 1),
             temporal_groups=groups)
@@ -628,19 +611,25 @@ def main(argv=None):
                 remove_hooks(hooks)
 
         stage = "nine_branch_hook_composition"
-        branch_plan = build_smoke_condition_plan(
-            target_positions=target_positions, sham_positions=sham_positions,
-            evidence_positions=evidence_positions, control_positions=control_positions)
-        branch_inputs = {branch["name"]: branch for branch in branch_plan}
+        branch_plan = build_qta_nine_branch_plan(
+            temporal_groups=groups, target_group_indices=target_groups,
+            sham_group_indices=sham_groups, evidence_group_indices=evidence_groups,
+            control_group_indices=control_groups,
+            typed_batch_sha256=preload_batch_digest,
+            score_binding_sha256=six_condition_binding["full_binding_sha256"],
+            intervention_layers_1_based=LAYERS_1_BASED, logit_bias=LOGIT_BIAS)
+        branch_inputs = {branch["name"]: branch for branch in branch_plan["branches"]}
         # Reuse the already completed baseline full pass.
         condition_outputs["baseline_full"] = {
             "logits_finite": True, "forward_reused": True,
             "choice_log_probabilities": baseline_full_choice_log_probs,
         }
         branch_logits["baseline_full"] = {"logits": baseline_full_logits}
-        for branch in branch_plan[1:]:
-            forward_condition(branch["name"], bias_positions=branch["bias"],
-                              ablation_positions=branch["ablation"])
+        for branch in branch_plan["branches"][1:]:
+            forward_condition(
+                branch["name"],
+                bias_positions=branch["biased_visual_key_positions"],
+                ablation_positions=branch["ablated_visual_key_positions"])
         if set(condition_outputs) != set(branch_inputs) or completed != 9 or attempted != 9:
             raise RuntimeError("synthetic_nine_condition_incomplete")
 
@@ -688,7 +677,11 @@ def main(argv=None):
             "sham_selector": "sha256_utf8_qta-sham-v1_seed_opaque-token_group-index",
             "logit_bias": LOGIT_BIAS,
             "intervention_layers_1_based": list(LAYERS_1_BASED),
-            "condition_names": [branch["name"] for branch in branch_plan],
+            "condition_names": [branch["name"] for branch in branch_plan["branches"]],
+            "condition_plan_sha256": branch_plan["plan_sha256"],
+            "condition_branch_sha256": {
+                branch["name"]: branch["branch_sha256"]
+                for branch in branch_plan["branches"]},
             "condition_forward_checks": condition_outputs,
             "synthetic_fixed_prediction_score_diagnostic": {
                 "status": "synthetic_numerical_integration_only",
