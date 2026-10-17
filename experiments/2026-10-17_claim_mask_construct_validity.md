@@ -698,3 +698,41 @@ video. TLVS is therefore a plausible engineering candidate, not a frozen
 treatment or direct faithfulness result. Current direct progress remains
 **0/3 reviewed, 0/3 scored, no `ΔF` estimate/interval/test; frame correspondence
 0/15**.
+
+### Calibration media availability and fixed-label logits adapter
+
+Metadata-only inspection found 556 local video files (about 2.6 GB); no video
+was opened or decoded. The 490 files in the private NExT-GQA candidate tree
+match 490 of the 990 distinct `test.csv` video IDs by filename and match zero
+of the 3,870 train IDs and 567 validation IDs. The 15 local `data/nextgqa_samples*.json`
+manifests contain 269 distinct video IDs, all in the NExT-GQA test split; train,
+validation, and test annotation video-ID sets are pairwise disjoint. Thus this
+inventory provides no identified train/validation video media for outcome-blind
+video-conditioned treatment calibration. Exact filename matching cannot rule
+out an undocumented alias mapping; one unrelated local archive was not inspected.
+Using the available test-associated videos to choose a steering direction would
+risk calibration/evaluation leakage, so no TLVS calibration or GPU efficacy run
+was started. This metadata result does not establish rights status.
+
+Added `score_six_condition_logits()` to the synthetic fixed-prediction helper.
+It accepts the exact six branch outputs, supports Qwen's `[1,1,vocab]`
+`logits_to_keep=1` shape or `[1,input_length,vocab]` full-sequence shape,
+selects the final returned row, casts to float32, checks every vocabulary logit,
+computes full-vocabulary log-softmax, and extracts the fixed five answer-token
+IDs. It requires a shared positive input length across all six branches. An
+independent source audit caught the initial omission of that shared-length
+check; the check and a regression test were added before final validation.
+Focused tests passed **13/13**, including full-sequence logits for all branches,
+the reduced-precision cast path, and rejection of branch-length mismatch; the
+complete repository suite passed **1,405/1,405**; compilation and
+`git diff --check` passed.
+
+The adapter test uses synthetic tensors only and is not an end-to-end Qwen run:
+it does not authenticate that each output corresponds to the declared input,
+validate tokenizer resolution, bind condition-specific video tensors or masks,
+apply an internal intervention, or prove faithfulness. Direct faithfulness is
+still **0/3 reviewed, 0/3 scored, no `ΔF` estimate/interval/test**; verified
+browser-to-decoder correspondence remains **0/15**. Next: connect the adapter
+only after one outcome-independent intervention and its calibration source are
+frozen, then pass the independent human-review and frame-mapping gates before
+the bounded real-video GPU smoke.
