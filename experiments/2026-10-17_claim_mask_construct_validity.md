@@ -580,3 +580,43 @@ reopening it. The next efficacy step still requires completion of the local
 review and evidence-correspondence gates, followed by a frozen intervention and
 scoring/control protocol; until then, engineering can proceed only where it
 reduces a concrete implementation or audit uncertainty.
+
+### TLVS prior-art compatibility audit for the chosen single-token estimand
+
+The closest additional internal-steering prior identified in this pass is
+Token-Level Visual-Sensitivity Steering (TLVS), published in ICML 2026. Its
+primary paper compares the same autoregressive reference response under image
+and image-ablated inputs with teacher forcing, forms per-layer steering
+directions from visually sensitive and insensitive answer-token activations,
+and adaptively changes steering strength by output token. Its Qwen appendix
+reports layers 1–26, top/bottom 5% visual-sensitivity token sets, optional
+RLHF-V supervised refinement, and per-token KL/confidence schedules. Sources:
+[arXiv primary paper](https://arxiv.org/html/2606.07647v1) and
+[ICML/PMLR proceedings page](https://proceedings.mlr.press/v306/zhang26cg.html).
+
+The user's current primary candidate scores one fixed baseline-predicted A–E
+answer against one fixed foil at a single next-token position. Applying the
+published TLVS method directly would require a sequence of generated answer
+tokens for its sensitive/insensitive grouping and stepwise schedule; including
+claim or rationale tokens in the primary would change the selected estimand.
+A one-token reduction would be a new, unvalidated adaptation and cannot inherit
+the paper's performance claim or parameters by name. TLVS is therefore recorded
+as close prior art that narrows novelty, but is not the present treatment.
+
+The synthetic STEAR runner is structurally closer to a one-token QA margin and
+uses video evidence routing, but it still stops before the actual reinjection
+operation. The official supplement/code could not be retrieved in this
+environment, so no exact author-method reproduction is currently possible.
+Next action: independently audit whether a single, clearly named, pre-outcome
+STEAR-inspired adaptation can be specified from public equations and the pinned
+Qwen module contract without choosing parameters from outcomes. If not, retain
+the direct experiment as not ready rather than invent a treatment. No real-data
+faithfulness score or GPU efficacy test is justified before that design and the
+external review/time gates pass.
+
+**Faithfulness checkpoint.** Direct generated-claim faithfulness remains
+**0/3 independently human-reviewed, 0/3 scored, with no `ΔF` estimate, interval,
+or inferential test**; actual browser-to-decoder/frame correspondence remains
+**0/15**. The recent GPU result contributes a verified synthetic integration
+path only. The independent head confirmation remains negative and closed; no
+head/layer/alpha search was resumed.
