@@ -13,7 +13,8 @@ import torch
 
 from qwen_internal_attention_ablation import compose_video_key_bias_and_ablation
 from smoke_qwen_question_selector_intervention import (
-    _choice_log_probabilities, _close_private_output, _prepare_private_output, _write_private_json,
+    _choice_log_probabilities, _close_private_output, _prepare_private_output,
+    _score_target_branches, _write_private_json,
     build_smoke_condition_plan,
 )
 
@@ -79,6 +80,37 @@ class QuestionSelectorInterventionCompositionTests(unittest.TestCase):
         for ids in ([0, 1, 2, 3, 6], [0, 1, 2, 3, 3], [0, 1, 2, 3]):
             with self.subTest(ids=ids), self.assertRaises(ValueError):
                 _choice_log_probabilities(logits, ids, torch)
+
+    def test_target_branch_projection_reads_branch_bindings_and_maps_names(self):
+        row = {
+            "answer_label_order": list("ABCDE"), "answer_token_ids": [0, 1, 2, 3, 4],
+            "input_ids_sha256": "a" * 64, "attention_mask_sha256": "b" * 64,
+            "tokenizer_sha256": "c" * 64, "model_revision": "revision",
+            "prompt_sha256": "d" * 64, "input_length": 4, "score_position": 3,
+        }
+        names = (
+            "baseline_full", "baseline_evidence_ablation", "baseline_control_ablation",
+            "intervention_full", "intervention_evidence_ablation",
+            "intervention_control_ablation",
+        )
+        binding = {"branch_bindings": {name: dict(row) for name in names}}
+        branch_logits = {}
+        for index, name in enumerate((
+                "baseline_full", "baseline_evidence_ablation", "baseline_control_ablation",
+                "target_full", "target_evidence_ablation", "target_control_ablation")):
+            logits = torch.zeros((1, 1, 8))
+            logits[0, 0, :5] = torch.tensor([4.0 - index, 3.0, 2.0, 1.0, 0.0])
+            branch_logits[name] = {"logits": logits}
+        result = _score_target_branches(binding, branch_logits, torch)
+        self.assertEqual(result["status"], "bound_logits_adapter_contract_only")
+        self.assertEqual(set(result["choice_log_probabilities_by_condition"]), set(names))
+
+        with self.assertRaisesRegex(ValueError, "target_score_branch_set_invalid"):
+            _score_target_branches(
+                binding, {key: value for key, value in branch_logits.items()
+                          if key != "target_control_ablation"}, torch)
+        with self.assertRaisesRegex(ValueError, "six_condition_branch_bindings_missing"):
+            _score_target_branches({"bindings": binding["branch_bindings"]}, branch_logits, torch)
 
 
 class PrivateOutputTests(unittest.TestCase):

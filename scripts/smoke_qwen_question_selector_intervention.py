@@ -34,7 +34,9 @@ from qwen_question_temporal_attention_selector import (  # noqa: E402
 )
 from fixed_prediction_selective_dependence import (  # noqa: E402
     fixed_prediction_intervention_contrast,
+    score_bound_six_condition_logits,
 )
+from derive_six_condition_binding import derive_six_condition_binding  # noqa: E402
 from smoke_qwen_question_temporal_selector import (  # noqa: E402
     LAYERS_1_BASED, MODEL_REVISION, _processor_fingerprint, synthetic_records,
 )
@@ -87,6 +89,29 @@ def _choice_log_probabilities(logits, token_ids, torch_module):
     if len(selected) != 5 or not all(math.isfinite(float(value)) for value in selected):
         raise ValueError("choice_score_nonfinite")
     return [float(value) for value in selected]
+
+
+def _score_target_branches(six_condition_binding, branch_logits, torch_module):
+    """Project baseline/target runner names into the fixed six-condition scorer."""
+    expected = {
+        "baseline_full", "baseline_evidence_ablation", "baseline_control_ablation",
+        "target_full", "target_evidence_ablation", "target_control_ablation",
+    }
+    if not isinstance(branch_logits, dict) or set(branch_logits) != expected:
+        raise ValueError("target_score_branch_set_invalid")
+    mapped = {
+        (name.replace("target_", "intervention_", 1)
+         if name.startswith("target_") else name): output
+        for name, output in branch_logits.items()
+    }
+    binding_rows = (six_condition_binding.get("branch_bindings")
+                    if isinstance(six_condition_binding, dict) else None)
+    if not isinstance(binding_rows, dict):
+        raise ValueError("six_condition_branch_bindings_missing")
+    return score_bound_six_condition_logits(
+        branch_bindings=binding_rows, condition_outputs=mapped,
+        torch_module=torch_module,
+    )
 
 
 def _hash_checkpoint_shards(model_path: Path):
@@ -353,6 +378,18 @@ def main(argv=None):
             option_token_ids.append(int(encoded[0]))
         if len(set(option_token_ids)) != 5:
             raise RuntimeError("synthetic_answer_label_token_collision")
+        six_condition_names = (
+            "baseline_full", "baseline_evidence_ablation", "baseline_control_ablation",
+            "intervention_full", "intervention_evidence_ablation",
+            "intervention_control_ablation",
+        )
+        tokenizer_json = processor.tokenizer.backend_tokenizer.to_str()
+        six_condition_binding = derive_six_condition_binding(
+            batches={name: batch for name in six_condition_names},
+            answer_token_ids=option_token_ids, model_revision=MODEL_REVISION,
+            tokenizer_sha256=hashlib.sha256(tokenizer_json.encode("utf-8")).hexdigest(),
+            prompt_sha256=hashlib.sha256(rendered_text.encode("utf-8")).hexdigest(),
+        )
         question_positions = map_question_token_positions(
             tokenizer=processor.tokenizer, rendered_text=rendered_text,
             question_text=item["question"], processed_input_ids=ids,
@@ -423,6 +460,7 @@ def main(argv=None):
             raise RuntimeError("baseline_snapshot_or_logits_invalid")
         baseline_full_choice_log_probs = _choice_log_probabilities(
             baseline_output.logits, option_token_ids, torch)
+        baseline_full_logits = baseline_output.logits.detach().to("cpu")
         del baseline_output
         completed += 1
         if tuple(sorted(captured)) != tuple(i - 1 for i in LAYERS_1_BASED):
@@ -443,6 +481,7 @@ def main(argv=None):
         remove_hooks(capture_handles)
         capture_handles = []
         condition_outputs = {}
+        target_logits = {}
 
         def forward_condition(name, *, bias_positions=(), ablation_positions=()):
             nonlocal attempted, completed
@@ -468,6 +507,10 @@ def main(argv=None):
                     "choice_log_probabilities": _choice_log_probabilities(
                         output.logits, option_token_ids, torch),
                 }
+                if name.startswith(("target_", "baseline_")):
+                    target_logits[name] = {
+                        "logits": output.logits.detach().to("cpu")
+                    }
                 completed += 1
                 del output
             finally:
@@ -483,6 +526,9 @@ def main(argv=None):
             "logits_finite": True, "forward_reused": True,
             "choice_log_probabilities": baseline_full_choice_log_probs,
         }
+        target_logits["baseline_full"] = {
+            "logits": baseline_full_logits
+        }
         for branch in branch_plan[1:]:
             forward_condition(branch["name"], bias_positions=branch["bias"],
                               ablation_positions=branch["ablation"])
@@ -493,14 +539,9 @@ def main(argv=None):
             name: condition_outputs[name]["choice_log_probabilities"]
             for name in condition_outputs
         }
-        target_contrast = fixed_prediction_intervention_contrast({
-            "baseline_full": contrast_inputs["baseline_full"],
-            "baseline_evidence_ablation": contrast_inputs["baseline_evidence_ablation"],
-            "baseline_control_ablation": contrast_inputs["baseline_control_ablation"],
-            "intervention_full": contrast_inputs["target_full"],
-            "intervention_evidence_ablation": contrast_inputs["target_evidence_ablation"],
-            "intervention_control_ablation": contrast_inputs["target_control_ablation"],
-        })
+        target_score = _score_target_branches(
+            six_condition_binding, target_logits, torch)
+        target_contrast = target_score["contrast"]
         sham_contrast = fixed_prediction_intervention_contrast({
             "baseline_full": contrast_inputs["baseline_full"],
             "baseline_evidence_ablation": contrast_inputs["baseline_evidence_ablation"],

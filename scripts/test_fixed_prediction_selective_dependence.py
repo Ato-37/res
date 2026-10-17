@@ -9,6 +9,7 @@ from fixed_prediction_selective_dependence import (  # noqa: E402
     fixed_prediction_intervention_contrast,
     fixed_answer_foil_margin,
     freeze_baseline_answer_and_foil,
+    score_bound_six_condition_logits,
     selective_dependence_contrast,
     validate_six_condition_input_binding,
     score_six_condition_logits,
@@ -20,7 +21,7 @@ class FixedPredictionTests(unittest.TestCase):
     def _binding_fixture():
         one = {
             "answer_label_order": ["A", "B", "C", "D", "E"],
-            "answer_token_ids": [10, 11, 12, 13, 14],
+            "answer_token_ids": [0, 1, 2, 3, 4],
             "input_ids_sha256": "a" * 64,
             "attention_mask_sha256": "b" * 64,
             "tokenizer_sha256": "c" * 64,
@@ -50,7 +51,7 @@ class FixedPredictionTests(unittest.TestCase):
 
     def test_six_condition_binding_rejects_branch_mismatch(self):
         for key, value in (
-            ("answer_token_ids", [10, 11, 12, 13, 15]),
+            ("answer_token_ids", [0, 1, 2, 3, 5]),
             ("input_ids_sha256", "f" * 64),
             ("attention_mask_sha256", "f" * 64),
             ("tokenizer_sha256", "f" * 64),
@@ -164,6 +165,24 @@ class FixedPredictionTests(unittest.TestCase):
                 result["choice_log_probabilities_by_condition"]["baseline_full"][0],
                 float(torch.log_softmax(torch.tensor([4., 3., 2., 1., 0., 0., 0., 0., 0.]),
                                         dim=-1)[0]), places=6)
+
+    def test_bound_logits_adapter_derives_ids_and_lengths_from_validated_bindings(self):
+        result = score_bound_six_condition_logits(
+            branch_bindings=self._binding_fixture(),
+            condition_outputs=self._six_logits(), torch_module=torch)
+        self.assertEqual(result["status"], "bound_logits_adapter_contract_only")
+        self.assertEqual(result["answer_token_ids"], [0, 1, 2, 3, 4])
+        self.assertEqual(set(result["score_position_by_condition"].values()), {583})
+        self.assertEqual(len(result["input_binding_sha256"]), 64)
+        self.assertIn("not authenticated", result["interpretation_limit"])
+
+    def test_bound_logits_adapter_rejects_branch_binding_mismatch_before_scoring(self):
+        bindings = self._binding_fixture()
+        bindings["intervention_control_ablation"]["answer_token_ids"] = [0, 1, 2, 3, 5]
+        with self.assertRaisesRegex(ValueError, "six_condition_scoring_binding_mismatch"):
+            score_bound_six_condition_logits(
+                branch_bindings=bindings, condition_outputs=self._six_logits(),
+                torch_module=torch)
 
     def test_six_condition_contract_freezes_baseline_full_prediction_and_foil(self):
         scores = {

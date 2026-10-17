@@ -315,3 +315,41 @@ def score_six_condition_logits(
             "treatment, video provenance, human review, and faithfulness are unauthenticated"
         ),
     }
+
+
+def score_bound_six_condition_logits(
+    *, branch_bindings: Mapping[str, Mapping],
+    condition_outputs: Mapping[str, object], torch_module: object,
+) -> dict:
+    """Validate six branch declarations and derive all scorer arguments from them.
+
+    This closes the local API seam where independently validated bindings
+    could be paired with different caller-supplied token IDs or input lengths.
+    The binding declarations and output tensors remain caller-supplied; this
+    helper does not authenticate their provenance or prove they came from the
+    declared model inputs.
+    """
+    binding = validate_six_condition_input_binding(branch_bindings)
+    first = branch_bindings["baseline_full"]
+    answer_token_ids = first["answer_token_ids"]
+    input_length = first["input_length"]
+    score_position = first["score_position"]
+    result = score_six_condition_logits(
+        condition_outputs=condition_outputs,
+        answer_token_ids=answer_token_ids,
+        input_lengths={condition: input_length for condition in INTERVENTION_CONDITIONS},
+        torch_module=torch_module,
+    )
+    if (result.get("score_position_by_condition") != {
+            condition: score_position for condition in INTERVENTION_CONDITIONS}):
+        raise ValueError("bound_score_position_mismatch")
+    return {
+        **result,
+        "status": "bound_logits_adapter_contract_only",
+        "input_binding_sha256": binding["binding_sha256"],
+        "interpretation_limit": (
+            "token IDs and score position are derived from equal caller declarations; "
+            "input hashes, processor pixels, model outputs, video provenance, human review, "
+            "and faithfulness efficacy are not authenticated"
+        ),
+    }
