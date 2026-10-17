@@ -104,9 +104,10 @@ not directly solve temporal video editing.
 [EDCT-Bench (arXiv, September 2026)](https://arxiv.org/abs/2609.17953).
 
 For this project, the practical consequence is unchanged: the existing
-human-verified interval mask is closer to visual evidence attribution than
-claim-text sensitivity, but remains only a three-video proxy feasibility
-protocol and has not run. A genuine explanation-faithfulness extension would
+proposed claim-interval mask, if independent human review validates its
+intervals, would be closer to visual evidence attribution than claim-text
+sensitivity. It remains only a three-video proxy feasibility protocol and has
+not run. A genuine explanation-faithfulness extension would
 need independently reviewed claim propositions and localized, validity-checked
 video counterfactuals. That design is materially larger than the current
 pipeline; do not spend GPU time on a prompt-only contrast and relabel it as
