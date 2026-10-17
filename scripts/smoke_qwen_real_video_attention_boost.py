@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 """Local-only real-video Qwen smoke for selected visual-key attention bias.
 
-Uses three deterministic, manifest-unseen NExT-GQA test videos with a generic
-visual prompt and 32 PTS-sampled frames. It runs baseline attention capture
+Uses three deterministic, manifest-unseen NExT-GQA test videos with one
+deterministically selected question per video and 32 PTS-sampled frames. It runs
+baseline attention capture
 and the fixed top-10%/ln(2) attention-bias treatment for each video (six CUDA
 forwards total), stores only aggregate logit-change diagnostics, and never
 uses QA answers, gold intervals, generated text, or claims. This is a real
@@ -12,6 +13,7 @@ Protected media and all derived measurements must remain local.
 from __future__ import annotations
 
 import argparse
+import csv
 from datetime import datetime, timezone
 from fractions import Fraction
 import hashlib
@@ -46,7 +48,7 @@ VISUAL_RATIO = 0.10
 LOGIT_BIAS = math.log(2.0)
 MIN_FREE_BEFORE_LOAD = 12 * 1024**3
 MIN_FREE_BEFORE_FORWARD = 768 * 1024**2
-PROMPT = "Briefly describe the visible scene in the video."
+PROMPT_TEMPLATE = "Answer using visible video evidence: {question}"
 
 
 def _sha256(path: Path) -> str:
@@ -65,13 +67,46 @@ def _capture_attention(output, layer_index, rows, torch_module):
     rows[layer_index] = output[1][0, :, -1, :].float().mean(dim=0).detach().cpu()
 
 
-def _make_batch(*, frames, sample_fps, processor, torch_module):
+def question_for_video(dataset: Path, video_path: Path, video_root: Path) -> str:
+    """Return first qid-sorted eligible question; never read answer columns."""
+    from run_nextgqa_real_video_gpu_smoke import video_key
+
+    target_key = video_key(video_path.relative_to(video_root).as_posix())
+    video_map = json.loads((dataset / "map_vid_vidorID.json").read_text(encoding="utf-8"))
+    gsub = json.loads((dataset / "gsub_test.json").read_text(encoding="utf-8"))
+    rows = []
+    with (dataset / "test.csv").open(newline="", encoding="utf-8-sig") as stream:
+        for row in csv.DictReader(stream):
+            video_id, qid = str(row.get("video_id", "")), str(row.get("qid", ""))
+            info = gsub.get(video_id)
+            raw = (info.get("location", {}).get(qid)
+                   if isinstance(info, dict) and isinstance(info.get("location"), dict)
+                   else None)
+            question = row.get("question")
+            if (video_id not in video_map or not isinstance(info, dict)
+                    or video_key(video_map[video_id]) != target_key
+                    or not isinstance(raw, list) or not raw
+                    or not isinstance(question, str) or not question.strip()):
+                continue
+            try:
+                duration = float(info["duration"])
+                spans = [(float(span[0]), float(span[1])) for span in raw]
+            except (KeyError, TypeError, ValueError, IndexError, OverflowError):
+                continue
+            if all(0 <= start <= end <= duration for start, end in spans):
+                rows.append((qid, question.strip()))
+    if not rows:
+        raise ValueError("eligible_question_unavailable")
+    return sorted(rows, key=lambda item: item[0])[0][1]
+
+
+def _make_batch(*, frames, sample_fps, question, processor, torch_module):
     from qwen_vl_utils import process_vision_info
 
     messages = [{"role": "user", "content": [
         {"type": "video", "video": frames,
          "sample_fps": sample_fps.numerator / sample_fps.denominator},
-        {"type": "text", "text": PROMPT},
+        {"type": "text", "text": PROMPT_TEMPLATE.format(question=question)},
     ]}]
     prompt = processor.apply_chat_template(
         messages, tokenize=False, add_generation_prompt=True)
@@ -179,6 +214,7 @@ def main(argv=None):
         repo = Path(__file__).resolve().parents[1]
         dataset = repo / "NExT-GQA" / "datasets" / "nextgqa"
         candidates = choose_videos(repo, dataset)
+        video_root = Path.home() / "nextgqa_sample" / "NExTVideo"
         valid = []
         inspected = rejected = 0
         for candidate in candidates[:100]:
@@ -188,11 +224,16 @@ def main(argv=None):
                     candidate, num_frames=FRAME_COUNT,
                     uniform_tolerance_seconds=UNIFORM_TOLERANCE_SECONDS)
                 verify_sampled_frame_pixels(frames, metadata)
-                valid.append((candidate, frames, metadata))
-                if len(valid) == RECORD_COUNT:
-                    break
             except ValueError:
                 rejected += 1
+                continue
+            try:
+                question = question_for_video(dataset, candidate, video_root)
+            except ValueError:
+                raise RuntimeError("eligible_question_unavailable") from None
+            valid.append((candidate, frames, metadata, question))
+            if len(valid) == RECORD_COUNT:
+                break
         if len(valid) != RECORD_COUNT:
             raise RuntimeError("three_uniform_pts_test_videos_unavailable")
         model_path = (Path.home() / ".cache/huggingface/hub/models--Qwen--Qwen2.5-VL-7B-Instruct"
@@ -216,10 +257,10 @@ def main(argv=None):
             raise RuntimeError("pinned_model_processor_contract_invalid")
         torch.cuda.reset_peak_memory_stats(device)
         stage = "six_real_video_forwards"
-        for _position, (_video_path, frames, metadata) in enumerate(valid, start=1):
+        for _position, (_video_path, frames, metadata, question) in enumerate(valid, start=1):
             fps = Fraction(*metadata["effective_sample_fps"])
             batch, video_metadata = _make_batch(
-                frames=frames, sample_fps=fps, processor=processor,
+                frames=frames, sample_fps=fps, question=question, processor=processor,
                 torch_module=torch)
             if int(video_metadata.get("frames_indices", [-1])[-1]) != FRAME_COUNT - 1:
                 raise RuntimeError("processor_video_frame_order_invalid")
@@ -285,7 +326,9 @@ def main(argv=None):
             "runner_sha256": _sha256(Path(__file__)),
             "intervention_helper_sha256": _sha256(
                 Path(__file__).with_name("qwen_visual_attention_boost.py")),
-            "dataset_split": "NExT-GQA test; metadata used for eligibility only",
+            "dataset_split": "NExT-GQA test",
+            "candidate_eligibility": "valid local media and nonempty annotation geometry; question chosen by qid order",
+            "prompt_type": "question-conditioned visual prompt; question text not persisted",
             "candidate_selection": "valid annotated local test videos absent from prior sample manifests; deterministic hash order",
             "candidate_videos_inspected_for_pts": inspected,
             "candidate_timing_rejections": rejected,
@@ -326,10 +369,13 @@ def main(argv=None):
             "peak_reserved_gib": torch.cuda.max_memory_reserved(device) / 1024**3,
             "elapsed_seconds": time.monotonic() - timer,
             "faithfulness_result": False,
-            "qa_text_used": False,
+            "qa_question_text_used": True,
+            "qa_answer_text_used": False,
             "answer_or_generated_text_saved": False,
-            "claim_or_gold_interval_used": False,
-            "execution_authorization": "not_granted",
+            "gold_interval_geometry_used_for_candidate_eligibility": True,
+            "gold_interval_used_for_model_or_score": False,
+            "local_execution_authorization": "user_authorized_local_engineering",
+            "scoring_authorization": "not_granted",
             "rights_status": "unverified_local_only",
         }
         status = 0
@@ -348,7 +394,8 @@ def main(argv=None):
             "attempted_forwards": attempted,
             "completed_forwards": completed,
             "faithfulness_result": False,
-            "execution_authorization": "not_granted",
+            "local_execution_authorization": "user_authorized_local_engineering",
+            "scoring_authorization": "not_granted",
             "rights_status": "unverified_local_only",
             "elapsed_seconds": time.monotonic() - timer,
         })
@@ -364,7 +411,9 @@ def main(argv=None):
             torch.cuda.empty_cache()
         except Exception:
             pass
-        report.setdefault("execution_authorization", "not_granted")
+        report.setdefault("local_execution_authorization",
+                           "user_authorized_local_engineering")
+        report.setdefault("scoring_authorization", "not_granted")
         report.setdefault("faithfulness_result", False)
         report.setdefault("rights_status", "unverified_local_only")
         report.setdefault("elapsed_seconds", time.monotonic() - timer)
