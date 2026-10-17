@@ -24,10 +24,20 @@ this operation on independently reviewed claim-indicated evidence. It would
 not show that the intervention itself selected the claim's frames or followed
 the explanation.
 
-## Fixed treatment candidate
+## Selected outcome-independent treatment for feasibility
 
-The candidate is **Qwen Question-Temporal Attention Bias (QTA-Bias)**, a
-project-specific adaptation, not a STEAR reproduction.
+Select **Qwen Question-Temporal Attention Bias (QTA-Bias)** as the sole
+primary-treatment candidate for the next claim-linked feasibility run. This is
+a project-specific adaptation, not a STEAR reproduction. The selection is
+made before any direct claim-linked treatment scores are available. Do not
+compare alternative selectors, layers, group budgets, or bias strengths on
+this cohort; any such search would be exploratory and would require a separate
+video-disjoint confirmation. A bias applied directly to the reviewed claim
+interval is excluded from the primary treatment because it would target the
+same keys later used by the evidence-ablation outcome and could mechanically
+increase the contrast. It may be considered only as a separately labeled
+positive-control diagnostic, not as evidence that explanation faithfulness
+improved.
 
 1. Run the untouched full-video input with the fixed five-choice prompt and
    identify the exact rendered question character span and corresponding
@@ -43,8 +53,12 @@ project-specific adaptation, not a STEAR reproduction.
 
 Report `T`, `k`, actual fraction, selected temporal indices, and visual-key
 count. Since `ceil` can exceed 10% (e.g. 2/16=12.5%), never call it exactly
-10%. The selector is an engineering candidate and must be implemented in the
-same runner as the fixed-query outcome ablation before real scoring.
+10%. These selector, layer, and dose settings are fixed for this feasibility
+run; they are not asserted to be optimal or efficacy-validated. The integrated
+runner must preserve them and record all overlaps with the independently
+reviewed evidence and matched control groups. Overlap is descriptive only: do
+not use it to exclude records, choose a subgroup, or change the treatment after
+outcomes are available.
 
 ## Review eligibility and time-to-token mapping
 
