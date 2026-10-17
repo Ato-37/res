@@ -24,6 +24,9 @@ drift gap in the all-three-row structural plan aggregator.
   drift. A redundant temporal-group-width check was removed; the subsequent
   contiguous, disjoint-position invariant already captures the structural
   requirement without forcing groups to have equal sizes.
+- The pre-review inventory builder now includes explicit hash-only roles for
+  the QTA protocol draft and treatment-selection log, matching the runbook's
+  review-freeze contract.
 - Added direct estimand regression cases: arbitrary full-condition changes and
   within-arm common offsets to evidence/control margins leave `DeltaF`
   unchanged; lowering only the intervention evidence margin by 0.5 changes
@@ -37,8 +40,13 @@ drift gap in the all-three-row structural plan aggregator.
 ## Verification
 
 - Focused arithmetic, aggregation, and synthetic cohort-plan tests: **34/34 passed**.
+- Focused pre-review inventory-builder tests: **19/19 passed**. A fresh local
+  candidate inventory then verified **67/67 slots present**, including both
+  QTA roles, with no missing slots. Its file is private mode 0600; it remains
+  `candidate_only`, `joint_freeze=false`, `score_ready=false`, and
+  `execution_authorization=not_granted`. The inventory itself stays local.
 - Complete `scripts` unittest discovery after the arithmetic additions:
-  **1,586/1,586 passed** in **36.126 seconds**; `git diff --check` passed.
+  **1,586/1,586 passed** in **35.851 seconds**; `git diff --check` passed.
   The suite emitted expected diagnostics
   from negative-path fixtures and one Transformers deprecation warning.
 - Independent protocol audit found the score formula consistent with the QTA
@@ -57,6 +65,9 @@ drift gap in the all-three-row structural plan aggregator.
 - The review runbook still requires a fresh exact-byte inventory, trusted root
   and signed role roster, signed review-only receipt, and witnessed pre-open
   handoff. None is created by this change.
+- Independent audit confirmed the inventory-builder diff adds only the two
+  QTA hash-only roles and preserves the private output and non-authorization
+  behavior. The reviewer did not access the private candidate inventory.
 - Independent audit caught an ambiguous later reference to “the same v2
   contract” before model loading; the wording now states that scoring freeze
   must bind the QTA draft and the legacy v2 review/export contract, while the

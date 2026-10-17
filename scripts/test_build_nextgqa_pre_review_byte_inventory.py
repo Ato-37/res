@@ -102,11 +102,15 @@ class SyntheticPreReviewInventoryTests(unittest.TestCase):
         }
         self.assertTrue(required_code_roles.issubset(CODE_FILES))
         self.assertIn("review_runbook", PUBLIC_OR_SOURCE_FILES)
+        self.assertIn("qta_protocol_draft", PUBLIC_OR_SOURCE_FILES)
+        self.assertIn("qta_treatment_selection", PUBLIC_OR_SOURCE_FILES)
         output = self.root / PRIVATE_ROOT / "inventory-opening-gate-bound"
         result = build_inventory(self.root, output)
         roles = {row["role"] for row in result["artifacts"]}
         self.assertTrue(required_code_roles.issubset(roles))
         self.assertIn("review_runbook", roles)
+        self.assertIn("qta_protocol_draft", roles)
+        self.assertIn("qta_treatment_selection", roles)
         self.assertEqual(result["missing_required_slots"], [])
         self.assertFalse(result["joint_freeze"])
         self.assertFalse(result["score_ready"])

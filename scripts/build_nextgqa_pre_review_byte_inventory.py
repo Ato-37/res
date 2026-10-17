@@ -41,6 +41,8 @@ PUBLIC_OR_SOURCE_FILES = {
     "review_policy_v6": Path("docs/nextgqa_claim_review_policy_v6.json"),
     "protocol_v2_draft": Path("docs/nextgqa_finite_claim_descriptive_protocol_v2.md"),
     "review_runbook": Path("docs/nextgqa_v6_human_review_runbook.md"),
+    "qta_protocol_draft": Path("docs/qwen_question_attention_faithfulness_protocol_v1_draft.md"),
+    "qta_treatment_selection": Path("experiments/2026-10-18_qta_treatment_selection.md"),
     "source_test_csv": Path("NExT-GQA/datasets/nextgqa/test.csv"),
 }
 
