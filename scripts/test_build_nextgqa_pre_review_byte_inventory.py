@@ -36,7 +36,9 @@ class SyntheticPreReviewInventoryTests(unittest.TestCase):
         for relative in CODE_FILES.values():
             path = self.root / relative
             path.parent.mkdir(parents=True, exist_ok=True)
-            path.write_bytes(("synthetic source " + relative).encode())
+            source = (("# synthetic source " + relative + "\n")
+                      if relative.endswith(".py") else "# synthetic script\n")
+            path.write_bytes(source.encode())
 
         self.package = self.root / PACKAGE_DIR
         self.staged = self.root / STAGED_MEDIA_DIR
@@ -86,6 +88,13 @@ class SyntheticPreReviewInventoryTests(unittest.TestCase):
         required_code_roles = {
             "pre_review_integrity_receipt_verifier",
             "review_release_order_auditor",
+            "actual_qa_source_adapter",
+            "annotation_clock_calibration",
+            "claim_input_manifest_builder",
+            "claim_text_quality",
+            "necessity_choice_margin_utils",
+            "presentation_time_utils",
+            "private_output_paths",
             "pre_review_inventory_builder",
         }
         self.assertTrue(required_code_roles.issubset(CODE_FILES))
@@ -98,6 +107,168 @@ class SyntheticPreReviewInventoryTests(unittest.TestCase):
         self.assertEqual(result["missing_required_slots"], [])
         self.assertFalse(result["joint_freeze"])
         self.assertFalse(result["score_ready"])
+
+    def test_unmapped_local_python_import_blocks_inventory(self):
+        scripts = self.root / "scripts"
+        (scripts / "audit_nextgqa_actual_qa_source_binding.py").write_text(
+            "import inventory_closure_probe\n", encoding="utf-8")
+        (scripts / "inventory_closure_probe.py").write_text(
+            "# unregistered local dependency\n", encoding="utf-8")
+        output = self.root / PRIVATE_ROOT / "inventory-unmapped-import"
+        result = build_inventory(self.root, output)
+        self.assertEqual(result["status"], "candidate_only")
+        self.assertIn("python_source_import_closure", result["missing_required_slots"])
+        self.assertFalse(result["joint_freeze"])
+        self.assertFalse(result["score_ready"])
+        self.assertEqual(result["execution_authorization"], "not_granted")
+
+    def test_from_scripts_import_form_fails_closed(self):
+        scripts = self.root / "scripts"
+        (scripts / "audit_nextgqa_actual_qa_source_binding.py").write_text(
+            "from scripts import inventory_closure_probe\n", encoding="utf-8")
+        (scripts / "inventory_closure_probe.py").write_text(
+            "# unregistered local dependency\n", encoding="utf-8")
+        output = self.root / PRIVATE_ROOT / "inventory-from-scripts-import"
+        result = build_inventory(self.root, output)
+        self.assertIn("python_source_import_closure", result["missing_required_slots"])
+        self.assertEqual(result["status"], "candidate_only")
+        self.assertFalse(result["joint_freeze"])
+        self.assertFalse(result["score_ready"])
+        self.assertEqual(result["execution_authorization"], "not_granted")
+
+    def test_scripts_namespace_import_fails_closed(self):
+        scripts = self.root / "scripts"
+        (scripts / "audit_nextgqa_actual_qa_source_binding.py").write_text(
+            "import scripts as local_scripts\n"
+            "helper = local_scripts.inventory_closure_probe\n", encoding="utf-8")
+        (scripts / "inventory_closure_probe.py").write_text(
+            "# unregistered local dependency\n", encoding="utf-8")
+        output = self.root / PRIVATE_ROOT / "inventory-scripts-namespace-import"
+        result = build_inventory(self.root, output)
+        self.assertIn("python_source_import_closure", result["missing_required_slots"])
+        self.assertEqual(result["status"], "candidate_only")
+        self.assertFalse(result["joint_freeze"])
+        self.assertFalse(result["score_ready"])
+        self.assertEqual(result["execution_authorization"], "not_granted")
+
+    def test_repo_root_module_import_fails_closed(self):
+        importer = self.root / "scripts" / "audit_nextgqa_actual_qa_source_binding.py"
+        importer.write_text("import local_repo_helper\n", encoding="utf-8")
+        (self.root / "local_repo_helper.py").write_text(
+            "# unregistered repository-local dependency\n", encoding="utf-8")
+        output = self.root / PRIVATE_ROOT / "inventory-root-module-import"
+        result = build_inventory(self.root, output)
+        self.assertIn("python_source_import_closure", result["missing_required_slots"])
+        self.assertEqual(result["status"], "candidate_only")
+        self.assertFalse(result["joint_freeze"])
+        self.assertFalse(result["score_ready"])
+        self.assertEqual(result["execution_authorization"], "not_granted")
+
+    def test_dynamic_local_imports_are_resolved_or_fail_closed(self):
+        importer = self.root / "scripts" / "audit_nextgqa_actual_qa_source_binding.py"
+        local_module = self.root / "scripts" / "inventory_closure_probe.py"
+        local_module.write_text("# unregistered local dependency\n", encoding="utf-8")
+        importer.write_text(
+            "import importlib as il\n"
+            "il.import_module('inventory_closure_probe')\n", encoding="utf-8")
+        literal_output = self.root / PRIVATE_ROOT / "inventory-dynamic-local-import"
+        literal_result = build_inventory(self.root, literal_output)
+        self.assertIn("python_source_import_closure",
+                      literal_result["missing_required_slots"])
+
+        importer.write_text(
+            "from importlib import import_module as load_module\n"
+            "load_module(module_name)\n", encoding="utf-8")
+        variable_output = self.root / PRIVATE_ROOT / "inventory-dynamic-variable-import"
+        variable_result = build_inventory(self.root, variable_output)
+        self.assertIn("python_source_import_closure",
+                      variable_result["missing_required_slots"])
+
+        importer.write_text(
+            "import importlib\n"
+            "loader = importlib.import_module\n"
+            "loader('inventory_closure_probe')\n", encoding="utf-8")
+        alias_output = self.root / PRIVATE_ROOT / "inventory-aliased-dynamic-import"
+        alias_result = build_inventory(self.root, alias_output)
+        self.assertIn("python_source_import_closure",
+                      alias_result["missing_required_slots"])
+
+        importer.write_text(
+            "import builtins\n"
+            "loader = builtins.__import__\n"
+            "loader('inventory_closure_probe')\n", encoding="utf-8")
+        builtin_alias_output = self.root / PRIVATE_ROOT / "inventory-builtin-import-alias"
+        builtin_alias_result = build_inventory(self.root, builtin_alias_output)
+        self.assertIn("python_source_import_closure",
+                      builtin_alias_result["missing_required_slots"])
+
+        importer.write_text(
+            "import builtins\n"
+            "builtins.__import__(module_name)\n", encoding="utf-8")
+        builtin_dynamic_output = self.root / PRIVATE_ROOT / "inventory-builtin-dynamic-import"
+        builtin_dynamic_result = build_inventory(self.root, builtin_dynamic_output)
+        self.assertIn("python_source_import_closure",
+                      builtin_dynamic_result["missing_required_slots"])
+
+        importer.write_text(
+            "import importlib\n"
+            "importlib.import_module('.inventory_closure_probe', package='scripts')\n",
+            encoding="utf-8")
+        relative_output = self.root / PRIVATE_ROOT / "inventory-relative-dynamic-import"
+        relative_result = build_inventory(self.root, relative_output)
+        self.assertIn("python_source_import_closure",
+                      relative_result["missing_required_slots"])
+
+        importer.write_text(
+            "import importlib\n"
+            "getattr(importlib, 'import_module')(module_name)\n", encoding="utf-8")
+        reflected_output = self.root / PRIVATE_ROOT / "inventory-reflected-importer"
+        reflected_result = build_inventory(self.root, reflected_output)
+        self.assertIn("python_source_import_closure",
+                      reflected_result["missing_required_slots"])
+
+    def test_registered_script_with_repo_root_name_collision_fails_closed(self):
+        importer = self.root / "scripts" / "audit_nextgqa_actual_qa_source_binding.py"
+        importer.write_text(
+            "from nextgqa_actual_qa_source_adapter import build_actual_qa_source\n",
+            encoding="utf-8")
+        (self.root / "nextgqa_actual_qa_source_adapter.py").write_text(
+            "# ambiguous repository-root module\n", encoding="utf-8")
+        output = self.root / PRIVATE_ROOT / "inventory-root-collision"
+        result = build_inventory(self.root, output)
+        self.assertIn("python_source_import_closure", result["missing_required_slots"])
+        self.assertEqual(result["status"], "candidate_only")
+        self.assertFalse(result["joint_freeze"])
+        self.assertFalse(result["score_ready"])
+        self.assertEqual(result["execution_authorization"], "not_granted")
+
+    def test_imports_already_in_inventory_keep_closure_complete(self):
+        scripts = self.root / "scripts"
+        (scripts / "audit_nextgqa_actual_qa_source_binding.py").write_text(
+            "from nextgqa_actual_qa_source_adapter import build_actual_qa_source\n",
+            encoding="utf-8")
+        output = self.root / PRIVATE_ROOT / "inventory-complete-import"
+        result = build_inventory(self.root, output)
+        self.assertNotIn("python_source_import_closure", result["missing_required_slots"])
+        self.assertEqual(result["missing_required_slots"], [])
+
+    def test_unsupported_relative_or_package_imports_block_inventory(self):
+        scripts = self.root / "scripts"
+        importer = scripts / "audit_nextgqa_actual_qa_source_binding.py"
+        importer.write_text("from .relative_helper import build\n", encoding="utf-8")
+        relative_output = self.root / PRIVATE_ROOT / "inventory-relative-import"
+        relative_result = build_inventory(self.root, relative_output)
+        self.assertIn("python_source_import_closure",
+                      relative_result["missing_required_slots"])
+
+        importer.write_text("from inventory_helper import build\n", encoding="utf-8")
+        package = scripts / "inventory_helper"
+        package.mkdir()
+        (package / "__init__.py").write_text("def build(): pass\n", encoding="utf-8")
+        package_output = self.root / PRIVATE_ROOT / "inventory-package-import"
+        package_result = build_inventory(self.root, package_output)
+        self.assertIn("python_source_import_closure",
+                      package_result["missing_required_slots"])
 
     def test_media_hash_or_basename_difference_is_missing_slot_not_pass(self):
         (self.staged / self.media_names[0]).write_bytes(b"changed synthetic video bytes")

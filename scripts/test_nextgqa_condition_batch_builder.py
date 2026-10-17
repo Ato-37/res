@@ -42,10 +42,12 @@ def source_records():
 
 
 class FakeProcessor:
-    def __init__(self, perturb_nonmask_call=None, bad_prefix=False):
+    def __init__(self, perturb_nonmask_call=None, bad_prefix=False,
+                 identical_pixels=False):
         self.calls = 0
         self.perturb_nonmask_call = perturb_nonmask_call
         self.bad_prefix = bad_prefix
+        self.identical_pixels = identical_pixels
         self.template_calls = 0
 
     def apply_chat_template(self, messages, tokenize, add_generation_prompt):
@@ -68,6 +70,8 @@ class FakeProcessor:
         if self.perturb_nonmask_call == self.calls:
             ids[0] = (ids[0] + 1) % 251
         pixels = videos[0]
+        if self.identical_pixels:
+            pixels = torch.zeros_like(pixels)
         return {
             "input_ids": torch.tensor([ids], dtype=torch.int64),
             "attention_mask": torch.ones((1, len(ids)), dtype=torch.int64),
@@ -80,11 +84,13 @@ class FakeProcessor:
 
 
 class FakeVisionInfo:
-    def __init__(self, bad_fps=False, reorder_pixels=False, flip_pixels=False):
+    def __init__(self, bad_fps=False, reorder_pixels=False, flip_pixels=False,
+                 alternate_shape=None):
         self.calls = 0
         self.bad_fps = bad_fps
         self.reorder_pixels = reorder_pixels
         self.flip_pixels = flip_pixels
+        self.alternate_shape = alternate_shape
 
     def __call__(self, messages, return_video_metadata):
         self.calls += 1
@@ -96,6 +102,12 @@ class FakeVisionInfo:
             fps += 1
         from qwen_vl_utils.vision_process import fetch_video
         pixels, metadata = fetch_video(video, return_video_metadata=True)
+        if self.alternate_shape is not None:
+            from torchvision.transforms import InterpolationMode
+            from torchvision.transforms.functional import resize
+            pixels = resize(pixels, list(self.alternate_shape),
+                            interpolation=InterpolationMode.BICUBIC,
+                            antialias=True)
         if self.reorder_pixels:
             pixels = pixels.flip(0)
         if self.flip_pixels:
@@ -163,6 +175,14 @@ class NextgqaConditionBatchBuilderTests(unittest.TestCase):
             build_exact_triplet_batches(records=source_records(), processor=processor,
                                         vision_info_fn=FakeVisionInfo())
 
+    def test_identical_processed_condition_pixels_block_batch(self):
+        processor = FakeProcessor(identical_pixels=True)
+        with self.assertRaisesRegex(ValueError,
+                                   "condition_pixel_tensors_not_distinct"):
+            build_exact_triplet_batches(records=source_records(), processor=processor,
+                                        vision_info_fn=FakeVisionInfo())
+        self.assertEqual(processor.calls, 9)
+
     def test_prefix_or_video_geometry_mismatch_blocks_result(self):
         with self.assertRaisesRegex(ValueError, "condition_prompt_mismatch"):
             build_exact_triplet_batches(records=source_records(),
@@ -179,6 +199,17 @@ class NextgqaConditionBatchBuilderTests(unittest.TestCase):
                 build_exact_triplet_batches(records=source_records(), processor=processor,
                                             vision_info_fn=vision)
             self.assertEqual(processor.calls, 0)
+
+    def test_alternate_but_budget_valid_resize_fails_before_processor_call(self):
+        processor = FakeProcessor()
+        # The synthetic source is 8x8, which the pinned utility first raises
+        # to its 128-token/frame minimum. 364x364 remains a valid 28-multiple
+        # within that frame budget but is not the utility-derived target.
+        vision = FakeVisionInfo(alternate_shape=(364, 364))
+        with self.assertRaisesRegex(ValueError, "frame_pixel_identity_mismatch"):
+            build_exact_triplet_batches(records=source_records(), processor=processor,
+                                        vision_info_fn=vision)
+        self.assertEqual(processor.calls, 0)
 
 
 if __name__ == "__main__":

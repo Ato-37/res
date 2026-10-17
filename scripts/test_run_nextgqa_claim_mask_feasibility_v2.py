@@ -92,6 +92,7 @@ class AtomicPreflightTests(unittest.TestCase):
         self.assertIsNone(report["D3"])
         self.assertFalse(report["production_ready"])
         self.assertEqual(report["execution_authorization"], "not_granted")
+
         # The prompt tokens and temporal/grid metadata are invariant across
         # interventions; only the pixels are expected to change.
         for row in self.candidate["records"]:
@@ -123,6 +124,36 @@ class AtomicPreflightTests(unittest.TestCase):
         self.assertEqual(report["model_forwards"], 0)
         self.assertEqual(report["score_calls"], 0)
         self.assertIsNone(report["D3"])
+
+    def test_condition_pixel_hashes_must_differ_within_each_row(self):
+        candidate = make_candidate(self.protocol_raw)
+        shared_hash = digest("identical condition pixels")
+        for condition in CONDITIONS:
+            candidate["records"][1]["condition_input_hashes"][condition][
+                "pixel_values_sha256"] = shared_hash
+        report = self.run_fixture(candidate)
+        self.assertEqual(report["failure_codes"], [
+            "record_2_condition_pixel_hashes_not_distinct"])
+        self.assertEqual(report["model_loads"], 0)
+        self.assertEqual(report["model_forwards"], 0)
+        self.assertEqual(report["score_calls"], 0)
+        self.assertIsNone(report["D3"])
+        self.assertFalse(report["production_ready"])
+        self.assertEqual(report["execution_authorization"], "not_granted")
+
+        pair_duplicate = make_candidate(self.protocol_raw)
+        pair_hash = digest("two identical condition pixels")
+        pair_duplicate["records"][0]["condition_input_hashes"]["full"][
+            "pixel_values_sha256"] = pair_hash
+        pair_duplicate["records"][0]["condition_input_hashes"][
+            "claim_evidence_black"]["pixel_values_sha256"] = pair_hash
+        pair_report = self.run_fixture(pair_duplicate)
+        self.assertEqual(pair_report["failure_codes"], [
+            "record_1_condition_pixel_hashes_not_distinct"])
+        self.assertEqual(pair_report["model_loads"], 0)
+        self.assertEqual(pair_report["model_forwards"], 0)
+        self.assertEqual(pair_report["score_calls"], 0)
+        self.assertIsNone(pair_report["D3"])
 
     def test_late_third_row_failure_has_zero_calls_and_null_d3(self):
         candidate = make_candidate(self.protocol_raw)

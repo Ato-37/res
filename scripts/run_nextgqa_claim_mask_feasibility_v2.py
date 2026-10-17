@@ -183,6 +183,7 @@ def validate_synthetic_candidate(
                 or set(condition_hashes) != set(CONDITIONS)):
             return _blocked(f"{code_prefix}_condition_set_invalid")
         shared_nonmask_hashes: dict[str, str] | None = None
+        pixel_hashes: set[str] = set()
         for condition in CONDITIONS:
             hashes = condition_hashes.get(condition)
             if (not isinstance(hashes, dict) or set(hashes) != CONDITION_HASH_KEYS
@@ -196,6 +197,9 @@ def validate_synthetic_candidate(
                 shared_nonmask_hashes = nonmask_hashes
             elif nonmask_hashes != shared_nonmask_hashes:
                 return _blocked(f"{code_prefix}_nonmask_condition_binding_mismatch")
+            pixel_hashes.add(hashes["pixel_values_sha256"])
+        if len(pixel_hashes) != len(CONDITIONS):
+            return _blocked(f"{code_prefix}_condition_pixel_hashes_not_distinct")
 
     # This only establishes that a synthetic envelope satisfies its own
     # declared shape. No real evidence schema is defined/authenticated here.

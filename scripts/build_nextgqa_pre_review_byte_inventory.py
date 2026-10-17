@@ -1,13 +1,16 @@
 #!/usr/bin/env python3
 """Build a local-only, non-authorizing inventory of pre-review input bytes.
 
-This records hashes and sizes only. It never parses or renders review material,
-reads video frames, verifies human review, freezes a protocol, or authorizes
-scoring. Every output remains a pre-review candidate inventory.
+The inventory contains hashes and sizes only. The builder statically parses
+Python imports from registered source files to detect unregistered local
+dependencies; it never parses or renders review material, reads video frames,
+verifies human review, freezes a protocol, or authorizes scoring. Every output
+remains a pre-review candidate inventory.
 """
 from __future__ import annotations
 
 import argparse
+import ast
 import hashlib
 import json
 import os
@@ -53,7 +56,14 @@ CODE_FILES = {
     "claim_video_mapping_audit": "scripts/audit_nextgqa_video_mapping.py",
     "claim_mapping_packet_builder": "scripts/build_nextgqa_claim_mapping_packet.py",
     "claim_mapping_manifest_audit": "scripts/audit_claim_mapping_manifest.py",
+    "actual_qa_source_adapter": "scripts/nextgqa_actual_qa_source_adapter.py",
     "actual_qa_source_audit": "scripts/audit_nextgqa_actual_qa_source_binding.py",
+    "annotation_clock_calibration": "scripts/annotation_clock_calibration.py",
+    "claim_input_manifest_builder": "scripts/build_claim_input_manifest.py",
+    "claim_text_quality": "scripts/claim_text_quality.py",
+    "necessity_choice_margin_utils": "scripts/necessity_choice_margin_utils.py",
+    "presentation_time_utils": "scripts/presentation_time_utils.py",
+    "private_output_paths": "scripts/private_output_paths.py",
     "claim_bundle_builder": "scripts/build_nextgqa_v2_claim_input_bundle.py",
     "clock_anchor_plan_builder": "scripts/build_nextgqa_clock_anchor_plan.py",
     "clock_plan_provenance_builder": "scripts/bind_html5_clock_calibration_provenance.py",
@@ -84,6 +94,7 @@ PRIVATE_DIR_MODES = {
 }
 PRIVATE_FILE_MODE = 0o600
 _MP4 = re.compile(r".+\.mp4\Z", re.IGNORECASE)
+_PY_MODULE = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")
 _FILE_FLAGS = os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0)
 _DIR_FLAGS = os.O_RDONLY | getattr(os, "O_DIRECTORY", 0) | getattr(os, "O_NOFOLLOW", 0)
 
@@ -180,6 +191,193 @@ def _directory_files(root_fd: int, relative: Path) -> dict[str, dict[str, Any]]:
         os.close(fd)
 
 
+def _read_code_source(root_fd: int, relative: Path) -> bytes:
+    """Read a bounded, owned, no-follow Python source file under the repo."""
+    parent = _open_dir(root_fd, relative.parent)
+    try:
+        fd = os.open(relative.name, _FILE_FLAGS, dir_fd=parent)
+    finally:
+        os.close(parent)
+    try:
+        before = os.fstat(fd)
+        if (not stat.S_ISREG(before.st_mode) or before.st_uid != os.geteuid()
+                or before.st_size > 10 * 1024 * 1024):
+            raise OSError("source_file_invalid")
+        chunks = []
+        size = 0
+        while True:
+            chunk = os.read(fd, 1024 * 1024)
+            if not chunk:
+                break
+            size += len(chunk)
+            if size > 10 * 1024 * 1024:
+                raise OSError("source_file_too_large")
+            chunks.append(chunk)
+        after = os.fstat(fd)
+        if (size != before.st_size or after.st_size != before.st_size
+                or after.st_ino != before.st_ino or after.st_mtime_ns != before.st_mtime_ns
+                or after.st_ctime_ns != before.st_ctime_ns):
+            raise OSError("source_file_changed")
+        return b"".join(chunks)
+    finally:
+        os.close(fd)
+
+
+def _python_import_closure_unmapped(root_fd: int, code_paths: set[Path]) -> bool:
+    """Detect unbound imports in the current flat ``scripts/*.py`` source set.
+
+    Relative imports, namespace-package access, and ``scripts/<package>/``
+    layouts are unsupported and fail closed. Imports that could resolve to a
+    repository-root module outside ``scripts/`` also fail closed. The static
+    walk resolves literal calls to recognized ``__import__`` and
+    ``import_module`` forms and fails closed on nonliteral targets, aliases,
+    and direct reflective lookup of those importers. It does not analyze
+    arbitrary reflection. Subprocess/runpy targets and non-Python runtime
+    dependencies still require explicit inventory roles.
+    """
+    role_paths = {Path(value) for value in CODE_FILES.values()
+                  if Path(value).suffix == ".py"}
+    if not role_paths.issubset(code_paths):
+        return True
+    module_paths = {path.stem: path for path in role_paths}
+    repo_root_names = set(os.listdir(root_fd))
+    queue = list(role_paths)
+    visited: set[Path] = set()
+    unmapped = False
+    while queue:
+        source_path = queue.pop()
+        if source_path in visited:
+            continue
+        visited.add(source_path)
+        try:
+            source = _read_code_source(root_fd, source_path)
+            tree = ast.parse(source.decode("utf-8"), filename=source_path.as_posix())
+        except (OSError, UnicodeError, SyntaxError, RecursionError, ValueError):
+            unmapped = True
+            continue
+        imports: set[str] = set()
+        importlib_names = {"importlib"}
+        dynamic_import_names = {"__import__"}
+        parents = {id(child): node for node in ast.walk(tree)
+                   for child in ast.iter_child_nodes(node)}
+        for node in ast.walk(tree):
+            if isinstance(node, ast.Import):
+                for alias in node.names:
+                    if alias.name == "scripts":
+                        # Importing the namespace package permits attribute
+                        # access to modules without a literal submodule import.
+                        unmapped = True
+                    else:
+                        imports.add(alias.name)
+                        if alias.name == "importlib" or alias.name.startswith("importlib."):
+                            importlib_names.add(alias.asname or "importlib")
+            elif isinstance(node, ast.ImportFrom):
+                if node.level != 0:
+                    unmapped = True
+                elif node.module == "scripts":
+                    # ``from scripts import local_module`` may load a flat
+                    # repository script; resolving its attributes statically
+                    # is ambiguous, so fail closed instead of skipping it.
+                    unmapped = True
+                elif node.module:
+                    if node.module == "importlib":
+                        dynamic_import_names.update(
+                            alias.asname or alias.name for alias in node.names
+                            if alias.name == "import_module")
+                    elif node.module == "builtins":
+                        dynamic_import_names.update(
+                            alias.asname or alias.name for alias in node.names
+                            if alias.name == "__import__")
+                    else:
+                        imports.add(node.module)
+            elif isinstance(node, ast.Call):
+                dynamic_call = False
+                function = node.func
+                if isinstance(function, ast.Name):
+                    dynamic_call = function.id in dynamic_import_names
+                elif isinstance(function, ast.Attribute):
+                    dynamic_call = (function.attr == "__import__"
+                                    or (function.attr == "import_module"
+                                        and (not isinstance(function.value, ast.Name)
+                                             or function.value.id in importlib_names)))
+                elif isinstance(function, ast.Call):
+                    lookup = function
+                    dynamic_call = (
+                        isinstance(lookup.func, ast.Name)
+                        and lookup.func.id == "getattr"
+                        and len(lookup.args) >= 2
+                        and isinstance(lookup.args[1], ast.Constant)
+                        and lookup.args[1].value in {"import_module", "__import__"})
+                if dynamic_call:
+                    if (node.args and isinstance(node.args[0], ast.Constant)
+                            and isinstance(node.args[0].value, str)):
+                        imports.add(node.args[0].value)
+                    else:
+                        unmapped = True
+                if (isinstance(function, ast.Name) and function.id == "getattr"
+                        and len(node.args) >= 2
+                        and isinstance(node.args[1], ast.Constant)
+                        and node.args[1].value in {"import_module", "__import__"}):
+                    # A retrieved importer may be aliased before invocation.
+                    unmapped = True
+            elif isinstance(node, ast.Name) and node.id in dynamic_import_names:
+                parent = parents.get(id(node))
+                if not (isinstance(parent, ast.Call) and parent.func is node):
+                    unmapped = True
+            elif isinstance(node, ast.Attribute) and node.attr in {
+                    "import_module", "__import__"}:
+                parent = parents.get(id(node))
+                if not (isinstance(parent, ast.Call) and parent.func is node):
+                    unmapped = True
+        for imported in imports:
+            if imported.startswith("."):
+                unmapped = True
+                continue
+            script_qualified = imported.startswith("scripts.")
+            if script_qualified:
+                imported = imported[len("scripts."):]
+            module = imported.split(".", 1)[0]
+            if not _PY_MODULE.fullmatch(module):
+                continue
+            candidate = module_paths.get(module, Path("scripts") / (module + ".py"))
+            if candidate.parent != Path("scripts"):
+                continue
+            if candidate in role_paths:
+                if (not script_qualified
+                        and (module + ".py" in repo_root_names
+                             or module in repo_root_names)):
+                    # With repo root on sys.path this could resolve to a
+                    # different local module than the registered script.
+                    unmapped = True
+                continue
+            parent_fd = _open_dir(root_fd, Path("scripts"))
+            try:
+                names = os.listdir(parent_fd)
+                exists = candidate.name in names
+                package_exists = module in names
+            finally:
+                os.close(parent_fd)
+            if not exists:
+                if package_exists:
+                    unmapped = True
+                elif not script_qualified:
+                    # A same-named root file/directory may be importable when
+                    # this code is loaded as a package or with repo root on
+                    # sys.path. Do not silently classify that as third-party.
+                    if module + ".py" in repo_root_names or module in repo_root_names:
+                        unmapped = True
+                continue  # ordinary third-party import
+            try:
+                _read_code_source(root_fd, candidate)
+            except OSError:
+                unmapped = True
+                continue
+            unmapped = True
+            module_paths[module] = candidate
+            queue.append(candidate)
+    return unmapped
+
+
 def _artifact(role: str, item: dict[str, Any]) -> dict[str, Any]:
     return {"role": role, "size_bytes": item["size_bytes"], "sha256": item["sha256"]}
 
@@ -213,13 +411,19 @@ def build_inventory(repo_root: Path, output_dir: Path) -> dict[str, Any]:
             else:
                 artifacts.append(_artifact(role, item))
 
+        hashed_code_paths: set[Path] = set()
         for role, relative_text in CODE_FILES.items():
+            relative = Path(relative_text)
             try:
-                item = _hash_file(root_fd, Path(relative_text), private=False)
+                item = _hash_file(root_fd, relative, private=False)
             except OSError:
                 missing.add(role)
             else:
                 artifacts.append(_artifact(role, item))
+                hashed_code_paths.add(relative)
+
+        if _python_import_closure_unmapped(root_fd, hashed_code_paths):
+            missing.add("python_source_import_closure")
 
         package_files: dict[str, dict[str, Any]] = {}
         staged_files: dict[str, dict[str, Any]] = {}

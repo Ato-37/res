@@ -17,6 +17,7 @@ from typing import Any
 CONDITIONS = ("full", "claim_evidence_black", "temporal_control_black")
 ROW_COUNT = 3
 _FINITE_CHECK_CHUNK_ELEMENTS = 1_048_576
+_PIXEL_BATCH_KEYS = ("pixel_values_videos", "pixel_values")
 
 
 class PreflightError(ValueError):
@@ -324,6 +325,15 @@ def freeze_all_batches(*, triplets: Any, token_ids: Any,
             digest = batch_sha256(cpu_batch)
             cpu_batches[condition] = cpu_batch
             observed_hashes.setdefault(record_id, {})[condition] = digest
+        pixel_hashes = []
+        for condition in CONDITIONS:
+            batch = cpu_batches[condition]
+            pixel_keys = [key for key in _PIXEL_BATCH_KEYS if key in batch]
+            if len(pixel_keys) != 1:
+                _fail(f"record_{row_pos}_{condition}_pixel_tensor_missing_or_ambiguous")
+            pixel_hashes.append(batch_sha256({pixel_keys[0]: batch[pixel_keys[0]]}))
+        if len(set(pixel_hashes)) != len(CONDITIONS):
+            _fail(f"record_{row_pos}_condition_pixel_tensors_not_distinct")
         # Match the exact input contract of nextgqa_claim_mask_scoring.py;
         # identities are carried separately in the frozen envelope.
         materialized.append({"gold_index": gold_index,

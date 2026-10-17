@@ -82,8 +82,14 @@ def _nonmask_descriptors(manifest_row: Mapping[str, Any], row_index: int) -> dic
     return result
 
 
-def _expected_qwen_video_pixels(frames, output_shape, *, torch_module, numpy_module):
-    """Reconstruct Qwen's exact resize path from the caller's ordered RGB frames."""
+def _expected_qwen_video_pixels(frames, *, torch_module, numpy_module):
+    """Reconstruct pinned qwen-vl-utils frame and video resize policies.
+
+    In particular, derive output geometry from the source frames and the
+    installed utility's fixed video pixel budget. Never trust the returned
+    vision tensor's own shape as the expectation, since that would let an
+    alternate resize silently validate itself.
+    """
     try:
         from qwen_vl_utils import vision_process
         from torchvision.transforms import InterpolationMode
@@ -102,7 +108,19 @@ def _expected_qwen_video_pixels(frames, output_shape, *, torch_module, numpy_mod
     ])
     if len(frames) % vision_process.FRAME_FACTOR:
         raise ValueError("qwen_video_frame_factor_mismatch")
-    return resize(raw, list(output_shape), interpolation=InterpolationMode.BICUBIC,
+    nframes = int(raw.shape[0])
+    min_pixels = vision_process.VIDEO_MIN_TOKEN_NUM * image_factor ** 2
+    total_pixels = vision_process.MODEL_SEQ_LEN * image_factor ** 2 * 0.9
+    max_pixels = max(
+        min(vision_process.VIDEO_MAX_TOKEN_NUM * image_factor ** 2,
+            total_pixels / nframes * vision_process.FRAME_FACTOR),
+        int(min_pixels * 1.05),
+    )
+    height, width = (int(raw.shape[-2]), int(raw.shape[-1]))
+    expected_shape = vision_process.smart_resize(
+        height, width, factor=image_factor,
+        min_pixels=min_pixels, max_pixels=max_pixels)
+    return resize(raw, list(expected_shape), interpolation=InterpolationMode.BICUBIC,
                   antialias=True).float()
 
 
@@ -164,8 +182,8 @@ def build_exact_triplet_batches(*, records: Any, processor: Any,
                         or abs(float(video_metadata["fps"]) - expected_fps) > 1e-9):
                     raise ValueError(f"record_{row_index}_{condition}_video_geometry_invalid")
                 expected_pixels = _expected_qwen_video_pixels(
-                    row["conditions"][condition], pixels.shape[-2:],
-                    torch_module=torch, numpy_module=np)
+                    row["conditions"][condition], torch_module=torch,
+                    numpy_module=np)
                 if expected_pixels.shape != pixels.shape or not torch.equal(expected_pixels, pixels):
                     raise ValueError(f"record_{row_index}_{condition}_frame_pixel_identity_mismatch")
             except ImportError:
@@ -196,6 +214,19 @@ def build_exact_triplet_batches(*, records: Any, processor: Any,
         if len({json.dumps(value, sort_keys=True, separators=(",", ":"))
                 for value in nonmask.values()}) != 1:
             raise ValueError(f"record_{row_index}_nonmask_processor_input_changed")
+        pixel_descriptors = {
+            condition: manifest_row["conditions"][condition]["items"][_VARYING_BATCH_KEY]
+            for condition in CONDITIONS
+        }
+        pixel_hashes = {
+            descriptor.get("tensor_sha256")
+            for descriptor in pixel_descriptors.values()
+            if isinstance(descriptor, Mapping)
+        }
+        if (len(pixel_hashes) != len(CONDITIONS)
+                or any(not isinstance(value, str) or len(value) != 64
+                       for value in pixel_hashes)):
+            raise ValueError(f"record_{row_index}_condition_pixel_tensors_not_distinct")
 
     return {
         "status": "condition_batches_constructed_unvalidated",

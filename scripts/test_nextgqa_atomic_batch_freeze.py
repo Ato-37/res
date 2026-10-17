@@ -52,7 +52,8 @@ def fixture():
         batches = {
             condition: FakeBatch({
                 "input_ids": FakeTensor([1, 2, row_pos], dtype="int64"),
-                "pixel_values": FakeTensor([0.1, 0.2, 0.3 + row_pos],
+                "pixel_values": FakeTensor([
+                    0.1, 0.2, 0.3 + row_pos + CONDITIONS.index(condition)],
                                             shape=[1, 3]),
                 "video_metadata": [row_pos, 32],
             })
@@ -80,7 +81,7 @@ class AtomicBatchFreezeTests(unittest.TestCase):
         def gate():
             events.append("final_gate")
             self.assertEqual(FakeBatch.to_calls, 9)
-            self.assertEqual(events.count("batch_hash"), 9)
+            self.assertEqual(events.count("batch_hash"), 18)
             return True
 
         def precheck():
@@ -100,7 +101,23 @@ class AtomicBatchFreezeTests(unittest.TestCase):
         validate_scoring_inputs(result["triplets"], result["token_ids"])
         self.assertEqual(events[0], "precheck")
         self.assertEqual(events[-1], "final_gate")
-        self.assertEqual(events.count("batch_hash"), 9)
+        self.assertEqual(events.count("batch_hash"), 18)
+
+    def test_identical_condition_pixels_block_before_authenticated_gate(self):
+        rows, hashes = fixture()
+        shared = FakeTensor([0.1, 0.2, 0.3], shape=[1, 3])
+        for condition in CONDITIONS:
+            rows[0]["batches"][condition]["pixel_values"] = shared
+            hashes["r1"][condition] = batch_sha256(rows[0]["batches"][condition])
+        FakeBatch.to_calls = 0
+        with self.assertRaisesRegex(PreflightError,
+                                   "record_1_condition_pixel_tensors_not_distinct"):
+            freeze_all_batches(
+                triplets=rows, token_ids=[11, 12, 13, 14, 15],
+                expected_record_ids=["r1", "r2", "r3"],
+                expected_batch_hashes=hashes, upstream_precheck=lambda: True,
+                authenticated_gate_check=lambda: self.fail("final gate ran"))
+        self.assertEqual(FakeBatch.to_calls, 3)
 
     def test_failed_upstream_precheck_skips_all_batch_materialization(self):
         rows, hashes = fixture()
