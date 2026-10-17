@@ -155,6 +155,24 @@ validator CLI now exist, but no real baseline/receipt/source bundle exists and
 the validator is not connected to the production scorer or a cohort-wide
 release/review/clock preflight.
 
+The CPU-only `qta_prescore_mapping_binding.py` join defines the review
+interval-list digest as SHA-256 over canonical UTF-8 JSON containing ordered,
+reduced-rational endpoint pairs (for example `[["1/10","2/5"]]`). It
+recomputes that digest from the first-stage review row, requires the external
+review-payload digest and prior review receipt, applies the frozen player-to-PTS
+inverse, and checks that mapped endpoints fall within the observed anchor span.
+It recomputes a canonical rational calibration-payload hash over source-video
+hash, slope/intercept, anchor bounds, and guard, then compares each scalar with
+the mapping values. It also compares exact PTS intervals, baseline
+question/options/claim source digests, processor batch/sampling hashes, and
+independent pins for the temporal grid and evidence/control group assignments
+across the three fixed rows; out-of-range groups fail closed. A mismatch blocks
+the whole requested three-row set. This remains a structural join over
+caller-supplied audit outputs and independently pinned hashes; it authenticates
+none of them and always returns `model_load_permitted=false`,
+`branch_forwards=0`, and `execution_authorization=not_granted`, even when all
+rows agree. No production runner currently supplies this complete bundle.
+
 All outcome branches use the **same original full-video processor batch**.
 `evidence_ablation` and `control_ablation` are not black-frame input masks:
 they set the chosen visual-key entries to `-inf` only on the fixed answer-query

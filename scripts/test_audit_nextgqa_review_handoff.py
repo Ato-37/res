@@ -132,6 +132,32 @@ class AuditNextgqaReviewHandoffTests(unittest.TestCase):
         result = audit(v[0], v[1], v[2], v[3], review, encode(review), v[6], v[7], hashlib.sha256(v[3]).hexdigest())
         self.assertIn("review_intervals_invalid", result["failure_codes"])
 
+    def test_exact_duplicate_interval_is_retained_and_structurally_accepted(self):
+        v = fixture()
+        review = json.loads(v[5])
+        item = review["records"][0]["review"]
+        item["evidence_intervals_seconds"] = [[1.001, 2.002], [1.001, 2.002]]
+        item["interval_rationales"] = ["first entry", "duplicate entry"]
+        review_raw = encode(review)
+        index = dict(v[6], review_payload_sha256=hashlib.sha256(review_raw).hexdigest())
+        result = audit(v[0], v[1], v[2], v[3], review, review_raw,
+                       index, encode(index), hashlib.sha256(v[3]).hexdigest())
+        self.assertEqual(result["status"], "unvalidated_handoff_structurally_valid")
+        self.assertEqual(result["reviewed_records"], 3)
+        self.assertEqual(review["records"][0]["review"]["evidence_intervals_seconds"],
+                         [[1.001, 2.002], [1.001, 2.002]])
+
+    def test_float_near_millisecond_is_rejected_without_tolerance_drift(self):
+        v = fixture()
+        review = json.loads(v[5])
+        review["records"][0]["review"]["evidence_intervals_seconds"] = [[1.0010000000000001, 2.002]]
+        review["records"][0]["review"]["interval_rationales"] = ["near-ms"]
+        review_raw = encode(review)
+        index = dict(v[6], review_payload_sha256=hashlib.sha256(review_raw).hexdigest())
+        result = audit(v[0], v[1], v[2], v[3], review, review_raw,
+                       index, encode(index), hashlib.sha256(v[3]).hexdigest())
+        self.assertIn("review_intervals_invalid", result["failure_codes"])
+
     def test_custody_checks_manifest_bindings_file_modes_and_actual_bytes(self):
         v = fixture()
         worksheet, worksheet_raw, lineage, lineage_raw = v[:4]

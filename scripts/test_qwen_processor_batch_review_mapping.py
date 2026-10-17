@@ -129,6 +129,7 @@ class ProcessorBatchReviewMappingTests(unittest.TestCase):
         self.assertEqual(stable["evidence_group_indices"], [0])
         self.assertEqual(stable["interval_boundary_guard_seconds"], 0.05)
         self.assertEqual(stable["reviewed_intervals_rational_seconds"], [["1/10", "2/5"]])
+        self.assertEqual(stable["interval_boundary_guard_rational_seconds"], "1/20")
         with self.assertRaisesRegex(ValueError,
                                     "calibration_guard_changes_group_assignment"):
             map_review_interval_from_processor_batch(**{

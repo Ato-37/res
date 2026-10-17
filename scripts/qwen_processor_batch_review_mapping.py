@@ -190,6 +190,7 @@ def map_review_interval_from_processor_batch(
                                         for interval in intervals],
         "reviewed_intervals_rational_seconds": [
             [str(value) for value in interval] for interval in intervals],
+        "interval_boundary_guard_rational_seconds": str(guard),
         "interval_boundary_guard_seconds": float(guard),
         "reviewed_interval_count": len(intervals),
         **({"reviewed_interval_seconds": [float(value) for value in intervals[0]]}

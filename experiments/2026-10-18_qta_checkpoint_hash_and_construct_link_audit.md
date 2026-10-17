@@ -302,3 +302,15 @@ suite passed 1,496/1,496 in 29.789 seconds. `compileall` and
 browser-to-decoder correspondences, calibration anchors, reviewer decisions,
 and any real-data score remain absent, so this code does not authorize model
 loading or support an empirical faithfulness claim.
+
+## Three-row pre-score mapping join hardening (2026-10-18)
+
+A CPU-only non-authorizing join was added in `scripts/qta_prescore_mapping_binding.py` to bind the existing review, calibration, processor-mapping, and baseline audit outputs for the fixed three-row cohort. It retains all three requested records on failure and always returns zero branch forwards and `execution_authorization=not_granted`.
+
+The join now recomputes the canonical ordered interval digest and player-to-PTS transformation; requires the externally pinned review-payload and review-receipt hashes; verifies a canonical rational calibration payload digest over source-video hash, slope/intercept, anchor span, and guard against both independent calibration pins and scalar clock values; checks exact processor batch and sampling-metadata pins; checks temporal indices against grid bounds and exact independently pinned evidence/control mappings; and compares question/options/claim digests with their per-token pins. `audit_nextgqa_review_handoff.py` now uses the same strict decimal millisecond-grid interpretation as the join, rejecting near-grid floats such as `1.0010000000000001`. Exact duplicate intervals remain recorded in order and are counted once by the downstream interval union mapper.
+
+Focused review/clock/batch-join tests passed 33/33. The full scripts suite passed 1,506/1,506 in 30.043 seconds; `compileall` and `git diff --check` passed. An independent code audit verified the calibration payload hash/value linkage and the externally pinned sampling/group mapping checks; the supplied pins themselves remain unauthenticated by this helper. These are structural regression results only.
+
+Faithfulness progress is unchanged: **0/3** independent video-claim reviews, **0/3** prediction-link adjudications, **0/3** scored, **0/15** player-to-decoder correspondences, and no real-data `ΔF`, confidence interval, or test. The local synthetic GPU runs remain numerical/engineering diagnostics and do not count as evidence of faithfulness improvement. Rights status remains unverified; protected inputs and derived outputs remain local.
+
+Next, integrate these joins into one fail-closed cohort preflight only after the exact trust-root/release and clock-receipt schemas are bound. Separately, the existing three video rows still require the independent human review and frame correspondences before any real-data baseline or treatment forward can be considered.

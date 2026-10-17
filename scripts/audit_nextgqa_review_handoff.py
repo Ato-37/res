@@ -14,6 +14,7 @@ import math
 import os
 from pathlib import Path
 import re
+from fractions import Fraction
 import stat
 from typing import Any
 
@@ -172,14 +173,21 @@ def audit(worksheet: Any, worksheet_raw: bytes, lineage: Any, lineage_raw: bytes
                 or len(intervals) != len(rationales) or (decision == "supports_claim" and not intervals)):
             failures.add("review_intervals_invalid"); continue
         previous_end = -1.0
+        seen_intervals = set()
         for span, rationale in zip(intervals, rationales, strict=True):
             if (not isinstance(span, list) or len(span) != 2
-                    or any(isinstance(x, bool) or not isinstance(x, (int, float)) or not math.isfinite(x) for x in span)
-                    or span[0] < 0 or span[1] <= span[0] or span[1] > duration or span[0] <= previous_end
-                    or any(abs(x * 1000 - round(x * 1000)) > 1e-6 for x in span)
+                    or any(isinstance(x, bool) or not isinstance(x, (int, float))
+                           or not math.isfinite(x) for x in span)):
+                failures.add("review_intervals_invalid"); break
+            pair = tuple(span)
+            duplicate = pair in seen_intervals
+            if (span[0] < 0 or span[1] <= span[0] or span[1] > duration
+                    or (not duplicate and span[0] <= previous_end)
+                    or any((Fraction(str(x)) * 1000).denominator != 1 for x in span)
                     or not isinstance(rationale, str) or not rationale.strip()):
                 failures.add("review_intervals_invalid"); break
-            previous_end = span[1]
+            seen_intervals.add(pair)
+            previous_end = max(previous_end, span[1])
     return {"status": "unvalidated_handoff_structurally_valid" if not failures else "invalid",
             "failure_codes": sorted(failures), "reviewed_records": 3 if not failures else 0,
             "execution_authorization": "not_granted", "semantic_review_authenticated": False,
