@@ -15,6 +15,8 @@ from audit_nextgqa_review_release_order import verify_review_release_order
 from nextgqa_completed_review_attestation import verify_attestation
 from render_nextgqa_claim_review_html import render as render_review_html
 
+MAX_PRIVATE_ARTIFACT_BYTES = 128 * 1024 * 1024
+
 
 def _pairs(pairs):
     result = {}
@@ -42,6 +44,8 @@ def _failure(exc: Exception) -> str:
 
 def _read_exact_source(value: bytes | str | Path, role: str) -> bytes:
     if isinstance(value, bytes):
+        if len(value) > MAX_PRIVATE_ARTIFACT_BYTES:
+            raise ValueError("artifact_file_size_exceeds_limit")
         return value
     if not isinstance(value, (str, Path)):
         raise ValueError("artifact_source_type_invalid")
@@ -50,14 +54,19 @@ def _read_exact_source(value: bytes | str | Path, role: str) -> bytes:
     try:
         before = os.fstat(fd)
         if (not stat.S_ISREG(before.st_mode) or before.st_uid != os.geteuid()
-                or stat.S_IMODE(before.st_mode) != 0o600):
+                or stat.S_IMODE(before.st_mode) != 0o600
+                or before.st_size < 1 or before.st_size > MAX_PRIVATE_ARTIFACT_BYTES):
             raise ValueError("artifact_file_invalid")
         chunks = []
-        while True:
-            chunk = os.read(fd, 1024 * 1024)
+        remaining = before.st_size
+        while remaining:
+            chunk = os.read(fd, min(1024 * 1024, remaining))
             if not chunk:
                 break
             chunks.append(chunk)
+            remaining -= len(chunk)
+        if remaining or os.read(fd, 1):
+            raise ValueError("artifact_changed_during_read")
         after = os.fstat(fd)
         if (after.st_size != before.st_size or after.st_ino != before.st_ino
                 or after.st_mtime_ns != before.st_mtime_ns
@@ -96,14 +105,19 @@ def _read_private_media_at(dir_fd: int, basename: str) -> tuple[bytes, tuple[int
     try:
         before = os.fstat(fd)
         if (not stat.S_ISREG(before.st_mode) or before.st_uid != os.geteuid()
-                or stat.S_IMODE(before.st_mode) != 0o600):
+                or stat.S_IMODE(before.st_mode) != 0o600
+                or before.st_size < 1 or before.st_size > MAX_PRIVATE_ARTIFACT_BYTES):
             raise ValueError("media_file_invalid")
         chunks = []
-        while True:
-            chunk = os.read(fd, 1024 * 1024)
+        remaining = before.st_size
+        while remaining:
+            chunk = os.read(fd, min(1024 * 1024, remaining))
             if not chunk:
                 break
             chunks.append(chunk)
+            remaining -= len(chunk)
+        if remaining or os.read(fd, 1):
+            raise ValueError("media_changed_during_read")
         after = os.fstat(fd)
         if (after.st_size != before.st_size or after.st_ino != before.st_ino
                 or after.st_mtime_ns != before.st_mtime_ns

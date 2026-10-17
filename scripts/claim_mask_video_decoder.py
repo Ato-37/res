@@ -65,8 +65,16 @@ def _seconds_fraction(value, label: str) -> Fraction:
     return result
 
 
-def _stream_and_decode(source):
+def _stream_and_decode(source, *, max_frames: int | None = None,
+                       max_pixels: int | None = None,
+                       max_side: int | None = None):
     """Decode one video stream in display order and return PTS metadata."""
+    if (max_frames is not None and (type(max_frames) is not int or max_frames < 1)):
+        raise ValueError("decode_frame_limit_invalid")
+    if (max_pixels is not None and (type(max_pixels) is not int or max_pixels < 1)):
+        raise ValueError("decode_pixel_limit_invalid")
+    if (max_side is not None and (type(max_side) is not int or max_side < 1)):
+        raise ValueError("decode_side_limit_invalid")
     source.seek(0)
     with av.open(source, mode="r") as container:
         streams = list(container.streams.video)
@@ -74,11 +82,27 @@ def _stream_and_decode(source):
             raise ValueError("video_stream_count_must_equal_one")
         stream = streams[0]
         stream.codec_context.thread_count = 1
+        if max_pixels is not None or max_side is not None:
+            codec_width = int(stream.codec_context.width or 0)
+            codec_height = int(stream.codec_context.height or 0)
+            if (codec_width > 0 and codec_height > 0
+                    and ((max_pixels is not None
+                          and codec_width * codec_height > max_pixels)
+                         or (max_side is not None
+                             and max(codec_width, codec_height) > max_side))):
+                raise ValueError("decoded_frame_pixel_limit_exceeded")
         pts_values: list[int] = []
         pixel_hashes: list[str] = []
         time_bases: set[Fraction] = set()
         pixel_specs: set[tuple[int, int, str]] = set()
         for frame in container.decode(stream):
+            if max_frames is not None and len(pts_values) >= max_frames:
+                raise ValueError("decoded_video_frame_limit_exceeded")
+            if max_pixels is not None and int(frame.width) * int(frame.height) > max_pixels:
+                raise ValueError("decoded_frame_pixel_limit_exceeded")
+            if (max_side is not None
+                    and max(int(frame.width), int(frame.height)) > max_side):
+                raise ValueError("decoded_frame_pixel_limit_exceeded")
             if getattr(frame, "is_corrupt", False):
                 raise ValueError("decoded_frame_marked_corrupt")
             if frame.pts is None:

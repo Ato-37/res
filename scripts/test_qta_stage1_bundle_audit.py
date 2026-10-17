@@ -317,6 +317,42 @@ class QtaStage1BundleAuditTests(unittest.TestCase):
         self.assertTrue(any(code.endswith(":media_path_changed_after_snapshot")
                             for code in result["failure_codes"]))
 
+    def test_bounded_source_read_rejects_early_eof_and_growth(self):
+        with tempfile.TemporaryDirectory() as root:
+            path = Path(root) / "private.json"
+            path.write_bytes(b"abcdef")
+            path.chmod(0o600)
+            for scenario, reads in (
+                    ("early_eof", [b"abc", b""]),
+                    ("growth", [b"abcdef", b"x"])):
+                with self.subTest(scenario=scenario), patch.object(
+                        stage1_module.os, "read", side_effect=reads):
+                    with self.assertRaisesRegex(ValueError,
+                                                "artifact_changed_during_read"):
+                        stage1_module._read_exact_source(path, "test")
+
+    def test_bounded_media_read_rejects_early_eof_and_growth(self):
+        with tempfile.TemporaryDirectory() as root:
+            media_dir = Path(root) / "media"
+            media_dir.mkdir(mode=0o700)
+            name = "A" * 24 + ".mp4"
+            path = media_dir / name
+            path.write_bytes(b"abcdef")
+            path.chmod(0o600)
+            dir_fd = stage1_module.os.open(
+                media_dir, stage1_module.os.O_RDONLY
+                | getattr(stage1_module.os, "O_DIRECTORY", 0)
+                | getattr(stage1_module.os, "O_NOFOLLOW", 0))
+            self.addCleanup(stage1_module.os.close, dir_fd)
+            for scenario, reads in (
+                    ("early_eof", [b"abc", b""]),
+                    ("growth", [b"abcdef", b"x"])):
+                with self.subTest(scenario=scenario), patch.object(
+                        stage1_module.os, "read", side_effect=reads):
+                    with self.assertRaisesRegex(ValueError,
+                                                "media_changed_during_read"):
+                        stage1_module._read_private_media_at(dir_fd, name)
+
     def test_invalid_worksheet_token_never_opens_sibling_private_file(self):
         worksheet = json.loads(self.worksheet_raw)
         worksheet["records"][0]["review_token"] = "../sentinel"

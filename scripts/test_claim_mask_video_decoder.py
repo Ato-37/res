@@ -1,14 +1,17 @@
 """Synthetic tests for the fail-closed two-pass PyAV decoder adapter."""
 from fractions import Fraction
+from io import BytesIO
 from pathlib import Path
+from types import SimpleNamespace
 import tempfile
 import unittest
 import os
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 from audit_qwen_pts_to_processor_cpu import encode_fixture
 from claim_mask_video_decoder import (
-    decode_sampled_video, decode_sampled_video_sets, verify_sampled_frame_pixels,
+    _stream_and_decode, decode_sampled_video, decode_sampled_video_sets,
+    verify_sampled_frame_pixels,
 )
 
 
@@ -32,6 +35,29 @@ class ClaimMaskVideoDecoderTests(unittest.TestCase):
         self.assertEqual(meta["annotation_clock_calibrated"], False)
         self.assertEqual(meta["execution_authorization"], "not_granted")
         verify_sampled_frame_pixels(frames, meta)
+
+    def test_stream_decoder_can_enforce_explicit_frame_and_pixel_limits(self):
+        with tempfile.TemporaryDirectory() as temp:
+            path = self.make_video(temp, range(7))
+            with path.open("rb") as source:
+                with self.assertRaisesRegex(ValueError, "decoded_video_frame_limit_exceeded"):
+                    _stream_and_decode(source, max_frames=3)
+            with path.open("rb") as source:
+                with self.assertRaisesRegex(ValueError, "decoded_frame_pixel_limit_exceeded"):
+                    _stream_and_decode(source, max_pixels=1)
+
+    def test_codec_dimensions_are_rejected_before_decode_when_over_limit(self):
+        import claim_mask_video_decoder as decoder
+        stream = SimpleNamespace(codec_context=SimpleNamespace(
+            width=320, height=240, thread_count=1))
+        container = MagicMock()
+        container.__enter__.return_value = container
+        container.streams = SimpleNamespace(video=[stream])
+        with patch.object(decoder.av, "open", return_value=container):
+            with self.assertRaisesRegex(ValueError, "decoded_frame_pixel_limit_exceeded"):
+                _stream_and_decode(BytesIO(b"synthetic"), max_pixels=100,
+                                   max_side=1000)
+        container.decode.assert_not_called()
 
     def test_nonzero_pts_origin_is_normalized_only_within_media_and_bound_to_pixels(self):
         with tempfile.TemporaryDirectory() as temp:

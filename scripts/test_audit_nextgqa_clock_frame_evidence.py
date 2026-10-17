@@ -6,10 +6,12 @@ from fractions import Fraction
 import hashlib
 import io
 import json
+import os
 from pathlib import Path
 import subprocess
 import tempfile
 import unittest
+from unittest.mock import patch
 
 import av
 from PIL import Image, ImageDraw
@@ -275,6 +277,11 @@ class ClockFrameEvidenceAuditTests(unittest.TestCase):
         return enc(signed)
 
     def _audit(self, evidence_raw=None, **kwargs):
+        write_capture_receipt = kwargs.pop("write_capture_receipt", True)
+        if write_capture_receipt:
+            capture_receipt_path = self.screenshot_dir / "capture_receipt.json"
+            capture_receipt_path.write_bytes(self.capture_receipt_raw)
+            capture_receipt_path.chmod(0o600)
         parameters = {
             "expected_plan_sha256": sha(self.plan_raw),
             "expected_plan_provenance_sha256": sha(self.provenance_raw),
@@ -348,6 +355,110 @@ class ClockFrameEvidenceAuditTests(unittest.TestCase):
         self.capture_receipt_raw = enc(receipt)
         with self.assertRaisesRegex(ValueError, "os_capture_screenshot_binding_mismatch"):
             self._audit(self._signed_evidence_raw())
+
+    def test_screenshot_file_must_be_unique_and_bound_to_each_anchor(self):
+        rows = [dict(row) for row in self.evidence]
+        shared_filename = rows[0]["screenshot_file"]
+        for row in rows:
+            row["screenshot_file"] = shared_filename
+        self.capture_receipt_raw = self._make_capture_receipt(rows)
+        with self.assertRaisesRegex(ValueError,
+                                    "screenshot_anchor_filename_binding_invalid"):
+            self._audit(self._signed_evidence_raw(rows))
+
+    def test_file_replacement_after_snapshot_fails_closed(self):
+        import audit_nextgqa_clock_frame_evidence as audit_module
+        original = audit_module._snapshot_private_directory
+
+        def snapshot_then_replace(path, expected_names, *, label, additional_names=None):
+            values, identities, directory_identity = original(
+                path, expected_names, label=label,
+                additional_names=additional_names)
+            if label == "screenshot":
+                filename = sorted(expected_names)[0]
+                (path / filename).write_bytes(values[filename] + b"changed-after-snapshot")
+                (path / filename).chmod(0o600)
+            return values, identities, directory_identity
+
+        with patch.object(audit_module, "_snapshot_private_directory",
+                          snapshot_then_replace):
+            with self.assertRaisesRegex(ValueError,
+                                        "screenshot_path_changed_after_snapshot"):
+                self._audit()
+
+    def test_new_directory_entry_after_snapshot_fails_closed(self):
+        import audit_nextgqa_clock_frame_evidence as audit_module
+        original = audit_module._snapshot_private_directory
+
+        def snapshot_then_add(path, expected_names, *, label, additional_names=None):
+            values, identities, directory_identity = original(
+                path, expected_names, label=label,
+                additional_names=additional_names)
+            if label == "screenshot":
+                extra = path / "late-extra.png"
+                extra.write_bytes(b"late entry")
+                extra.chmod(0o600)
+            return values, identities, directory_identity
+
+        with patch.object(audit_module, "_snapshot_private_directory", snapshot_then_add):
+            with self.assertRaisesRegex(
+                    ValueError, "screenshot_directory_contents_changed_after_snapshot"):
+                self._audit()
+
+    def test_snapshot_and_decode_resource_limits_fail_before_unbounded_work(self):
+        import audit_nextgqa_clock_frame_evidence as audit_module
+        with patch.object(audit_module, "MAX_SCREENSHOT_BYTES", 1):
+            with self.assertRaisesRegex(ValueError, "screenshot_file_size_exceeds_limit"):
+                self._audit()
+        with patch.object(audit_module, "MAX_STAGED_VIDEO_BYTES", 1):
+            with self.assertRaisesRegex(ValueError, "staged_media_file_size_exceeds_limit"):
+                self._audit()
+        with patch.object(audit_module, "MAX_SNAPSHOT_BYTES", 1):
+            with self.assertRaisesRegex(ValueError, "screenshot_snapshot_size_exceeds_limit"):
+                self._audit()
+        with patch.object(audit_module, "MAX_SCREENSHOT_PIXELS", 1):
+            with self.assertRaisesRegex(ValueError, "screenshot_dimensions_exceed_limit"):
+                self._audit()
+        with patch.object(audit_module, "MAX_DECODED_VIDEO_FRAMES", 1):
+            with self.assertRaisesRegex(ValueError, "decoded_video_frame_limit_exceeded"):
+                self._audit()
+
+    def test_capture_receipt_bytes_must_match_copy_in_screenshot_directory(self):
+        path = self.screenshot_dir / "capture_receipt.json"
+        path.write_bytes(b"different receipt bytes")
+        path.chmod(0o600)
+        with self.assertRaisesRegex(ValueError, "capture_receipt_file_byte_mismatch"):
+            self._audit(write_capture_receipt=False)
+
+    def test_bounded_reader_rejects_early_eof_and_growth_during_read(self):
+        import audit_nextgqa_clock_frame_evidence as audit_module
+        with tempfile.TemporaryDirectory() as temp:
+            directory = Path(temp) / "private"
+            directory.mkdir(mode=0o700)
+            path = directory / "item.bin"
+            path.write_bytes(b"four")
+            path.chmod(0o600)
+            real_read = os.read
+
+            def early_eof(fd, size):
+                if size == 4:
+                    return b""
+                return real_read(fd, size)
+
+            with patch.object(audit_module.os, "read", side_effect=early_eof):
+                with self.assertRaisesRegex(ValueError, "screenshot_file_changed_during_read"):
+                    audit_module._snapshot_private_directory(
+                        directory, {"item.bin"}, label="screenshot")
+
+            def injected_growth(fd, size):
+                if size == 1:
+                    return b"x"
+                return real_read(fd, size)
+
+            with patch.object(audit_module.os, "read", side_effect=injected_growth):
+                with self.assertRaisesRegex(ValueError, "screenshot_file_changed_during_read"):
+                    audit_module._snapshot_private_directory(
+                        directory, {"item.bin"}, label="screenshot")
 
     def test_capture_receipt_timing_is_independently_validated(self):
         receipt = json.loads(self.capture_receipt_raw)

@@ -27,6 +27,13 @@ from PIL import Image
 from claim_mask_video_decoder import _stream_and_decode
 from prepare_html5_clock_calibration_inputs import prepare_capture_bundle
 
+MAX_STAGED_VIDEO_BYTES = 128 * 1024 * 1024
+MAX_SCREENSHOT_BYTES = 40_000_000
+MAX_SNAPSHOT_BYTES = 768 * 1024 * 1024
+MAX_SCREENSHOT_PIXELS = 50_000_000
+MAX_IMAGE_SIDE = 12_000
+MAX_DECODED_VIDEO_FRAMES = 10_000
+
 SHA256 = re.compile(r"^[0-9a-f]{64}$")
 TOKEN = re.compile(r"^[A-Za-z0-9_-]{24}$")
 MAX_SCREENSHOT_EVENT_DELTA_MS = 250.0  # Candidate value; joint protocol must freeze it.
@@ -101,11 +108,102 @@ def _rgb_digest(image: Image.Image) -> str:
     return _sha(material)
 
 
-def _require_private_dir(path: Path) -> None:
-    info = path.lstat()
-    if (stat.S_ISLNK(info.st_mode) or not stat.S_ISDIR(info.st_mode)
-            or info.st_uid != os.geteuid() or stat.S_IMODE(info.st_mode) & 0o077):
-        raise ValueError("private_evidence_directory_invalid")
+def _snapshot_private_directory(path: Path, expected_names: set[str],
+                                *, label: str,
+                                additional_names: set[str] | None = None
+                                ) -> tuple[dict[str, bytes], dict[str, tuple], tuple]:
+    """Read exact leaves once through an owner-only directory descriptor."""
+    if (not isinstance(expected_names, set) or not expected_names
+            or any(not isinstance(name, str) or Path(name).name != name
+                   or name in {".", ".."} for name in expected_names)):
+        raise ValueError(label + "_names_invalid")
+    flags = os.O_RDONLY | getattr(os, "O_DIRECTORY", 0) | getattr(os, "O_NOFOLLOW", 0)
+    dir_fd = os.open(path, flags)
+    try:
+        before = os.fstat(dir_fd)
+        if (not stat.S_ISDIR(before.st_mode) or before.st_uid != os.geteuid()
+                or stat.S_IMODE(before.st_mode) & 0o077):
+            raise ValueError(label + "_directory_invalid")
+        additional_names = additional_names or set()
+        if (expected_names & additional_names
+                or any(not isinstance(name, str) or Path(name).name != name
+                       or name in {".", ".."} for name in additional_names)
+                or set(os.listdir(dir_fd)) != expected_names | additional_names):
+            raise ValueError(label + "_directory_contents_invalid")
+        directory_identity = (before.st_dev, before.st_ino, before.st_mode, before.st_uid)
+        values: dict[str, bytes] = {}
+        identities: dict[str, tuple] = {}
+        aggregate_bytes = 0
+        for name in sorted(expected_names | additional_names):
+            fd = os.open(name, os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0), dir_fd=dir_fd)
+            try:
+                info = os.fstat(fd)
+                if (not stat.S_ISREG(info.st_mode) or info.st_uid != os.geteuid()
+                        or stat.S_IMODE(info.st_mode) & 0o077):
+                    raise ValueError(label + "_file_invalid")
+                file_limit = (MAX_STAGED_VIDEO_BYTES if label == "staged_media"
+                              and name.endswith(".mp4") else MAX_SCREENSHOT_BYTES
+                              if label == "screenshot" else 20_000_000)
+                if info.st_size < 1 or info.st_size > file_limit:
+                    raise ValueError(label + "_file_size_exceeds_limit")
+                aggregate_bytes += info.st_size
+                if aggregate_bytes > MAX_SNAPSHOT_BYTES:
+                    raise ValueError(label + "_snapshot_size_exceeds_limit")
+                chunks = []
+                remaining = info.st_size
+                while remaining:
+                    chunk = os.read(fd, min(1024 * 1024, remaining))
+                    if not chunk:
+                        break
+                    chunks.append(chunk)
+                    remaining -= len(chunk)
+                if remaining or os.read(fd, 1):
+                    raise ValueError(label + "_file_changed_during_read")
+                after = os.fstat(fd)
+                if (after.st_size != info.st_size or after.st_ino != info.st_ino
+                        or after.st_mtime_ns != info.st_mtime_ns
+                        or after.st_ctime_ns != info.st_ctime_ns):
+                    raise ValueError(label + "_file_changed_during_read")
+                values[name] = b"".join(chunks)
+                identities[name] = (info.st_dev, info.st_ino, info.st_mode, info.st_uid,
+                                    info.st_size, info.st_mtime_ns, info.st_ctime_ns)
+            finally:
+                os.close(fd)
+        current = os.fstat(dir_fd)
+        if (current.st_dev, current.st_ino, current.st_mode, current.st_uid) != directory_identity:
+            raise ValueError(label + "_directory_changed_during_read")
+        return values, identities, directory_identity
+    finally:
+        os.close(dir_fd)
+
+
+def _verify_private_snapshot_still_current(path: Path, names: set[str],
+                                           file_identities: dict[str, tuple],
+                                           directory_identity: tuple,
+                                           *, label: str) -> None:
+    try:
+        directory = os.stat(path, follow_symlinks=False)
+        if (directory.st_dev, directory.st_ino, directory.st_mode, directory.st_uid) != directory_identity:
+            raise ValueError(label + "_directory_path_changed_after_snapshot")
+        dir_fd = os.open(path, os.O_RDONLY | getattr(os, "O_DIRECTORY", 0)
+                         | getattr(os, "O_NOFOLLOW", 0))
+        try:
+            opened_directory = os.fstat(dir_fd)
+            if (opened_directory.st_dev, opened_directory.st_ino,
+                    opened_directory.st_mode, opened_directory.st_uid) != directory_identity:
+                raise ValueError(label + "_directory_path_changed_after_snapshot")
+            if set(os.listdir(dir_fd)) != names:
+                raise ValueError(label + "_directory_contents_changed_after_snapshot")
+            for name in names:
+                info = os.stat(name, dir_fd=dir_fd, follow_symlinks=False)
+                observed = (info.st_dev, info.st_ino, info.st_mode, info.st_uid,
+                            info.st_size, info.st_mtime_ns, info.st_ctime_ns)
+                if observed != file_identities.get(name):
+                    raise ValueError(label + "_path_changed_after_snapshot")
+        finally:
+            os.close(dir_fd)
+    except OSError:
+        raise ValueError(label + "_path_changed_after_snapshot") from None
 
 
 def _verify_signature(public_key_raw: bytes, signed_raw: bytes, signature_b64: str) -> None:
@@ -271,9 +369,6 @@ def audit_evidence(*, plan_raw: bytes, provenance_raw: bytes,
         plan_by_token[row["review_token"]] = row
     if set(obs_by_token) != set(plan_by_token):
         raise ValueError("clock_observation_plan_token_set_mismatch")
-    _require_private_dir(media_dir)
-    _require_private_dir(screenshot_dir)
-
     expected_anchors: dict[tuple[str, str], Fraction] = {}
     event_by_key: dict[tuple[str, str], dict] = {}
     video_cache = {}
@@ -321,8 +416,41 @@ def audit_evidence(*, plan_raw: bytes, provenance_raw: bytes,
     records = evidence.get("records")
     if not isinstance(records, list) or len(records) != len(expected_anchors):
         raise ValueError("evidence_anchor_count_invalid")
+    expected_screenshot_names = {
+        f"{token}_{anchor_id}.png" for token, anchor_id in expected_anchors
+    }
+    observed_screenshot_names = []
+    observed_evidence_keys = []
+    for row in records:
+        if not isinstance(row, dict):
+            raise ValueError("evidence_record_schema_invalid")
+        token, anchor_id, filename = (row.get("review_token"), row.get("anchor_id"),
+                                      row.get("screenshot_file"))
+        if (not isinstance(token, str) or not isinstance(anchor_id, str)
+                or (token, anchor_id) not in expected_anchors
+                or filename != f"{token}_{anchor_id}.png"):
+            raise ValueError("screenshot_anchor_filename_binding_invalid")
+        observed_evidence_keys.append((token, anchor_id))
+        observed_screenshot_names.append(filename)
+    if (set(observed_evidence_keys) != set(expected_anchors)
+            or len(set(observed_evidence_keys)) != len(expected_anchors)):
+        raise ValueError("evidence_anchor_coverage_invalid")
+    if (set(observed_screenshot_names) != expected_screenshot_names
+            or len(set(observed_screenshot_names)) != len(expected_screenshot_names)):
+        raise ValueError("screenshot_anchor_reuse_or_coverage_invalid")
+    screenshot_snapshot_names = expected_screenshot_names | {"capture_receipt.json"}
+    screenshot_snapshot, screenshot_identities, screenshot_directory_identity = \
+        _snapshot_private_directory(screenshot_dir, expected_screenshot_names,
+                                    label="screenshot",
+                                    additional_names={"capture_receipt.json"})
+    if screenshot_snapshot["capture_receipt.json"] != capture_receipt_raw:
+        raise ValueError("capture_receipt_file_byte_mismatch")
+    expected_media_names = {token + ".mp4" for token in plan_by_token}
+    media_snapshot, media_identities, media_directory_identity = \
+        _snapshot_private_directory(media_dir, expected_media_names, label="staged_media")
     seen: set[tuple[str, str]] = set()
     capture_by_key = {}
+    capture_filenames = []
     for capture_row in capture_receipt["records"]:
         if not isinstance(capture_row, dict) or set(capture_row) != CAPTURE_RECORD_KEYS:
             raise ValueError("os_capture_record_schema_invalid")
@@ -362,6 +490,13 @@ def audit_evidence(*, plan_raw: bytes, provenance_raw: bytes,
                 or wx < vx or wy < vy or wx + ww > vx + vw or wy + wh > vy + vh):
             raise ValueError("os_capture_geometry_invalid")
         capture_by_key[capture_key] = (capture_row, capture_time)
+        expected_filename = f"{capture_token}_{capture_anchor}.png"
+        if capture_row.get("screenshot_file") != expected_filename:
+            raise ValueError("os_capture_screenshot_anchor_filename_mismatch")
+        capture_filenames.append(capture_row["screenshot_file"])
+    if (len(set(capture_filenames)) != len(expected_anchors)
+            or set(capture_filenames) != expected_screenshot_names):
+        raise ValueError("os_capture_screenshot_reuse_or_coverage_invalid")
     if set(capture_by_key) != set(expected_anchors):
         raise ValueError("os_capture_anchor_set_mismatch")
     decisions = []
@@ -395,12 +530,7 @@ def audit_evidence(*, plan_raw: bytes, provenance_raw: bytes,
         if (not isinstance(filename, str) or not filename or Path(filename).name != filename
                 or filename in {".", ".."}):
             raise ValueError("screenshot_filename_invalid")
-        screenshot_path = screenshot_dir / filename
-        info = screenshot_path.lstat()
-        if (stat.S_ISLNK(info.st_mode) or not stat.S_ISREG(info.st_mode)
-                or info.st_uid != os.geteuid() or stat.S_IMODE(info.st_mode) & 0o077):
-            raise ValueError("screenshot_file_invalid")
-        screenshot_raw = screenshot_path.read_bytes()
+        screenshot_raw = screenshot_snapshot[filename]
         if _sha(screenshot_raw) != row["screenshot_sha256"]:
             raise ValueError("screenshot_hash_mismatch")
         _utc(row["screenshot_captured_at_utc"])
@@ -416,6 +546,12 @@ def audit_evidence(*, plan_raw: bytes, provenance_raw: bytes,
             raise ValueError("screenshot_viewport_geometry_invalid")
         try:
             with Image.open(io.BytesIO(screenshot_raw)) as image:
+                if image.format != "PNG":
+                    raise ValueError("screenshot_image_invalid")
+                if (image.width < 1 or image.height < 1
+                        or image.width > MAX_IMAGE_SIDE or image.height > MAX_IMAGE_SIDE
+                        or image.width * image.height > MAX_SCREENSHOT_PIXELS):
+                    raise ValueError("screenshot_dimensions_exceed_limit")
                 image.load()
                 if x + width > image.width or y + height > image.height:
                     raise ValueError("screenshot_viewport_out_of_bounds")
@@ -423,7 +559,9 @@ def audit_evidence(*, plan_raw: bytes, provenance_raw: bytes,
                     raise ValueError("screenshot_window_capture_dimensions_mismatch")
                 crop_digest = _rgb_digest(image.crop((x, y, x + width, y + height)))
         except (OSError, ValueError) as exc:
-            if isinstance(exc, ValueError) and str(exc) == "screenshot_viewport_out_of_bounds":
+            if (isinstance(exc, ValueError) and str(exc) in {
+                    "screenshot_viewport_out_of_bounds",
+                    "screenshot_dimensions_exceed_limit"}):
                 raise
             raise ValueError("screenshot_image_invalid") from None
         if crop_digest != row["screenshot_crop_rgb_sha256"]:
@@ -431,18 +569,15 @@ def audit_evidence(*, plan_raw: bytes, provenance_raw: bytes,
 
         media_name = token + ".mp4"
         if media_name not in video_cache:
-            media_path = media_dir / media_name
-            media_info = media_path.lstat()
-            if (stat.S_ISLNK(media_info.st_mode) or not stat.S_ISREG(media_info.st_mode)
-                    or media_info.st_uid != os.geteuid()
-                    or stat.S_IMODE(media_info.st_mode) & 0o077):
-                raise ValueError("staged_media_file_invalid")
-            media_raw = media_path.read_bytes()
+            media_raw = media_snapshot[media_name]
             media_digest = _sha(media_raw)
             if media_digest != plan_by_token[token]["source_media_sha256"]:
                 raise ValueError("staged_media_hash_mismatch")
             pts, time_base, relative_times, _pixel_spec, pixel_hashes, _stream_info = \
-                _stream_and_decode(io.BytesIO(media_raw))
+                _stream_and_decode(io.BytesIO(media_raw),
+                                   max_frames=MAX_DECODED_VIDEO_FRAMES,
+                                   max_pixels=MAX_SCREENSHOT_PIXELS,
+                                   max_side=MAX_IMAGE_SIDE)
             video_cache[media_name] = (relative_times, pixel_hashes)
         relative_times, pixel_hashes = video_cache[media_name]
         frame_index = row["decoder_frame_index"]
@@ -456,6 +591,12 @@ def audit_evidence(*, plan_raw: bytes, provenance_raw: bytes,
 
     if seen != set(expected_anchors):
         raise ValueError("evidence_anchor_set_incomplete")
+    _verify_private_snapshot_still_current(
+        screenshot_dir, screenshot_snapshot_names, screenshot_identities,
+        screenshot_directory_identity, label="screenshot")
+    _verify_private_snapshot_still_current(
+        media_dir, expected_media_names, media_identities,
+        media_directory_identity, label="staged_media")
     pass_status = all(decision == "match" for decision in decisions)
     return {
         "status": "candidate_signed_evidence_bytes_consistent" if pass_status
@@ -484,11 +625,31 @@ def audit_evidence(*, plan_raw: bytes, provenance_raw: bytes,
 
 
 def _read_private(path: Path) -> bytes:
-    info = path.lstat()
-    if (stat.S_ISLNK(info.st_mode) or not stat.S_ISREG(info.st_mode)
-            or info.st_uid != os.geteuid() or stat.S_IMODE(info.st_mode) != 0o600):
-        raise ValueError("private_input_file_invalid")
-    return path.read_bytes()
+    fd = os.open(path, os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0))
+    try:
+        before = os.fstat(fd)
+        if (not stat.S_ISREG(before.st_mode) or before.st_uid != os.geteuid()
+                or stat.S_IMODE(before.st_mode) != 0o600
+                or before.st_size < 1 or before.st_size > 20_000_000):
+            raise ValueError("private_input_file_invalid")
+        chunks = []
+        remaining = before.st_size
+        while remaining:
+            chunk = os.read(fd, min(1024 * 1024, remaining))
+            if not chunk:
+                break
+            chunks.append(chunk)
+            remaining -= len(chunk)
+        if remaining or os.read(fd, 1):
+            raise ValueError("private_input_file_changed_during_read")
+        after = os.fstat(fd)
+        if (after.st_size != before.st_size or after.st_ino != before.st_ino
+                or after.st_mtime_ns != before.st_mtime_ns
+                or after.st_ctime_ns != before.st_ctime_ns):
+            raise ValueError("private_input_file_changed_during_read")
+        return b"".join(chunks)
+    finally:
+        os.close(fd)
 
 
 def main(argv: list[str] | None = None) -> int:
