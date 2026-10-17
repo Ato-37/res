@@ -82,6 +82,23 @@ class SyntheticPreReviewInventoryTests(unittest.TestCase):
         self.assertEqual((output / "pre_review_candidate_byte_inventory.json").stat().st_mode & 0o777,
                          0o600)
 
+    def test_inventory_binds_current_opening_gate_and_its_own_procedure(self):
+        required_code_roles = {
+            "pre_review_integrity_receipt_verifier",
+            "review_release_order_auditor",
+            "pre_review_inventory_builder",
+        }
+        self.assertTrue(required_code_roles.issubset(CODE_FILES))
+        self.assertIn("review_runbook", PUBLIC_OR_SOURCE_FILES)
+        output = self.root / PRIVATE_ROOT / "inventory-opening-gate-bound"
+        result = build_inventory(self.root, output)
+        roles = {row["role"] for row in result["artifacts"]}
+        self.assertTrue(required_code_roles.issubset(roles))
+        self.assertIn("review_runbook", roles)
+        self.assertEqual(result["missing_required_slots"], [])
+        self.assertFalse(result["joint_freeze"])
+        self.assertFalse(result["score_ready"])
+
     def test_media_hash_or_basename_difference_is_missing_slot_not_pass(self):
         (self.staged / self.media_names[0]).write_bytes(b"changed synthetic video bytes")
         result = build_inventory(self.root, self.root / PRIVATE_ROOT / "inventory-hash-mismatch")

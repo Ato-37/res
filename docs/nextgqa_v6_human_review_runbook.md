@@ -11,9 +11,15 @@ receipt never authorizes model loading or scoring.
 The private offline package is stored under the local private-data root. It
 contains one HTML page and three opaque-token-named videos. Keep it and all
 exports on the local machine; do not upload, commit, email, or otherwise share
-the package or derived material. The latest hash-only candidate inventory is
+the package or derived material. An earlier hash-only candidate inventory is
 also stored under the local private-data root. It recorded 50 present roles
-and no missing slots, but has
+and no missing slots, but predates later changes to the review-opening gate
+code and does not bind the current runner bytes. Treat it only as a historical
+candidate snapshot, not current freeze evidence. Before any review-only release
+freeze, rebuild a unique candidate inventory with the current inventory builder.
+That inventory must bind this runbook, the inventory builder itself, the
+integrity-receipt verifier, and the release-order auditor along with the other
+listed inputs. It still has
 `joint_freeze=false`, `review_completed=false`, `score_ready=false`, and
 `execution_authorization=not_granted`.
 

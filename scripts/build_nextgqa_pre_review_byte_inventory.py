@@ -37,6 +37,7 @@ PRIVATE_FILES = {
 PUBLIC_OR_SOURCE_FILES = {
     "review_policy_v6": Path("docs/nextgqa_claim_review_policy_v6.json"),
     "protocol_v2_draft": Path("docs/nextgqa_finite_claim_descriptive_protocol_v2.md"),
+    "review_runbook": Path("docs/nextgqa_v6_human_review_runbook.md"),
     "source_test_csv": Path("NExT-GQA/datasets/nextgqa/test.csv"),
 }
 
@@ -46,6 +47,8 @@ CODE_FILES = {
     "review_media_stager": "scripts/stage_nextgqa_review_media.py",
     "review_export_stager": "scripts/stage_nextgqa_review_exports.py",
     "review_handoff_audit": "scripts/audit_nextgqa_review_handoff.py",
+    "pre_review_integrity_receipt_verifier": "scripts/nextgqa_pre_review_integrity_receipt.py",
+    "review_release_order_auditor": "scripts/audit_nextgqa_review_release_order.py",
     "claim_lineage_audit": "scripts/audit_nextgqa_claim_packet_lineage.py",
     "claim_video_mapping_audit": "scripts/audit_nextgqa_video_mapping.py",
     "claim_mapping_packet_builder": "scripts/build_nextgqa_claim_mapping_packet.py",
@@ -71,6 +74,7 @@ CODE_FILES = {
     "batch_digest_freezer": "scripts/nextgqa_batch_digest_freeze.py",
     "scorer": "scripts/nextgqa_claim_mask_scoring.py",
     "production_prompt_builder": "scripts/run_nextgqa_gold_interval_margin_pilot.py",
+    "pre_review_inventory_builder": "scripts/build_nextgqa_pre_review_byte_inventory.py",
 }
 
 PRIVATE_DIR_MODES = {
