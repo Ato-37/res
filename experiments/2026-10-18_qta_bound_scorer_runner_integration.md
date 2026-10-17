@@ -57,6 +57,11 @@ IDs, and a score position derived from equal branch bindings.
   Runner source SHA-256: `8b1be5ec0193e27892b50a478aabbe625f7466ab86ab32aa80b49987e95961d2`;
   scorer SHA-256: `84ba18241668fd659ddce0ab25a4e3dfa2cacc656ef43fb494fdc056a5c21744`;
   batch-binding helper SHA-256: `65303e20ffb76ed813e36e0857d53db6624018268c09e78b1e8fc74dd7bc0466`.
+- A privacy-reviewed summary with no video, question, answer, label-token IDs,
+  or per-record group indices is published at
+  [`results/synthetic_qta_bound_scorer_gpu_20261018_0713.json`](../results/synthetic_qta_bound_scorer_gpu_20261018_0713.json),
+  SHA-256 `f09472b2c862b4c6eb2b2886202b078fb899b12e8f354893e12b92a29db7fa95`.
+  Schema/count/hash and key non-disclosure assertions passed before staging.
 
 ## Interpretation and limits
 

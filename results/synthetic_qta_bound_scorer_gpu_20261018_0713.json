@@ -1,0 +1,64 @@
+{
+  "data_status": "synthetic_only",
+  "execution": {
+    "attempted_forwards": 9,
+    "completed_forwards": 9,
+    "completed_records": 1,
+    "elapsed_seconds": 51.0464639990023,
+    "free_vram_after_gib": 1.8730545043945312,
+    "free_vram_before_forward_gib": 8.6103515625,
+    "peak_allocated_gib": 10.754877090454102,
+    "peak_reserved_gib": 12.439453125,
+    "requested_forwards": 9,
+    "requested_records": 1
+  },
+  "execution_authorization": "not_granted",
+  "experiment": "qta_bound_scorer_synthetic_gpu_smoke",
+  "git_commit": "0636794",
+  "hardware": {
+    "cuda": "12.8",
+    "gpu": "NVIDIA GeForce RTX 5070 Ti",
+    "precision": "bf16_4bit_bf16_compute_eager",
+    "torch": "2.11.0+cu128"
+  },
+  "limitations": [
+    "synthetic video only; no semantic evidence or treatment efficacy",
+    "the selector layer range, 10-percent group budget, ln(2) dose, and sham seed are engineering smoke settings",
+    "synthetic evidence/control groups have no annotation meaning",
+    "synthetic A-E scores and contrasts are numerical diagnostics only; no real-data effect, interval, or hypothesis test"
+  ],
+  "model_revision": "cc594898137f460bfe9f0759e9844b3ce807cfb5",
+  "private_result_sha256": "4a48549b51ed4494ce6be02a4c43a03af856755a2396584d0dfba64034096fb9",
+  "research_efficacy_result": false,
+  "schema_version": 1,
+  "source_sha256": {
+    "attention_bias": "f162b6e30af7f77b552db5c8deb3f1d8c7db8049f6f346d077cf55c804fe7b41",
+    "claim_mask_builder": "686ff9264d4ebf46749af78adad0a3693172ef1bc2f59cbfa35d79e29e3613f9",
+    "claim_mask_video_decoder": "df0baf0b31afcac9715e35da2027e3e510f63cfc2bdf1aa1cd568e63045e38dd",
+    "condition_batch_builder": "7486c6e959e507add3190b2af91b92ddf3d9dc84035a11cd44b3c0f36cee14e7",
+    "fixed_prediction_scorer": "84ba18241668fd659ddce0ab25a4e3dfa2cacc656ef43fb494fdc056a5c21744",
+    "internal_ablation": "a96175d796ee4cfab0ffc40dbf8666d7313bf72a6d4c50555222aa4b94ab4109",
+    "mask_condition_dependency": "5e61fa36a60abc03795c5c2206a0f80c0c6a6684716743336c156dd9790f9164",
+    "presentation_time_utils": "515b26ecca9a7e917b1c050ba0cede8dce3d9c837955dec28def31bbc48669a5",
+    "processor_batch_mapping": "d14d74339e8a772e81b59178c5057bb82174c7c79cc5e3da829b7b1c59fa4c77",
+    "prompt_processor_adapter": "5842867ac9a263455707de1dacb8d84d257912a72df78a69707675d3cc721a37",
+    "qwen_vl_utils_video_impl": "f3710ced8ffe735da57d08cf5236cf9d326ff646ed1bdad2e62593a7801adc33",
+    "runner": "8b1be5ec0193e27892b50a478aabbe625f7466ab86ab32aa80b49987e95961d2",
+    "selector": "3f56fe1e992ffca5a035864ced7472cbe1f12af9978c1559d1b82e0b938712f8",
+    "selector_runner_fixture": "37fc0fd7a05887f12ccf256758e6b102901f4f9137911bba9e78532275860be2",
+    "synthetic_fixture": "979510dd697581fddf484a65f085031abc95d556bce5db80466425a1d3387094",
+    "temporal_group_mapping": "289ce361873d07e38a2a24c2281a8cf8ef65880659351fd6769f7e020b3e4796",
+    "transformers_qwen_image_processor_impl": "ebdb484798a6aefebc5dbe5431d3e4af8f460404d95d4cb67165fdff624ed333",
+    "transformers_qwen_model_impl": "1b7a2a6403d309cdfe1ba31184708ed1a9f14b0ffd8e5bd4992f05a699e4f630",
+    "transformers_qwen_processing_impl": "dcecc3dff4ebb07c58e66923f1d62c73edee1edf572d27947c27ee5f5f2e654f",
+    "transformers_video_processor_impl": "524ee43d756e97bbc5ad6e2509cab922db09c8632f79031b3ef8835919be09ab",
+    "typed_batch_hash": "b6e5c60bc51cdf913c91ec6a2d8acfdee2c4f715eadaf851d7d9ce7f1d569c92"
+  },
+  "status": "passed",
+  "synthetic_diagnostic": {
+    "interpretation": "synthetic score path only; no faithfulness result",
+    "sham_delta_f_nats": -5.960464477539063e-08,
+    "target_delta_f_nats": 1.1920928955078125e-07,
+    "target_minus_sham_delta_f_nats": 1.7881393432617188e-07
+  }
+}
