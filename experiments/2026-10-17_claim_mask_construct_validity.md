@@ -486,3 +486,47 @@ not connected to Qwen hooks and adds no faithfulness evidence. Final focused
 tests passed **6/6**, full repository suite passed **1,389/1,389**, compilation
 and `git diff --check` passed. The synthetic attention artifact and earlier
 source-matched GPU result are unchanged.
+
+### Synthetic Qwen entropy-trigger projection smoke
+
+The next bounded check connected the paper's specified entropy trigger to the
+pinned Qwen2.5-VL implementation without using real videos. A single synthetic
+8-frame prefill was run on the RTX 5070 Ti (Qwen revision
+`cc594898137f460bfe9f0759e9844b3ce807cfb5`, Transformers 5.18.0, PyTorch
+2.11.0+cu128, CUDA 12.8, BF16 plus 4-bit BF16 compute). Hooks captured
+post-block hidden states at layers 5–16 and the final decoder layer, then
+applied the shared final RMSNorm and LM head to each final prompt position.
+The final-layer reprojection matched normal forward logits exactly (maximum
+absolute error 0.0), verifying this projection path for the pinned model and
+input. One forward took 18.88 s; twelve risk-layer distributions were captured.
+
+For this one synthetic prompt, normalized entropy ranged from 0.00233 to
+0.76846 across layers 5–16. The maximum was layer 15 (1-based), below the
+predeclared `0.85` threshold, so the trigger did not fire. This is a wiring
+observation for one synthetic first-next-token position, not a treatment
+outcome or evidence about natural language/video claims. Free VRAM was 14.657
+GiB before model loading and 8.683 GiB before forward; peak allocated/reserved
+after load were 6.213/6.730 GiB. The runner's post-forward/pre-cleanup free
+measurement was 7.862 GiB. After process exit, a separate `nvidia-smi` read
+showed 14,747 MiB free, consistent with memory release. The artifact is
+`results/synthetic_qwen_stear_trigger_feasibility_8frames_20261017.json`,
+with runner SHA-256
+`0adaba37bf7e7da8fc8dcdab94e8d0d63ab31492320a735807bb821b7ab9d5e6` and
+trigger-helper SHA-256
+`5434f3bae2847f1742828aa651f94872248f04bef7d8ed40ba988b47227b8b5d`.
+
+The runner includes a fail-closed check that final-layer reprojected logits
+match the model's ordinary final logits, CPU-only tests for final-position
+projection and output constraints, and explicit release of hook/model/batch
+references before emptying the CUDA cache. It still does not reproduce STEAR:
+the author supplement was not retrieved; key evidence selection, layer
+neighborhood, reinjection, and the temporal counterfactual branch remain
+unimplemented. No real-data inference, prediction margin, claim scoring, or
+faithfulness outcome was run.
+
+The first full-suite run after adding this pretrained-model runner exposed two
+closed-branch guard failures because its loader had not yet been listed among
+authorized synthetic engineering loaders. The runner was explicitly
+classified, both guard tests then passed, and final repository test discovery
+passed **1,392/1,392**. The final run also passed `git diff --check`; the source
+and result hashes above were re-read directly after execution.
