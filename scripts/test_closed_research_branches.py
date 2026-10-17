@@ -70,6 +70,7 @@ GATE_CONTROLLED_LOADERS = {
 USER_AUTHORIZED_LOCAL_DATA_PILOTS = {
     "generate_nextgqa_claim_review_pilot.py",
     "run_nextgqa_temporal_mask_factorial.py",
+    "smoke_qwen_real_video_attention_boost.py",
 }
 ALLOWED_ENGINEERING_LOADERS = {
     "audit_legacy_video_time_metadata.py",
