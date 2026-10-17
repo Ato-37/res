@@ -26,10 +26,12 @@ MAX_BINDING_BYTES = 1_000_000
 SHA256 = re.compile(r"^[0-9a-f]{64}$")
 COHORT_KEYS = {
     "schema_version", "purpose", "status", "protocol_sha256",
-    "baseline_manifest_sha256", "records", "execution_authorization",
+    "baseline_manifest_sha256", "video_claim_review_receipt_sha256",
+    "records", "execution_authorization",
 }
 COHORT_ROW_KEYS = {
     "review_token", "question_sha256", "options_sha256", "claim_sha256",
+    "video_support_decision", "reviewed_intervals_sha256",
 }
 
 
@@ -98,6 +100,8 @@ def validate_private_files(*, private_root: Path, baseline_name: str,
             or cohort.get("execution_authorization") != "not_granted"
             or cohort.get("protocol_sha256") != expected_protocol_sha256
             or cohort.get("baseline_manifest_sha256") != expected_baseline_sha256
+            or not isinstance(cohort.get("video_claim_review_receipt_sha256"), str)
+            or not SHA256.fullmatch(cohort["video_claim_review_receipt_sha256"])
             or not isinstance(cohort.get("records"), list)
             or not cohort["records"]):
         raise ValueError("cohort_source_schema_or_binding_invalid")
@@ -110,14 +114,18 @@ def validate_private_files(*, private_root: Path, baseline_name: str,
             raise ValueError("cohort_source_token_invalid")
         tokens.append(token)
         sources[token] = {key: row[key] for key in (
-            "question_sha256", "options_sha256", "claim_sha256")}
-        if any(not isinstance(value, str) or not SHA256.fullmatch(value)
-               for value in sources[token].values()):
+            "question_sha256", "options_sha256", "claim_sha256",
+            "video_support_decision", "reviewed_intervals_sha256")}
+        if (any(not isinstance(sources[token][key], str) or not SHA256.fullmatch(sources[token][key])
+                for key in ("question_sha256", "options_sha256", "claim_sha256",
+                            "reviewed_intervals_sha256"))
+                or sources[token]["video_support_decision"] != "supports_claim"):
             raise ValueError("cohort_source_field_digest_invalid")
     report = validate_prediction_link_receipt(
         receipt=receipt, baseline_manifest_raw=baseline_raw,
         expected_baseline_manifest_sha256=expected_baseline_sha256,
         expected_protocol_sha256=expected_protocol_sha256,
+        expected_video_review_receipt_sha256=cohort["video_claim_review_receipt_sha256"],
         expected_cohort_tokens=tokens,
         expected_source_field_sha256_by_token=sources)
     summary = {

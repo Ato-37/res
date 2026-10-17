@@ -96,16 +96,25 @@ From the untreated full-video next-token distribution over A–E, freeze `p` as
 the highest-log-probability option and `q` as the highest-scoring different
 option, ties in A–E order. Resolve all five option token IDs with the pinned
 tokenizer. Score the same `p`, `q`, and final prompt-token position in every
-branch. Gold answer margin and accuracy are secondary only.
+branch. Gold answer margin and accuracy are secondary only: define
+`M_gold(g)=log P_g(gold|full)-max_{j != gold} log P_g(j|full)` over A–E and
+record full-video accuracy for baseline and QTA-Bias. Treat both as descriptive
+outcomes for this `n=3` feasibility cohort; they do not replace the fixed
+baseline `p/q` primary estimand.
 
 The current claim generator creates a separate answer-like sentence without
 binding it to the later model prediction. Claim support in the video alone
 therefore does not show that the reviewed claim explains the scored `p`. Add a
 **prediction-link adjudication** after every row's baseline `p/q` is frozen and
-before any treatment or ablation branch: an independent reviewer, still blind
-to gold labels and all branch outcomes, sees the exact question, options, `p`,
-`q`, and frozen claim and judges whether the claim supplies a video-grounded
-reason for choosing `p` over `q`. Record `supports_p_over_q`,
+before any treatment or ablation branch. This is a second-stage textual
+discrimination judgment, conditional on a completed first-stage review in
+which a reviewer viewed the video and recorded `supports_claim` plus all
+reviewed intervals. It does not independently verify video grounding. The
+second-stage reviewer must be independent of the first-stage video reviewer
+and blind to gold labels and all branch outcomes. They see the exact question,
+options, `p`, `q`, frozen claim, the first-stage decision, and
+the interval digest; they judge whether the claim text distinguishes choosing
+`p` over `q` given that frozen video review. Record `supports_p_over_q`,
 `compatible_not_discriminating`, `unrelated`, `contradicts_p`, or `ambiguous`,
 with rationale and digests of all displayed fields. Only
 `supports_p_over_q` is eligible; all other outcomes are row failures. This is
@@ -116,9 +125,14 @@ independent audit are required; the current review package does not satisfy
 this gate. A CPU structural validator now binds the receipt to exact baseline
 manifest bytes, externally frozen cohort/source digests, and `p/q` recomputed
 from baseline A–E log-probabilities. It remains non-authorizing: its expected
-hashes and token list must come from independently verified frozen inputs, and
-it cannot authenticate who reviewed the material or whether the judgment is
-semantically correct. A static offline packet renderer and local structural
+hashes and token list must come from independently verified frozen inputs.
+The baseline manifest and second-stage receipt bind the first-stage receipt
+hash; each row also binds the first-stage `supports_claim` decision and
+reviewed interval-list digest into the exact fields shown to the second-stage
+reviewer. This establishes byte-level linkage between stages but does not
+verify the first-stage receipt's trust/release chain. The validator cannot
+authenticate who reviewed the material or whether the judgment is semantically
+correct. A static offline packet renderer and local structural
 validator CLI now exist, but no real baseline/receipt/source bundle exists and
 the validator is not connected to the production scorer or a cohort-wide
 release/review/clock preflight.
@@ -188,20 +202,27 @@ player-clock/decoder-PTS correspondence receipts for every interval anchor;
 pinned model/tokenizer/processor versions and protocol settings; no duplicate or previously used video IDs; and processor
 geometry, PTS, evidence/control assignments, and input batches. Any failure
 means zero model loads. **Baseline preparation:** after that gate, perform one
-untreated full-video forward per requested row to produce only selector
-attention and frozen A–E `p/q`; do not run evidence/control or treatment/sham
-branches and do not compute or expose cohort effects. Record baseline
-preparation successes/failures privately. Any baseline-preparation failure is a
-cohort failure; stop baseline preparation at the first failure, retain the
-private failure/count record, and run zero branch forwards. **Cohort-wide
+untreated full-video forward per requested row to produce selector attention,
+the frozen A–E `p/q`, and baseline-full A–E log probabilities needed as the
+baseline/full condition in the later estimand. Keep these outputs private; do
+not run evidence/control or treatment/sham branches and do not compute or expose
+cohort effects. The baseline/full forward is reused later, never repeated.
+Record baseline preparation successes/failures privately. Any baseline-
+preparation failure is a cohort failure; stop baseline preparation at the first
+failure, retain the private failure/count record, and run zero branch forwards.
+**Cohort-wide
 post-baseline gate:** only after all requested rows have valid baseline outputs,
 complete and independently audit the prediction-link adjudication for every
 row, then verify all rows' A–E token IDs, `p/q`, score positions,
 selector/sham positions, branch input hashes, hook targets, and ablation/bias
 composition. Any failed or missing link judgment means zero branch forwards
 for the cohort and no ΔF estimate. Other failed post-baseline checks likewise
-mean zero branch forwards. If all pass, run all predeclared branches, then
-release a cohort estimate only after every requested row is complete. A byte
+mean zero branch forwards. If all pass, run the eight additional forwards per
+row (baseline evidence/control, QTA full/evidence/control, and sham
+full/evidence/control), then release a cohort estimate only after every
+requested row is complete. The complete design therefore uses nine forwards per
+row including the baseline preparation, not nine new forwards after the
+prediction-link gate. A byte
 inventory or synthetic callback is not human attestation, timing evidence, or
 execution authorization.
 

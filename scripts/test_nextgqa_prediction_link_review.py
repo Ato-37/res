@@ -15,20 +15,25 @@ class PredictionLinkReviewTests(unittest.TestCase):
     def setUp(self):
         self.baseline_hash = "a" * 64
         self.protocol_hash = "b" * 64
+        self.video_review_hash = "c" * 64
+        self.interval_hash = "d" * 64
         self.rows = [
             {"review_token": "opaque-1", "question": "What happened?",
              "options": ["A", "B", "C", "D", "E"], "claim": "A person waves.",
              "option_log_probabilities": [-0.1, -0.2, -1, -2, -3],
-             "p_index": 0, "q_index": 1},
+             "p_index": 0, "q_index": 1, "video_support_decision": "supports_claim",
+             "reviewed_intervals_sha256": self.interval_hash},
             {"review_token": "opaque-2", "question": "Where is it?",
              "options": ["left", "right", "up", "down", "center"],
              "claim": "The item is on the left.",
              "option_log_probabilities": [-0.1, -0.2, -1, -2, -3],
-             "p_index": 0, "q_index": 1},
+             "p_index": 0, "q_index": 1, "video_support_decision": "supports_claim",
+             "reviewed_intervals_sha256": self.interval_hash},
         ]
         self.manifest_raw = json.dumps(
             {"schema_version": 1,
              "purpose": "qta_baseline_prediction_link_manifest",
+             "video_claim_review_receipt_sha256": self.video_review_hash,
              "records": self.rows},
             ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode()
         self.baseline_hash = hashlib.sha256(self.manifest_raw).hexdigest()
@@ -39,6 +44,8 @@ class PredictionLinkReviewTests(unittest.TestCase):
                     row["options"], ensure_ascii=False, sort_keys=True,
                     separators=(",", ":")).encode()).hexdigest(),
                 "claim_sha256": hashlib.sha256(row["claim"].encode()).hexdigest(),
+                "video_support_decision": row["video_support_decision"],
+                "reviewed_intervals_sha256": row["reviewed_intervals_sha256"],
             }
             for row in self.rows
         }
@@ -48,14 +55,16 @@ class PredictionLinkReviewTests(unittest.TestCase):
             "status": "prediction_link_review_recorded_unvalidated",
             "baseline_manifest_sha256": self.baseline_hash,
             "protocol_sha256": self.protocol_hash,
+            "prior_video_review_receipt_sha256": self.video_review_hash,
             "reviewer_role": "independent_prediction_link_reviewer",
             "reviewer_private_id": "reviewer-local-id",
-            "independence_attestation": "independent_from_generation_scoring_and_custody",
+            "independence_attestation": "independent_from_generation_scoring_custody_and_video_review",
             "gold_and_branch_outcomes_hidden": True,
             "reviewed_at_utc": "2026-10-18T10:00:00Z",
             "records": [
                 {"review_token": row["review_token"],
-                 "displayed_fields_sha256": displayed_fields_sha256(row),
+                 "displayed_fields_sha256": displayed_fields_sha256(
+                     row, video_claim_review_receipt_sha256=self.video_review_hash),
                  "judgment": "supports_p_over_q", "rationale": "Synthetic rationale."}
                 for row in self.rows
             ],
@@ -68,6 +77,7 @@ class PredictionLinkReviewTests(unittest.TestCase):
             "baseline_manifest_raw": self.manifest_raw,
             "expected_baseline_manifest_sha256": self.baseline_hash,
             "expected_protocol_sha256": self.protocol_hash,
+            "expected_video_review_receipt_sha256": self.video_review_hash,
             "expected_cohort_tokens": [row["review_token"] for row in self.rows],
             "expected_source_field_sha256_by_token": self.expected_source_hashes,
         }
@@ -98,6 +108,7 @@ class PredictionLinkReviewTests(unittest.TestCase):
         changed_raw = json.dumps(
             {"schema_version": 1,
              "purpose": "qta_baseline_prediction_link_manifest",
+             "video_claim_review_receipt_sha256": self.video_review_hash,
              "records": changed},
             ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode()
         changed_hash = hashlib.sha256(changed_raw).hexdigest()
@@ -175,6 +186,7 @@ class PredictionLinkReviewTests(unittest.TestCase):
             raw = json.dumps(
                 {"schema_version": 1,
                  "purpose": "qta_baseline_prediction_link_manifest",
+                 "video_claim_review_receipt_sha256": self.video_review_hash,
                  "records": rows}, ensure_ascii=True,
                 separators=(",", ":")).encode()
             digest = hashlib.sha256(raw).hexdigest()
@@ -186,6 +198,24 @@ class PredictionLinkReviewTests(unittest.TestCase):
                         expected_baseline_manifest_sha256=digest,
                         receipt={**self.receipt,
                                  "baseline_manifest_sha256": digest})
+
+    def test_video_review_receipt_and_intervals_are_bound(self):
+        with self.assertRaisesRegex(PredictionLinkReviewError,
+                                    "baseline_video_review_receipt_binding_mismatch"):
+            self._validate(expected_video_review_receipt_sha256="e" * 64)
+        changed = [dict(row) for row in self.rows]
+        changed[0]["reviewed_intervals_sha256"] = "e" * 64
+        raw = json.dumps({"schema_version": 1,
+                          "purpose": "qta_baseline_prediction_link_manifest",
+                          "video_claim_review_receipt_sha256": self.video_review_hash,
+                          "records": changed}, sort_keys=True,
+                         separators=(",", ":")).encode()
+        digest = hashlib.sha256(raw).hexdigest()
+        with self.assertRaisesRegex(PredictionLinkReviewError,
+                                    "baseline_video_review_binding_mismatch"):
+            self._validate(baseline_manifest_raw=raw,
+                           expected_baseline_manifest_sha256=digest,
+                           receipt={**self.receipt, "baseline_manifest_sha256": digest})
 
 
 if __name__ == "__main__":

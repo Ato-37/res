@@ -14,16 +14,21 @@ from validate_nextgqa_prediction_link_review import validate_private_files
 class PrivatePredictionLinkCliTests(unittest.TestCase):
     def setUp(self):
         self.protocol_hash = "b" * 64
+        self.video_review_hash = "c" * 64
+        self.interval_hash = "d" * 64
         self.row = {
             "review_token": "opaque-1", "question": "Synthetic question?",
             "options": ["A", "B", "C", "D", "E"],
             "claim": "Synthetic claim.",
             "option_log_probabilities": [-0.1, -0.2, -1, -2, -3],
             "p_index": 0, "q_index": 1,
+            "video_support_decision": "supports_claim",
+            "reviewed_intervals_sha256": self.interval_hash,
         }
         self.baseline_raw = json.dumps(
             {"schema_version": 1,
              "purpose": "qta_baseline_prediction_link_manifest",
+             "video_claim_review_receipt_sha256": self.video_review_hash,
              "records": [self.row]}, sort_keys=True,
             separators=(",", ":")).encode()
         self.baseline_hash = hashlib.sha256(self.baseline_raw).hexdigest()
@@ -33,6 +38,7 @@ class PrivatePredictionLinkCliTests(unittest.TestCase):
              "status": "frozen_pre_score",
              "protocol_sha256": self.protocol_hash,
              "baseline_manifest_sha256": self.baseline_hash,
+             "video_claim_review_receipt_sha256": self.video_review_hash,
              "records": [{
                  "review_token": self.row["review_token"],
                  "question_sha256": hashlib.sha256(self.row["question"].encode()).hexdigest(),
@@ -40,6 +46,8 @@ class PrivatePredictionLinkCliTests(unittest.TestCase):
                      self.row["options"], ensure_ascii=False, sort_keys=True,
                      separators=(",", ":")).encode()).hexdigest(),
                  "claim_sha256": hashlib.sha256(self.row["claim"].encode()).hexdigest(),
+                 "video_support_decision": "supports_claim",
+                 "reviewed_intervals_sha256": self.interval_hash,
              }], "execution_authorization": "not_granted"}, sort_keys=True,
             separators=(",", ":")).encode()
         self.cohort_hash = hashlib.sha256(self.cohort_raw).hexdigest()
@@ -48,14 +56,16 @@ class PrivatePredictionLinkCliTests(unittest.TestCase):
             "status": "prediction_link_review_recorded_unvalidated",
             "baseline_manifest_sha256": self.baseline_hash,
             "protocol_sha256": self.protocol_hash,
+            "prior_video_review_receipt_sha256": self.video_review_hash,
             "reviewer_role": "independent_prediction_link_reviewer",
             "reviewer_private_id": "synthetic-reviewer",
-            "independence_attestation": "independent_from_generation_scoring_and_custody",
+            "independence_attestation": "independent_from_generation_scoring_custody_and_video_review",
             "gold_and_branch_outcomes_hidden": True,
             "reviewed_at_utc": "2026-10-18T10:00:00Z",
             "records": [{
                 "review_token": self.row["review_token"],
-                "displayed_fields_sha256": displayed_fields_sha256(self.row),
+                "displayed_fields_sha256": displayed_fields_sha256(
+                    self.row, video_claim_review_receipt_sha256=self.video_review_hash),
                 "judgment": "supports_p_over_q", "rationale": "Synthetic rationale.",
             }], "execution_authorization": "not_granted",
         }, sort_keys=True, separators=(",", ":")).encode()

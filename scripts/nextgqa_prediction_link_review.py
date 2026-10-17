@@ -25,17 +25,20 @@ JUDGMENTS = {
 }
 RECEIPT_KEYS = {
     "schema_version", "purpose", "status", "baseline_manifest_sha256",
-    "protocol_sha256", "reviewer_role", "reviewer_private_id",
+    "protocol_sha256", "prior_video_review_receipt_sha256",
+    "reviewer_role", "reviewer_private_id",
     "independence_attestation", "gold_and_branch_outcomes_hidden",
     "reviewed_at_utc", "records", "execution_authorization",
 }
 RECORD_KEYS = {
     "review_token", "displayed_fields_sha256", "judgment", "rationale",
 }
-BASELINE_MANIFEST_KEYS = {"schema_version", "purpose", "records"}
+BASELINE_MANIFEST_KEYS = {
+    "schema_version", "purpose", "video_claim_review_receipt_sha256", "records",
+}
 BASELINE_RECORD_KEYS = {
     "review_token", "question", "options", "claim", "option_log_probabilities",
-    "p_index", "q_index",
+    "p_index", "q_index", "video_support_decision", "reviewed_intervals_sha256",
 }
 MAX_BASELINE_MANIFEST_BYTES = 8 * 1024 * 1024
 
@@ -63,8 +66,9 @@ def _is_finite_score(value: Any) -> bool:
         return False
 
 
-def displayed_fields_sha256(row: dict[str, Any]) -> str:
-    """Digest only the question, five options, claim and frozen p/q shown."""
+def displayed_fields_sha256(row: dict[str, Any], *,
+                            video_claim_review_receipt_sha256: str) -> str:
+    """Digest all text and prior video-review provenance shown to the reviewer."""
     if not isinstance(row, dict):
         _fail("baseline_row_invalid")
     token = row.get("review_token")
@@ -74,6 +78,11 @@ def displayed_fields_sha256(row: dict[str, Any]) -> str:
     if (not isinstance(token, str) or not token or len(token) > 128
             or not isinstance(question, str) or not question.strip()
             or not isinstance(claim, str) or not claim.strip()
+            or row.get("video_support_decision") != "supports_claim"
+            or not isinstance(row.get("reviewed_intervals_sha256"), str)
+            or not SHA256_RE.fullmatch(row["reviewed_intervals_sha256"])
+            or not isinstance(video_claim_review_receipt_sha256, str)
+            or not SHA256_RE.fullmatch(video_claim_review_receipt_sha256)
             or not isinstance(options, list) or len(options) != 5
             or any(not isinstance(option, str) or not option.strip() for option in options)
             or type(p_index) is not int or type(q_index) is not int
@@ -88,6 +97,11 @@ def displayed_fields_sha256(row: dict[str, Any]) -> str:
             "question": question,
             "options": options,
             "claim": claim,
+            "prior_video_review": {
+                "receipt_sha256": video_claim_review_receipt_sha256,
+                "support_decision": row["video_support_decision"],
+                "reviewed_intervals_sha256": row["reviewed_intervals_sha256"],
+            },
             "p": {"label": "ABCDE"[p_index], "text": options[p_index]},
             "q": {"label": "ABCDE"[q_index], "text": options[q_index]},
         }
@@ -107,6 +121,7 @@ def validate_prediction_link_receipt(
     *, receipt: Any, baseline_manifest_raw: bytes,
     expected_baseline_manifest_sha256: str,
     expected_protocol_sha256: str,
+    expected_video_review_receipt_sha256: str,
     expected_cohort_tokens: Sequence[str],
     expected_source_field_sha256_by_token: dict[str, dict[str, str]],
 ) -> dict[str, Any]:
@@ -137,17 +152,24 @@ def validate_prediction_link_receipt(
         _fail("baseline_manifest_schema_invalid")
     expected_protocol = _sha(expected_protocol_sha256,
                              "expected_protocol_hash_invalid")
+    expected_video_review = _sha(expected_video_review_receipt_sha256,
+                                 "expected_video_review_receipt_hash_invalid")
+    if _sha(manifest.get("video_claim_review_receipt_sha256"),
+            "baseline_video_review_receipt_hash_invalid") != expected_video_review:
+        _fail("baseline_video_review_receipt_binding_mismatch")
     if (_sha(receipt.get("baseline_manifest_sha256"),
              "baseline_manifest_hash_invalid") != expected_baseline
             or _sha(receipt.get("protocol_sha256"), "protocol_hash_invalid")
-            != expected_protocol):
+            != expected_protocol
+            or _sha(receipt.get("prior_video_review_receipt_sha256"),
+                    "prior_video_review_receipt_hash_invalid") != expected_video_review):
         _fail("prediction_link_manifest_binding_mismatch")
     reviewer_id = receipt.get("reviewer_private_id")
     if (receipt.get("reviewer_role") != "independent_prediction_link_reviewer"
             or not isinstance(reviewer_id, str) or not reviewer_id.strip()
             or len(reviewer_id) > 128
             or receipt.get("independence_attestation")
-            != "independent_from_generation_scoring_and_custody"
+            != "independent_from_generation_scoring_custody_and_video_review"
             or receipt.get("gold_and_branch_outcomes_hidden") is not True):
         _fail("prediction_link_reviewer_attestation_invalid")
     try:
@@ -176,7 +198,8 @@ def validate_prediction_link_receipt(
     for row in baseline_rows:
         if not isinstance(row, dict) or set(row) != BASELINE_RECORD_KEYS:
             _fail("baseline_manifest_record_schema_invalid")
-        digest = displayed_fields_sha256(row)
+        digest = displayed_fields_sha256(
+            row, video_claim_review_receipt_sha256=expected_video_review)
         token = row["review_token"]
         if token in expected_digests:
             _fail("baseline_review_token_duplicate")
@@ -186,7 +209,9 @@ def validate_prediction_link_receipt(
         expected_digests[token] = digest
         expected_fields = expected_source_field_sha256_by_token[token]
         if (not isinstance(expected_fields, dict)
-                or set(expected_fields) != {"question_sha256", "options_sha256", "claim_sha256"}):
+                or set(expected_fields) != {"question_sha256", "options_sha256", "claim_sha256",
+                                            "video_support_decision",
+                                            "reviewed_intervals_sha256"}):
             _fail("expected_source_digest_fields_invalid")
         actual_fields = {
             "question_sha256": hashlib.sha256(row["question"].encode("utf-8")).hexdigest(),
@@ -195,6 +220,13 @@ def validate_prediction_link_receipt(
                 separators=(",", ":")).encode("utf-8")).hexdigest(),
             "claim_sha256": hashlib.sha256(row["claim"].encode("utf-8")).hexdigest(),
         }
+        if (row["video_support_decision"] != "supports_claim"
+                or expected_fields.get("video_support_decision") != row["video_support_decision"]
+                or _sha(expected_fields.get("reviewed_intervals_sha256"),
+                        "expected_reviewed_intervals_digest_invalid")
+                != _sha(row["reviewed_intervals_sha256"],
+                        "baseline_reviewed_intervals_digest_invalid")):
+            _fail("baseline_video_review_binding_mismatch")
         if any(_sha(expected_fields.get(key), "expected_source_digest_invalid") != value
                for key, value in actual_fields.items()):
             _fail("baseline_source_field_binding_mismatch")

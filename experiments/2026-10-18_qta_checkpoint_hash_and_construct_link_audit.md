@@ -169,7 +169,8 @@ is:
   --manifest-name <frozen-baseline-manifest.json> \
   --output-name <new-private-review-page.html> \
   --expected-manifest-sha256 <64-hex-frozen-manifest-hash> \
-  --protocol-sha256 <64-hex-frozen-protocol-hash>
+  --protocol-sha256 <64-hex-frozen-protocol-hash> \
+  --video-claim-review-receipt-sha256 <64-hex-verified-stage1-receipt-hash>
 ```
 
 After the reviewer returns a secured receipt, the structural validator's
@@ -186,3 +187,57 @@ exists yet) is:
   --expected-cohort-source-sha256 <64-hex-source-bundle-hash> \
   --expected-protocol-sha256 <64-hex-protocol-hash>
 ```
+
+## Stage-link closure after independent construct audit
+
+A separate construct auditor correctly identified two remaining ambiguities:
+the second reviewer was not explicitly distinct from the video reviewer, and
+the HTML described the prior receipt as displayed although only a verdict and
+hashes were shown. The protocol now defines stage 2 as an independent person
+making a text-only `claim`-to-fixed-`p/q` discrimination judgment conditional on
+the trusted stage-1 video review. It explicitly does not re-verify video
+grounding. The renderer now states that the receipt bytes are not displayed or
+re-reviewed; only the hash-bound `supports_claim` decision and interval digest
+are shown, with trust verification assigned to the not-yet-implemented
+pre-score gate. The rendered receipt, validator, and tests require the
+stage-2 self-attestation to be independent of the video reviewer as well as
+generation, scoring, and custody.
+
+The baseline manifest binds the first-stage receipt hash. Each row binds the
+first-stage support decision and exact reviewed-interval digest; both are
+included in the fields digest displayed to stage 2. The stage-2 receipt repeats
+the prior receipt hash. The validator checks equality across the externally
+pinned expected hash, baseline bytes, receipt, and independently frozen source
+inventory. Independent code audit confirmed this binding and that a structural
+pass remains explicitly non-authorizing. It does not authenticate the prior
+receipt or reviewer identity; production trust/release preflight remains
+unimplemented and is a hard blocker to real scoring.
+
+For `n=3`, the protocol now defines the secondary full-video gold margin and
+accuracy descriptively. They do not replace or broaden the fixed-baseline
+`p/q` primary outcome. A positive primary result would still only show a change
+in fixed prediction margin sensitivity to claim-indicated key ablation versus
+rank-matched control under the specified QTA intervention, not general
+explanation faithfulness or improved answer accuracy.
+
+After this change, the three focused suites passed 16/16 tests. The independent
+code auditor also ran those 16 tests and `py_compile`/`git diff --check`
+successfully, and verified that UI copy, emitted attestation, validator
+constant, and fixtures match. The independent construct auditor confirmed the
+stage-2 construct is coherent under the conditional text-only definition and
+reaffirmed that `n=3` is descriptive only. A later full-suite run is required
+after these final wording and regression assertions. No real-data review,
+receipt, score, or faithfulness estimate was created.
+
+An independent interface-design audit also identified an execution-count
+ambiguity in the three-stage draft: baseline/full is both required to freeze
+selector and `p/q`, and is later one of the nine total condition/record
+forwards. The protocol now requires retaining that baseline-full five-choice
+distribution privately and reusing it, so only eight additional forwards per
+record occur after the prediction-link gate (24 total additional forwards for
+the three-record cohort). This corrects accounting only; no model run followed.
+
+
+## Final post-change verification
+
+`PYTHONPATH=scripts .venv/bin/python -m unittest discover -s scripts -p 'test_*.py'` passed 1,489/1,489 in 30.245 seconds after the stage-link changes. The focused three modules passed 16/16, and `compileall` passed. The full suite includes intentionally failing-path tests that print argparse or synthetic diagnostic messages; the process exit code was 0 and unittest reported `OK`. Tests used synthetic fixtures; no model inference or protected input was used.
