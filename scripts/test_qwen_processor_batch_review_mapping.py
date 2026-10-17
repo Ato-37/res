@@ -78,6 +78,45 @@ class ProcessorBatchReviewMappingTests(unittest.TestCase):
         self.assertNotEqual(actual["sampling_metadata_sha256"],
                             changed_processor["sampling_metadata_sha256"])
 
+    def test_binds_every_disjoint_review_occurrence_and_union_control(self):
+        result = map_review_interval_from_processor_batch(**{
+            **self.kwargs,
+            "reviewed_interval_seconds": None,
+            "reviewed_intervals_seconds": [[0.1, 0.4], [2.6, 2.9]],
+        })
+        self.assertEqual(result["reviewed_interval_count"], 2)
+        self.assertEqual(result["reviewed_intervals_seconds"],
+                         [[0.1, 0.4], [2.6, 2.9]])
+        self.assertEqual(result["evidence_group_indices"], [0, 3])
+        self.assertEqual(result["reviewed_occurrence_group_indices"], [[0], [3]])
+        self.assertEqual(result["control_group_indices"], [1, 2])
+        self.assertEqual(result["token_budget_per_arm"], 8)
+        self.assertEqual(len(result["sampling_metadata_sha256"]), 64)
+        changed_one = map_review_interval_from_processor_batch(**{
+            **self.kwargs,
+            "reviewed_interval_seconds": None,
+            "reviewed_intervals_seconds": [[0.2, 0.4], [2.6, 2.9]],
+        })
+        reversed_order = map_review_interval_from_processor_batch(**{
+            **self.kwargs,
+            "reviewed_interval_seconds": None,
+            "reviewed_intervals_seconds": [[2.6, 2.9], [0.1, 0.4]],
+        })
+        self.assertNotEqual(result["sampling_metadata_sha256"],
+                            changed_one["sampling_metadata_sha256"])
+        self.assertNotEqual(result["sampling_metadata_sha256"],
+                            reversed_order["sampling_metadata_sha256"])
+
+    def test_rejects_missing_or_ambiguous_interval_arguments(self):
+        with self.assertRaisesRegex(ValueError, "reviewed_intervals_argument_invalid"):
+            map_review_interval_from_processor_batch(**{
+                **self.kwargs, "reviewed_interval_seconds": None})
+        with self.assertRaisesRegex(ValueError, "reviewed_intervals_argument_invalid"):
+            map_review_interval_from_processor_batch(**{
+                **self.kwargs,
+                "reviewed_intervals_seconds": [[0.1, 0.4]],
+            })
+
     def test_rejects_padding_pixel_grid_and_sampling_disagreement(self):
         changes = [
             ({**self.batch, "attention_mask": self.torch.cat((

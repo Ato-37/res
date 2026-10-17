@@ -1,12 +1,15 @@
 """CPU contract tests for review-interval to Qwen temporal-grid positions."""
 from pathlib import Path
+from itertools import combinations
 import sys
 import unittest
 from fractions import Fraction
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from qwen_review_interval_token_groups import (  # noqa: E402
+    map_review_intervals_to_qwen_groups,
     map_review_interval_to_qwen_groups,
+    select_equal_count_rank_distance_control_groups,
 )
 
 
@@ -111,6 +114,92 @@ class ReviewIntervalTokenGroupTests(unittest.TestCase):
         for values, expected in cases:
             with self.subTest(expected=expected), self.assertRaisesRegex(ValueError, expected):
                 map_review_interval_to_qwen_groups(**values)
+
+    def test_unions_disjoint_occurrences_without_filling_the_gap(self):
+        result = map_review_intervals_to_qwen_groups(
+            **{k: v for k, v in self.kwargs.items() if k != "reviewed_interval_seconds"},
+            reviewed_intervals_seconds=[[0, 0.5], [11.5, 12]])
+        self.assertEqual(result["evidence_group_indices"], [0, 5])
+        self.assertEqual(result["control_group_indices"], [1, 4])
+        self.assertEqual(result["temporal_group_count"], 2)
+        self.assertEqual(result["evidence_group_count"], 2)
+        self.assertEqual(result["total_temporal_group_count"], 6)
+        self.assertIn("evidence_group_count", result["temporal_group_count_alias"])
+        self.assertEqual(result["token_budget_per_arm"], 8)
+        self.assertEqual(result["reviewed_interval_count"], 2)
+        self.assertEqual(result["reviewed_occurrence_group_indices"], [[0], [5]])
+        self.assertEqual(result["mapping_scope"], "union_of_all_distinct_reviewed_occurrences")
+        self.assertFalse(set(result["evidence_group_indices"]) &
+                         set(result["control_group_indices"]))
+
+    def test_overlapping_occurrences_union_duplicate_groups_once(self):
+        result = map_review_intervals_to_qwen_groups(
+            **{k: v for k, v in self.kwargs.items() if k != "reviewed_interval_seconds"},
+            reviewed_intervals_seconds=[[0, 0.5], [0.25, 1.25]])
+        self.assertEqual(result["evidence_group_indices"], [0])
+        self.assertEqual(result["temporal_group_count"], 1)
+        self.assertEqual(result["total_temporal_group_count"], 6)
+        self.assertEqual(result["reviewed_interval_count"], 2)
+        self.assertEqual(result["reviewed_occurrence_group_indices"], [[0], [0]])
+
+    def test_rank_distance_control_matches_exhaustive_oracle(self):
+        for count in range(2, 9):
+            for size in range(1, count // 2 + 1):
+                for evidence in combinations(range(count), size):
+                    candidates = [i for i in range(count) if i not in evidence]
+                    expected = min(
+                        combinations(candidates, size),
+                        key=lambda control: (
+                            sum(abs(left - right)
+                                for left, right in zip(evidence, control)),
+                            control))
+                    with self.subTest(count=count, evidence=evidence):
+                        self.assertEqual(
+                            select_equal_count_rank_distance_control_groups(
+                                evidence, count), list(expected))
+
+    def test_union_mapper_fails_closed_if_no_equal_count_control_exists(self):
+        with self.assertRaisesRegex(ValueError, "equal_count_temporal_control_unavailable"):
+            select_equal_count_rank_distance_control_groups([0, 1, 2], 5)
+        with self.assertRaisesRegex(ValueError, "reviewed_intervals_invalid"):
+            map_review_intervals_to_qwen_groups(
+                **{k: v for k, v in self.kwargs.items()
+                   if k != "reviewed_interval_seconds"},
+                reviewed_intervals_seconds=[])
+        duplicate_rows = map_review_intervals_to_qwen_groups(
+            **{k: v for k, v in self.kwargs.items()
+               if k != "reviewed_interval_seconds"},
+            reviewed_intervals_seconds=[[0, 0.5], [0, 0.5]])
+        self.assertEqual(duplicate_rows["reviewed_interval_count"], 2)
+        self.assertEqual(duplicate_rows["reviewed_occurrence_group_indices"], [[0], [0]])
+        self.assertEqual(duplicate_rows["evidence_group_indices"], [0])
+
+    def test_union_mapper_freezes_shared_iterables_once(self):
+        result = map_review_intervals_to_qwen_groups(
+            input_ids=iter(self.kwargs["input_ids"]),
+            video_token_id=self.kwargs["video_token_id"],
+            video_grid_thw=iter(self.kwargs["video_grid_thw"]),
+            spatial_merge_size=self.kwargs["spatial_merge_size"],
+            temporal_patch_size=self.kwargs["temporal_patch_size"],
+            sampled_pts_seconds=iter(self.kwargs["sampled_pts_seconds"]),
+            video_duration_seconds=self.kwargs["video_duration_seconds"],
+            reviewed_intervals_seconds=[[0, 0.5], [11.5, 12]],
+        )
+        self.assertEqual(result["evidence_group_indices"], [0, 5])
+
+    def test_union_mapper_classifies_bad_shared_inputs(self):
+        base = {k: v for k, v in self.kwargs.items()
+                if k != "reviewed_interval_seconds"}
+        for field, expected in (
+            ("input_ids", "input_ids_invalid"),
+            ("video_grid_thw", "video_grid_thw_invalid"),
+            ("sampled_pts_seconds", "sampled_pts_seconds_invalid"),
+        ):
+            with self.subTest(field=field), self.assertRaisesRegex(ValueError, expected):
+                map_review_intervals_to_qwen_groups(
+                    **{**base, field: None},
+                    reviewed_intervals_seconds=[[0, 0.5]],
+                )
 
 
 if __name__ == "__main__":

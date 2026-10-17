@@ -160,3 +160,136 @@ def map_review_interval_to_qwen_groups(
             "with no prespecified acceptance threshold or coverage guarantee"
         ),
     }
+
+
+def select_equal_count_rank_distance_control_groups(
+    evidence_group_indices: Sequence[int], temporal_group_count: int,
+) -> list[int]:
+    """Select equal-count non-evidence ranks minimizing summed absolute distance.
+
+    Evidence and control ranks are paired in sorted order. Dynamic programming
+    finds the minimum-cost subset; equal-cost subsets resolve lexicographically
+    to the earlier index tuple. This supports unions of disjoint reviewed
+    occurrences without treating gaps between them as evidence.
+    """
+    if (not isinstance(evidence_group_indices, Sequence)
+            or isinstance(evidence_group_indices, (str, bytes))
+            or not evidence_group_indices
+            or type(temporal_group_count) is not int or temporal_group_count <= 0
+            or any(type(index) is not int for index in evidence_group_indices)):
+        raise ValueError("evidence_group_indices_invalid")
+    evidence = tuple(sorted(set(evidence_group_indices)))
+    if (len(evidence) != len(evidence_group_indices)
+            or evidence[0] < 0 or evidence[-1] >= temporal_group_count):
+        raise ValueError("evidence_group_indices_invalid")
+    candidates = [index for index in range(temporal_group_count) if index not in evidence]
+    required = len(evidence)
+    if len(candidates) < required:
+        raise ValueError("equal_count_temporal_control_unavailable")
+
+    # dp[count] = (cost, selected candidate tuple) after scanning candidates.
+    dp: list[tuple[int, tuple[int, ...]] | None] = [None] * (required + 1)
+    dp[0] = (0, ())
+    for candidate in candidates:
+        for count in range(required, 0, -1):
+            previous = dp[count - 1]
+            if previous is None:
+                continue
+            proposal = (previous[0] + abs(evidence[count - 1] - candidate),
+                        previous[1] + (candidate,))
+            current = dp[count]
+            if current is None or proposal < current:
+                dp[count] = proposal
+    best = dp[required]
+    if best is None:
+        raise ValueError("equal_count_temporal_control_unavailable")
+    return list(best[1])
+
+
+def map_review_intervals_to_qwen_groups(
+    *, input_ids: Sequence[int], video_token_id: int,
+    video_grid_thw: Sequence[int], spatial_merge_size: int,
+    temporal_patch_size: int, sampled_pts_seconds: Sequence[Real],
+    video_duration_seconds: Real,
+    reviewed_intervals_seconds: Sequence[Sequence[Real]],
+) -> dict:
+    """Map all distinct reviewed occurrences, then select a rank-matched control.
+
+    Each interval is mapped with the same midpoint-cell positive-overlap rule
+    as the single-interval mapper. Evidence is the union of all covered groups;
+    intervening groups are not filled. The control contains the same number of
+    groups outside that union, minimizes order-paired summed absolute index
+    distance, and lexicographically prefers earlier ties. If no such control
+    exists, the row is ineligible and this function fails closed.
+    """
+    if (not isinstance(reviewed_intervals_seconds, Sequence)
+            or isinstance(reviewed_intervals_seconds, (str, bytes))
+            or not reviewed_intervals_seconds):
+        raise ValueError("reviewed_intervals_invalid")
+    try:
+        frozen_input_ids = tuple(input_ids)
+    except (TypeError, ValueError):
+        raise ValueError("input_ids_invalid") from None
+    try:
+        frozen_grid = tuple(video_grid_thw)
+    except (TypeError, ValueError):
+        raise ValueError("video_grid_thw_invalid") from None
+    try:
+        frozen_pts = tuple(sampled_pts_seconds)
+    except (TypeError, ValueError):
+        raise ValueError("sampled_pts_seconds_invalid") from None
+    normalized_intervals = []
+    for interval in reviewed_intervals_seconds:
+        if (not isinstance(interval, Sequence)
+                or isinstance(interval, (str, bytes))):
+            raise ValueError("reviewed_intervals_invalid")
+        try:
+            normalized = tuple(_finite_real(value, "reviewed_interval")
+                               for value in interval)
+        except (TypeError, ValueError):
+            raise ValueError("reviewed_intervals_invalid") from None
+        if len(normalized) != 2 or normalized[0] >= normalized[1]:
+            raise ValueError("reviewed_intervals_invalid")
+        normalized_intervals.append(normalized)
+    common = {
+        "input_ids": frozen_input_ids,
+        "video_token_id": video_token_id,
+        "video_grid_thw": frozen_grid,
+        "spatial_merge_size": spatial_merge_size,
+        "temporal_patch_size": temporal_patch_size,
+        "sampled_pts_seconds": frozen_pts,
+        "video_duration_seconds": video_duration_seconds,
+    }
+    mapped = [map_review_interval_to_qwen_groups(
+        **common, reviewed_interval_seconds=interval)
+        for interval in normalized_intervals]
+    reference = mapped[0]
+    evidence = sorted({index for row in mapped for index in row["evidence_group_indices"]})
+    temporal_group_count = len(reference["groups"])
+    control = select_equal_count_rank_distance_control_groups(
+        evidence, temporal_group_count)
+    groups = reference["groups"]
+    evidence_positions = tuple(position for index in evidence
+                               for position in groups[index]["token_positions"])
+    control_positions = tuple(position for index in control
+                              for position in groups[index]["token_positions"])
+    if (len(evidence_positions) != len(control_positions)
+            or set(evidence_positions).intersection(control_positions)):
+        raise ValueError("internal_group_budget_or_overlap_invalid")
+    return {
+        **reference,
+        "evidence_group_indices": evidence,
+        "control_group_indices": control,
+        "evidence_token_positions": list(evidence_positions),
+        "control_token_positions": list(control_positions),
+        "temporal_group_count": len(evidence),
+        "evidence_group_count": len(evidence),
+        "total_temporal_group_count": len(groups),
+        "token_budget_per_arm": len(evidence_positions),
+        "reviewed_interval_count": len(normalized_intervals),
+        "reviewed_occurrence_group_indices": [
+            row["evidence_group_indices"] for row in mapped],
+        "control_rule": "equal_count_order_paired_rank_distance_sum_then_lexicographic_earlier",
+        "temporal_group_count_alias": "evidence_group_count; total_temporal_group_count is all groups",
+        "mapping_scope": "union_of_all_distinct_reviewed_occurrences",
+    }
