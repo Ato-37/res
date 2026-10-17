@@ -31,6 +31,8 @@ Qwen2.5-VLの推論時内部介入により、回答claimを支える時間的�
 
 正の`ΔF`は、指定モデル・内部状態の介入条件下で、説明が指すレビュー済み時間証拠の選択的依存がmatched controlに対して増えたことを表す操作的指標候補である。これは説明の真偽、完全な内部推論、自由生成説明全体の忠実性を証明しない。claim-to-timeの独立レビュー、時間区間とprocessor visual-tokenの検証、同じ回答/foilの固定、介入とablation双方のsham/control、layer/strengthの事前固定が必要である。式、介入、token score、成功基準、sample sizeはまだ凍結していない。
 
+比較対象のbaseline生成回答・claim・時間区間は、全`g`条件で固定する。介入条件下でclaimを再生成すると主estimandの対象が変わるため、それを「同じclaimの証拠依存改善」と混ぜない。介入後の自由生成claimの品質やgroundingを測る場合は、別の副次評価群として報告する。また、もしKFP系処置を採るなら、key frameのquestion-conditioned選択は一度、通常のfull-video入力で行い、同じ選択をbaseline/treatmentと各ablation条件へ固定する必要がある。ablationごとに再選択すると、証拠除去とselectorの変化が混ざる。
+
 **介入の循環性チェック（2026-10-17）。** 説明が指したtoken残差そのものを増幅し、同じtokenのablationで`ΔF`を評価する案は、選択対象と評価対象が一致して正の結果を操作的に作り込むおそれがある。この案は主介入候補から外し、残す場合も実装のpositive controlに限る。主介入はclaim spanやgold intervalを介入先に使わず、質問依存の内部信号だけで時間chunkを選ぶ候補を検討する。claim-to-time対応は評価専用に保つ。選択信号・層・強度を固定する根拠と、全体的なlogit/confidence上昇では説明できない対照が定まるまで処置は凍結しない。
 
 既存のv2 black-mask studyはこの内部介入estimandを測らないため、別の準備用feasibility branchに留める。広い「動画VLM初のactivation engineering」はTA-AE (NeurIPS 2025)等と重なるため新規性として主張しない。LLM向けActivation Patching/Causal Faithfulness研究は方法論上近いが、同じclaim/time-mapped visual tokenへの依存向上を動画VLMで測る設定とは区別し、本文・実装の差分を確認する。

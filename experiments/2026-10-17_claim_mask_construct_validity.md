@@ -152,6 +152,15 @@ to that control, under this model and setup. It would not establish claim truth,
 complete internal-process faithfulness, or generalization beyond the tested
 cohort.
 
+The candidate measurement fixes the baseline-generated answer, claim, and time
+span across intervention conditions. It therefore tests changed dependence of
+the same claim under internal scoring, not whether the intervention produces a
+better free-generation claim. Any post-intervention generation quality or
+grounding must remain a separate secondary outcome. If the treatment uses an
+internal key-frame selector, its selection must also be fixed from one ordinary
+full-video pass and reused under evidence/control ablations; reselecting after
+each ablation would mix the ablation effect with selector changes.
+
 This estimand and intervention are still **not frozen**. The internal treatment,
 fixed foil rule, ablation/control construction, inclusion rule, sample size, and
 smallest effect of interest need outcome-blind specification. The close prior
