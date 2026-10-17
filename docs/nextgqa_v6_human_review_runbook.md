@@ -8,13 +8,12 @@ receipt never authorizes model loading or scoring.
 
 ## Current local package
 
-The private offline package is
-`data/private_nextgqa/reviewer_package_v6_20261017_0635/index.html`. It contains
-one HTML page and three opaque-token-named videos. Keep it and all exports on
-the local machine; do not upload, commit, email, or otherwise share the package
-or derived material. The latest hash-only package inventory is
-`data/private_nextgqa/pre_review_inventory_v6_20261017_0830_02/pre_review_candidate_byte_inventory.json`.
-It recorded 50 present roles and no missing slots, but has
+The private offline package is stored under the local private-data root. It
+contains one HTML page and three opaque-token-named videos. Keep it and all
+exports on the local machine; do not upload, commit, email, or otherwise share
+the package or derived material. The latest hash-only candidate inventory is
+also stored under the local private-data root. It recorded 50 present roles
+and no missing slots, but has
 `joint_freeze=false`, `review_completed=false`, `score_ready=false`, and
 `execution_authorization=not_granted`.
 
@@ -44,6 +43,24 @@ Do not open the package until the exact receipt and its independently
 established trust-root pin have been checked against the frozen bytes, and
 release order is supported by either trusted timestamp evidence or a witnessed
 procedure.
+
+`scripts/nextgqa_pre_review_integrity_receipt.py` provides an integrity-only
+candidate check for an externally pinned root, its signed role roster, the
+freeze-owner signature, and the exact bytes in the candidate inventory. Its
+successful status is `signature_valid_order_unverified`; it always reports
+`package_opening_permitted=false`, `model_load_permitted=false`,
+`score_ready=false`, and `execution_authorization=not_granted`. This helper is
+not a release receipt and does not satisfy this opening gate. Do not create a
+real receipt until the roster/trust-root pin is established, and do not open
+the page based on its output.
+
+The helper's current roster schema covers only the freeze owner, claim
+reviewer, and frame-pair reviewer. The custodian role is not independently
+bound by this integrity-only receipt. If the freeze owner also acts as
+custodian, that assignment still needs to be recorded in the eventual witnessed
+release procedure; if a separate custodian is assigned, the actual release
+roster must bind that identity and key. The helper cannot infer or verify
+either arrangement.
 
 The review-only receipt must say `review_only`, keep
 `protocol_v2_status=design_draft_not_frozen`, `score_ready=false`,
