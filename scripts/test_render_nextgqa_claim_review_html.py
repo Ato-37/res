@@ -226,6 +226,11 @@ class RenderNextgqaClaimReviewHtmlTests(unittest.TestCase):
         self.assertIn("id=\"export-disclosure\"", page)
         self.assertIn("&&document.getElementById('export-disclosure').checked", page)
         self.assertIn("export_disclosure_acknowledged:document.getElementById('export-disclosure').checked", page)
+        review_json_disclosure = page.split(
+            '<p class="notice">レビューJSONには、', 1)[1].split("</p>", 1)[0]
+        top_level_disclosed_fields = set(re.findall(
+            r"[A-Za-z][A-Za-z0-9_]*",
+            review_json_disclosure.split("各record wrapper", 1)[0]))
         disclosure = page.split('<div id="rows">', 1)[0]
         self.assertLess(page.index('export_disclosure_acknowledgedは'),
                         page.index('<div id="rows">'))
@@ -266,6 +271,11 @@ class RenderNextgqaClaimReviewHtmlTests(unittest.TestCase):
         policy_path = (Path(__file__).resolve().parents[1] / "docs" /
                        "nextgqa_claim_review_policy_v6.json")
         export_contract = json.loads(policy_path.read_text(encoding="utf-8"))["export_contract"]
+        self.assertTrue(
+            set(export_contract["review_json_top_level_fields"]).issubset(
+                top_level_disclosed_fields),
+            "v6 reviewer-facing top-level disclosure omits an exported field",
+        )
         self.assertEqual(
             set(export_contract["review_json_top_level_fields"]),
             {
