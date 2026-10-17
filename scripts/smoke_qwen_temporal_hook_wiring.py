@@ -73,10 +73,10 @@ def temporal_group_hook(positions, strength, *, torch_module=None, touched=None,
     return hook
 
 
-def _synthetic_frames(np, image_type):
+def _synthetic_frames(np, image_type, frame_count=FRAME_COUNT):
     y, x = np.mgrid[0:224, 0:224]
     frames = []
-    for frame_index in range(FRAME_COUNT):
+    for frame_index in range(frame_count):
         rgb = np.stack((
             (x * 3 + frame_index * 7 + 17) % 256,
             (y * 5 + frame_index * 11 + 29) % 256,
@@ -86,10 +86,10 @@ def _synthetic_frames(np, image_type):
     return frames
 
 
-def _build_batch(processor, torch, np, image_type):
+def _build_batch(processor, torch, np, image_type, *, frame_count=FRAME_COUNT):
     from qwen_vl_utils import process_vision_info
 
-    frames = _synthetic_frames(np, image_type)
+    frames = _synthetic_frames(np, image_type, frame_count)
     messages = [{"role": "user", "content": [
         {"type": "video", "video": frames, "sample_fps": SYNTHETIC_FPS},
         {"type": "text", "text": (
@@ -103,9 +103,9 @@ def _build_batch(processor, torch, np, image_type):
     if images is not None or len(videos) != 1:
         raise RuntimeError("synthetic_video_utility_contract_failed")
     pixels, metadata = videos[0]
-    if not isinstance(pixels, torch.Tensor) or int(pixels.shape[0]) != FRAME_COUNT:
+    if not isinstance(pixels, torch.Tensor) or int(pixels.shape[0]) != frame_count:
         raise RuntimeError("synthetic_processor_frame_count_invalid")
-    if metadata.get("frames_indices") != list(range(FRAME_COUNT)):
+    if metadata.get("frames_indices") != list(range(frame_count)):
         raise RuntimeError("synthetic_processor_frame_order_invalid")
     batch = processor(
         text=[prompt], images=images, videos=[pixels], video_metadata=[metadata],
@@ -119,8 +119,8 @@ def _build_batch(processor, torch, np, image_type):
         input_ids=[int(value) for value in batch["input_ids"][0].tolist()],
         video_token_id=int(processor.video_token_id), grid_thw=grid,
         merge_size=merge_size, temporal_patch_size=temporal_patch_size,
-        frame_count=FRAME_COUNT,
-        sampled_pts=[str(index) for index in range(FRAME_COUNT)],
+        frame_count=frame_count,
+        sampled_pts=[str(index) for index in range(frame_count)],
     )
     if not 0 <= TEMPORAL_GROUP_INDEX < len(mapping):
         raise RuntimeError("synthetic_temporal_group_missing")

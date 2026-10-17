@@ -368,15 +368,101 @@ focused helper tests passed **4/4**, repository discovery passed
 actual-data score was run.
 
 An independent source-only intervention audit found no minimally specified,
-prior-supported treatment for improving this `ΔF` endpoint. KFP-inspired
-top-k propagation remains underspecified; layer 8 and gain 1.1 are only hook
-smoke settings; learned TA-AE resources are not present; and legacy steering /
-patching sweeps are explicitly closed. The audit suggested evidence/control
-zero-ablation as a possible *measurement* design, but noted its activation
-OOD and incomplete semantic matching. This does not supply an improvement
-treatment. Accordingly, do not run an efficacy GPU experiment or call any
-treatment selected until its selector, layer, strength, active control, and
-global-logit-shift diagnostics have an outcome-independent rationale. The
+prior-supported treatment for improving this `ΔF` endpoint, based on the
+references then examined. It rejected choosing KFP top-k/strength by search and
+noted that layer 8/gain 1.1 are only hook-smoke settings. It suggested
+evidence/control zero-ablation as a possible *measurement* design, with OOD
+and incomplete semantic matching limitations. The subsequent STEAR search
+below supersedes the earlier literature conclusion and adds a closer supported
+candidate; it does not itself establish benefit on this `ΔF` endpoint. The
 synthetic hook smoke remains wiring-only. Human review remains 0/3 and actual
 browser-to-decoder correspondence remains 0/15, so even the baseline evidence
 dependence score is not yet available.
+
+### Literature-driven update: STEAR is now the leading implementation audit
+
+A further primary-source search found STEAR, a closer prior than the previously
+considered KFP candidate. The paper explicitly evaluates Qwen2.5-VL-7B and
+reports NExT-QA accuracy of 59.63% for baseline and 60.87% for STEAR (+1.24
+percentage points); its method uses uncertainty-triggered, middle-layer
+key-evidence selection and reinjection. Reported settings include risk layers
+5–16, normalized-entropy threshold 0.85, top 10% attention-salient patches,
+temporal homogenization coefficient 0.80, and contrastive strength 0.75. These
+are the paper's accuracy results, not an estimate of our claim-specific
+selective-dependence `ΔF`; the article reports no uncertainty interval in the
+table, and the result cannot establish the target construct. The paper says
+code is in supplementary material, but the main article leaves the trigger
+neighborhood and some implementation details unspecified. Therefore STEAR is
+now the first treatment-reproducibility audit, not yet a selected or validated
+treatment. Next inspect the official supplement/code and check whether the
+reported mechanism can be implemented faithfully in the pinned Qwen checkout
+without substituting a different intervention. If unavailable/incompatible,
+record the exact missing details before considering a clearly labeled
+adaptation. No GPU run or real-data score was run for this literature update.
+
+Local source inspection of the pinned environment (`transformers` 5.18.0)
+found `Qwen2_5_VLDecoderLayer` exposes `self_attn`, `mlp`, and norms, with no
+separate cross-attention submodule. STEAR's text-query-to-visual-key scores
+could potentially be extracted from multimodal self-attention, but that is an
+architecture mapping that needs a CPU synthetic contract test. Its reinjection
+equations also introduce query/key/value/output transforms and a visual-memory
+projection; they are not equivalent to the current simple hidden-row multiplier
+smoke. This strengthens the need to obtain and audit the supplement before
+implementation. The STEAR table prints `±0.00` for Qwen results but does not
+define that notation as a confidence interval or report an uncertainty method
+there, so the +1.24 percentage-point accuracy difference is descriptive only.
+
+### Synthetic attention-routing GPU feasibility smoke
+
+The initial 32-frame/all-attention attempt failed with CUDA OOM during the
+forward. An 8-frame reduced smoke captured only the final prompt-query row at
+paper layers 5–16. The first retry found a selector shape-contract mismatch;
+subsequent audit also found that duplicate layer indices and batch sizes other
+than one were not rejected. The selector now rejects both cases, with dedicated
+CPU tests.
+
+**Final source-matched run (2026-10-17).** On the RTX 5070 Ti, Qwen2.5-VL-7B-
+Instruct revision `cc594898137f460bfe9f0759e9844b3ce807cfb5`, Transformers
+5.18.0, PyTorch 2.11.0+cu128, CUDA 12.8, BF16 and 4-bit BF16 compute, one
+synthetic 8-frame forward completed in 17.94 s. It captured 12 layers over
+sequence length 1,068; 1,024 positions were identified as synthetic visual
+tokens, and the deterministic top-10%-ceil selector returned 103 finite-score
+positions. Free VRAM was 14.657 GiB before model load, 8.683 GiB before
+forward, and 7.560 GiB in the runner's post-forward, pre-cleanup measurement;
+peak allocated/reserved after model load were 6.213/7.033 GiB. The peak
+counter was reset before forward and excludes model loading and batch transfer.
+The runner source SHA-256 recorded in the artifact is
+`061fa5dc96f1ac685953f4c0316873a4a0118c2db326668e76741f8e6802f161`.
+Artifact: `results/synthetic_qwen_stear_attention_feasibility_8frames_auditfix_20261017.json`.
+
+Repository CPU test discovery passed **1,383/1,383**, including the new
+duplicate-layer and batch-size failures. This remains engineering evidence
+only: synthetic input, one forward, no generated answer or score. The 32-frame
+OOM remains a capacity boundary. Earlier attempt artifacts are retained for
+failure provenance; the successful retry2 artifact used a prior source hash and
+is superseded for reproducibility by the source-matched auditfix artifact.
+
+### STEAR primary-source audit: implementation is only partly specified
+
+The official arXiv HTML gives more detail than the initial scan: trigger risk
+is maximum normalized entropy over layers 5–16 with threshold 0.85; the KES
+neighborhood is centered on the maximum-entropy layer; attention is averaged
+over that neighborhood; the top patch ratio is 10%; reinjection uses query/key/
+value/output transforms over selected projected visual memory; and the
+temporal-negative branch uses either patch temporal shuffling or homogenization
+with gamma 0.80, followed by contrastive strength alpha 0.75. The paper says
+code is in supplementary material, but the paper body still does not give the
+neighborhood width, the concrete Qwen2.5-VL module mapping, or a complete
+operational account of those on-the-fly transforms. Its Qwen2.5-VL-7B NExT-QA
+accuracy is 59.63% baseline and 60.87% STEAR (+1.24 percentage points), an
+accuracy result rather than our claim-conditioned internal selective-dependence
+`ΔF`; its table does not explain the printed ±0.00 as uncertainty. Source:
+[STEAR primary paper](https://arxiv.org/html/2604.03045).
+
+**Next action:** retrieve and inspect the official supplementary archive and
+determine whether its code implements the missing choices for the pinned Qwen
+architecture. If it does not, document a distinct, fully specified adaptation
+before coding. Do not call such an adaptation STEAR reproduction or run
+efficacy scoring yet. Direct faithfulness remains **0/3 reviewed, 0/3 scored,
+no estimate/interval/test**; actual browser-to-decoder correspondence remains
+**0/15**. The human review and trusted-release gates remain open.

@@ -51,15 +51,17 @@ Qwen2.5-VLの推論時内部介入により、回答claimを支える時間的�
 
 ## 3. 介入と条件（候補）
 
-**主介入候補：KFP-inspired temporal evidence propagation。** 生成stepの質問依存な中間層信号からkey temporal chunkを選び、中間層のvisual-token表現を限定された時間近傍内で再重み付けする。まず論文で使われた層範囲を候補にし、Qwen2.5-VLの実層数・video token/chunk構造と対応するかCPU監査する。成立しなければGPUへ進まない。
+**介入候補を改訂（2026-10-17）：STEAR-style evidence reinjection。** 新たな一次資料監査で、STEARがQwen2.5-VL-7Bを含む動画QA評価と、uncertainty-triggered middle-layer key-evidence routing/reinjectionを報告していると判明した。したがってKFP-inspired案を第一候補にせず、まずSTEARの補足実装・Qwen適用詳細を再現可能性監査する。主研究に移植する場合も、著者法の完全再現か、明確に区別した簡略介入かを分けて記録し、accuracy改善をfaithfulness改善の根拠に使わない。
 
-ただし、[VERHallu/KFP論文](https://arxiv.org/html/2601.10010)の公開記述は層8–15、Gaussian幅`σ=1`、近傍幅`m=5`、混合係数`β=0.6`を示す一方、key-frameの`top-k`値は確認できず、パラメータablationは別モデルを含む。[著者の公開コードリポジトリ](https://github.com/zefanZhang-cn/VERHallu)も2026-10-17時点ではREADME/LICENSEのみで、再現用実装が見当たらない。このため、KFPは根拠のある設計候補ではあるが、そのまま再現できる固定treatmentではない。`top-k`などを本データ上で探索して埋めることはせず、先に仕様・実装の再現可能性を解決する。
+STEARの一次資料は、risk layers 5–16、normalized-entropy threshold `τ=0.85`、attention-salient patch ratio 10%、temporal homogenization `γ=0.80`、contrastive strength `α=0.75`を報告し、本文表ではQwen2.5-VL-7BのNExT-QA accuracyを59.63%から60.87%へ示す。ただしこれはaccuracyの報告であり、claim-specific evidence dependenceや本研究の`ΔF`を測らない。layer neighborhoodの定義、reinjectionの一部詳細、および補足コードを確認し、Qwen2.5-VLの現行固定checkpointで実装可能か監査するまで、移植処置として凍結しない。[STEAR一次資料](https://arxiv.org/abs/2604.03045)。
+
+[VERHallu/KFP論文](https://arxiv.org/html/2601.10010)は層8–15、Gaussian幅`σ=1`、近傍幅`m=5`、混合係数`β=0.6`を示す一方、key-frameの`top-k`値は確認できず、著者repoにも再現用実装が見当たらない。この不足を本データ上の探索で埋めない。KFPはSTEAR再現性監査の後に必要なら比較候補として再評価する。
 
 - Baseline：介入なし。
-- Treatment：論文に沿う単一の固定設定。確認結果を見てtop-k・層・時間幅・強度を探索しない。
-- Matched control：同じ層、同数token、同じ強度・演算量で、質問非依存に選ぶ時間chunkへ介入。
+- Treatment：STEAR候補を優先監査し、著者法を再現するか、適合しない場合は別名の明示的adaptationとして事前固定する。確認結果を見てtop-k・層・時間幅・強度を探索しない。
+- Outcome ablation control：同じclaim-mapped evidence以外から、temporal group数とactivation演算を対応させて選ぶcontrol groupを事前規則で固定する。この`F`用controlはSTEARのmethod-level random-selector/without-component ablationと区別して報告する。
 - 必要な時間構造control（例：一様強調または順序摂動）はdev段階で条件を定義し、確認前に固定する。
-- TA-AEは追加比較候補だが、初回確認には必須としない。複数手法の結果を見て最良手法を選ばない。
+- TA-AEは追加比較候補だが、初回確認には必須としない。STEAR・KFP・TA-AEのうち本データで最良のものを選ぶ探索は行わない。
 - Attention/TAMは介入routing信号候補に留め、因果的寄与や説明忠実性の証拠とは呼ばない。
 - 隣接frameへの広い伝播が区間境界をぼかす可能性を、grounding primaryで検出する。
 
