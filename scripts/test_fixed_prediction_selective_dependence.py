@@ -2,6 +2,7 @@
 from pathlib import Path
 import sys
 import unittest
+import torch
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from fixed_prediction_selective_dependence import (  # noqa: E402
@@ -10,6 +11,7 @@ from fixed_prediction_selective_dependence import (  # noqa: E402
     freeze_baseline_answer_and_foil,
     selective_dependence_contrast,
     validate_six_condition_input_binding,
+    score_six_condition_logits,
 )
 
 
@@ -73,6 +75,95 @@ class FixedPredictionTests(unittest.TestCase):
             alter(bindings)
             with self.assertRaises(ValueError):
                 validate_six_condition_input_binding(bindings)
+
+    @staticmethod
+    def _six_logits():
+        conditions = (
+            "baseline_full", "baseline_evidence_ablation", "baseline_control_ablation",
+            "intervention_full", "intervention_evidence_ablation",
+            "intervention_control_ablation")
+        rows = ([4., 3., 2., 1., 0.], [2., 3., 2., 1., 0.],
+                [3., 2., 2., 1., 0.], [1., 4., 3., 2., 0.],
+                [2., 3., 2., 1., 0.], [3., 2., 2., 1., 0.])
+        outputs = {}
+        for name, row in zip(conditions, rows):
+            logits = torch.full((1, 1, 9), -10., dtype=torch.float32)
+            logits[0, 0, :5] = torch.tensor(row)
+            outputs[name] = {"logits": logits}
+        return outputs
+
+    def test_logits_adapter_extracts_last_row_and_keeps_baseline_labels_frozen(self):
+        outputs = self._six_logits()
+        # One branch exposes full-sequence logits; the others expose the
+        # logits_to_keep=1 form used by the Qwen runner.
+        full = torch.full((1, 4, 9), -10., dtype=torch.float32)
+        full[0, :, :5] = torch.tensor([[50., 0., 0., 0., 0.],
+                                       [40., 0., 0., 0., 0.],
+                                       [30., 0., 0., 0., 0.],
+                                       [4., 3., 2., 1., 0.]])
+        outputs["baseline_full"] = type("Output", (), {"logits": full})()
+        result = score_six_condition_logits(
+            condition_outputs=outputs, answer_token_ids=[0, 1, 2, 3, 4],
+            input_lengths={name: 4 for name in outputs}, torch_module=torch)
+        self.assertEqual(result["status"], "logits_adapter_contract_only")
+        self.assertEqual(result["score_position_by_condition"]["baseline_full"], 3)
+        self.assertEqual(result["contrast"]["answer_index"], 0)
+        self.assertEqual(result["contrast"]["foil_index"], 1)
+        self.assertLess(result["choice_log_probabilities_by_condition"]["baseline_full"][0], 0)
+        self.assertEqual(result["contrast"]["answer_index_frozen_from"], "baseline_full")
+
+    def test_logits_adapter_rejects_wrong_shapes_lengths_and_nonfinite_logits(self):
+        cases = []
+        outputs = self._six_logits()
+        wrong_batch = dict(outputs)
+        wrong_batch["baseline_full"] = {"logits": torch.zeros(2, 1, 9)}
+        cases.append((wrong_batch, {name: 4 for name in outputs}))
+        wrong_seq = dict(outputs)
+        wrong_seq["baseline_full"] = {"logits": torch.zeros(1, 2, 9)}
+        cases.append((wrong_seq, {name: 4 for name in outputs}))
+        wrong_length = {name: 4 for name in outputs}
+        wrong_length["baseline_full"] = 0
+        cases.append((outputs, wrong_length))
+        mismatched_lengths = {name: 4 for name in outputs}
+        mismatched_lengths["intervention_full"] = 5
+        cases.append((outputs, mismatched_lengths))
+        nonfinite = dict(outputs)
+        bad = outputs["baseline_full"]["logits"].clone()
+        bad[0, 0, 0] = float("nan")
+        nonfinite["baseline_full"] = {"logits": bad}
+        cases.append((nonfinite, {name: 4 for name in outputs}))
+        for candidate, lengths in cases:
+            with self.subTest(lengths=lengths["baseline_full"]), self.assertRaises(ValueError):
+                score_six_condition_logits(
+                    condition_outputs=candidate, answer_token_ids=[0, 1, 2, 3, 4],
+                    input_lengths=lengths, torch_module=torch)
+
+    def test_logits_adapter_rejects_token_ids_outside_vocabulary(self):
+        with self.assertRaisesRegex(ValueError, "out_of_range"):
+            score_six_condition_logits(
+                condition_outputs=self._six_logits(), answer_token_ids=[0, 1, 2, 3, 9],
+                input_lengths={name: 4 for name in self._six_logits()}, torch_module=torch)
+
+    def test_logits_adapter_accepts_all_full_sequence_and_reduced_precision_logits(self):
+        conditions = (
+            "baseline_full", "baseline_evidence_ablation", "baseline_control_ablation",
+            "intervention_full", "intervention_evidence_ablation",
+            "intervention_control_ablation")
+        for dtype in (torch.float16, torch.bfloat16):
+            outputs = {}
+            for name in conditions:
+                logits = torch.zeros((1, 4, 9), dtype=dtype)
+                logits[0, 0, 0] = 30
+                logits[0, -1, :5] = torch.tensor([4., 3., 2., 1., 0.], dtype=dtype)
+                outputs[name] = {"logits": logits}
+            result = score_six_condition_logits(
+                condition_outputs=outputs, answer_token_ids=[0, 1, 2, 3, 4],
+                input_lengths={name: 4 for name in conditions}, torch_module=torch)
+            self.assertEqual(result["contrast"]["answer_index"], 0)
+            self.assertAlmostEqual(
+                result["choice_log_probabilities_by_condition"]["baseline_full"][0],
+                float(torch.log_softmax(torch.tensor([4., 3., 2., 1., 0., 0., 0., 0., 0.]),
+                                        dim=-1)[0]), places=6)
 
     def test_six_condition_contract_freezes_baseline_full_prediction_and_foil(self):
         scores = {
