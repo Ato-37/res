@@ -9,6 +9,7 @@ not inspect claims, reviewed intervals, gold answers, options, or logits.
 from __future__ import annotations
 
 from collections.abc import Mapping, Sequence
+import hashlib
 import math
 from typing import Any
 
@@ -178,3 +179,29 @@ def select_top_temporal_groups(scores: Sequence[float], *, top_k: int) -> list[i
             raise ValueError("temporal_group_score_invalid")
         values.append(value)
     return sorted(range(len(values)), key=lambda index: (-values[index], index))[:top_k]
+
+
+def select_hash_sham_temporal_groups(*, temporal_group_count: int, top_k: int,
+                                     protocol_seed: str,
+                                     opaque_record_token: str) -> list[int]:
+    """Select a stable, outcome-independent sham subset by SHA-256 ordering.
+
+    Ranking byte strings are UTF-8 encodings of
+    ``qta-sham-v1\\0{seed}\\0{opaque_token}\\0{group_index}``; ties use the
+    ascending group index. This avoids dependence on a runtime PRNG version.
+    The caller remains responsible for keeping the opaque token private.
+    """
+    if (type(temporal_group_count) is not int or temporal_group_count <= 0
+            or type(top_k) is not int or not 1 <= top_k <= temporal_group_count
+            or not isinstance(protocol_seed, str) or not protocol_seed
+            or "\x00" in protocol_seed
+            or not isinstance(opaque_record_token, str) or not opaque_record_token
+            or "\x00" in opaque_record_token):
+        raise ValueError("hash_sham_selector_inputs_invalid")
+    prefix = f"qta-sham-v1\0{protocol_seed}\0{opaque_record_token}\0"
+    ranked = sorted(
+        range(temporal_group_count),
+        key=lambda index: (hashlib.sha256(f"{prefix}{index}".encode("utf-8")).digest(),
+                           index),
+    )
+    return sorted(ranked[:top_k])

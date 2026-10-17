@@ -7,6 +7,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 from qwen_question_temporal_attention_selector import (  # noqa: E402
     aggregate_temporal_group_attention,
     map_question_token_positions,
+    select_hash_sham_temporal_groups,
     select_top_temporal_groups,
 )
 
@@ -98,6 +99,22 @@ class QuestionTemporalSelectorTests(unittest.TestCase):
                 attention_by_layer={0: weights}, layer_indices=(0,),
                 question_positions=(3,), group_positions=((0, 1), (2, 3)),
                 torch_module=torch)
+
+    def test_hash_sham_is_stable_sorted_and_record_specific(self):
+        selected = select_hash_sham_temporal_groups(
+            temporal_group_count=16, top_k=2, protocol_seed="seed-v1",
+            opaque_record_token="opaque-a")
+        self.assertEqual(selected, sorted(selected))
+        self.assertEqual(selected, select_hash_sham_temporal_groups(
+            temporal_group_count=16, top_k=2, protocol_seed="seed-v1",
+            opaque_record_token="opaque-a"))
+        self.assertNotEqual(selected, select_hash_sham_temporal_groups(
+            temporal_group_count=16, top_k=2, protocol_seed="seed-v1",
+            opaque_record_token="opaque-b"))
+        with self.assertRaisesRegex(ValueError, "inputs_invalid"):
+            select_hash_sham_temporal_groups(
+                temporal_group_count=16, top_k=17, protocol_seed="seed-v1",
+                opaque_record_token="opaque-a")
 
 
 if __name__ == "__main__":

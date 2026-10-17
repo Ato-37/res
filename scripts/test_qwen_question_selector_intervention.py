@@ -6,7 +6,9 @@ import unittest
 import torch
 
 from qwen_internal_attention_ablation import compose_video_key_bias_and_ablation
-from smoke_qwen_question_selector_intervention import build_smoke_condition_plan
+from smoke_qwen_question_selector_intervention import (
+    _choice_log_probabilities, build_smoke_condition_plan,
+)
 
 
 class QuestionSelectorInterventionCompositionTests(unittest.TestCase):
@@ -56,6 +58,20 @@ class QuestionSelectorInterventionCompositionTests(unittest.TestCase):
         self.assertEqual(plan[4]["ablation"], evidence)
         self.assertEqual(plan[5]["ablation"], control)
         self.assertEqual(plan[6]["bias"], plan[7]["bias"])
+
+    def test_choice_scorer_uses_full_vocab_log_softmax_at_single_final_row(self):
+        logits = torch.tensor([[[1.0, 2.0, 3.0, 4.0, 5.0, 6.0]]])
+        actual = _choice_log_probabilities(logits, [0, 1, 2, 3, 4], torch)
+        expected = torch.log_softmax(logits[0, 0], dim=-1)[:5].tolist()
+        self.assertEqual(len(actual), 5)
+        for got, want in zip(actual, expected, strict=True):
+            self.assertAlmostEqual(got, want, places=6)
+
+    def test_choice_scorer_rejects_bad_or_duplicate_option_ids(self):
+        logits = torch.zeros((1, 1, 6))
+        for ids in ([0, 1, 2, 3, 6], [0, 1, 2, 3, 3], [0, 1, 2, 3]):
+            with self.subTest(ids=ids), self.assertRaises(ValueError):
+                _choice_log_probabilities(logits, ids, torch)
 
 
 if __name__ == "__main__":

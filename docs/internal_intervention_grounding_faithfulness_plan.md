@@ -57,6 +57,20 @@ STEARの一次資料は、risk layers 5–16、normalized-entropy threshold `τ=
 
 [VERHallu/KFP論文](https://arxiv.org/html/2601.10010)は層8–15、Gaussian幅`σ=1`、近傍幅`m=5`、混合係数`β=0.6`を示す一方、key-frameの`top-k`値は確認できず、著者repoにも再現用実装が見当たらない。この不足を本データ上の探索で埋めない。KFPはSTEAR再現性監査の後に必要なら比較候補として再評価する。
 
+**関連介入の適合性監査（2026-10-17）：TLVS。** Zhang et al. のICML 2026論文は、Qwen2.5-VLを含む視覚言語モデルで、同じ生成回答を画像あり/なしのteacher forcingで比べ、token-level visual-sensitivityから層別方向を作って、出力tokenごとに介入力を調整する。補足設定ではQwenの層1–26、感度上位/下位各5%、任意のRLHF-V教師あり方向補正、KLに基づくtokenごとのsteeringを用いる。[一次資料](https://arxiv.org/html/2606.07647v1)、[ICML/PMLR掲載](https://proceedings.mlr.press/v306/zhang26cg.html)。これは「内部介入で視覚的依存を強める」という一般的発想の強い先行例であり、研究新規性を狭める。
+
+現primary候補は、固定baseline A–E予測と固定foilの単一next-token marginである。TLVS自体は回答出力のvisual-sensitivityを高める内部処置であり、その効果をこの一つのnext-token positionで測定することは可能である。ただしTLVSの校正は同一responseの複数answer-tokenから感度上位/下位群を作る設計で、単一tokenのprimary scoring対象だけから方向を学習することはできない。方向・校正統計は独立calibration cohort上で別途作り、確認標本を使わない。claim intervalを使わない汎用visual steeringだけではclaim-evidenceへの選択依存向上を定義・保証しないため、`ΔF`のevidence/control contrastでその性質を別に測る必要がある。動画への転用は新しいadaptationであり、image-only結果をfaithfulness改善の根拠に使わない。
+
+このestimandの六条件はbaseline/treatmentそれぞれのfull、evidence-ablation、matched-control ablationである。`A`–`E`の回答とfoilは**baseline full-video**の選択肢log-probabilityから一度だけ凍結し、条件間で予測順位が変わっても同じ二labelを採点する。baselineおよび介入の三条件marginから`ΔF = (m_t,control − m_t,evidence) − (m_b,control − m_b,evidence)`を計算する純算術契約は実装・合成テスト済み。ただし、これはtokenizerから実token IDを解決する処理、実prefix/最終processor入力の同一性確認、score位置固定、hook処置、real-data scorerを含まない。別のv1 finite-cohortプロトコルが使うgold-answer marginはこのestimandと混同しない。
+
+六条件のbinding validatorも追加した。呼び出し元から渡されたA–E token ID、入力ID/attention-mask hash、tokenizer/model/prompt hash、入力長、last-prefix score positionが6条件で同じかを検査し、binding digestを返す。これは合成契約であり、actual tokenizer/pixel-processed batchから値を作って再ハッシュする実装・独立検証を代替せず、score authorizationを与えない。
+
+TLVSのadaptive strengthをablationごとに再計算するか、full-video passの値を全枝で固定再利用するかは異なる処置定義となる。後者はpaired contrastを読みやすくするが、原TLVSからの明示的逸脱となる。いずれを採るかは得点を見る前に固定する。方向推定のPCA符号、visual/no-video contrast実装、steering層とstrengthを含めた処置再現性を確認するまでは、主処置として凍結しない。STEAR同様、実験前に単一の実装仕様とcontrolを明示する。
+
+一次資料の追加確認では、TLVSは感度を`|Δ_t|`で順位づけ、Qwen2.5-VL-7Bで上下各5%（論文記載の誘導thresholdは高側3.0、低側0.125）を選び、各layerのtoken表現をL2正規化して群平均差を作り、calibration sample間の第1主成分を方向とする。Qwenの介入層は1–26。生成時はfull/no-image分布のKL感度を使い、報告値`μ=0.0913, σ=0.293, (b,s)=(2.25,1.0), λ∈[0,1.5]`、平滑化offを用い、margin-based confidence cap上限2.0を記載する。方向校正にはRLHF-Vの画像・質問sampleを使用し、評価も画像hallucination benchmarkである。[TLVS一次資料 Appendix D](https://arxiv.org/html/2606.07647v1#appendix.D)。これらの数値は画像条件用であり、動画/black-frame no-video分岐へそのまま固定しても妥当とは示されていない。とくにKL・confidence校正と時間patchの統合は未定義なので、video用の独立calibration cohortと枝間strength規則を決めるまで実装候補の比較に留める。
+
+STEARは動画QAの内部key-evidence routingを扱い、単一回答marginと形式上は整合する候補だが、補足実装が取得できず、Qwen temporal mappingとreinjection演算がまだ固定されていない。Qwen decoderに独立cross-attention層がなく、論文のcross-attentionおよびvisual-memory投影をどの既存self-attention重みへ対応づけるかが未解決である。現在の合成runnerはentropy triggerと簡易attention top-10% selectorまでで、論文のreinjectionやcounterfactual branchを実装していない。TLVSは一token結果にも適用可能な候補としてSTEARと並べ、動画用のcontrast/calibrationとablation時strength規則の再現可能性を先に比べる。人手review/trust/timeゲートが閉じている間は、直接`ΔF`採点を行わない。
+
 - Baseline：介入なし。
 - Treatment：STEAR候補を優先監査し、著者法を再現するか、適合しない場合は別名の明示的adaptationとして事前固定する。確認結果を見てtop-k・層・時間幅・強度を探索しない。
 - Outcome ablation control：同じclaim-mapped evidence以外から、temporal group数とactivation演算を対応させて選ぶcontrol groupを事前規則で固定する。この`F`用controlはSTEARのmethod-level random-selector/without-component ablationと区別して報告する。
@@ -138,3 +152,21 @@ primary候補は、説明が示す証拠への**固定したbaseline予測の選
 3. **完了（2026-10-09）**：公式Qwen2.5-VL-7B-Instructをrevision cc594898137f460bfe9f0759e9844b3ce807cfb5で取得し、合成4-frame・1-videoの4-bit attention forwardを完了。requested/effective 4/4、1/1サンプル、ピーク割当6.446 GiB。合成overlap値は破棄し、grounding結果とは扱わない。詳細は[forward smoke記録](../experiments/2026-10-09_round3_synthetic_qwen_forward.md)。
 4. **ローカルpilot完了（2026-10-15）**：ユーザーが権利ゲートをローカル実験の前提から外し、保護対象のローカルデータ読み取りと推論を許可。NExT-GQA実動画で16/32フレーム・黒塗り/ぼかし対照の探索的QA-marginを実行。効果符号はコホート間で反転し、claim-level faithfulness効果は0件。全85候補のPTS監査では32-frame interval hit 98.6%、64-frame 100%だが、幾何学的hit率でありfaithfulnessではない。権利状態は未確認、すべてローカル、公開なし。次はモデル生成claimの対象区間レビューとclaim-score/control estimandを固定してから実験する。hit-rateをfaithfulnessと呼ばない。詳細は[2026-10-15実験ログ](../experiments/2026-10-15_pdca_5h_followup.md)。
 5. Added literature gate (2026-10-09): CRA/TA-AE overlap with the broad goal; ICLR 2026 image-VLM intervention and the STEAR video-intervention preprint further narrow novelty. No intervention-method novelty claim is currently supported. Check annotation/claim fit, and consider a replication/generalization study with advisor input. See experiments/2026-10-09_round4_proxy_metric_audit.md.
+
+### 2026-10-18 PDCA checkpoint: internal score path
+
+The previous question-attention draft briefly specified black-frame input
+masks, which are not the selected internal-intervention estimand. That
+mismatch is corrected in the engineering draft
+[`qwen_question_attention_faithfulness_protocol_v1_draft.md`](qwen_question_attention_faithfulness_protocol_v1_draft.md): all outcome conditions reuse the same full-video batch and ablate temporal visual keys only on the answer-query row. The multi-occurrence mapper's actual equal-count rank-distance DP control is specified; the treatment/sham hook semantics and cohort-wide baseline/post-baseline gates are also described.
+
+A synthetic-only GPU integration now exercises baseline, QTA-Bias, and a
+SHA-256-ranked sham across full/evidence/control internal-key branches, with
+fixed A–E answer/foil log-probability extraction. It passed 1/1 synthetic
+record and 9/9 forwards at 10.75/12.44 GiB peak allocated/reserved. This is
+engineering evidence only. The artifact is local and private; it is not a
+real-video faithfulness result. Direct evidence remains **0/3 reviewed, 0/3
+scored, 0/15 verified browser-to-decoder correspondences**, with no real ΔF,
+uncertainty interval, or test. Human review and timing are still required
+before real score branches can run. See
+[synthetic integration log](../experiments/2026-10-18_qta_internal_score_path_smoke.md).
