@@ -356,3 +356,27 @@ numeric strings for answer log-probabilities and condition margins. Focused
 tests remain **4/4**, all repository tests remain **1,379/1,379**, Python
 compilation and `git diff --check` pass. This is measurement input hygiene;
 it does not alter the estimand or add any actual-data evidence.
+
+A second independent boundary audit found huge-integer float conversion could
+raise an uncaught `OverflowError`; conversion now fails closed with `ValueError`,
+and tests cover huge integers, overflow in derived contrasts, and common-offset
+invariance. The plan now distinguishes frozen A–E class indices from the
+answer-token IDs/score positions that a future inference scorer must bind and
+reuse across every condition. Re-run results for these follow-up edits are
+focused helper tests passed **4/4**, repository discovery passed
+**1,379/1,379**, Python compilation passed, and `git diff --check` passed. No
+actual-data score was run.
+
+An independent source-only intervention audit found no minimally specified,
+prior-supported treatment for improving this `ΔF` endpoint. KFP-inspired
+top-k propagation remains underspecified; layer 8 and gain 1.1 are only hook
+smoke settings; learned TA-AE resources are not present; and legacy steering /
+patching sweeps are explicitly closed. The audit suggested evidence/control
+zero-ablation as a possible *measurement* design, but noted its activation
+OOD and incomplete semantic matching. This does not supply an improvement
+treatment. Accordingly, do not run an efficacy GPU experiment or call any
+treatment selected until its selector, layer, strength, active control, and
+global-logit-shift diagnostics have an outcome-independent rationale. The
+synthetic hook smoke remains wiring-only. Human review remains 0/3 and actual
+browser-to-decoder correspondence remains 0/15, so even the baseline evidence
+dependence score is not yet available.

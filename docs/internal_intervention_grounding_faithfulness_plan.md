@@ -23,7 +23,7 @@ Qwen2.5-VLの推論時内部介入により、回答claimを支える時間的�
 
 卒研の中心対象は、**モデルの説明が指す動画証拠に、説明対象の予測が選択的に依存するか**とする。主指標候補は、その選択的依存が**事前に固定した内部介入によって向上するか**である。したがって、単なるQA回答marginの動画入力感度やgrounding精度は主指標ではなく、補助的な測定となる。
 
-結果閲覧前に固定する測定候補を次のように置く。`g`はbaselineまたは内部介入、`m_{g,i}(z)`は動画iの固定した元予測と固定foilのteacher-forced log-margin、`z`はfull、claim-evidence internal ablation、matched-control internal ablationのいずれかとする。現時点の操作的候補では、5択QAの元予測を無介入full-video baselineで5ラベルのうち最も高いlog-probabilityを持つ回答とし、同点ならAからEの辞書順で選ぶ。foilはその同じbaseline full-video分布で元予測以外の最上位ラベルとし、同点規則も同じとする。元予測・foilのtoken IDは全介入/ablation条件で固定する。gold正答marginと正答率は副次的な性能指標にし、説明対象の元予測を測る主指標と混ぜない。この選択規則を含むestimand自体はまだ未凍結である。
+結果閲覧前に固定する測定候補を次のように置く。`g`はbaselineまたは内部介入、`m_{g,i}(z)`は動画iの固定した元予測と固定foilのteacher-forced log-margin、`z`はfull、claim-evidence internal ablation、matched-control internal ablationのいずれかとする。現時点の操作的候補では、5択QAの元予測を無介入full-video baselineで5ラベルのうち最も高いlog-probabilityを持つ回答とし、同点ならAからEの辞書順で選ぶ。foilはその同じbaseline full-video分布で元予測以外の最上位ラベルとし、同点規則も同じとする。helperはA–Eクラスindexを固定するだけであり、後続scorerは対応する回答token IDとscore位置を一度だけ束縛し、全介入/ablation条件で同じID・位置・採点経路を再利用したことを記録・検証する必要がある。gold正答marginと正答率は副次的な性能指標にし、説明対象の元予測を測る主指標と混ぜない。この選択規則を含むestimand自体はまだ未凍結である。
 
 `F_{g,i} = [m_{g,i}(full) - m_{g,i}(evidence-ablation)] - [m_{g,i}(full) - m_{g,i}(control-ablation)]`
 

@@ -19,11 +19,24 @@ def _finite_five(values: Sequence[float]) -> tuple[float, ...]:
     if (isinstance(values, (str, bytes)) or not isinstance(values, Sequence)
             or len(values) != ANSWER_COUNT):
         raise ValueError("five_answer_log_probabilities_required")
-    if any(isinstance(value, bool) or not isinstance(value, Real) for value in values):
-        raise ValueError("answer_log_probability_invalid")
-    result = tuple(float(value) for value in values)
+    result = tuple(_finite_real(value, "answer_log_probability_invalid")
+                   for value in values)
     if any(not math.isfinite(value) for value in result):
         raise ValueError("answer_log_probability_nonfinite")
+    return result
+
+
+def _finite_real(value: object, error_code: str) -> float:
+    if isinstance(value, bool) or not isinstance(value, Real):
+        raise ValueError(error_code)
+    try:
+        result = float(value)
+    except (OverflowError, TypeError, ValueError):
+        raise ValueError(error_code) from None
+    if not math.isfinite(result):
+        raise ValueError("answer_log_probability_nonfinite"
+                         if error_code == "answer_log_probability_invalid"
+                         else "condition_margin_nonfinite")
     return result
 
 
@@ -68,13 +81,10 @@ def selective_dependence_contrast(
             or set(baseline_margins) != CONDITION_NAMES
             or set(intervention_margins) != CONDITION_NAMES):
         raise ValueError("exact_three_condition_margins_required")
-    raw_values = tuple(baseline_margins.values()) + tuple(intervention_margins.values())
-    if any(isinstance(value, bool) or not isinstance(value, Real) for value in raw_values):
-        raise ValueError("condition_margin_invalid") from None
-    base = {key: float(baseline_margins[key]) for key in CONDITION_NAMES}
-    treated = {key: float(intervention_margins[key]) for key in CONDITION_NAMES}
-    if any(not math.isfinite(value) for value in (*base.values(), *treated.values())):
-        raise ValueError("condition_margin_nonfinite")
+    base = {key: _finite_real(baseline_margins[key], "condition_margin_invalid")
+            for key in CONDITION_NAMES}
+    treated = {key: _finite_real(intervention_margins[key], "condition_margin_invalid")
+               for key in CONDITION_NAMES}
 
     base_evidence_drop = base["full"] - base["evidence_ablation"]
     base_control_drop = base["full"] - base["control_ablation"]
@@ -82,6 +92,10 @@ def selective_dependence_contrast(
     treatment_control_drop = treated["full"] - treated["control_ablation"]
     base_f = base_evidence_drop - base_control_drop
     treatment_f = treatment_evidence_drop - treatment_control_drop
+    derived = (base_evidence_drop, base_control_drop, treatment_evidence_drop,
+               treatment_control_drop, base_f, treatment_f, treatment_f - base_f)
+    if any(not math.isfinite(value) for value in derived):
+        raise ValueError("condition_margin_arithmetic_nonfinite")
     return {
         "baseline_evidence_drop": base_evidence_drop,
         "baseline_control_drop": base_control_drop,

@@ -37,11 +37,17 @@ class FixedPredictionTests(unittest.TestCase):
                                 - treatment["evidence_ablation"])
                                - (baseline["control_ablation"]
                                   - baseline["evidence_ablation"]))
+        offset = 1e6
+        shifted = selective_dependence_contrast(
+            baseline_margins={key: value + offset for key, value in baseline.items()},
+            intervention_margins={key: value + offset for key, value in treatment.items()},
+        )
+        self.assertAlmostEqual(shifted["delta_f"], result["delta_f"])
 
     def test_rejects_nonfinite_missing_or_invalid_inputs(self):
         for values in ([0.0] * 4, [0.0, 0.0, 0.0, 0.0, float("nan")],
                        [0.0, 0.0, 0.0, 0.0, True], [0.0, 0.0, 0.0, 0.0, "0.0"],
-                       "12345"):
+                       [0.0, 0.0, 0.0, 0.0, 10**10000], "12345"):
             with self.subTest(values=values):
                 with self.assertRaises(ValueError):
                     freeze_baseline_answer_and_foil(values)
@@ -62,6 +68,18 @@ class FixedPredictionTests(unittest.TestCase):
                 baseline_margins={"full": 1.0, "evidence_ablation": 0.0,
                                   "control_ablation": False},
                 intervention_margins={"full": 1.0, "evidence_ablation": 0.0,
+                                      "control_ablation": 0.0})
+        with self.assertRaisesRegex(ValueError, "arithmetic_nonfinite"):
+            selective_dependence_contrast(
+                baseline_margins={"full": 1e308, "evidence_ablation": -1e308,
+                                  "control_ablation": 0.0},
+                intervention_margins={"full": 0.0, "evidence_ablation": 0.0,
+                                      "control_ablation": 0.0})
+        with self.assertRaisesRegex(ValueError, "condition_margin_invalid"):
+            selective_dependence_contrast(
+                baseline_margins={"full": 10**10000, "evidence_ablation": 0.0,
+                                  "control_ablation": 0.0},
+                intervention_margins={"full": 0.0, "evidence_ablation": 0.0,
                                       "control_ablation": 0.0})
 
 
