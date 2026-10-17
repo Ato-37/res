@@ -27,14 +27,17 @@ classified as an authorized synthetic engineering loader. The current
 self-contained runner fixture has one deterministic-fixture CPU test.
 
 A final synthetic-only GPU smoke is recorded in
-`results/synthetic_qwen_internal_attention_ablation_20261018_0445.json`. It
+`results/synthetic_qwen_internal_attention_ablation_20261018_0605.json`. It
 constructed three synthetic clips and forwarded one through the pinned
 Qwen2.5-VL-7B checkpoint: baseline and ablated branches completed **2/2**, both
-with finite logits. It masked three temporal groups (768 visual keys) in
-1-based layers 5, 10, and 16. Runtime was 19.46 s. On the RTX 5070 Ti, peak
-allocated/reserved VRAM was 10.75/12.44 GiB out of 15.89 GiB; after execution,
-1.94 GiB was free. Environment: torch 2.11.0+cu128, CUDA 12.8, Transformers
-5.18.0, bf16 model / 4-bit quantization / bf16 compute, eager attention.
+with finite logits. The typed batch hash matched immediately before and after
+each forward. Evidence/control groups were `[2,3,4]` and `[5,6,7]`; selected
+positions hash, query position, processor fingerprint, and sampling metadata
+digest are recorded in the JSON. It masked three temporal groups (768 visual
+keys) in 1-based layers 5, 10, and 16. Runtime was 18.32 s. On the RTX 5070 Ti,
+peak allocated/reserved VRAM was 10.75/12.44 GiB. Environment: torch
+2.11.0+cu128, CUDA 12.8, Transformers 5.18.0, qwen-vl-utils 0.0.14, bf16
+model / 4-bit quantization / bf16 compute, eager attention.
 
 The runner reports synthetic mapping diagnostics: max adjacent PTS gap 1.0 s,
 first/last clipped edge-cell duration 0.5/1.5 s, and maximum group support
@@ -42,13 +45,9 @@ duration 2.5 s. These are descriptive values only; there is no prespecified
 acceptance threshold or coverage guarantee. They do not indicate real-video
 timing quality.
 
-Runner source SHA-256:
-`20a5a994442c65cce8770d5cbdf97e2ed56e8b5b700871c399886b3da09d33c2`.
-Temporal mapper SHA-256:
-`98ee69dd153e679cc6a9e564967592a6f808816bd8bd748609c14779f8d6373b`.
-The JSON records these and the ablation helper and batch-builder hashes.
-Result SHA-256:
-`9321bf3723c396edfdc45c1ca11f221fcb6bf72df6b2494ec67c1332bf481c71`.
+The JSON records hashes for all repository helpers and the imported Qwen model,
+processor, image/video processor, and qwen-vl-utils source modules. Result
+SHA-256: `b24c72f921a7a6a2e12acf56232e53d670fd436271f27a77945973d13dc41110`.
 
 ## Interpretation and limitations
 
@@ -65,11 +64,34 @@ Direct faithfulness evidence remains **0/3 independently reviewed, 0/3 scored**,
 with no real-data `ΔF` estimate, confidence interval, or test. Human review is
 incomplete.
 
+### Repeat smoke and audit (2026-10-18 18:54 UTC)
+
+After an independent audit found missing before/after forward hash checks, the
+runner was repaired to verify the exact typed batch immediately before and
+after both the baseline and ablation forward. It now hashes the installed Qwen
+processor and image-processor source files in addition to the model, video
+processor, and `qwen-vl-utils` files. The rerun completed 2/2 forwards, finite
+logits, and all five digest checks. A separate auditor independently matched
+all 15 repository/installed-source hashes in the result to the current source.
+The final result hash is
+`b24c72f921a7a6a2e12acf56232e53d670fd436271f27a77945973d13dc41110`; runner
+hash is `7f50633859e07d1ad88e4c2764c659d3309b75c637f509f0ca1fc9fd834abb3a`.
+The full repository suite passed **1,438/1,438** in 36.05 s, and focused
+compilation/whitespace checks passed.
+
+The local checkpoint weight bytes are not hashed; this run therefore pins the
+declared cached model revision, not cryptographic authenticity of every weight
+or configuration file in that cache. The typed batch hashes bind rendered
+input IDs and pixel tensors, but this synthetic check still says nothing about
+real-video timing or score validity.
+
 ## Next action
 
-Bind PTS, duration, processor grid, token positions, and frame-sampling metadata
-to one immutable processor batch. Then establish source/browser-clock
-correspondence and independent claim review before any real-data scoring.
+The synthetic mapping and model-forward plumbing is now verified. The selected
+thesis estimand still has no frozen non-circular improvement treatment. Next
+freeze that treatment and its sham/control before outcomes, and independently
+establish source/browser-clock correspondence and claim review before any
+real-data scoring. Do not infer efficacy from this GPU smoke.
 Treat a future real-data result as an internal-access contrast under the tested
 layers/query/backend only; it will not by itself prove complete evidence
 necessity or general faithfulness.

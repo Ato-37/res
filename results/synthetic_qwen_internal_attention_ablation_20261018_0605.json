@@ -1,0 +1,80 @@
+{
+  "attempted_forwards": 2,
+  "attention_backend": "eager",
+  "completed_forwards": 2,
+  "control_group_indices": [
+    5,
+    6,
+    7
+  ],
+  "cuda_version": "12.8",
+  "device_name": "NVIDIA GeForce RTX 5070 Ti",
+  "elapsed_seconds": 18.321708617004333,
+  "evidence_group_indices": [
+    2,
+    3,
+    4
+  ],
+  "execution_authorization": "not_granted",
+  "faithfulness_result": false,
+  "free_vram_after_gib": 1.9280662536621094,
+  "free_vram_before_load_gib": 14.6572265625,
+  "intervention_layers_1_based": [
+    5,
+    10,
+    16
+  ],
+  "limitations": [
+    "synthetic-only and one-record mechanism wiring test; no efficacy inference",
+    "sampling times are synthetic and do not establish real source-clock mapping",
+    "masking selected answer-query access does not erase propagated evidence",
+    "does not test human review, real QA scoring, or processor-batch provenance gate"
+  ],
+  "model_revision": "cc594898137f460bfe9f0759e9844b3ce807cfb5",
+  "peak_allocated_gib": 10.754877090454102,
+  "peak_reserved_gib": 12.439453125,
+  "precision": "bf16_4bit_bf16_compute_eager",
+  "processor_fingerprint_sha256": "a8aa40930855b070f83b7d559409013d4d0f2f8bcf8c08300c92d826821015dc",
+  "query_position": 4162,
+  "qwen_vl_utils_version": "0.0.14",
+  "records_forwarded": 1,
+  "requested_forwards": 2,
+  "sampling_metadata_sha256": "0615ca0257fac20b0b5f89fbc552c56445f48caeacddd532a9de815849a78aa2",
+  "scope": "synthetic_internal_ablation_wiring_only",
+  "selected_positions_sha256": "6cc529ac4ddae2f0ec4376744d253c9d91ce94b762d1056103a6c73c5041f645",
+  "source_authentication_status": "not_performed_by_this_helper",
+  "source_sha256": {
+    "ablation_helper": "b3f34dc9252c1f3888c73567ae037eaf1b3bfa6ffbd5aa28d4d396270675ac37",
+    "batch_digest_manifest": "5580048d1ea6bc4a99d364b544274d7d5769efcdc443e0ed76cc9b04dbb49816",
+    "claim_mask_builder": "686ff9264d4ebf46749af78adad0a3693172ef1bc2f59cbfa35d79e29e3613f9",
+    "condition_batch_builder": "7486c6e959e507add3190b2af91b92ddf3d9dc84035a11cd44b3c0f36cee14e7",
+    "mask_condition_dependency": "5e61fa36a60abc03795c5c2206a0f80c0c6a6684716743336c156dd9790f9164",
+    "processor_batch_mapping_helper": "625ce32bbba614d8dc91db959096e690d3a0216f02b43cb26e646fd85f605da1",
+    "prompt_and_processor_adapter": "5842867ac9a263455707de1dacb8d84d257912a72df78a69707675d3cc721a37",
+    "qwen_vl_utils_video_impl": "f3710ced8ffe735da57d08cf5236cf9d326ff646ed1bdad2e62593a7801adc33",
+    "runner": "7f50633859e07d1ad88e4c2764c659d3309b75c637f509f0ca1fc9fd834abb3a",
+    "temporal_mapping_helper": "98ee69dd153e679cc6a9e564967592a6f808816bd8bd748609c14779f8d6373b",
+    "time_assignment_dependency": "515b26ecca9a7e917b1c050ba0cede8dce3d9c837955dec28def31bbc48669a5",
+    "transformers_qwen_image_processor_impl": "ebdb484798a6aefebc5dbe5431d3e4af8f460404d95d4cb67165fdff624ed333",
+    "transformers_qwen_model_impl": "1b7a2a6403d309cdfe1ba31184708ed1a9f14b0ffd8e5bd4992f05a699e4f630",
+    "transformers_qwen_processing_impl": "dcecc3dff4ebb07c58e66923f1d62c73edee1edf572d27947c27ee5f5f2e654f",
+    "transformers_video_processor_impl": "524ee43d756e97bbc5ad6e2509cab922db09c8632f79031b3ef8835919be09ab",
+    "typed_batch_hash": "b6e5c60bc51cdf913c91ec6a2d8acfdee2c4f715eadaf851d7d9ce7f1d569c92"
+  },
+  "started_at_utc": "2026-10-17T18:54:31.402105+00:00",
+  "status": "passed",
+  "synthetic_records_constructed": 3,
+  "temporal_group_count": 3,
+  "temporal_mapping_diagnostics": {
+    "first_edge_cell_duration_seconds": 0.5,
+    "last_edge_cell_duration_seconds": 1.5,
+    "max_pts_cadence_deviation_from_nominal_seconds": 0.0,
+    "max_sampled_pts_gap_seconds": 1.0,
+    "max_temporal_group_coverage_seconds": 2.5
+  },
+  "token_budget_per_arm": 768,
+  "torch_version": "2.11.0+cu128",
+  "total_vram_gib": 15.89398193359375,
+  "transformers_version": "5.18.0",
+  "typed_batch_sha256": "3d3f7fba9e5e49cbbf61f6669d9ee9cc96aed50293e73fbb8fc47d395caf4cf6"
+}

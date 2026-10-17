@@ -29,22 +29,44 @@ duration-over-center control
 priority, tie-breaking, and invalid geometry/time/control cases. An independent
 audit reviewed the diagnostic formulas and found the implementation correct;
 it caught a mistaken test expectation (the final clipped cell is 1.5 seconds),
-which was corrected. The final focused interval and internal-ablation tests pass
-**10/10**. `py_compile` and `git diff --check` also pass. No GPU or dataset was
-used for this mapping test.
+which was corrected. A separate
+`scripts/qwen_processor_batch_review_mapping.py` adapter now clones the full
+CPU processor payload before mapping/hashing, enforces a single unpadded
+sequence, integer IDs/grid, floating flattened video pixels and temporal
+spacing, and checks `pixel_rows == T*H*W` and
+`second_per_grid_ts == temporal_patch_size / FPS`. It hashes the complete typed
+batch snapshot and a canonical digest of supplied frame indices, PTS, source
+duration/count, nominal FPS, processor revision, geometry, and reviewed
+interval. It reports maximum PTS cadence deviation from nominal `1/FPS` as a
+diagnostic only. Independent audit caught and prompted repairs for empty pixel
+width, mutable-batch wording, and one-shot interval binding. Focused mapping,
+binding, ablation, and fixture tests pass **14/14**.
+
+The adapter was exercised on an actual pinned-processor CPU batch built from
+synthetic frames. Its schema was `(1,4163)` int64 input IDs/mask,
+`(16384,1176)` float32 video pixels, grid `[16,32,32]`, and spacing `[2.0]` s.
+For synthetic interval `[5,8]`, it selected evidence groups `[2,3,4]`,
+disjoint control `[5,6,7]`, and equal budget 768 keys per arm. PTS cadence
+deviation was 0.0 s. No real dataset or GPU was used for this CPU adapter check.
+The returned digests bind the supplied snapshot and metadata for integrity;
+they do not authenticate their origin.
+
+`py_compile` and `git diff --check` pass. The full-suite count is recorded in
+the companion internal-ablation experiment log.
 
 ## Interpretation and limitations
 
-This is processor-layout geometry, not authenticated evidence mapping. The
+This is processor-layout geometry and integrity binding, not authenticated
+evidence mapping. The
 midpoint cells are an operational frame-support convention, not proof that a
 Qwen temporal patch semantically represents every time inside the cell. It
 assumes review timestamps, decoded PTS, and duration share an authenticated
 zero-based seconds clock. Sparse samples can create wide edge cells. The
 diagnostics expose sparse support but do not establish an acceptable threshold.
-Supplied grid and token positions
-are not bound to one immutable processor batch; matching total token count does
-not authenticate the grid shape, frame order, padding state, processor revision,
-or video source. The control can overlap another salient event and is not a
+The adapter binds supplied values to a cloned batch payload, but cannot
+authenticate grid/frame order, padding declaration, processor implementation
+revision, timestamps, or source video; the processor revision and sampling
+metadata remain caller-supplied. The control can overlap another salient event and is not a
 semantically neutral negative control. The hook only blocks direct answer-query
 access to selected keys, not evidence propagated through other keys/layers.
 
@@ -54,9 +76,8 @@ measure treatment efficacy.
 
 ## Next action
 
-Before real scoring, bind PTS, duration, grid, token positions, and frame
-sampling metadata to a single immutable processor batch, define a gap/edge
-coverage threshold before outcomes, and establish source/browser clock correspondence and
-independent claim review. Then run a small internal-ablation wiring smoke. Treat
-its output as engineering feasibility only; proceed to efficacy scoring only
-after the review and provenance gates pass.
+Before real scoring, authenticate the source/frame-sampling and browser/decoder
+clock chain, independently review each claim, and prespecify any PTS cadence or
+gap/edge coverage acceptance threshold before outcomes. The current digest
+adapter is integrity bookkeeping, not that authentication gate. Proceed to
+efficacy scoring only after review and provenance gates pass.
