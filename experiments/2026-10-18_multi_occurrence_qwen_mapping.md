@@ -38,6 +38,28 @@ existing single-interval API.
   occurrence lists, and no-control failure. An independent audit reproduced the
   16 focused passes. The sampling digest binds supplied metadata and batch bytes;
   helper/source version must remain in the higher-level run manifest.
+
+## Bounded synthetic GPU integration
+
+After the CPU checks, extended the existing synthetic internal-ablation runner
+to pass two separated intervals through the actual pinned Qwen processor,
+processor-batch snapshot, mapper, and GPU ablation hook. The GPU job ran one
+synthetic record with a baseline and ablation forward (2/2 complete, finite
+logits), no scoring or efficacy estimate. The two occurrences mapped to groups
+`[2,3,4]` and `[12,13]`; their union was five groups and the equal-count
+control was five disjoint groups. Each arm therefore covered 1,280 visual keys
+in this synthetic processor layout. Runtime was 22.06 s; peak allocated/reserved
+VRAM was 10.75/12.44 GiB on the RTX 5070 Ti. Four independently recomputed local
+source hashes matched the result. The aggregate SHA-256 is
+`3ec9c8bff79d650ca6abff115da00521357f6602be21a40c874826f76d461300`.
+
+The full repository suite passed **1,456/1,456** both before and after the
+runner fixture change; the changed fixture and both mapper suites also passed
+**17/17** before GPU execution. The GPU run checks wiring only: synthetic intervals do not
+validate reviewer evidence, claim truth, source-clock calibration, or direct
+faithfulness. No direct outcome was scored; status remains **0/3 independently
+reviewed, 0/3 scored, no real `ΔF`, CI, or test, and 0/15 browser-to-decoder
+correspondences**.
   `py_compile` and `git diff --check` passed.
 
 ## Interpretation and limitations
@@ -57,8 +79,8 @@ unverified and protected inputs stay local.
 
 ## Next action
 
-Integrate this mapper into the exact six/nine-branch batch builder and test that
-all reviewed occurrences, their unioned temporal-key groups, and the equal-count
-control are bound into the immutable per-row input manifest. Do that before any
-score call; human review, frame-pair evidence, and the intervention/scorer
-freeze remain required upstream gates.
+The next useful step is a fresh complete-suite check and scoped publication of
+this code plus the synthetic aggregate. Then bind the plural-interval metadata
+into the six-branch fixed-prediction treatment runner without changing any
+observed treatment or score; human review, frame-pair evidence, and the
+intervention/scorer freeze remain required before real scoring.

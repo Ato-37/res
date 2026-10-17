@@ -53,7 +53,8 @@ def synthetic_records(np_module, image_type):
             "frames": frames,
             "presentation_times": [Fraction(i) for i in range(32)],
             "sampled_indices": list(range(32)),
-            "intervals": [[Fraction(5), Fraction(8)]],
+            "intervals": [[Fraction(5), Fraction(8)],
+                          [Fraction(24), Fraction(27)]],
             "qa_item": {
                 "question": "Which synthetic color channel changes most over time?",
                 "choices": ["red", "green", "blue", "all equally", "cannot tell"],
@@ -164,7 +165,7 @@ def main(argv=None):
             sample_fps=records[0]["sample_fps"],
             processor_revision=MODEL_REVISION,
             processor_fingerprint_sha256=processor_fingerprint,
-            reviewed_interval_seconds=[5, 8],
+            reviewed_intervals_seconds=records[0]["intervals"],
         )
         batch = mapping.pop("_processor_batch_snapshot")
         ids = batch["input_ids"]
@@ -242,6 +243,10 @@ def main(argv=None):
             "records_forwarded": 1, "requested_forwards": 2,
             "attempted_forwards": attempted, "completed_forwards": completed,
             "temporal_group_count": mapping["temporal_group_count"],
+            "total_temporal_group_count": mapping["total_temporal_group_count"],
+            "reviewed_interval_count": mapping["reviewed_interval_count"],
+            "reviewed_occurrence_group_indices": mapping[
+                "reviewed_occurrence_group_indices"],
             "evidence_group_indices": mapping["evidence_group_indices"],
             "control_group_indices": mapping["control_group_indices"],
             "query_position": query_position,

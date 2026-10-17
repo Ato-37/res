@@ -19,7 +19,7 @@ class InternalAblationSyntheticFixtureTests(unittest.TestCase):
             self.assertEqual(len(left["frames"]), 32)
             self.assertEqual(left["presentation_times"], list(range(32)))
             self.assertEqual(left["sampled_indices"], list(range(32)))
-            self.assertEqual(left["intervals"], [[5, 8]])
+            self.assertEqual(left["intervals"], [[5, 8], [24, 27]])
             self.assertEqual(left["sample_fps"], 1)
             self.assertEqual(left["qa_item"]["gold"], row_index % 3)
             self.assertEqual(len(left["qa_item"]["choices"]), 5)
