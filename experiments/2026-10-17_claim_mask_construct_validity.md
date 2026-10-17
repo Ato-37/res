@@ -133,6 +133,90 @@ merit depends on whether the thesis endpoint is evidence attribution or
 faithfulness of a free-text explanation, while the actual direct-claim and
 frame-review gates stay outstanding.
 
+## Follow-up: human handoff readiness and GPU wiring feasibility
+
+An independent runbook audit confirmed that the pre-review gate remains
+external: no separately trusted root pin, real signed role roster, witnessed
+unopened owner-to-custodian handoff, or actual reviewer evidence is present.
+The latest private candidate inventory is not a release artifact and must be
+rebuilt from current bytes immediately before any freeze. The runbook now has
+an ordered pre-opening checklist with stop conditions. This is preparation
+only; it does not open the package or establish review completion.
+
+Direct faithfulness evidence remains **0/3 independently reviewed, 0/3
+scored**, with no direct estimate, interval, or test; actual browser screenshot
+to decoder correspondence remains **0/15**. These are the latest local
+verified counts and are not changed by the documentation work.
+
+An independent GPU feasibility review found that the existing synthetic Qwen
+smoke validates nine-forward scoring capacity but does not test internal
+intervention wiring. A new synthetic-only wiring smoke is justified as a
+bounded engineering check: it will map one predeclared synthetic temporal
+token group and test baseline, zero-strength, and fixed nonzero hook passes at
+language-model layer 8. The group and gain are wiring fixtures, not tuned
+intervention settings. KFP is not yet reproducibly specifiable because its
+public method description does not give top-k; no efficacy run or KFP
+replication is authorized by this check. Expected workload, if the smoke is
+implemented and the current GPU preflight passes, is three model forwards plus
+load, roughly 40–60 seconds and up to about 10.8 GiB allocated VRAM based on
+prior synthetic runs; enforce at least 12 GiB free before load and 512 MiB
+before each forward. These are estimates, not measurements of this run.
+
+**Engineering smoke result (2026-10-17).** The independently audited,
+synthetic-only GPU wiring check completed 32/32 frames and 3/3 forwards at
+Qwen2.5-VL-7B-Instruct revision
+`cc594898137f460bfe9f0759e9844b3ce807cfb5`, BF16 with 4-bit BF16 compute, on
+an RTX 5070 Ti. The processor produced 16 temporal groups; the predeclared
+synthetic group 0 contained 256 video-token positions. At decoder layer 8
+(zero-based), the zero-strength hook reproduced baseline logits exactly, the
+fixed 0.1 wiring perturbation changed the selected hidden activations and
+touched the intended positions, and output logits remained finite. Runtime was
+20.22 seconds. Free VRAM was 14.66 GiB before load and 1.95 GiB minimum before
+a forward. The measured 10.67 GiB allocated / 12.38 GiB reserved peaks cover
+only the post-load, post-batch-transfer measurement window; they exclude model
+loading and transfer.
+
+The first attempt exposed a real implementation mismatch: this installed
+Transformers decoder layer returns a tensor rather than a tuple. The hook was
+repaired to support the verified tensor return contract; CPU coverage is now
+5/5. The failed initial attempt stopped before completing the hook checks and
+did not produce efficacy evidence. The final result is saved in
+[`results/synthetic_temporal_hook_wiring_20261017.json`](../results/synthetic_temporal_hook_wiring_20261017.json).
+The smoke establishes token-position/hook wiring and finite numerics only. It
+does not validate claim relevance, treatment quality, prediction evidence
+dependence, or faithfulness improvement. No treatment is frozen.
+
+**Verification:** the independent code review found no wiring-scope defect;
+the full repository CPU suite passed 1,375/1,375 after registering the new
+model loader in the closed-branch classifier. The research gate remains actual
+human-reviewed evidence mapping plus a pre-outcome, non-circular
+intervention/estimand; no direct faithfulness conclusion follows from this
+engineering result.
+
+## Primary-source check: KFP treatment remains underspecified
+
+The arXiv full text for VERHallu §IV-B says to rank attention scores and select
+top-k key frames, but the inspected paper does not state the value of `k` or a
+complete operational definition of the attention score/aggregation. It does
+state layers 8–15, Gaussian `sigma=1`, window `m=5`, and `beta=0.6`. The
+authors' linked implementation repository currently exposes only README and
+LICENSE, not runnable method code. The same paper reports a Qwen2.5-VL-7B
+CFQA decrease of 6.0 percentage points under KFP while other task scores can
+improve, so an assumed uniform benefit is particularly unsafe. This confirms
+that KFP cannot yet be reproduced as a single frozen treatment for this
+faithfulness estimand. No KFP settings were tuned on project outcomes.
+Sources: [VERHallu paper, §IV-B and results](https://arxiv.org/abs/2601.10010),
+[official repository](https://github.com/zefanZhang-cn/VERHallu) (checked
+2026-10-17).
+
+The smoke's layer-8 hook success resolves only the software feasibility item;
+it does not supply KFP's missing selector or its propagation/MLP definition.
+Next, design a separate, fully specified question-conditioned selector and
+matched internal control from independent methodological grounds, or obtain
+clarification/source code for KFP. Do not label a locally filled-in `k` as a
+KFP replication, and do not start efficacy scoring until the treatment,
+primary estimand, and human-review evidence mapping are frozen.
+
 ## Follow-up: thesis target selected, internal-intervention metric remains draft
 
 On 2026-10-17, the user selected the thesis target as **selective prediction

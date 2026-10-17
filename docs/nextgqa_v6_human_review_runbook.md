@@ -23,6 +23,62 @@ listed inputs. It still has
 `joint_freeze=false`, `review_completed=false`, `score_ready=false`, and
 `execution_authorization=not_granted`.
 
+The latest local candidate inventory is ephemeral and private; it is not named
+or pinned here. Any earlier inventory count (including later candidate-only
+counts) is historical and must not be used for release. Immediately before a
+new freeze, rebuild the inventory from the current builder and verify the
+exact resulting bytes. A clean inventory proves byte integrity only.
+
+## Before first opening: readiness checklist
+
+Do these steps in order. Stop at the first unmet condition; no one opens the
+HTML page or videos before the release witness has observed the complete
+pre-open handoff and the independent auditor passes immediately before opening.
+
+1. Obtain the root public key and its DER fingerprint through a separate
+   trusted channel. Independently confirm that the fingerprint belongs to the
+   intended authority; a key and fingerprint delivered together are not a
+   trust anchor.
+2. Have that authority sign the current role roster. The roster binds roles
+   to key IDs and public keys; it does not authenticate people. Through the
+   separate trusted channel, independently establish and locally record which
+   real person controls each key. Assign distinct keys to the freeze owner,
+   claim reviewer, frame-pair reviewer, and release witness. Name the
+   custodian too; the owner may also be custodian, but neither reviewer may
+   fill either role, and the witness must be separate from every other role.
+   Resolve and pin the identity-to-key mapping before any review content is
+   opened.
+3. Rebuild a unique candidate inventory using the current builder. Verify its
+   owner-only modes, exact input hashes, source closure, and current runbook
+   and code bytes. The freeze owner signs the review-only receipt over this
+   exact inventory. Keep the receipt, rosters, keys, and reports local.
+4. Independently verify the root-signed rosters and freeze-owner signature
+   against the out-of-band root pin. Confirm the receipt is explicitly
+   review-only and still denies model loading, scoring, and execution.
+5. Before anyone opens the package, the release witness personally checks the
+   unopened state and exact frozen bytes and receipt, then observes custody
+   pass from the owner to the custodian. If one person fills both roles, the
+   witness must still observe and record that person's custody acceptance
+   after the freeze is established. The witness signs a fresh ceremony ID
+   only after observing that order. A detached signature created without this
+   witnessed event is not acceptable evidence.
+6. Immediately before first opening, run
+   `scripts/audit_nextgqa_review_release_order.py` against the exact current
+   receipt, both rosters, inventory, detached witness attestation, complete
+   artifact set, independent root pin, and ceremony ID. Pass an
+   `--artifact ROLE=PATH` argument for every inventoried artifact. Require the
+   witnessed release-order status and
+   `package_opening_permitted=true`; this permits only the offline human-review
+   step. If any artifact changed, any identity/role is unresolved, the handoff
+   was not witnessed, or the auditor fails, stop and repeat the freeze and
+   ceremony from the beginning.
+
+Passing this checklist is a procedural precondition for human review, not
+proof of identity, semantic review quality, actual viewing, or scoring
+authorization. The claim reviewer, capture operator, and independent
+frame-pair reviewer must then complete the separate steps below. Scoring stays
+denied until the later score freeze passes.
+
 ## Review-only release freeze before anyone views a video
 
 The current v2 protocol is a draft and is not frozen for scoring. Its exact
@@ -94,7 +150,8 @@ obtained root DER fingerprint, a fresh roster ID, and one
 `--role-key ROLE=KEY_ID=PUBLIC_KEY_PEM` argument per role. For
 `sign-release-roster`, also supply the already signed `--integrity-roster`.
 After the freeze owner has established the exact inventory and signed integrity
-receipt, the witness may run `sign-witness` with both rosters, inventory,
+receipt, the witness may run `sign-witness` with the independently pinned
+`--root-public-key` and `--root-public-der-sha256`, both rosters, inventory,
 receipt, one `--artifact ROLE=PATH` argument for every inventoried artifact,
 the witness private key, and a fresh `--ceremony-id`. The witness must
 explicitly pass `--witness-confirms-unopened-preopen-handoff` only after
