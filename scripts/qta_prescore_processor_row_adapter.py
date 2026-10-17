@@ -24,6 +24,9 @@ def processor_binding_row(*, review_token: str, source_video_sha256: str,
     if (not isinstance(mapping, dict)
             or mapping.get("status") != "processor_batch_snapshot_and_caller_metadata_bound"):
         raise ValueError("processor_mapping_status_invalid")
+    grid_check = mapping.get("processor_uniform_grid_assignment_check")
+    if grid_check != "passed_actual_pts_and_scalar_fps_group_sets_equal":
+        raise ValueError("processor_uniform_grid_assignment_check_invalid")
     batch_sha = _sha(mapping.get("typed_batch_sha256"), "typed_batch_sha256")
     sampling_sha = _sha(mapping.get("sampling_metadata_sha256"),
                         "sampling_metadata_sha256")
@@ -61,6 +64,7 @@ def processor_binding_row(*, review_token: str, source_video_sha256: str,
         "video_grid_thw": list(grid),
         "reviewed_intervals_rational_seconds": [list(pair) for pair in intervals],
         "interval_boundary_guard_rational_seconds": guard,
+        "processor_uniform_grid_assignment_check": grid_check,
         "evidence_group_indices": evidence,
         "control_group_indices": control,
         "temporal_group_token_positions": temporal_positions,

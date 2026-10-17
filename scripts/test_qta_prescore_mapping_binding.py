@@ -69,6 +69,8 @@ class QtaPrescoreMappingBindingTests(unittest.TestCase):
                 "video_grid_thw": [5, 1, 1],
                 "reviewed_intervals_rational_seconds": [["1/10", "2/5"]],
                 "interval_boundary_guard_rational_seconds": "1/20",
+                "processor_uniform_grid_assignment_check": (
+                    "passed_actual_pts_and_scalar_fps_group_sets_equal"),
                 "evidence_group_indices": [1, 3],
                 "control_group_indices": [0, 4],
                 "temporal_group_token_positions": [[0], [1], [2], [3], [4]],
@@ -145,6 +147,23 @@ class QtaPrescoreMappingBindingTests(unittest.TestCase):
                      "reviewed_intervals_rational_seconds": [["7", "8"]]}
         report = self._audit(processor_rows=mapped)
         self.assertEqual(report["failure_code"], "processor_interval_mapping_mismatch")
+
+    def test_requires_and_binds_actual_pts_fps_group_set_equality(self):
+        for marker in (None, "not_requested", "actual_pts_and_fps_group_sets_mismatch"):
+            rows = [dict(row) for row in self.processor_rows]
+            if marker is None:
+                rows[0].pop("processor_uniform_grid_assignment_check")
+            else:
+                rows[0]["processor_uniform_grid_assignment_check"] = marker
+            report = self._audit(processor_rows=rows)
+            self.assertEqual(report["failure_code"],
+                             "processor_uniform_grid_assignment_check_invalid")
+            self.assertEqual(report["branch_forwards"], 0)
+
+        good = self._audit(processor_rows=self.processor_rows)
+        self.assertEqual(good["status"],
+                         "structurally_bound_pending_independent_score_freeze")
+        self.assertEqual(good["verified_structural_rows"], 3)
 
     def test_same_interval_wrong_source_or_batch_is_rejected(self):
         wrong_source = [dict(row) for row in self.processor_rows]

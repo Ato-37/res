@@ -60,6 +60,8 @@ def synthetic_mapping_inputs() -> dict:
             "video_grid_thw": [5, 1, 1],
             "reviewed_intervals_rational_seconds": [["1/10", "2/5"]],
             "interval_boundary_guard_rational_seconds": "1/20",
+            "processor_uniform_grid_assignment_check": (
+                "passed_actual_pts_and_scalar_fps_group_sets_equal"),
             "evidence_group_indices": [1, 3], "control_group_indices": [0, 4],
             "temporal_group_token_positions": [[0], [1], [2], [3], [4]],
         })

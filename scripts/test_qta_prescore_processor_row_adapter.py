@@ -19,6 +19,8 @@ class QtaPrescoreProcessorRowAdapterTests(unittest.TestCase):
             "video_grid_thw": [5, 2, 2],
             "reviewed_intervals_rational_seconds": [["1/10", "2/5"]],
             "interval_boundary_guard_rational_seconds": "1/20",
+            "processor_uniform_grid_assignment_check": (
+                "passed_actual_pts_and_scalar_fps_group_sets_equal"),
             "evidence_group_indices": [1, 3],
             "control_group_indices": [0, 4],
             "groups": [{"token_positions": [i]} for i in range(5)],
@@ -34,6 +36,7 @@ class QtaPrescoreProcessorRowAdapterTests(unittest.TestCase):
             "sampling_metadata_sha256", "video_grid_thw",
             "reviewed_intervals_rational_seconds",
             "interval_boundary_guard_rational_seconds",
+            "processor_uniform_grid_assignment_check",
             "evidence_group_indices", "control_group_indices",
             "temporal_group_token_positions",
         })
@@ -50,6 +53,18 @@ class QtaPrescoreProcessorRowAdapterTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "processor_row_typed_batch_sha256_invalid"):
             processor_binding_row(review_token="token", source_video_sha256=sha("video"),
                                   mapping={**self.mapping, "typed_batch_sha256": "bad"})
+
+    def test_requires_explicit_actual_pts_fps_group_equality_pass(self):
+        for value in (None, "not_requested", "actual_pts_and_fps_group_sets_mismatch"):
+            mapping = dict(self.mapping)
+            if value is None:
+                mapping.pop("processor_uniform_grid_assignment_check")
+            else:
+                mapping["processor_uniform_grid_assignment_check"] = value
+            with self.subTest(value=value), self.assertRaisesRegex(
+                    ValueError, "processor_uniform_grid_assignment_check_invalid"):
+                processor_binding_row(review_token="token", source_video_sha256=sha("video"),
+                                      mapping=mapping)
 
     def test_rejects_invalid_group_index_order_or_grid(self):
         with self.assertRaisesRegex(ValueError, "processor_row_evidence_groups_invalid"):

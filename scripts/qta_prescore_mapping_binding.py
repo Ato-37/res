@@ -234,6 +234,9 @@ def audit_qta_prescore_mapping_bundle(
             processor_interval = processor.get("reviewed_intervals_rational_seconds")
             if processor_interval != mapped:
                 raise ValueError("processor_interval_mapping_mismatch")
+            grid_check = processor.get("processor_uniform_grid_assignment_check")
+            if grid_check != "passed_actual_pts_and_scalar_fps_group_sets_equal":
+                raise ValueError("processor_uniform_grid_assignment_check_invalid")
             if _fraction(processor.get("interval_boundary_guard_rational_seconds"),
                          "processor_guard") != guard:
                 raise ValueError("processor_clock_guard_mismatch")
@@ -269,6 +272,7 @@ def audit_qta_prescore_mapping_bundle(
                 "calibration_sha256": calibration_sha,
                 "mapped_pts_intervals": mapped,
                 "guard_pts_seconds": str(guard),
+                "processor_uniform_grid_assignment_check": grid_check,
                 "typed_batch_sha256": batch_sha,
                 "sampling_metadata_sha256": sampling_sha,
                 "video_grid_thw": grid,
