@@ -1,0 +1,73 @@
+{
+  "attempted_forwards": 9,
+  "checkpoint_weight_shards": {
+    "model-00001-of-00005.safetensors": {
+      "sha256": "e97b877e47fde53a6c6e77aafb36e58e91ee9d95c4a3eeac6f1b5c0e6a1c986e",
+      "size_bytes": 3900233256
+    },
+    "model-00002-of-00005.safetensors": {
+      "sha256": "a9a300a43b4724eee2abe7c18ceb26768d0ab011eb0cad19d9bfd2476a24d024",
+      "size_bytes": 3864726320
+    },
+    "model-00003-of-00005.safetensors": {
+      "sha256": "111223d173e00bbee81cba1216fad28668df3476706b7fd26f4d5b50f8b3a507",
+      "size_bytes": 3864726424
+    },
+    "model-00004-of-00005.safetensors": {
+      "sha256": "ef47f634fa57d46ee134edcc09f34085a47da1e16c12a2abe0d67118be6d72ed",
+      "size_bytes": 3864733680
+    },
+    "model-00005-of-00005.safetensors": {
+      "sha256": "0c859795ad3a627a9b95bcb762e059d5b768a4a36fdd4affeff269d93fdecc67",
+      "size_bytes": 1089994880
+    }
+  },
+  "checkpoint_weights_hash_status": "preload_shards_sha256_recorded",
+  "completed_forwards": 9,
+  "completed_records": 1,
+  "elapsed_seconds": 47.23897262500395,
+  "execution_authorization": "not_granted",
+  "faithfulness_result": false,
+  "gpu": "NVIDIA GeForce RTX 5070 Ti",
+  "limitations": [
+    "synthetic video and synthetic evidence/control groups only",
+    "no real video score, faithfulness estimate, interval, or hypothesis test",
+    "preload hashes bind the local checkpoint shards before model loading; they do not establish license status",
+    "the run does not exercise human review, player-clock calibration, or real-cohort gates"
+  ],
+  "model_revision": "cc594898137f460bfe9f0759e9844b3ce807cfb5",
+  "peak_allocated_gib": 10.754877090454102,
+  "peak_reserved_gib": 12.439453125,
+  "precision": "bf16_4bit_bf16_compute_eager",
+  "purpose": "synthetic_qta_checkpoint_hash_score_path_smoke",
+  "requested_forwards": 9,
+  "requested_records": 1,
+  "schema_version": 1,
+  "scope": "synthetic_only_engineering_no_faithfulness_result",
+  "source_artifact_sha256": "7dd89c84d799b49e1749255d53f1ffa35e4c07c8f60d014926893dca7fa69933",
+  "status": "passed",
+  "synthetic_score_diagnostic": {
+    "answer_index_frozen_from_baseline_full": 3,
+    "foil_index_frozen_from_baseline_full": 4,
+    "interpretation": "synthetic score path only; no faithfulness result",
+    "option_label_order": [
+      "A",
+      "B",
+      "C",
+      "D",
+      "E"
+    ],
+    "option_token_ids": [
+      32,
+      33,
+      34,
+      35,
+      36
+    ],
+    "sham_delta_f": -5.960464477539063e-08,
+    "status": "synthetic_numerical_integration_only",
+    "target_delta_f": -5.960464477539063e-08,
+    "target_minus_sham_delta_f": 0.0
+  },
+  "treatment_frozen": false
+}

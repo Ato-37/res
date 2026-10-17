@@ -170,3 +170,43 @@ scored, 0/15 verified browser-to-decoder correspondences**, with no real ΔF,
 uncertainty interval, or test. Human review and timing are still required
 before real score branches can run. See
 [synthetic integration log](../experiments/2026-10-18_qta_internal_score_path_smoke.md).
+
+### 2026-10-18 checkpoint: checkpoint hashes and claim-to-prediction link
+
+The combined synthetic QTA/internal-key score path was rerun with SHA-256
+hashes of all five pinned checkpoint shards recorded before model loading. It
+completed 1/1 record and 9/9 forwards in 47.24 seconds, at 10.75/12.44 GiB
+peak allocated/reserved VRAM. This closes the prior checkpoint-byte provenance
+gap for this synthetic run only; its `ΔF` values remain numerical residue and
+are not faithfulness evidence. See
+[`checkpoint hash and construct-link audit`](../experiments/2026-10-18_qta_checkpoint_hash_and_construct_link_audit.md)
+and the [safe derived summary](../results/synthetic_qta_checkpoint_hash_smoke_20261018.json).
+
+An independent audit found that the separately generated reviewed claim was
+not bound to the later scored baseline prediction. The protocol draft now
+requires a pre-treatment review that the claim provides video-grounded support
+for the frozen `p` over `q`; the existing review export cannot satisfy it. A
+CPU regression also fixed the multi-occurrence mapper so each occurrence is
+mapped without requiring a legacy contiguous control before the union-level
+rank-distance control is selected. This mapper contract passed 12/12 tests.
+
+Direct real-data faithfulness remains **0/3 reviewed, 0/3 prediction-link
+adjudications, 0/3 scored, 0/15 verified player-to-decoder correspondences**;
+no real effect estimate, interval, or test exists. The next work is a
+separately versioned prediction-link receipt plus fail-closed CPU cohort
+preflight. No real scoring is allowed by this engineering checkpoint.
+
+The final repository suite passed 1,479/1,479; the new prediction-link tests
+passed 6/6, private-output tests 7/7, and interval mapper tests 12/12.
+
+The CPU receipt validator is now implemented and binds exact baseline-manifest
+bytes, frozen cohort/source text digests, baseline A–E log-probabilities and
+recomputed `p/q`, protocol digest, and reviewer-adopted display digests. It
+reports only structural consistency and supporting self-reported judgment
+counts; the caller must supply independently pinned input digests, and it does
+not authenticate reviewer identity or semantics. The smoke runner's private
+artifact writer now uses a pinned private-root/run-directory fd, 0700 run
+directories, and exclusive 0600 files. Its focused security tests cover
+symlink roots, outside paths, shared directory preservation, overwrite, and
+write/open failures. These improve readiness and provenance handling but add
+no direct faithfulness evidence.

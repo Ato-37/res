@@ -9,6 +9,7 @@ outputs. Its synthetic score diagnostics are not faithfulness evidence.
 from __future__ import annotations
 
 import argparse
+from dataclasses import dataclass
 from datetime import datetime, timezone
 import hashlib
 import importlib.metadata
@@ -18,6 +19,7 @@ import os
 from pathlib import Path
 import sys
 import time
+import stat
 
 os.environ["HF_HUB_OFFLINE"] = "1"
 os.environ["TRANSFORMERS_OFFLINE"] = "1"
@@ -87,14 +89,153 @@ def _choice_log_probabilities(logits, token_ids, torch_module):
     return [float(value) for value in selected]
 
 
+def _hash_checkpoint_shards(model_path: Path):
+    """Hash the exact cached weight shards before loading the pinned model."""
+    shards = sorted(model_path.glob("model-*-of-*.safetensors"))
+    if len(shards) != 5 or any(not path.is_file() for path in shards):
+        raise RuntimeError("pinned_checkpoint_shard_inventory_invalid")
+    result = {}
+    for path in shards:
+        digest = hashlib.sha256()
+        with path.open("rb") as stream:
+            for block in iter(lambda: stream.read(8 * 1024 * 1024), b""):
+                digest.update(block)
+        result[path.name] = {
+            "size_bytes": path.stat().st_size,
+            "sha256": digest.hexdigest(),
+        }
+    return result
+
+
+@dataclass
+class _PrivateOutputTarget:
+    root_fd: int
+    run_fd: int
+    directory_name: str
+    filename: str
+    display_path: Path
+
+
+def _prepare_private_output(path: Path, private_root: Path) -> _PrivateOutputTarget:
+    """Create/pin one fresh 0700 run dir below a non-symlink private root."""
+    root = Path(os.path.abspath(private_root))
+    data_dir = root.parent
+    try:
+        data_st = data_dir.lstat()
+        root_st = root.lstat()
+    except OSError:
+        raise ValueError("private_output_root_invalid") from None
+    if (stat.S_ISLNK(data_st.st_mode) or stat.S_ISLNK(root_st.st_mode)
+            or not stat.S_ISDIR(root_st.st_mode)
+            or stat.S_IMODE(root_st.st_mode) != 0o700
+            or root_st.st_uid != os.getuid()):
+        raise ValueError("private_output_root_mode_invalid")
+    requested = path if path.is_absolute() else Path.cwd() / path
+    requested = Path(os.path.abspath(requested))
+    try:
+        relative = requested.relative_to(root)
+    except ValueError:
+        raise ValueError("output_must_be_under_private_nextgqa") from None
+    if len(relative.parts) != 2 or relative.parts[1] in {"", ".", ".."}:
+        raise ValueError("output_must_use_fresh_private_run_directory")
+    directory_name, filename = relative.parts
+    if filename in {".", ".."}:
+        raise ValueError("private_output_filename_invalid")
+    directory_flags = os.O_RDONLY | getattr(os, "O_DIRECTORY", 0)
+    directory_flags |= getattr(os, "O_NOFOLLOW", 0)
+    data_fd = os.open(data_dir, directory_flags)
+    try:
+        data_open_st = os.fstat(data_fd)
+        if ((data_open_st.st_dev, data_open_st.st_ino) != (data_st.st_dev, data_st.st_ino)
+                or data_open_st.st_uid != os.getuid()):
+            raise ValueError("private_output_data_directory_changed")
+        root_flags = os.O_RDONLY | getattr(os, "O_DIRECTORY", 0)
+        root_flags |= getattr(os, "O_NOFOLLOW", 0)
+        root_fd = os.open(root.name, root_flags, dir_fd=data_fd)
+    finally:
+        os.close(data_fd)
+    root_open_st = os.fstat(root_fd)
+    if ((root_open_st.st_dev, root_open_st.st_ino) != (root_st.st_dev, root_st.st_ino)
+            or root_open_st.st_uid != os.getuid()
+            or stat.S_IMODE(root_open_st.st_mode) != 0o700):
+        os.close(root_fd)
+        raise ValueError("private_output_root_changed")
+    try:
+        os.mkdir(directory_name, 0o700, dir_fd=root_fd)
+    except FileExistsError:
+        os.close(root_fd)
+        raise ValueError("private_output_run_directory_already_exists") from None
+    except BaseException:
+        os.close(root_fd)
+        raise
+    run_fd = None
+    try:
+        run_flags = os.O_RDONLY | getattr(os, "O_DIRECTORY", 0)
+        run_flags |= getattr(os, "O_NOFOLLOW", 0)
+        run_fd = os.open(directory_name, run_flags, dir_fd=root_fd)
+        os.fchmod(run_fd, 0o700)
+        run_st = os.fstat(run_fd)
+        if (not stat.S_ISDIR(run_st.st_mode) or run_st.st_uid != os.getuid()
+                or stat.S_IMODE(run_st.st_mode) != 0o700):
+            raise ValueError("private_output_run_directory_invalid")
+    except BaseException:
+        if run_fd is not None:
+            os.close(run_fd)
+        try:
+            os.rmdir(directory_name, dir_fd=root_fd)
+        finally:
+            os.close(root_fd)
+        raise
+    return _PrivateOutputTarget(
+        root_fd, run_fd, directory_name, filename, root / directory_name / filename)
+
+
+def _write_private_json(target: _PrivateOutputTarget, payload) -> None:
+    """Exclusively create a 0600 JSON file at the pinned run directory fd."""
+    flags = os.O_WRONLY | os.O_CREAT | os.O_EXCL
+    flags |= getattr(os, "O_NOFOLLOW", 0)
+    try:
+        fd = os.open(target.filename, flags, 0o600, dir_fd=target.run_fd)
+    except BaseException:
+        try:
+            os.rmdir(target.directory_name, dir_fd=target.root_fd)
+        except OSError:
+            pass
+        raise
+    try:
+        os.fchmod(fd, 0o600)
+        with os.fdopen(fd, "w", encoding="utf-8") as stream:
+            json.dump(payload, stream, indent=2, sort_keys=True)
+            stream.write("\n")
+            stream.flush()
+            os.fsync(stream.fileno())
+    except BaseException:
+        try:
+            os.unlink(target.filename, dir_fd=target.run_fd)
+        except OSError:
+            pass
+        try:
+            os.rmdir(target.directory_name, dir_fd=target.root_fd)
+        except OSError:
+            pass
+        raise
+
+
+def _close_private_output(target: _PrivateOutputTarget | None) -> None:
+    if target is None:
+        return
+    for fd in (target.run_fd, target.root_fd):
+        try:
+            os.close(fd)
+        except OSError:
+            pass
+
+
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--output", type=Path, required=True,
                         help="new aggregate-only JSON path; existing outputs are refused")
     args = parser.parse_args(argv)
-    if args.output.exists():
-        raise SystemExit("output_already_exists")
-
     import numpy as np
     import PIL
     import torch
@@ -151,7 +292,7 @@ def main(argv=None):
         "python_version": sys.version.split()[0],
         "numpy_version": np.__version__,
         "pillow_version": PIL.__version__,
-        "checkpoint_weights_hash_status": "not_computed_local_cached_revision_only",
+        "checkpoint_weights_hash_status": "pending_preload_hash",
         "source_sha256": {
             name: hashlib.sha256(path.read_bytes()).hexdigest()
             for name, path in local_sources.items()
@@ -161,6 +302,12 @@ def main(argv=None):
         name: hashlib.sha256(Path(module.__file__).read_bytes()).hexdigest()
         for name, module in external_modules.items()
     })
+    try:
+        output_target = _prepare_private_output(
+            args.output, repo / "data" / "private_nextgqa")
+    except (OSError, ValueError) as exc:
+        raise SystemExit(str(exc)) from None
+    args.output = output_target.display_path
 
     timer = time.monotonic()
     model = None
@@ -176,6 +323,10 @@ def main(argv=None):
                       / "snapshots" / MODEL_REVISION)
         if not model_path.is_dir():
             raise RuntimeError("pinned_checkpoint_not_cached")
+        stage = "hash_checkpoint_shards"
+        report["checkpoint_weight_shards"] = _hash_checkpoint_shards(model_path)
+        report["checkpoint_weights_hash_status"] = "preload_shards_sha256_recorded"
+        stage = "load_model"
         processor = AutoProcessor.from_pretrained(
             str(model_path), local_files_only=True,
             min_pixels=256 * 28 * 28, max_pixels=256 * 28 * 28)
@@ -435,10 +586,10 @@ def main(argv=None):
             torch.cuda.empty_cache()
         except Exception:
             pass
-        args.output.parent.mkdir(parents=True, exist_ok=True)
-        with args.output.open("x", encoding="utf-8") as stream:
-            json.dump(report, stream, indent=2, sort_keys=True)
-            stream.write("\n")
+        try:
+            _write_private_json(output_target, report)
+        finally:
+            _close_private_output(output_target)
     if exit_code == 0:
         print("synthetic score-path integration passed; no faithfulness result")
     return exit_code

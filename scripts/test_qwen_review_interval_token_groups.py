@@ -132,6 +132,19 @@ class ReviewIntervalTokenGroupTests(unittest.TestCase):
         self.assertFalse(set(result["evidence_group_indices"]) &
                          set(result["control_group_indices"]))
 
+    def test_union_mapping_does_not_require_legacy_contiguous_control_per_occurrence(self):
+        kwargs = {
+            "input_ids": [99] * 28, "video_token_id": 99,
+            "video_grid_thw": [7, 2, 2], "spatial_merge_size": 1,
+            "temporal_patch_size": 1,
+            "sampled_pts_seconds": [0, 2, 4, 6, 8, 10, 12],
+            "video_duration_seconds": 14,
+        }
+        result = map_review_intervals_to_qwen_groups(
+            **kwargs, reviewed_intervals_seconds=[[3, 9]])
+        self.assertEqual(result["evidence_group_indices"], [2, 3, 4])
+        self.assertEqual(result["control_group_indices"], [0, 1, 5])
+
     def test_overlapping_occurrences_union_duplicate_groups_once(self):
         result = map_review_intervals_to_qwen_groups(
             **{k: v for k, v in self.kwargs.items() if k != "reviewed_interval_seconds"},

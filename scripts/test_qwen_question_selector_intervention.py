@@ -1,13 +1,20 @@
 from __future__ import annotations
 
 import math
+import json
+import os
+from pathlib import Path
+import stat
+import tempfile
 import unittest
+from unittest.mock import patch
 
 import torch
 
 from qwen_internal_attention_ablation import compose_video_key_bias_and_ablation
 from smoke_qwen_question_selector_intervention import (
-    _choice_log_probabilities, build_smoke_condition_plan,
+    _choice_log_probabilities, _close_private_output, _prepare_private_output, _write_private_json,
+    build_smoke_condition_plan,
 )
 
 
@@ -72,6 +79,93 @@ class QuestionSelectorInterventionCompositionTests(unittest.TestCase):
         for ids in ([0, 1, 2, 3, 6], [0, 1, 2, 3, 3], [0, 1, 2, 3]):
             with self.subTest(ids=ids), self.assertRaises(ValueError):
                 _choice_log_probabilities(logits, ids, torch)
+
+
+class PrivateOutputTests(unittest.TestCase):
+    def setUp(self):
+        self.temp = tempfile.TemporaryDirectory()
+        self.root = Path(self.temp.name)
+        self.private = self.root / "private_nextgqa"
+        self.private.mkdir(mode=0o700)
+        os.chmod(self.private, 0o700)
+
+    def tearDown(self):
+        self.temp.cleanup()
+
+    def test_new_dedicated_directory_and_file_are_private_at_creation(self):
+        old_umask = os.umask(0o022)
+        try:
+            target = _prepare_private_output(
+                self.private / "run-1" / "summary.json", self.private)
+            output = target.display_path
+            self.assertEqual(stat.S_IMODE(output.parent.stat().st_mode), 0o700)
+            _write_private_json(target, {"ok": True})
+            _close_private_output(target)
+        finally:
+            os.umask(old_umask)
+        self.assertEqual(stat.S_IMODE(output.stat().st_mode), 0o600)
+        self.assertEqual(json.loads(output.read_text()), {"ok": True})
+
+    def test_outside_root_symlink_and_nested_paths_are_rejected(self):
+        with self.assertRaisesRegex(ValueError, "output_must_be_under_private"):
+            _prepare_private_output(self.root / "outside" / "summary.json", self.private)
+        outside = self.root / "outside_dir"
+        outside.mkdir()
+        (self.private / "linked").symlink_to(outside, target_is_directory=True)
+        with self.assertRaisesRegex(ValueError, "already_exists"):
+            _prepare_private_output(
+                self.private / "linked" / "summary.json", self.private)
+        with self.assertRaisesRegex(ValueError, "fresh_private_run_directory"):
+            _prepare_private_output(
+                self.private / "nested" / "run" / "summary.json", self.private)
+
+    def test_private_root_symlink_is_rejected(self):
+        real = self.root / "real_private"
+        real.mkdir(mode=0o700)
+        os.chmod(real, 0o700)
+        linked_root = self.root / "private_link"
+        linked_root.symlink_to(real, target_is_directory=True)
+        with self.assertRaisesRegex(ValueError, "private_output_root_mode_invalid"):
+            _prepare_private_output(linked_root / "run" / "summary.json", linked_root)
+
+    def test_existing_run_directory_is_not_mutated_or_overwritten(self):
+        shared = self.private / "existing"
+        shared.mkdir(mode=0o755)
+        os.chmod(shared, 0o755)
+        with self.assertRaisesRegex(ValueError, "already_exists"):
+            _prepare_private_output(shared / "summary.json", self.private)
+        self.assertEqual(stat.S_IMODE(shared.stat().st_mode), 0o755)
+
+    def test_serialization_failure_removes_partial_private_output(self):
+        target = _prepare_private_output(
+            self.private / "run-fail" / "summary.json", self.private)
+        with self.assertRaises(TypeError):
+            _write_private_json(target, {"not_json": object()})
+        _close_private_output(target)
+        output = target.display_path
+        self.assertFalse(output.exists())
+        self.assertFalse(output.parent.exists())
+
+    def test_output_open_failure_removes_empty_run_directory(self):
+        target = _prepare_private_output(
+            self.private / "run-open-fail" / "summary.json", self.private)
+        with patch("smoke_qwen_question_selector_intervention.os.open",
+                   side_effect=OSError("synthetic_open_failure")):
+            with self.assertRaisesRegex(OSError, "synthetic_open_failure"):
+                _write_private_json(target, {"ok": True})
+        _close_private_output(target)
+        self.assertFalse(target.display_path.parent.exists())
+
+    def test_existing_output_is_refused_without_mutation(self):
+        target = _prepare_private_output(
+            self.private / "run-existing" / "summary.json", self.private)
+        output = target.display_path
+        output.write_text("preserve", encoding="utf-8")
+        os.chmod(output, 0o600)
+        with self.assertRaises(FileExistsError):
+            _write_private_json(target, {"new": True})
+        self.assertEqual(output.read_text(encoding="utf-8"), "preserve")
+        _close_private_output(target)
 
 
 if __name__ == "__main__":

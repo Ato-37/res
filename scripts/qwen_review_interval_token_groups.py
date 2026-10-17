@@ -29,6 +29,7 @@ def map_review_interval_to_qwen_groups(
     video_grid_thw: Sequence[int], spatial_merge_size: int,
     temporal_patch_size: int, sampled_pts_seconds: Sequence[Real],
     video_duration_seconds: Real, reviewed_interval_seconds: Sequence[Real],
+    _select_control: bool = True,
 ) -> dict:
     """Return complete temporal-grid groups overlapping the reviewed time cells.
 
@@ -112,27 +113,29 @@ def map_review_interval_to_qwen_groups(
     if not evidence:
         raise ValueError("reviewed_interval_has_no_sampled_grid")
     evidence_count = len(evidence)
-    candidates = [list(range(start, start + evidence_count))
-                  for start in range(temporal_steps - evidence_count + 1)
-                  if not set(range(start, start + evidence_count)).intersection(evidence)]
-    if not candidates:
-        raise ValueError("equal_count_temporal_control_unavailable")
-    evidence_start = groups[evidence[0]]["coverage_start_seconds"]
-    evidence_end = groups[evidence[-1]]["coverage_end_seconds"]
-    evidence_center = (evidence_start + evidence_end) / 2
-    evidence_duration = evidence_end - evidence_start
-    control = min(candidates, key=lambda row: (
-        abs((groups[row[-1]]["coverage_end_seconds"]
-             - groups[row[0]]["coverage_start_seconds"]) - evidence_duration),
-        abs((groups[row[0]]["coverage_start_seconds"]
-             + groups[row[-1]]["coverage_end_seconds"]) / 2 - evidence_center),
-        row[0]))
+    control = []
+    if _select_control:
+        candidates = [list(range(start, start + evidence_count))
+                      for start in range(temporal_steps - evidence_count + 1)
+                      if not set(range(start, start + evidence_count)).intersection(evidence)]
+        if not candidates:
+            raise ValueError("equal_count_temporal_control_unavailable")
+        evidence_start = groups[evidence[0]]["coverage_start_seconds"]
+        evidence_end = groups[evidence[-1]]["coverage_end_seconds"]
+        evidence_center = (evidence_start + evidence_end) / 2
+        evidence_duration = evidence_end - evidence_start
+        control = min(candidates, key=lambda row: (
+            abs((groups[row[-1]]["coverage_end_seconds"]
+                 - groups[row[0]]["coverage_start_seconds"]) - evidence_duration),
+            abs((groups[row[0]]["coverage_start_seconds"]
+                 + groups[row[-1]]["coverage_end_seconds"]) / 2 - evidence_center),
+            row[0]))
     evidence_positions = tuple(position for index in evidence
                                for position in groups[index]["token_positions"])
     control_positions = tuple(position for index in control
                                for position in groups[index]["token_positions"])
-    if (len(evidence_positions) != len(control_positions)
-            or set(evidence_positions).intersection(control_positions)):
+    if (_select_control and (len(evidence_positions) != len(control_positions)
+            or set(evidence_positions).intersection(control_positions))):
         raise ValueError("internal_group_budget_or_overlap_invalid")
 
     return {
@@ -151,7 +154,8 @@ def map_review_interval_to_qwen_groups(
             for group in groups),
         "temporal_diagnostics_status": "diagnostic_only_no_prespecified_acceptance_threshold",
         "temporal_support_rule": "frame_midpoint_cells_clipped_to_video_duration_positive_overlap",
-        "control_rule": "disjoint_equal_count_window_min_duration_difference_then_center_distance_then_earlier",
+        "control_rule": ("disjoint_equal_count_window_min_duration_difference_then_center_distance_then_earlier"
+                         if _select_control else "not_selected_evidence_mapping_only"),
         "groups": groups,
         "interpretation_limit": (
             "supplied PTS/interval/duration/processor geometry only; no browser-to-decoder "
@@ -261,7 +265,7 @@ def map_review_intervals_to_qwen_groups(
         "video_duration_seconds": video_duration_seconds,
     }
     mapped = [map_review_interval_to_qwen_groups(
-        **common, reviewed_interval_seconds=interval)
+        **common, reviewed_interval_seconds=interval, _select_control=False)
         for interval in normalized_intervals]
     reference = mapped[0]
     evidence = sorted({index for row in mapped for index in row["evidence_group_indices"]})

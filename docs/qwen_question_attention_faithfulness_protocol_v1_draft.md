@@ -64,8 +64,10 @@ multiple occurrences are marked, map each separately and take the union of their
 not fill gaps between occurrences. Duplicate intervals are retained in the
 review record but contribute the same groups once to the union.
 
-Intervals are seconds on the verified source-video clock, interpreted as
-half-open `[start,end)`. A sampled temporal group's support cell is bounded by
+Intervals are seconds on the verified source-video clock, recorded at
+millisecond precision with inclusive endpoints as in review policy v6. The
+mapper requires positive duration and positive-duration overlap, so a shared
+single endpoint has zero measure. A sampled temporal group's support cell is bounded by
 midpoints between strictly increasing decoded PTS values, clipped to
 `[0, verified_duration]`; group support is the span of its temporal-patch
 frames. A group is evidence when its support has positive-duration overlap
@@ -95,6 +97,29 @@ the highest-log-probability option and `q` as the highest-scoring different
 option, ties in A–E order. Resolve all five option token IDs with the pinned
 tokenizer. Score the same `p`, `q`, and final prompt-token position in every
 branch. Gold answer margin and accuracy are secondary only.
+
+The current claim generator creates a separate answer-like sentence without
+binding it to the later model prediction. Claim support in the video alone
+therefore does not show that the reviewed claim explains the scored `p`. Add a
+**prediction-link adjudication** after every row's baseline `p/q` is frozen and
+before any treatment or ablation branch: an independent reviewer, still blind
+to gold labels and all branch outcomes, sees the exact question, options, `p`,
+`q`, and frozen claim and judges whether the claim supplies a video-grounded
+reason for choosing `p` over `q`. Record `supports_p_over_q`,
+`compatible_not_discriminating`, `unrelated`, `contradicts_p`, or `ambiguous`,
+with rationale and digests of all displayed fields. Only
+`supports_p_over_q` is eligible; all other outcomes are row failures. This is
+not a gold-answer judgment. It prevents calling an unrelated claim interval
+“explanation evidence” for the scored prediction. The existing v6 claim-review
+export has no such field, so a separately versioned supplemental receipt and
+independent audit are required; the current review package does not satisfy
+this gate. A CPU structural validator now binds the receipt to exact baseline
+manifest bytes, externally frozen cohort/source digests, and `p/q` recomputed
+from baseline A–E log-probabilities. It remains non-authorizing: its expected
+hashes and token list must come from independently verified frozen inputs, and
+it cannot authenticate who reviewed the material or whether the judgment is
+semantically correct. No human packet renderer or production cohort caller is
+currently connected to the validator.
 
 All outcome branches use the **same original full-video processor batch**.
 `evidence_ablation` and `control_ablation` are not black-frame input masks:
@@ -168,13 +193,15 @@ preparation successes/failures privately. Any baseline-preparation failure is a
 cohort failure; stop baseline preparation at the first failure, retain the
 private failure/count record, and run zero branch forwards. **Cohort-wide
 post-baseline gate:** only after all requested rows have valid baseline outputs,
-verify all rows' A–E token IDs, `p/q`, score positions, selector/sham
-positions, branch input hashes, hook targets, and ablation/bias composition. If any row fails, run zero
-branch forwards and emit no ΔF estimate; retain only the private baseline
-preparation failure/count record. If all rows pass, run all predeclared
-branches, then release a cohort estimate only after every requested row is
-complete. A byte inventory or synthetic callback is not human attestation,
-timing evidence, or execution authorization.
+complete and independently audit the prediction-link adjudication for every
+row, then verify all rows' A–E token IDs, `p/q`, score positions,
+selector/sham positions, branch input hashes, hook targets, and ablation/bias
+composition. Any failed or missing link judgment means zero branch forwards
+for the cohort and no ΔF estimate. Other failed post-baseline checks likewise
+mean zero branch forwards. If all pass, run all predeclared branches, then
+release a cohort estimate only after every requested row is complete. A byte
+inventory or synthetic callback is not human attestation, timing evidence, or
+execution authorization.
 
 ## Known limitations and present status
 
@@ -190,8 +217,9 @@ non-evidence routes, and model-internal interventions may have distributional
 effects. Claims are limited to the checkpoint, prompt, sample, processor,
 layers, mask backend, and intervention tested.
 
-Direct evidence status: **0/3 reviewed, 0/3 scored, 0/15 verified
-player-to-decoder correspondences; no real `ΔF`, CI, or test**. Existing
+Direct evidence status: **0/3 reviewed, 0/3 prediction-link adjudications,
+0/3 scored, 0/15 verified player-to-decoder correspondences; no real `ΔF`,
+CI, or test**. Existing
 question-selector GPU and internal-ablation GPU outputs are separate synthetic
 engineering checks; neither tests faithfulness. The final nine-forward combined
 smoke tests synthetic group assignments and fixed-prediction arithmetic, but it
