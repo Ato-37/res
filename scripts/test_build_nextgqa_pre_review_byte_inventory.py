@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import json
 import os
 from pathlib import Path
@@ -109,6 +110,47 @@ class SyntheticPreReviewInventoryTests(unittest.TestCase):
         self.assertEqual(result["missing_required_slots"], [])
         self.assertFalse(result["joint_freeze"])
         self.assertFalse(result["score_ready"])
+
+    def test_inventory_can_bind_an_explicit_new_review_package(self):
+        package_relative = PRIVATE_ROOT / "reviewer_package_v6_20261018_0243"
+        package = self.root / package_relative
+        package.mkdir(mode=0o700)
+        html = b"synthetic repaired disclosure page"
+        (package / "index.html").write_bytes(html)
+        (package / "index.html").chmod(0o600)
+        for name in self.media_names:
+            source = self.staged / name
+            target = package / name
+            target.write_bytes(source.read_bytes())
+            target.chmod(0o600)
+        html_relative = PRIVATE_ROOT / "claim_review_v6_20261018_0243.html"
+        standalone = self.root / html_relative
+        standalone.write_bytes(html)
+        standalone.chmod(0o600)
+
+        output = self.root / PRIVATE_ROOT / "inventory-explicit-package"
+        result = build_inventory(
+            self.root, output, package_dir=package_relative,
+            staged_media_dir=STAGED_MEDIA_DIR,
+            standalone_review_html=html_relative)
+        roles = {row["role"]: row["sha256"] for row in result["artifacts"]}
+        self.assertEqual(result["missing_required_slots"], [])
+        self.assertEqual(roles["review_package_html"], roles["standalone_review_html"])
+        self.assertNotEqual(
+            roles["review_package_html"],
+            hashlib.sha256(b"synthetic review page").hexdigest())
+        self.assertEqual(result["execution_authorization"], "not_granted")
+
+    def test_candidate_path_overrides_are_all_or_none_and_private(self):
+        output = self.root / PRIVATE_ROOT / "inventory-invalid-overrides"
+        with self.assertRaisesRegex(ValueError, "supplied_together"):
+            build_inventory(self.root, output, package_dir=PACKAGE_DIR)
+        with self.assertRaisesRegex(ValueError, "repository_private_path"):
+            build_inventory(
+                self.root, output,
+                package_dir=Path("data/private_nextgqa/../outside"),
+                staged_media_dir=STAGED_MEDIA_DIR,
+                standalone_review_html=PRIVATE_FILES["standalone_review_html"])
 
     def test_unmapped_local_python_import_blocks_inventory(self):
         scripts = self.root / "scripts"

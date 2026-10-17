@@ -180,7 +180,7 @@ def _hash_file(root_fd: int, relative: Path, *, private: bool) -> dict[str, Any]
 
 def _directory_files(root_fd: int, relative: Path) -> dict[str, dict[str, Any]]:
     _check_private_dir_chain(root_fd, relative)
-    fd = _open_dir(root_fd, relative)
+    fd = _open_dir(root_fd, relative, private=True)
     try:
         names = os.listdir(fd)
         if any(not isinstance(name, str) or name in {"", ".", ".."} for name in names):
@@ -386,8 +386,33 @@ def _artifact(role: str, item: dict[str, Any]) -> dict[str, Any]:
     return {"role": role, "size_bytes": item["size_bytes"], "sha256": item["sha256"]}
 
 
-def build_inventory(repo_root: Path, output_dir: Path) -> dict[str, Any]:
+def _private_relative_path(value: Path | str, *, field: str) -> Path:
+    path = Path(value)
+    if (path.is_absolute() or path.parts[:len(PRIVATE_ROOT.parts)] != PRIVATE_ROOT.parts
+            or any(part in {"", ".", ".."} for part in path.parts)):
+        raise ValueError(f"{field}_must_be_repository_private_path")
+    return path
+
+
+def build_inventory(repo_root: Path, output_dir: Path, *,
+                    package_dir: Path | None = None,
+                    staged_media_dir: Path | None = None,
+                    standalone_review_html: Path | None = None) -> dict[str, Any]:
     """Hash required local inputs and write a new private candidate receipt."""
+    overrides = (package_dir, staged_media_dir, standalone_review_html)
+    if any(value is not None for value in overrides) and not all(
+            value is not None for value in overrides):
+        raise ValueError("candidate_package_paths_must_be_supplied_together")
+    if all(value is not None for value in overrides):
+        selected_package_dir = _private_relative_path(package_dir, field="package_dir")
+        selected_staged_media_dir = _private_relative_path(
+            staged_media_dir, field="staged_media_dir")
+        selected_review_html = _private_relative_path(
+            standalone_review_html, field="standalone_review_html")
+    else:
+        selected_package_dir = PACKAGE_DIR
+        selected_staged_media_dir = STAGED_MEDIA_DIR
+        selected_review_html = PRIVATE_FILES["standalone_review_html"]
     repo_root = repo_root.resolve(strict=True)
     root_fd = os.open(repo_root, _DIR_FLAGS)
     artifacts: list[dict[str, Any]] = []
@@ -399,7 +424,9 @@ def build_inventory(repo_root: Path, output_dir: Path) -> dict[str, Any]:
             except OSError:
                 missing.add("private_data_root")
 
-        for role, relative in PRIVATE_FILES.items():
+        private_files = dict(PRIVATE_FILES)
+        private_files["standalone_review_html"] = selected_review_html
+        for role, relative in private_files.items():
             try:
                 item = _hash_file(root_fd, relative, private=True)
             except OSError:
@@ -432,11 +459,11 @@ def build_inventory(repo_root: Path, output_dir: Path) -> dict[str, Any]:
         package_files: dict[str, dict[str, Any]] = {}
         staged_files: dict[str, dict[str, Any]] = {}
         try:
-            package_files = _directory_files(root_fd, PACKAGE_DIR)
+            package_files = _directory_files(root_fd, selected_package_dir)
         except OSError:
             missing.add("review_package_contents")
         try:
-            staged_files = _directory_files(root_fd, STAGED_MEDIA_DIR)
+            staged_files = _directory_files(root_fd, selected_staged_media_dir)
         except OSError:
             missing.add("staged_media_contents")
 
@@ -552,10 +579,19 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--output-dir", required=True, type=Path,
                         help="new unique directory under this checkout; parent must be mode 0700")
+    parser.add_argument("--package-dir", type=Path,
+                        help="candidate review package, relative to the repository private root")
+    parser.add_argument("--staged-media-dir", type=Path,
+                        help="candidate staged media directory, relative to the repository private root")
+    parser.add_argument("--standalone-review-html", type=Path,
+                        help="exact standalone review HTML, relative to the repository private root")
     args = parser.parse_args(argv)
     repo_root = Path(__file__).resolve().parents[1]
     try:
-        result = build_inventory(repo_root, args.output_dir)
+        result = build_inventory(
+            repo_root, args.output_dir, package_dir=args.package_dir,
+            staged_media_dir=args.staged_media_dir,
+            standalone_review_html=args.standalone_review_html)
     except (OSError, ValueError):
         print(json.dumps({"status": "candidate_only", "execution_authorization": "not_granted",
                           "failure_code": "inventory_build_failed"}, sort_keys=True))
