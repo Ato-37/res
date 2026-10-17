@@ -1,0 +1,73 @@
+{
+  "attention_layers_observed": 12,
+  "attention_selector_sha256": "061fa5dc96f1ac685953f4c0316873a4a0118c2db326668e76741f8e6802f161",
+  "captured_layer_count": 12,
+  "cuda_version": "12.8",
+  "device_name": "NVIDIA GeForce RTX 5070 Ti",
+  "elapsed_seconds": 13.543983604999084,
+  "final_layer_projection_check_1_based": 28,
+  "final_projection_max_abs_error": 0.0,
+  "forward_calls": 1,
+  "free_vram_after_gib": 7.8623046875,
+  "free_vram_before_forward_gib": 8.6826171875,
+  "free_vram_before_load_gib": 14.6572265625,
+  "kes_layer_neighborhood_1_based": [
+    14,
+    15,
+    16
+  ],
+  "kes_visual_ratio": 0.1,
+  "limitations": [
+    "synthetic video only; first next-token position only",
+    "uses shared final norm and LM head for intermediate layer rows",
+    "when triggered, uses simple mean-attention top-token selection on synthetic input",
+    "radius-one neighborhood and token-level selection are engineering fixtures, not full STEAR KES",
+    "does not implement evidence reinjection or counterfactual decoding",
+    "not a STEAR reproduction and no faithfulness outcome was measured"
+  ],
+  "maximum_normalized_entropy": 0.7684641763098,
+  "model_revision": "cc594898137f460bfe9f0759e9844b3ce807cfb5",
+  "paper_layer_range_1_based": [
+    5,
+    16
+  ],
+  "paper_reported_trigger_threshold": 0.85,
+  "peak_allocated_gib_after_model_load": 6.2134785652160645,
+  "peak_reserved_gib_after_model_load": 6.73046875,
+  "per_layer_normalized_entropy": {
+    "10": 0.014505791578135717,
+    "11": 0.3144869521417787,
+    "12": 0.7235125816277367,
+    "13": 0.6876684255610602,
+    "14": 0.7302210149261538,
+    "15": 0.7684641763098,
+    "16": 0.7640891580153558,
+    "5": 0.0023329999133076718,
+    "6": 0.008430829698920287,
+    "7": 0.015520425782755245,
+    "8": 0.01578688231601767,
+    "9": 0.08168475759407902
+  },
+  "purpose": "synthetic_entropy_trigger_wiring_only",
+  "selected_layer_1_based": 15,
+  "selected_visual_token_count": 103,
+  "source_code_sha256": "ed9c74995d7f68aa1c1e2d05223da8db08701d62fe2365207199ca2b5f4cfab3",
+  "started_at_utc": "2026-10-17T14:26:42.762885+00:00",
+  "status": "passed",
+  "synthetic_frames": 8,
+  "temporal_groups": 4,
+  "torch_version": "2.11.0+cu128",
+  "total_vram_gib": 15.89398193359375,
+  "transformers_version": "5.18.0",
+  "trigger_helper_sha256": "5434f3bae2847f1742828aa651f94872248f04bef7d8ed40ba988b47227b8b5d",
+  "trigger_threshold": 0.5,
+  "trigger_threshold_mode": "synthetic_engineering_override",
+  "triggered": true,
+  "video_grid_thw": [
+    4,
+    32,
+    32
+  ],
+  "visual_token_count": 1024,
+  "vocabulary_size": 152064
+}
