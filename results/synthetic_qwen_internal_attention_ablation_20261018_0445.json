@@ -1,0 +1,50 @@
+{
+  "attempted_forwards": 2,
+  "attention_backend": "eager",
+  "completed_forwards": 2,
+  "cuda_version": "12.8",
+  "device_name": "NVIDIA GeForce RTX 5070 Ti",
+  "elapsed_seconds": 19.457973044001847,
+  "execution_authorization": "not_granted",
+  "faithfulness_result": false,
+  "free_vram_after_gib": 1.943450927734375,
+  "free_vram_before_load_gib": 14.6572265625,
+  "intervention_layers_1_based": [
+    5,
+    10,
+    16
+  ],
+  "limitations": [
+    "synthetic-only and one-record mechanism wiring test; no efficacy inference",
+    "sampling times are synthetic and do not establish real source-clock mapping",
+    "masking selected answer-query access does not erase propagated evidence",
+    "does not test human review, real QA scoring, or processor-batch provenance gate"
+  ],
+  "model_revision": "cc594898137f460bfe9f0759e9844b3ce807cfb5",
+  "peak_allocated_gib": 10.754877090454102,
+  "peak_reserved_gib": 12.439453125,
+  "precision": "bf16_4bit_bf16_compute_eager",
+  "records_forwarded": 1,
+  "requested_forwards": 2,
+  "scope": "synthetic_internal_ablation_wiring_only",
+  "source_sha256": {
+    "ablation_helper": "b3f34dc9252c1f3888c73567ae037eaf1b3bfa6ffbd5aa28d4d396270675ac37",
+    "condition_batch_builder": "7486c6e959e507add3190b2af91b92ddf3d9dc84035a11cd44b3c0f36cee14e7",
+    "runner": "20a5a994442c65cce8770d5cbdf97e2ed56e8b5b700871c399886b3da09d33c2",
+    "temporal_mapping_helper": "98ee69dd153e679cc6a9e564967592a6f808816bd8bd748609c14779f8d6373b"
+  },
+  "started_at_utc": "2026-10-17T18:42:37.926671+00:00",
+  "status": "passed",
+  "synthetic_records_constructed": 3,
+  "temporal_group_count": 3,
+  "temporal_mapping_diagnostics": {
+    "first_edge_cell_duration_seconds": 0.5,
+    "last_edge_cell_duration_seconds": 1.5,
+    "max_sampled_pts_gap_seconds": 1.0,
+    "max_temporal_group_coverage_seconds": 2.5
+  },
+  "token_budget_per_arm": 768,
+  "torch_version": "2.11.0+cu128",
+  "total_vram_gib": 15.89398193359375,
+  "transformers_version": "5.18.0"
+}
