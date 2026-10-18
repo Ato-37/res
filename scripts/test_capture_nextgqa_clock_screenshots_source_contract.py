@@ -50,18 +50,37 @@ class CapturePromptContractTests(unittest.TestCase):
         self.assertIn("candidate_anchor_split_ids_invalid", SOURCE)
         self.assertIn("candidate_token_duplicate", SOURCE)
 
-    def test_interactive_prompt_names_current_token_anchor_and_planned_pts(self):
-        prompt = re.search(r'Write-Host \("\[\{0\}/15\].*?\n\s*\(\$index \+ 1\), \$anchor\.review_token, \$anchor\.anchor_id, \$anchor\.decoder_pts_seconds\)', SOURCE, re.S)
+    def test_interactive_prompt_names_current_record_slot_and_anchor(self):
+        prompt = re.search(r'Write-Host \("\[\{0\}/15\].*?\n\s*\(\$index \+ 1\), \$recordSlot, \$anchor\.anchor_id\)', SOURCE, re.S)
         self.assertIsNotNone(prompt)
         line = prompt.group(0)
-        self.assertIn("$anchor.review_token", line)
+        self.assertIn("$recordSlot", line)
         self.assertIn("$anchor.anchor_id", line)
-        self.assertIn("$anchor.decoder_pts_seconds", line)
         self.assertNotIn("Follow the next planned anchor", SOURCE)
 
     def test_candidate_authorization_remains_ungranted(self):
         self.assertIn("$plan.execution_authorization -ne 'not_granted'", SOURCE)
+        self.assertIn("$plan.status -ne 'predeclared_frozen'", SOURCE)
         self.assertIn("execution_authorization = 'not_granted'", SOURCE)
+
+    def test_capture_accepts_only_a_hotkey_posted_after_current_anchor_armed(self):
+        self.assertIn("PeekMessage(out MSG msg", SOURCE)
+        self.assertIn("while ([NextGqaClockCaptureNative]::PeekMessage(", SOURCE)
+        self.assertIn("$armedTick = [uint32][NextGqaClockCaptureNative]::GetTickCount()", SOURCE)
+        self.assertIn("$armedTick, [uint32]$message.Time)", SOURCE)
+        self.assertIn("$hotkeyAgeMs -eq 0", SOURCE)
+        self.assertIn("$hotkeyAgeMs -gt 60000", SOURCE)
+        self.assertIn("capture_hotkey_stale_or_ambiguous", SOURCE)
+        self.assertIn("$waitedMs -ge 60000", SOURCE)
+        self.assertIn("capture_hotkey_wait_timeout", SOURCE)
+
+    def test_console_prompt_does_not_expose_token_or_pts(self):
+        prompt = re.search(r'Write-Host \("\[\{0\}/15\].*?\n\s*\(\$index \+ 1\), \$recordSlot, \$anchor\.anchor_id\)', SOURCE, re.S)
+        self.assertIsNotNone(prompt)
+        self.assertIn("$recordSlot = [int][Math]::Floor($index / 5) + 1", SOURCE)
+        self.assertNotIn('Token: {1}', prompt.group(0))
+        self.assertNotIn('decoder_pts_seconds', prompt.group(0))
+        self.assertNotIn('$anchor.review_token', prompt.group(0))
 
     def test_synthetic_plan_mapping_and_split_or_token_rejections(self):
         records = []

@@ -330,8 +330,14 @@ freeze.
 
 Using the exact staged media and the frozen plan, perform all 15 planned
 beginning/interior/end anchor observations in the actual review browser. The
-OS helper needs a human to position the player and trigger each capture; it
-captures the foreground window. Produce a video-only crop for every capture
+OS helper prompts with the one-based record slot and anchor ID, without
+printing opaque review tokens or planned PTS to the console. Follow the
+already-opened review rows in order, position the player, record each HTML5
+clock event, and trigger capture. The helper drains previously queued hotkeys,
+rejects timestamp ambiguity at millisecond resolution and stale events
+(including a duplicate press during the preceding capture), and actually times
+out after 60 seconds without a valid hotkey. It captures the
+foreground window. Produce a video-only crop for every capture
 and retain the original screenshot privately. The crop coordinates and hash
 alone do not establish crop purity. The separate frame-pair reviewer must
 inspect every blinded crop/decoder pair. Missing, mismatched, or ambiguous

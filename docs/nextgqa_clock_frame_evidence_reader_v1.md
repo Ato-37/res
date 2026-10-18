@@ -8,16 +8,21 @@ foreground Edge review window with Windows `CopyFromScreen` after a human
 hotkey action and write a private receipt. The reader still does not capture
 the screen or decide whether two images show the same frame.
 
-The capture helper iterates each token's five candidate anchors in the fixed
+The capture helper iterates each record's five candidate anchors in the fixed
 chronological order `fit_begin`, `heldout_quarter`, `fit_midpoint`,
 `heldout_three_quarter`, `fit_end`, regardless of how anchors are grouped in
-the plan JSON. Before each hotkey, its prompt displays the assigned opaque
-token, exact `anchor_id`, and planned `decoder_pts_seconds`; the operator must
-use that row when positioning the browser review. This prompt reduces row
-confusion but does not verify that the browser actually displayed the stated
-token, anchor, or time. Before capture, the helper requires three distinct
-tokens and validates the fit and heldout anchor sets separately, so an anchor
-cannot be silently moved between those roles.
+the plan JSON. Its prompt displays only the one-based record slot and exact
+`anchor_id`; opaque tokens and planned PTS are not printed to the console.
+The operator follows the already-opened review rows in that order. This prompt
+reduces row confusion but does not verify that the browser actually displayed
+the stated record, anchor, or time. The helper drains queued hotkeys before
+arming, then rejects any event ambiguous at millisecond resolution, predating
+the current anchor's armed wait, or arriving outside its 60-second wait
+window. An idle wait actually times out and fails closed. This prevents a
+duplicate press queued during the previous capture from being silently
+assigned to the next anchor. Before capture, the helper requires three distinct
+tokens and validates the fit and heldout anchor
+sets separately, so an anchor cannot be silently moved between those roles.
 
 For the candidate three-video plan, the signed evidence manifest has exactly
 one row for each of the five planned anchors in each video. Each row binds an

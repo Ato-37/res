@@ -25,8 +25,9 @@ public static class NextGqaClockCaptureNative {
   }
   [DllImport("user32.dll", SetLastError=true)] public static extern bool RegisterHotKey(IntPtr hWnd, int id, uint modifiers, uint key);
   [DllImport("user32.dll", SetLastError=true)] public static extern bool UnregisterHotKey(IntPtr hWnd, int id);
-  [DllImport("user32.dll", SetLastError=true)] public static extern int GetMessage(out MSG msg, IntPtr hWnd, uint min, uint max);
+  [DllImport("user32.dll", SetLastError=true)] public static extern bool PeekMessage(out MSG msg, IntPtr hWnd, uint min, uint max, uint remove);
   [DllImport("kernel32.dll")] public static extern uint GetTickCount();
+  [DllImport("kernel32.dll")] public static extern void Sleep(uint milliseconds);
   [DllImport("kernel32.dll", CharSet=CharSet.Unicode, SetLastError=true)]
   public static extern bool CreateDirectory(String path, IntPtr securityAttributes);
   public static uint Elapsed(uint start, uint end) { unchecked { return end - start; } }
@@ -73,6 +74,7 @@ if ($ExpectedPlanSha256 -notmatch '^[0-9a-f]{64}$' -or
 $plan = Read-PrivateJson $PlanPath $ExpectedPlanSha256
 $provenance = Read-PrivateJson $PlanProvenancePath $ExpectedPlanProvenanceSha256
 if ($plan.purpose -ne 'predeclared_html5_clock_pts_anchor_plan' -or
+    $plan.status -ne 'predeclared_frozen' -or
     $plan.execution_authorization -ne 'not_granted' -or
     $provenance.purpose -ne 'private_clock_anchor_plan_candidate_provenance' -or
     $provenance.status -ne 'candidate_not_jointly_frozen' -or
@@ -184,14 +186,36 @@ try {
     Write-Host 'A screenshot plus its window/time receipt will be written locally. This is not a human review or clock pass.'
     for ($index = 0; $index -lt $anchors.Count; $index++) {
         $anchor = $anchors[$index]
-        Write-Host ("[{0}/15] Token: {1} | Anchor: {2} | Planned decoder_pts_seconds: {3}" -f `
-            ($index + 1), $anchor.review_token, $anchor.anchor_id, $anchor.decoder_pts_seconds)
+        $recordSlot = [int][Math]::Floor($index / 5) + 1
+        Write-Host ("[{0}/15] Record slot: {1} | Anchor: {2}" -f `
+            ($index + 1), $recordSlot, $anchor.anchor_id)
         Write-Host 'Focus the visible Private offline video review Edge window, then press Ctrl+Shift+F11.'
-        $message = New-Object NextGqaClockCaptureNative+MSG
-        do {
-            $messageResult = [NextGqaClockCaptureNative]::GetMessage([ref]$message, [IntPtr]::Zero, 0, 0)
-            if ($messageResult -le 0) { throw 'capture_message_loop_failed' }
-        } while ($message.Message -ne 0x0312 -or [int]$message.WParam -ne $hotkeyId)
+        # Drain stale hotkeys before arming. A duplicate press during the prior
+        # capture can remain queued; any race across this drain is rejected by
+        # the MSG.Time check below, including same-millisecond ambiguity.
+        $staleMessage = New-Object NextGqaClockCaptureNative+MSG
+        while ([NextGqaClockCaptureNative]::PeekMessage(
+                [ref]$staleMessage, [IntPtr]::Zero, 0x0312, 0x0312, 0x0001)) { }
+        $armedTick = [uint32][NextGqaClockCaptureNative]::GetTickCount()
+        $hotkeyReceived = $false
+        while (-not $hotkeyReceived) {
+            $waitedMs = [NextGqaClockCaptureNative]::Elapsed(
+                $armedTick, [uint32][NextGqaClockCaptureNative]::GetTickCount())
+            if ($waitedMs -ge 60000) { throw 'capture_hotkey_wait_timeout' }
+            $message = New-Object NextGqaClockCaptureNative+MSG
+            while ([NextGqaClockCaptureNative]::PeekMessage(
+                    [ref]$message, [IntPtr]::Zero, 0x0312, 0x0312, 0x0001)) {
+                if ([int]$message.WParam -ne $hotkeyId) { continue }
+                $hotkeyAgeMs = [NextGqaClockCaptureNative]::Elapsed(
+                    $armedTick, [uint32]$message.Time)
+                if ($hotkeyAgeMs -eq 0 -or $hotkeyAgeMs -gt 60000) {
+                    throw 'capture_hotkey_stale_or_ambiguous'
+                }
+                $hotkeyReceived = $true
+                break
+            }
+            if (-not $hotkeyReceived) { [NextGqaClockCaptureNative]::Sleep(20) }
+        }
 
         $window = [NextGqaClockCaptureNative]::GetForegroundWindow()
         if ($window -eq [IntPtr]::Zero) { throw 'foreground_window_missing' }
