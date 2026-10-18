@@ -5,6 +5,7 @@ import json
 import unittest
 
 from qta_phase_freeze_receipts import ReceiptError, build_external_cohort_pin_candidate
+from qta_phase2_plan_manifest import _phase1_stage1_source_pins
 from test_qta_phase_freeze_receipts import QtaPhaseFreezeReceiptTests
 from test_qta_stage1_source_pin_adapter import QtaStage1SourcePinAdapterTests
 
@@ -35,6 +36,7 @@ class Stage1Phase1CompositionTests(unittest.TestCase):
 
     def test_actual_adapter_output_composes_with_non_authorizing_phase1_receipt(self):
         pins = json.loads(self.stage1_raw)
+        phase2_source = _phase1_stage1_source_pins(self.stage1_raw)
         artifacts = self._phase1_artifacts()
         self.phase.expected_external_cohort_pin_sha256 = hashlib.sha256(
             self.external_pin_raw
@@ -47,6 +49,11 @@ class Stage1Phase1CompositionTests(unittest.TestCase):
             row["review_token"] for row in pins["source_rows"]
         ])
         self.assertEqual(len(pins["source_rows"]), 3)
+        self.assertEqual(phase2_source["records"], pins["source_rows"])
+        self.assertEqual(
+            phase2_source["video_claim_review_receipt_sha256"],
+            pins["expected_video_claim_review_receipt_sha256"],
+        )
         self.assertTrue(report["receipt_signature_valid"])
         self.assertTrue(report["artifact_bytes_match"])
         self.assertTrue(report["external_cohort_pin_matches_caller_pin"])
