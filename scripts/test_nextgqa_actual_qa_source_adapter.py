@@ -84,6 +84,19 @@ class ActualSourceAdapterTests(unittest.TestCase):
                                    target_manifest_raw=target,
                                    lineage_manifest_raw=json.dumps(fixed_lineage).encode())
 
+    def test_rejects_repeated_canonical_video_id_with_distinct_video_hashes(self):
+        raw, selection, target, lineage, _ = make_inputs()
+        repeated = json.loads(lineage)
+        repeated["records"][1]["dataset_video_id"] = "ds-0"
+        selection["records"][1]["dataset_video_id"] = "ds-0"
+        # The three claims still carry distinct media hashes; identity reuse is
+        # rejected on the canonical dataset ID before any CSV-row lookup.
+        self.assertEqual(len({row["video_sha256"] for row in repeated["records"]}), 3)
+        with self.assertRaisesRegex(ValueError, "dataset_video_id_duplicate"):
+            build_actual_qa_source(
+                csv_raw=raw, selection=selection, target_manifest_raw=target,
+                lineage_manifest_raw=json.dumps(repeated).encode())
+
     def test_ambiguous_gold_is_rejected(self):
         raw, selection, target, lineage, _ = make_inputs()
         altered = raw.replace(b"foil 01", b"answer 0")

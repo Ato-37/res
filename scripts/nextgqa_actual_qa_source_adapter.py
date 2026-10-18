@@ -114,6 +114,7 @@ def build_actual_qa_source(*, csv_raw: bytes, selection: dict,
         raise ValueError("target_rows_invalid")
     seen_target: set[str] = set()
     seen_dataset_pairs: set[tuple[str, str]] = set()
+    seen_dataset_video_ids: set[str] = set()
     qa_rows, bound_rows = [], []
     for item in records:
         keys = {"video_id", "claim_id", "dataset_video_id", "dataset_question_id"}
@@ -127,6 +128,8 @@ def build_actual_qa_source(*, csv_raw: bytes, selection: dict,
                        for value in (video_id, claim_id, dataset_video_id, qid))
                 or video_id in seen_target or (dataset_video_id, qid) in seen_dataset_pairs):
             raise ValueError("selection_identity_invalid")
+        if dataset_video_id in seen_dataset_video_ids:
+            raise ValueError("dataset_video_id_duplicate")
         lineage_row = lineage_by_video.get(video_id)
         if (lineage_row is None or lineage_row.get("claim_id") != claim_id
                 or lineage_row.get("dataset_video_id") != dataset_video_id
@@ -134,6 +137,7 @@ def build_actual_qa_source(*, csv_raw: bytes, selection: dict,
             raise ValueError("selection_lineage_binding_mismatch")
         seen_target.add(video_id)
         seen_dataset_pairs.add((dataset_video_id, qid))
+        seen_dataset_video_ids.add(dataset_video_id)
         matches = by_pair.get((dataset_video_id, qid), [])
         if len(matches) != 1:
             raise ValueError("dataset_video_qid_not_unique")
