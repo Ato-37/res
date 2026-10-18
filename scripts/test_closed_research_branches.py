@@ -70,6 +70,13 @@ GATE_CONTROLLED_LOADERS = {
 USER_AUTHORIZED_LOCAL_DATA_PILOTS = {
     "generate_nextgqa_claim_review_pilot.py",
     "run_nextgqa_temporal_mask_factorial.py",
+    "run_nextgqa_qta_exploratory_proxy_v2.py",
+    "run_nextgqa_qta_v3_geometry_census.py",
+    "run_nextgqa_qta_v3_geometry_census_executed_20261018_02.py",
+    "run_nextgqa_qta_v4_union_geometry_census.py",
+    "run_nextgqa_qta_v4_union_geometry_census_executed_20261018_03.py",
+    "run_nextgqa_qta_v4_union_scorer.py",
+    "run_nextgqa_qta_v4_mask_specificity.py",
 }
 ALLOWED_ENGINEERING_LOADERS = {
     "audit_legacy_video_time_metadata.py",
@@ -101,6 +108,7 @@ PROCESSOR_ONLY_LOADERS = {
     "audit_nextgqa_prompt_tokenizer.py",
     "build_nextgqa_diagnostic_target_candidate.py",
     "smoke_nextgqa_qwen_condition_batch_builder.py",
+    "smoke_qta_pinned_processor_choice_suffix.py",
 }
 SYNTHETIC_CPU_MODEL_CONSTRUCTORS = {
     "audit_qwen_cache_positions_cpu.py": "Qwen2_5_VLForConditionalGeneration",
