@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import argparse
 import base64
+import hashlib
 import json
 import subprocess
 import tempfile
@@ -31,6 +32,13 @@ def private_output_path(path: Path) -> Path:
     except ValueError as exc:
         raise ValueError("保護対象動画を含むartifactはdata/private_nextgqa内にのみ保存できます") from exc
     return resolved
+
+
+def exploratory_item_id(review_token: str) -> str:
+    """Return a stable, opaque local join key without exposing the raw token."""
+    if not isinstance(review_token, str) or not review_token:
+        raise ValueError("動画tokenが不正です")
+    return hashlib.sha256(review_token.encode("utf-8")).hexdigest()[:20]
 
 
 def browser_compatible_bytes(path: Path) -> bytes:
@@ -90,6 +98,7 @@ def build(package_dir: Path, output: Path, *, overwrite: bool = False) -> None:
         video_path = package_dir / f"{token}.mp4"
         raw = browser_compatible_bytes(video_path)
         items.append({
+            "item_id": exploratory_item_id(token),
             "question": row["question"],
             "claim": row["claim_text"],
             "video_base64": base64.b64encode(raw).decode("ascii"),
@@ -116,8 +125,8 @@ const $=id=>document.getElementById(id);
 function begin(){nickname=$('nickname').value.trim();if(!nickname){$('nickname').focus();return}$('welcome').classList.add('hidden');showQuestion()}
 function showQuestion(){if(index>=items.length){$('question').classList.add('hidden');$('done').classList.remove('hidden');if(activeVideoUrl){URL.revokeObjectURL(activeVideoUrl);activeVideoUrl=''}$('video').removeAttribute('src');$('video').load();return}const item=items[index];$('question').classList.remove('hidden');$('counter').textContent=`${index+1} / ${items.length} 件目`;$('who').textContent=`ニックネーム：${nickname}`;$('prompt').textContent=item.question;$('claim').textContent=item.claim;if(activeVideoUrl)URL.revokeObjectURL(activeVideoUrl);const binary=atob(item.video_base64);const bytes=new Uint8Array(binary.length);for(let i=0;i<binary.length;i++)bytes[i]=binary.charCodeAt(i);activeVideoUrl=URL.createObjectURL(new Blob([bytes],{type:'video/mp4'}));$('video').src=activeVideoUrl;$('video').load();document.querySelectorAll('[name=judgment]').forEach(x=>x.checked=false);$('time').value='';$('note').value='';$('next').textContent=index===items.length-1?'確認を終える':'次へ';$('required').textContent='回答を1つ選んでください'}
 $('start').addEventListener('click',begin);$('nickname').addEventListener('keydown',e=>{if(e.key==='Enter')begin()});
-$('next').addEventListener('click',()=>{const chosen=document.querySelector('[name=judgment]:checked');if(!chosen){$('required').textContent='どれか1つ選んでください';return}answers.push({item_number:index+1,judgment:chosen.value,approximate_time:$('time').value.trim()||null,note:$('note').value.trim()||null});index++;showQuestion()});
-$('save').addEventListener('click',()=>{const result={schema_version:1,purpose:'exploratory_human_impression_check',status:'informal_observations_only',created_at_utc:new Date().toISOString(),nickname,answers,limitations:['簡単な印象確認であり、完全な幻覚判定ではない','本人確認・独立性・動画の視聴完了は検証していない','この結果だけからfaithfulnessの効果やモデル性能を結論づけない']};const blob=new Blob([JSON.stringify(result,null,2)+'\n'],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='exploratory_video_review_'+new Date().toISOString().replace(/[:.]/g,'-')+'.json';a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1500);$('saved').textContent='ダウンロードを開始しました。保存先を確認してください。'});
+$('next').addEventListener('click',()=>{const chosen=document.querySelector('[name=judgment]:checked');if(!chosen){$('required').textContent='どれか1つ選んでください';return}answers.push({item_id:items[index].item_id,item_number:index+1,judgment:chosen.value,approximate_time:$('time').value.trim()||null,note:$('note').value.trim()||null});index++;showQuestion()});
+$('save').addEventListener('click',()=>{const result={schema_version:2,purpose:'exploratory_human_impression_check',status:'informal_observations_only',created_at_utc:new Date().toISOString(),nickname,answers,limitations:['簡単な印象確認であり、完全な幻覚判定ではない','item_idはローカルで回答を質問へ対応付けるための匿名化IDで、本人性や視聴を証明しない','本人確認・独立性・動画の視聴完了は検証していない','この結果だけからfaithfulnessの効果やモデル性能を結論づけない']};const blob=new Blob([JSON.stringify(result,null,2)+'\n'],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='exploratory_video_review_'+new Date().toISOString().replace(/[:.]/g,'-')+'.json';a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1500);$('saved').textContent='ダウンロードを開始しました。保存先を確認してください。'});
 </script></body></html>'''.replace("__ITEMS__", data)
     output.write_text(document, encoding="utf-8")
     output.chmod(0o600)
