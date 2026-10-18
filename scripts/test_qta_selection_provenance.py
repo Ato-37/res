@@ -3,6 +3,7 @@ from __future__ import annotations
 import copy
 import hashlib
 import math
+from pathlib import Path
 import unittest
 
 from qta_selection_provenance import (
@@ -21,6 +22,12 @@ def _h(value: str) -> str:
 
 
 class QtaSelectionProvenanceTests(unittest.TestCase):
+    def test_frozen_selector_source_digest_matches_checked_in_source(self):
+        selector_path = Path(__file__).with_name(
+            "qwen_question_temporal_attention_selector.py")
+        actual = hashlib.sha256(selector_path.read_bytes()).hexdigest()
+        self.assertEqual(actual, FROZEN_SELECTOR_SOURCE_SHA256)
+
     def setUp(self):
         self.groups = [[2 * i, 2 * i + 1] for i in range(11)]
         # Equal maxima exercise the frozen earliest-index tie break.

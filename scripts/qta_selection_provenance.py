@@ -20,7 +20,7 @@ PURPOSE = "qta_selection_arithmetic_provenance_non_authorizing"
 AGGREGATION_ID = "ordered_python_sum_of_layer_group_mass_f64_div_layer_count_v1"
 FROZEN_SELECTOR_LAYERS_1_BASED = list(range(5, 17))
 FROZEN_SELECTOR_SOURCE_SHA256 = (
-    "3f56fe1e992ffca5a035864ced7472cbe1f12af9978c1559d1b82e0b938712f8"
+    "d1a369636cb5cfc1ff6d0ffb0f86e94fa3643fa7bc878c9a06014871284e12f2"
 )
 _SHA256 = re.compile(r"^[0-9a-f]{64}$")
 _REVIEW_TOKEN = re.compile(r"^[A-Za-z0-9_-]{24}$")

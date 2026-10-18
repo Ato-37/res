@@ -400,12 +400,77 @@ effect estimate, uncertainty interval, or hypothesis test exists. The GPU
 smoke, real-video decode, and synthetic capture contract improve feasibility
 and reproducibility only.
 
-Independent audit limitations: CPU PyTorch parity does not establish bitwise
-parity for GPU reductions, which were not separately compared. The contract
-labels forward/capture authenticity false and does not establish that the
-packed bytes came from Qwen. Its 128 MiB raw cap is a bound, not a low-memory
-guarantee: nested Python-float decoding and tensors can use more memory than
-the serialized payload.
+Independent audit limitations: the standalone capture contract does not prove
+that packed bytes came from Qwen; its authority fields remain false. Native
+CUDA reductions differed from its CPU reduction, so the selector now transfers
+selected rows to CPU before canonical aggregation, as described below. The
+contract's 128 MiB raw cap is a bound, not a low-memory guarantee: nested
+Python-float decoding and tensors can use more memory than the serialized
+payload.
+
+## Synthetic CPU/CUDA reduction parity experiment
+
+The first two-trial diagnostic used the same seeded synthetic float32 attention
+rows in the CPU capture contract and CUDA selector. Before changing the
+selector, **83/192** per-layer group masses and **15/16** aggregate group scores
+differed; maximum absolute differences were **7.4506e-9** and **2.7940e-9**.
+The selected top-1 group happened to match in both trials. This exposed
+device-dependent reduction rounding even though no data/model outcome was
+involved.
+
+Before any real QTA scoring, the selector was changed to transfer only the
+selected question-query rows to CPU and perform canonical PyTorch float32
+mean/sum reductions there. The attention forward remains on its original
+device. A two-trial regression then had **0/192** layer-mass mismatches,
+**0/16** aggregate-score mismatches, maximum difference **0.0**, and **0/2**
+top-k selection mismatches. The full prespecified 32-trial diagnostic completed
+**32/32** synthetic trials: **0/3,072** layer-mass mismatches,
+**0/256** aggregate-score mismatches, maximum absolute differences **0.0**,
+and **0/32** top-k selection mismatches. Each trial used 12 layers, 8 heads,
+4 packed question queries, 64 keys, 8 temporal groups, and top-k 1; seed was
+20261018. Runtime hardware was RTX 5070 Ti, PyTorch 2.11.0+cu128, CUDA 12.8.
+No model was loaded and no dataset was read.
+
+This sets a deterministic reduction arithmetic contract for current CPU and
+CUDA inputs, but does not authenticate attention bytes as actual Qwen outputs.
+The selector now copies selected rows to CPU, so its added transfer and
+reduction latency should be profiled during a future authorized real-data
+smoke; that cost was not measured in this diagnostic. No efficacy score,
+effect estimate, or significance test was produced.
+
+The diagnostic terminology was tightened after independent review: the
+comparison is CUDA-staged input followed by CPU-canonical selector reduction,
+not native CUDA reduction parity. Its CLI now reports explicit pass/fail and
+returns a nonzero exit status for any mismatch; five unit tests cover each
+mismatch class and fail-closed handling. The source-digest regression test now
+compares the frozen selector SHA against the checked-in selector file instead
+of trusting the constant itself. Focused tests after these changes passed
+**26/26**. A repeat real-video smoke was launched with the current source but
+first rejected the output directory because its permissions were not private;
+the retry used a fresh mode-700 private directory and completed **6/6**
+forwards on **3/3** local NExT-GQA test videos at 16 frames each in **34.98
+seconds**. Peak allocated/reserved VRAM was **7.24/8.08 GiB**; free VRAM after
+the run was **8.61 GiB**. Per-video RMS logit changes were 0.1004, 2.4405, and
+0.8794; the top vocabulary token did not change in any video. These are wiring
+diagnostics, not faithfulness or QA scores; scoring authorization remains
+`not_granted`. The aggregate output is local mode 600 and is not staged.
+
+After changing the diagnostic to fail closed, the full 32-trial GPU rerun
+passed: **0/3,072** per-layer mass mismatches, **0/256** aggregate score
+mismatches, and **0/32** top-k mismatches; maximum differences were **0.0**.
+It used synthetic data only and loaded no model. Focused tests now pass
+**28/28**. The full repository suite passed **1,958/1,958** before the final
+two fail-closed tests were added. The final full repository suite passed
+**1,960/1,960** in **68.17 seconds**. The private GPU smoke JSON is mode 600 under an ignored
+`data/private_nextgqa/` path and is excluded from publication.
+
+Current source hashes for this parity repair:
+
+- selector: `d1a369636cb5cfc1ff6d0ffb0f86e94fa3643fa7bc878c9a06014871284e12f2`
+- selector provenance and frozen digest: `eba13c2932ef3c462c65d5edf78689a1b05f844e704f8e81031b209d609a0d89`
+- synthetic transfer-parity diagnostic: `03fd602f201b8086f7b37341897ce91aa56e6f70cbf5c131790f46372195d8a1`
+- selector source-drift test: `83503d51b63dcd5581341445ace6998c1645a7d1f9ca494de1464c9a3ec410ab`
+- diagnostic pass/fail tests: `3cf41c5133d4bafed62ea4bb1fb007f6dc692bd4202787a38cffdfd3e965cafe`
 
 Current implementation hashes:
 

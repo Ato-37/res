@@ -112,7 +112,12 @@ def aggregate_temporal_group_attention(*, attention_by_layer: Mapping[int, Any],
                                        question_positions: Sequence[int],
                                        group_positions: Sequence[Sequence[int]],
                                        torch_module: Any) -> list[float]:
-    """Average baseline attention mass from question queries into each group."""
+    """Average baseline attention mass using canonical CPU float32 reductions.
+
+    Attention rows may arrive on CUDA from the model forward; moving only the
+    selected rows to CPU before reduction avoids device-dependent rounding at
+    top-k boundaries while keeping the forward itself on its original device.
+    """
     if (torch_module is None or not isinstance(attention_by_layer, Mapping)
             or not isinstance(layer_indices, Sequence) or not layer_indices
             or any(type(layer) is not int or layer < 0 for layer in layer_indices)
@@ -154,7 +159,8 @@ def aggregate_temporal_group_attention(*, attention_by_layer: Mapping[int, Any],
                 or max(flattened) >= key_length
                 or max(flattened) >= min(question_positions)):
             raise ValueError("question_group_positions_not_causal")
-        rows = attention[0, :, list(question_positions), :].float()
+        rows = attention[0, :, list(question_positions), :].to(
+            device="cpu", dtype=torch_module.float32)
         if (not bool(torch_module.isfinite(rows).all())
                 or bool((rows < 0).any())):
             raise ValueError("attention_weights_invalid")
