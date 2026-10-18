@@ -428,6 +428,26 @@ receipt: the size check above shows that full uncompressed captures exceed
 the current receipt envelope. Focused capture tests pass **15/15**; full
 repository discovery passes **1,963/1,963** after this addition.
 
+## Bounded attention-byte decoding audit
+
+The component validator previously expanded each packed float32 value into a
+nested Python list before checking normalization and recomputing masses. At
+the 128 MiB raw-capture limit, Python object overhead could multiply memory
+use substantially. It now converts big-endian bytes to one contiguous native
+float32 NumPy array, checks finiteness/nonnegativity and row normalization in
+vectorized form, then passes each layer to Torch without copying for the same
+float32 selector reduction. The contract still caps an individual raw capture
+at 128 MiB and does not claim to authenticate the producing model forward.
+
+A synthetic one-row stress fixture used the observed largest smoke shape
+`[12, 28, 22, 2161]` (63,896,448 raw bytes; 127,792,896 hex characters).
+Validation completed in **3.59 s**, with process peak RSS **840,416 KiB**;
+group masses reproduced and authorization flags remained false. This is a
+CPU synthetic memory/decoder check, not model output or a GPU experiment.
+The independent implementation audit found the endian conversion, shape
+guard, nonfinite/negative checks, row normalization, and selector reduction
+consistent; focused capture tests pass **16/16**, full suite **1,964/1,964**.
+
 Independent audit limitations: the standalone capture contract does not prove
 that packed bytes came from Qwen; its authority fields remain false. Native
 CUDA reductions differed from its CPU reduction, so the selector now transfers

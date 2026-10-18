@@ -110,6 +110,20 @@ class AttentionCaptureContractTests(unittest.TestCase):
             validate_attention_capture(changed, expected_binding=self.binding,
                                        input_length=8)
 
+    def test_rejects_rehashed_nonfinite_or_negative_values(self):
+        for value_hex in ("7fc00000", "7f800000", "bf800000"):
+            with self.subTest(value_hex=value_hex):
+                changed = copy.deepcopy(self.capture)
+                encoded = value_hex + changed["attention_f32_be_hex"][8:]
+                changed["attention_f32_be_hex"] = encoded
+                changed["attention_bytes_sha256"] = hashlib.sha256(
+                    bytes.fromhex(encoded)).hexdigest()
+                with self.assertRaisesRegex(ValueError,
+                                           "capture_attention_value_invalid"):
+                    validate_attention_capture(changed,
+                                               expected_binding=self.binding,
+                                               input_length=8)
+
     def test_rejects_batch_or_geometry_rebinding(self):
         for field, value in (("typed_batch_sha256", sha("other")),
                              ("question_positions", [5, 6]),

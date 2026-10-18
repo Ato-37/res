@@ -122,13 +122,24 @@ def _group_masses(attention, *, shape, query_positions, groups):
     layer_count, head_count, query_count, input_length = shape
     masses = []
     for layer_i in range(layer_count):
-        layer = torch.tensor(attention[layer_i], dtype=torch.float32)
+        layer = torch.as_tensor(attention[layer_i], dtype=torch.float32)
         averaged = layer.mean(dim=(0, 1))
         row = []
         for group in groups:
             row.append(float(averaged[list(group)].sum().item()))
         masses.append(row)
     return masses
+
+
+def _attention_array(raw: bytes, shape: Sequence[int]):
+    """Decode packed big-endian float32 without Python float/list expansion."""
+    import numpy as np
+
+    if len(raw) != math.prod(shape) * 4:
+        _fail("capture_attention_byte_length_invalid")
+    # Conversion both handles byte order and gives torch a native-endian,
+    # contiguous buffer. Peak decode memory stays close to two raw payloads.
+    return np.frombuffer(raw, dtype=">f4").astype(np.float32).reshape(tuple(shape))
 
 
 def build_attention_capture(*, binding: Mapping[str, Any], attention: Any,
@@ -150,9 +161,10 @@ def build_attention_capture(*, binding: Mapping[str, Any], attention: Any,
         _fail("capture_question_group_order_invalid")
     shape, raw = _pack_attention(attention, query_count=len(question_positions),
                                  input_length=input_length)
-    decoded = _unpack_attention(raw, shape)
-    if any(abs(sum(query) - 1.0) > 2e-4 for layer in decoded
-           for head in layer for query in head):
+    decoded = _attention_array(raw, shape)
+    import numpy as np
+    if (not np.isfinite(decoded).all() or (decoded < 0).any()
+            or (np.abs(decoded.sum(axis=-1, dtype=np.float64) - 1.0) > 2e-4).any()):
         _fail("capture_attention_row_not_normalized")
     masses = _group_masses(decoded, shape=shape,
                            query_positions=list(range(len(question_positions))), groups=groups)
@@ -173,24 +185,6 @@ def build_attention_capture(*, binding: Mapping[str, Any], attention: Any,
         "scoring_authorized": False,
         "execution_authorization": "not_granted",
     }
-
-
-def _unpack_attention(raw: bytes, shape: Sequence[int]):
-    count = math.prod(shape)
-    if len(raw) != count * 4:
-        _fail("capture_attention_byte_length_invalid")
-    values = (item[0] for item in struct.iter_unpack(">f", raw))
-    layer_count, head_count, query_count, input_length = shape
-    layers = []
-    for _ in range(layer_count):
-        heads = []
-        for _ in range(head_count):
-            queries = []
-            for _ in range(query_count):
-                queries.append([next(values) for _ in range(input_length)])
-            heads.append(queries)
-        layers.append(heads)
-    return layers
 
 
 def validate_attention_capture(capture: Any, *, expected_binding: Mapping[str, Any],
@@ -243,15 +237,12 @@ def validate_attention_capture(capture: Any, *, expected_binding: Mapping[str, A
     raw = bytes.fromhex(encoded)
     if capture.get("attention_bytes_sha256") != _digest(raw):
         _fail("capture_attention_digest_mismatch")
-    attention = _unpack_attention(raw, shape)
-    if any(not math.isfinite(value) or value < 0 for layer in attention
-           for head in layer for query in head for value in query):
+    attention = _attention_array(raw, shape)
+    import numpy as np
+    if not np.isfinite(attention).all() or (attention < 0).any():
         _fail("capture_attention_value_invalid")
-    for layer in attention:
-        for head in layer:
-            for query in head:
-                if abs(sum(query) - 1.0) > 2e-4:
-                    _fail("capture_attention_row_not_normalized")
+    if (np.abs(attention.sum(axis=-1, dtype=np.float64) - 1.0) > 2e-4).any():
+        _fail("capture_attention_row_not_normalized")
     masses = _group_masses(attention, shape=shape,
                            query_positions=list(range(len(qpos))), groups=groups)
     expected_masses = [[struct.pack(">f", value).hex() for value in row]
