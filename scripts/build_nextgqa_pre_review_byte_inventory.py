@@ -65,6 +65,8 @@ CODE_FILES = {
     "claim_mapping_manifest_audit": "scripts/audit_claim_mapping_manifest.py",
     "actual_qa_source_adapter": "scripts/nextgqa_actual_qa_source_adapter.py",
     "qta_actual_qa_source_contract": "scripts/qta_actual_qa_source_contract.py",
+    "qta_actual_prebaseline_diagnostic": "scripts/qta_actual_prebaseline_diagnostic.py",
+    "qta_prescore_review_row_adapter": "scripts/qta_prescore_review_row_adapter.py",
     "actual_qa_source_audit": "scripts/audit_nextgqa_actual_qa_source_binding.py",
     "annotation_clock_calibration": "scripts/annotation_clock_calibration.py",
     "claim_input_manifest_builder": "scripts/build_claim_input_manifest.py",

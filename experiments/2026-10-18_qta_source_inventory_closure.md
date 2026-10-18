@@ -18,11 +18,11 @@ Checks:
 
 - Inventory builder synthetic suite: **19/19 passed**.
 - Python compilation and `git diff --check`: passed.
-- A new local candidate inventory was built at
-  `data/private_nextgqa/pre_review_inventory_qta_20261018_0912_01/` using the
-  existing default inputs. It reports **74 artifacts, 0 missing required
-  slots**, includes the QTA QA-source contract, and its registered source hash
-  matches the current file.
+- A fresh local candidate inventory was built with the repaired 2026-10-18
+  review page and its matching package, alongside the current staged-media
+  inputs. It reports **74 artifacts, 0 missing required slots**, includes the
+  QTA QA-source contract, and its registered source hash matches the current
+  file. A sanitized recheck of the stored candidate reproduced these flags.
 - The new output directory/file modes are **0700/0600**. Only a sanitized
   aggregate was inspected; private inventory bytes, hashes, filenames, and
   media were not published.
