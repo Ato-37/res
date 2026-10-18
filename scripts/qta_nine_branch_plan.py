@@ -46,7 +46,8 @@ def build_qta_nine_branch_plan(*, row_binding_sha256, temporal_groups,
                                target_group_indices, sham_group_indices, evidence_group_indices,
                                control_group_indices, typed_batch_sha256,
                                score_binding_sha256, intervention_layers_1_based,
-                               logit_bias, sham_seed):
+                               logit_bias, sham_seed,
+                               selection_provenance=None):
     """Build and self-check an ordered nine-branch intervention plan.
 
     The model input is shared unchanged across all nine forwards. Evidence and
@@ -143,6 +144,7 @@ def build_qta_nine_branch_plan(*, row_binding_sha256, temporal_groups,
         "logit_bias": bias,
         "selection_spec": selection_spec,
         "selection_spec_sha256": selection_spec_sha256,
+        "selection_provenance": selection_provenance,
         "branch_order": list(BRANCH_ORDER),
         "branches": branches,
         "requested_forwards": len(BRANCH_ORDER),
@@ -166,7 +168,8 @@ def validate_qta_nine_branch_plan(plan):
                              "score_binding_sha256", "row_binding_sha256",
                              "temporal_group_count", "temporal_groups",
                              "selected_groups", "intervention_layers_1_based", "logit_bias",
-                             "selection_spec", "selection_spec_sha256", "branch_order",
+                             "selection_spec", "selection_spec_sha256",
+                             "selection_provenance", "branch_order",
                              "branches", "requested_forwards", "plan_sha256",
                              "execution_authorization"}):
         raise ValueError("qta_plan_schema_invalid")
@@ -224,6 +227,9 @@ def validate_qta_nine_branch_plan(plan):
             or len(spec["sham_seed"]) > 128
             or plan["selection_spec_sha256"] != _canonical_hash(spec)):
         raise ValueError("qta_plan_selection_spec_invalid")
+    if (plan["selection_provenance"] is not None
+            and not isinstance(plan["selection_provenance"], Mapping)):
+        raise ValueError("qta_plan_selection_provenance_invalid")
     positions = {
         name: [position for index in selected_groups for position in groups[index]]
         for name, selected_groups in normalized.items()

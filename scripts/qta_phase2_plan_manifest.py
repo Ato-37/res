@@ -19,6 +19,9 @@ from qta_phase_freeze_receipts import verify_phase_freeze_receipt
 from qta_three_row_plan_aggregate import (
     FROZEN_QTA_LAYERS_1_BASED, FROZEN_QTA_LOGIT_BIAS, FROZEN_QTA_SHAM_SEED,
 )
+from qta_selection_provenance import (
+    FROZEN_SELECTOR_SOURCE_SHA256, validate_qta_selection_provenance,
+)
 
 
 ROW_COUNT = 3
@@ -32,6 +35,8 @@ _MANIFEST_KEYS = {
     "schema_version", "purpose", "phase", "phase1_receipt_sha256",
     "baseline_pq_manifest_sha256",
     "requested_records", "planned_forwards", "completed_forwards",
+    "selection_arithmetic_reproduced_records",
+    "forward_source_authenticated", "attention_capture_authenticated",
     "records", "execution_authorization", "model_load_permitted",
     "scoring_authorized", "authorized_forwards",
 }
@@ -306,6 +311,7 @@ def _baseline_rows(raw: bytes) -> list[dict[str, Any]]:
             raise ValueError("baseline_pq_private_text_schema_invalid")
         seen.add(token)
         checked.append({
+            "review_token": token,
             "review_token_sha256": _sha(token.encode("ascii")),
             "p_index": p_index,
             "q_index": q_index,
@@ -381,6 +387,31 @@ def _core_manifest(*, phase1_receipt_sha256: str,
                 or plan["logit_bias"] != FROZEN_QTA_LOGIT_BIAS
                 or plan["selection_spec"]["sham_seed"] != FROZEN_QTA_SHAM_SEED):
             raise ValueError("phase2_plan_differs_from_frozen_qta_protocol")
+        score_binding = baseline["score_binding"]
+        selection = plan["selection_provenance"]
+        if not isinstance(selection, Mapping):
+            raise ValueError("phase2_selection_provenance_missing")
+        validate_qta_selection_provenance(
+            selection,
+            expected_bindings={
+                "record_token": receipt_row["record_token"],
+                "opaque_review_token": baseline["review_token"],
+                "row_binding_sha256": row_hash,
+                "typed_batch_sha256": receipt_row["processor_batch_sha256"],
+                "score_binding_sha256": baseline["score_binding_sha256"],
+                "baseline_pq_row_sha256": baseline["row_sha256"],
+                "prompt_sha256": score_binding["prompt_sha256"],
+                "input_ids_sha256": score_binding["input_ids_sha256"],
+                "input_length": score_binding["input_length"],
+                "score_position": score_binding["score_position"],
+                "question_positions": selection["question_positions"],
+                "temporal_groups": plan["temporal_groups"],
+                "selector_source_sha256": FROZEN_SELECTOR_SOURCE_SHA256,
+                "selector_layers_1_based": FROZEN_QTA_LAYERS_1_BASED,
+                "sham_seed": FROZEN_QTA_SHAM_SEED,
+            },
+            plan=plan,
+        )
         treatment = (tuple(plan["intervention_layers_1_based"]),
                      float(plan["logit_bias"]), plan["selection_spec_sha256"])
         if common_treatment is None:
@@ -408,6 +439,9 @@ def _core_manifest(*, phase1_receipt_sha256: str,
         "requested_records": ROW_COUNT,
         "planned_forwards": PHASE2_FORWARDS,
         "completed_forwards": 0,
+        "selection_arithmetic_reproduced_records": ROW_COUNT,
+        "forward_source_authenticated": False,
+        "attention_capture_authenticated": False,
         "records": clean,
         "execution_authorization": "not_granted",
         "model_load_permitted": False,
@@ -487,6 +521,10 @@ def _validate_manifest_bytes(*, manifest_raw: bytes,
             or manifest["planned_forwards"] != PHASE2_FORWARDS
             or type(manifest["completed_forwards"]) is not int
             or manifest["completed_forwards"] != 0
+            or type(manifest["selection_arithmetic_reproduced_records"]) is not int
+            or manifest["selection_arithmetic_reproduced_records"] != ROW_COUNT
+            or manifest["forward_source_authenticated"] is not False
+            or manifest["attention_capture_authenticated"] is not False
             or manifest["execution_authorization"] != "not_granted"
             or manifest["model_load_permitted"] is not False
             or manifest["scoring_authorized"] is not False
@@ -514,6 +552,10 @@ def _validate_manifest_bytes(*, manifest_raw: bytes,
         "status": "phase2_plan_manifest_bound_unvalidated",
         "requested_records": ROW_COUNT,
         "validated_plan_rows": ROW_COUNT,
+        "selection_arithmetic_reproduced_records":
+            manifest["selection_arithmetic_reproduced_records"],
+        "forward_source_authenticated": manifest["forward_source_authenticated"],
+        "attention_capture_authenticated": manifest["attention_capture_authenticated"],
         "scheduled_phase2_forwards": PHASE2_FORWARDS,
         "total_phase_forwards_including_phase1": ROW_COUNT + PHASE2_FORWARDS,
         "manifest_sha256": _sha(manifest_raw),

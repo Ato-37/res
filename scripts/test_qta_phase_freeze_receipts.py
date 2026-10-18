@@ -17,7 +17,7 @@ from qta_phase_freeze_receipts import (
     PHASE_ARTIFACT_ROLES, PHASE_BRANCHES, create_phase_freeze_receipt,
     verify_phase_freeze_receipt,
 )
-from qta_nine_branch_plan import BRANCH_ORDER
+from qta_nine_branch_plan import BRANCH_ORDER, _plan_digest
 from qta_phase2_plan_manifest import (
     create_qta_phase2_plan_manifest_candidate,
     verify_qta_phase2_plan_candidate,
@@ -25,6 +25,9 @@ from qta_phase2_plan_manifest import (
 from qta_nine_branch_plan import build_qta_nine_branch_plan
 from qta_three_row_plan_aggregate import (
     FROZEN_QTA_LAYERS_1_BASED, FROZEN_QTA_LOGIT_BIAS, FROZEN_QTA_SHAM_SEED,
+)
+from qta_selection_provenance import (
+    FROZEN_SELECTOR_SOURCE_SHA256, build_qta_selection_provenance,
 )
 from qta_synthetic_cohort_preflight import preflight_synthetic_qta_cohort
 import test_qta_synthetic_adapter_composition as synthetic_composition
@@ -238,6 +241,10 @@ class QtaPhaseFreezeReceiptTests(unittest.TestCase):
         for index, token in enumerate(tokens):
             group_data = inputs["expected_processor_groups_by_token"][token]
             batch_sha = inputs["expected_processor_batch_sha256_by_token"][token]
+            temporal_groups = group_data["temporal_group_token_positions"]
+            input_length = temporal_groups[-1][-1] + 6
+            question_positions = list(range(temporal_groups[-1][-1] + 1,
+                                            temporal_groups[-1][-1] + 5))
             scores = [-0.1, -3.0, -4.0, -5.0, -6.0]
             score_binding = {
                 "schema_version": 1, "review_token": token,
@@ -255,7 +262,7 @@ class QtaPhaseFreezeReceiptTests(unittest.TestCase):
                 "video_support_decision": "supports_claim",
                 "prompt_sha256": f"{index + 401:064x}",
                 "input_ids_sha256": f"{index + 501:064x}",
-                "input_length": 4, "score_position": 3,
+                "input_length": input_length, "score_position": input_length - 1,
                 "score_input_token_id": 3,
                 "processor_batch_sha256": batch_sha,
                 "option_log_probabilities": scores,
@@ -278,17 +285,43 @@ class QtaPhaseFreezeReceiptTests(unittest.TestCase):
                     separators=(",", ":")).encode()).hexdigest(),
             }
             baseline_rows.append(row)
+            baseline_pq_row_sha256 = hashlib.sha256(json.dumps(
+                row, ensure_ascii=False, sort_keys=True,
+                separators=(",", ":")).encode()).hexdigest()
+            layer_masses = [[0.01 * (group + 1) for group in range(len(temporal_groups))]
+                            for _ in FROZEN_QTA_LAYERS_1_BASED]
+            for mass_row in layer_masses:
+                mass_row[1] = 1.0
+            selection_provenance = build_qta_selection_provenance(
+                record_token=hashlib.sha256(token.encode("ascii")).hexdigest(),
+                opaque_review_token=token,
+                row_binding_sha256=preflight["row_binding_sha256"][index],
+                typed_batch_sha256=batch_sha,
+                score_binding_sha256=row["score_binding_sha256"],
+                baseline_pq_row_sha256=baseline_pq_row_sha256,
+                prompt_sha256=score_binding["prompt_sha256"],
+                input_ids_sha256=score_binding["input_ids_sha256"],
+                input_length=score_binding["input_length"],
+                score_position=score_binding["score_position"],
+                question_positions=question_positions,
+                temporal_groups=temporal_groups,
+                selector_source_sha256=FROZEN_SELECTOR_SOURCE_SHA256,
+                selector_layers_1_based=FROZEN_QTA_LAYERS_1_BASED,
+                layer_group_masses=layer_masses,
+                sham_seed=FROZEN_QTA_SHAM_SEED)
             plan = build_qta_nine_branch_plan(
                 row_binding_sha256=preflight["row_binding_sha256"][index],
-                temporal_groups=group_data["temporal_group_token_positions"],
-                target_group_indices=[1], sham_group_indices=[3],
+                temporal_groups=temporal_groups,
+                target_group_indices=selection_provenance["target_group_indices"],
+                sham_group_indices=selection_provenance["sham_group_indices"],
                 evidence_group_indices=group_data["evidence_group_indices"],
                 control_group_indices=group_data["control_group_indices"],
                 typed_batch_sha256=batch_sha,
                 score_binding_sha256=row["score_binding_sha256"],
                 intervention_layers_1_based=FROZEN_QTA_LAYERS_1_BASED,
                 logit_bias=FROZEN_QTA_LOGIT_BIAS,
-                sham_seed=FROZEN_QTA_SHAM_SEED)
+                sham_seed=FROZEN_QTA_SHAM_SEED,
+                selection_provenance=selection_provenance)
             plans.append(plan)
         baseline_raw = json.dumps({
             "schema_version": 2,
@@ -363,6 +396,9 @@ class QtaPhaseFreezeReceiptTests(unittest.TestCase):
         self.assertEqual(report["validated_plan_rows"], 3)
         self.assertEqual(report["scheduled_phase2_forwards"], 24)
         self.assertEqual(report["total_phase_forwards_including_phase1"], 27)
+        self.assertEqual(report["selection_arithmetic_reproduced_records"], 3)
+        self.assertFalse(report["forward_source_authenticated"])
+        self.assertFalse(report["attention_capture_authenticated"])
         self.assertTrue(report["phase1_receipt_signature_valid"])
         self.assertTrue(report["phase2_receipt_signature_valid"])
         self.assertTrue(report["phase1_receipt_recursively_verified"])
@@ -488,6 +524,38 @@ class QtaPhaseFreezeReceiptTests(unittest.TestCase):
                 phase1_stage1_source_pins_raw=altered_stage1_raw,
                 baseline_pq_manifest_raw=p2_artifacts["baseline_pq_manifest"],
                 plans=[row["plan"] for row in candidate["records"]])
+
+    def test_phase2_candidate_rejects_selection_provenance_binding_mismatch(self):
+        bundle = self._phase2_candidate_bundle()
+        p1_artifacts, p1, p2_artifacts, _p2, records = bundle
+        from qta_phase2_plan_manifest import _strict_json
+        candidate = _strict_json(p2_artifacts["nine_branch_plan_manifest"])
+        plans = [row["plan"] for row in candidate["records"]]
+        plans[0]["selection_provenance"]["prompt_sha256"] = "f" * 64
+        plans[0]["plan_sha256"] = _plan_digest(plans[0])
+        with self.assertRaisesRegex(ValueError, "qta_selection_binding_mismatch"):
+            create_qta_phase2_plan_manifest_candidate(
+                phase1_receipt_raw=p1, phase1_record_bindings=records,
+                phase1_preflight_raw=p1_artifacts["atomic_cohort_preflight"],
+                phase1_stage1_source_pins_raw=p1_artifacts["stage1_review_and_lineage"],
+                baseline_pq_manifest_raw=p2_artifacts["baseline_pq_manifest"],
+                plans=plans)
+
+    def test_phase2_candidate_requires_selection_provenance(self):
+        bundle = self._phase2_candidate_bundle()
+        p1_artifacts, p1, p2_artifacts, _p2, records = bundle
+        from qta_phase2_plan_manifest import _strict_json
+        candidate = _strict_json(p2_artifacts["nine_branch_plan_manifest"])
+        plans = [row["plan"] for row in candidate["records"]]
+        plans[0]["selection_provenance"] = None
+        plans[0]["plan_sha256"] = _plan_digest(plans[0])
+        with self.assertRaisesRegex(ValueError, "phase2_selection_provenance_missing"):
+            create_qta_phase2_plan_manifest_candidate(
+                phase1_receipt_raw=p1, phase1_record_bindings=records,
+                phase1_preflight_raw=p1_artifacts["atomic_cohort_preflight"],
+                phase1_stage1_source_pins_raw=p1_artifacts["stage1_review_and_lineage"],
+                baseline_pq_manifest_raw=p2_artifacts["baseline_pq_manifest"],
+                plans=plans)
 
     def test_phase2_candidate_rejects_different_freeze_id(self):
         bundle = self._phase2_candidate_bundle()

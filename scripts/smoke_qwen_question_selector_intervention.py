@@ -41,6 +41,13 @@ from smoke_qwen_question_temporal_selector import (  # noqa: E402
 )
 from nextgqa_atomic_batch_freeze import FrozenBatch, batch_sha256  # noqa: E402
 from qta_nine_branch_plan import build_qta_nine_branch_plan  # noqa: E402
+from qta_selection_provenance import (  # noqa: E402
+    FROZEN_SELECTOR_SOURCE_SHA256, build_qta_selection_provenance,
+    selection_provenance_sha256, validate_qta_selection_provenance,
+)
+from qta_choice_token_binding import (  # noqa: E402
+    resolve_choice_continuation_ids, validate_processed_choice_suffix,
+)
 from run_nextgqa_gold_interval_margin_pilot import (  # noqa: E402
     build_qa_prompt, process_qa_video,
 )
@@ -48,6 +55,7 @@ from run_nextgqa_gold_interval_margin_pilot import (  # noqa: E402
 
 LOGIT_BIAS = math.log(2.0)
 SHAM_SEED = "qta-sham-seed-20261018-v1"
+SYNTHETIC_REVIEW_TOKEN = "synthetic_record_token01"
 MIN_FREE_BEFORE_LOAD = 11 * 1024**3
 MIN_FREE_BEFORE_FORWARD = 1024**3
 
@@ -117,34 +125,10 @@ def _choice_log_probabilities(logits, token_ids, torch_module):
 
 def _resolve_choice_continuation_ids(tokenizer, rendered_prefix, labels="ABCDE"):
     """Resolve single-token labels as continuations of the exact rendered prefix."""
-    if (not isinstance(rendered_prefix, str) or not rendered_prefix
-            or not isinstance(labels, str) or not labels
-            or len(set(labels)) != len(labels)):
+    if labels != "ABCDE":
         raise ValueError("choice_continuation_prefix_or_labels_invalid")
-    try:
-        prefix_ids = tokenizer.encode(rendered_prefix, add_special_tokens=False)
-    except Exception:
-        raise ValueError("choice_continuation_prefix_tokenization_failed") from None
-    if (not isinstance(prefix_ids, list) or not prefix_ids
-            or any(type(value) is not int or value < 0 for value in prefix_ids)):
-        raise ValueError("choice_continuation_prefix_ids_invalid")
-    result = []
-    for label in labels:
-        try:
-            extended_ids = tokenizer.encode(rendered_prefix + label,
-                                            add_special_tokens=False)
-        except Exception:
-            raise ValueError("choice_continuation_tokenization_failed") from None
-        if (not isinstance(extended_ids, list)
-                or extended_ids[:len(prefix_ids)] != prefix_ids):
-            raise ValueError("choice_continuation_prefix_retokenized")
-        suffix = extended_ids[len(prefix_ids):]
-        if (len(suffix) != 1 or type(suffix[0]) is not int or suffix[0] < 0):
-            raise ValueError("choice_label_not_single_continuation_token")
-        result.append(suffix[0])
-    if len(set(result)) != len(result):
-        raise ValueError("choice_continuation_token_ids_not_distinct")
-    return result
+    answer_ids, _ = resolve_choice_continuation_ids(tokenizer, rendered_prefix, labels)
+    return answer_ids
 
 
 def _validate_processed_choice_suffix(base_ids, extended_ids, expected_token_id,
@@ -155,10 +139,9 @@ def _validate_processed_choice_suffix(base_ids, extended_ids, expected_token_id,
             or tuple(extended_ids.shape) != (1, int(base_ids.shape[1]) + 1)
             or type(expected_token_id) is not int or expected_token_id < 0):
         raise ValueError("processed_choice_suffix_shape_invalid")
-    if not torch_module.equal(extended_ids[:, :-1], base_ids):
-        raise ValueError("processed_choice_suffix_prefix_mismatch")
-    if int(extended_ids[0, -1].item()) != expected_token_id:
-        raise ValueError("processed_choice_suffix_token_mismatch")
+    validate_processed_choice_suffix(
+        base_ids[0].detach().cpu().tolist(),
+        extended_ids[0].detach().cpu().tolist(), expected_token_id)
 
 
 def _score_treatment_branches(six_condition_binding, branch_logits, torch_module,
@@ -360,6 +343,7 @@ def main(argv=None):
         "synthetic_fixture": repo / "scripts/smoke_qwen_internal_attention_ablation.py",
         "selector": repo / "scripts/qwen_question_temporal_attention_selector.py",
         "qta_nine_branch_plan": repo / "scripts/qta_nine_branch_plan.py",
+        "qta_selection_provenance": repo / "scripts/qta_selection_provenance.py",
         "attention_bias": repo / "scripts/qwen_visual_attention_boost.py",
         "internal_ablation": repo / "scripts/qwen_internal_attention_ablation.py",
         "fixed_prediction_scorer": repo / "scripts/fixed_prediction_selective_dependence.py",
@@ -493,6 +477,7 @@ def main(argv=None):
                   for i in range(temporal_steps)]
         if temporal_steps < 4:
             raise RuntimeError("synthetic_temporal_group_count_invalid")
+        row_binding = hashlib.sha256(b"synthetic-record-0").hexdigest()
 
         free_before, total_vram = torch.cuda.mem_get_info(device)
         if free_before < MIN_FREE_BEFORE_LOAD:
@@ -552,7 +537,8 @@ def main(argv=None):
         target_groups = select_top_temporal_groups(group_scores, top_k=top_k)
         sham_groups = select_hash_sham_temporal_groups(
             temporal_group_count=temporal_steps, top_k=top_k,
-            protocol_seed=SHAM_SEED, opaque_record_token="synthetic-record-0")
+            protocol_seed=SHAM_SEED,
+            opaque_record_token=SYNTHETIC_REVIEW_TOKEN)
         target_positions = tuple(sorted(p for index in target_groups for p in groups[index]))
         sham_positions = tuple(sorted(p for index in sham_groups for p in groups[index]))
 
@@ -611,15 +597,62 @@ def main(argv=None):
                 remove_hooks(hooks)
 
         stage = "nine_branch_hook_composition"
+        prompt_sha = hashlib.sha256(rendered_text.encode("utf-8")).hexdigest()
+        input_ids_sha = hashlib.sha256(json.dumps(
+            ids[0].detach().cpu().tolist(), separators=(",", ":"),
+            ensure_ascii=True).encode("ascii")).hexdigest()
+        baseline_row_sha = hashlib.sha256(json.dumps(
+            baseline_full_choice_log_probs, separators=(",", ":"),
+            ensure_ascii=True, allow_nan=False).encode("ascii")).hexdigest()
+        layer_group_masses = [captured[layer - 1] for layer in LAYERS_1_BASED]
+        selection_provenance = build_qta_selection_provenance(
+            record_token=row_binding,
+            opaque_review_token=SYNTHETIC_REVIEW_TOKEN,
+            row_binding_sha256=row_binding,
+            typed_batch_sha256=preload_batch_digest,
+            score_binding_sha256=six_condition_binding["full_binding_sha256"],
+            baseline_pq_row_sha256=baseline_row_sha,
+            prompt_sha256=prompt_sha,
+            input_ids_sha256=input_ids_sha,
+            input_length=int(ids.shape[1]), score_position=query_position,
+            question_positions=question_positions,
+            temporal_groups=groups,
+            selector_source_sha256=FROZEN_SELECTOR_SOURCE_SHA256,
+            selector_layers_1_based=LAYERS_1_BASED,
+            layer_group_masses=layer_group_masses,
+            sham_seed=SHAM_SEED,
+        )
         branch_plan = build_qta_nine_branch_plan(
-            row_binding_sha256=hashlib.sha256(b"synthetic-record-0").hexdigest(),
+            row_binding_sha256=row_binding,
             temporal_groups=groups, target_group_indices=target_groups,
             sham_group_indices=sham_groups, evidence_group_indices=evidence_groups,
             control_group_indices=control_groups,
             typed_batch_sha256=preload_batch_digest,
             score_binding_sha256=six_condition_binding["full_binding_sha256"],
             intervention_layers_1_based=LAYERS_1_BASED, logit_bias=LOGIT_BIAS,
-            sham_seed=SHAM_SEED)
+            sham_seed=SHAM_SEED,
+            selection_provenance=selection_provenance)
+        validate_qta_selection_provenance(
+            selection_provenance,
+            expected_bindings={
+                "record_token": row_binding,
+                "opaque_review_token": SYNTHETIC_REVIEW_TOKEN,
+                "row_binding_sha256": row_binding,
+                "typed_batch_sha256": preload_batch_digest,
+                "score_binding_sha256": six_condition_binding["full_binding_sha256"],
+                "baseline_pq_row_sha256": baseline_row_sha,
+                "prompt_sha256": prompt_sha,
+                "input_ids_sha256": input_ids_sha,
+                "input_length": int(ids.shape[1]),
+                "score_position": query_position,
+                "question_positions": question_positions,
+                "temporal_groups": groups,
+                "selector_source_sha256": FROZEN_SELECTOR_SOURCE_SHA256,
+                "selector_layers_1_based": list(LAYERS_1_BASED),
+                "sham_seed": SHAM_SEED,
+            },
+            plan=branch_plan,
+        )
         branch_inputs = {branch["name"]: branch for branch in branch_plan["branches"]}
         # Reuse the already completed baseline full pass.
         condition_outputs["baseline_full"] = {
@@ -681,6 +714,10 @@ def main(argv=None):
             "intervention_layers_1_based": list(LAYERS_1_BASED),
             "condition_names": [branch["name"] for branch in branch_plan["branches"]],
             "condition_plan_sha256": branch_plan["plan_sha256"],
+            "selection_provenance_sha256": selection_provenance_sha256(
+                selection_provenance),
+            "selection_arithmetic_reproduced": True,
+            "attention_capture_authenticated": False,
             "selection_spec_sha256": branch_plan["selection_spec_sha256"],
             "condition_branch_sha256": {
                 branch["name"]: branch["branch_sha256"]
