@@ -1,10 +1,12 @@
 from __future__ import annotations
 
 import json
+import io
 from pathlib import Path
 import shutil
 import tempfile
 import unittest
+from contextlib import redirect_stdout
 from unittest.mock import patch
 
 from audit_qta_stage1_bundle_cli import BundleError, PURPOSE, verify_bundle
@@ -90,6 +92,34 @@ class Stage1BundleCliTests(unittest.TestCase):
         self.assertFalse(report["model_load_permitted"])
         self.assertFalse(report["score_ready"])
         self.assertEqual(report["execution_authorization"], "not_granted")
+
+    def test_cli_denies_a_review_export_changed_after_signed_bundle_freeze(self):
+        changed = self.root / "sources/review_changed.bin"
+        self._write("sources/review_changed.bin",
+                    (self.root / self.sources["review"]).read_bytes() + b" ")
+        self.manifest["sources"]["review"] = "sources/review_changed.bin"
+        self._save_manifest()
+
+        output = io.StringIO()
+        with redirect_stdout(output):
+            status = cli_module.main([
+                "--bundle-dir", str(self.root),
+                "--expected-lineage-sha256", self.fixture.expected_lineage_sha256,
+                "--expected-custody-sha256", self.fixture.expected_custody_sha256,
+                "--expected-root-public-der-sha256", self.fixture.f.root_pin,
+                "--expected-ceremony-id", self.fixture.f.ceremony,
+            ])
+
+        self.assertEqual(status, 2)
+        report = json.loads(output.getvalue())
+        self.assertEqual(report["status"], "blocked")
+        self.assertEqual(report["failure_codes"], ["stage1_audit_contract_invalid"])
+        self.assertFalse(report["model_load_permitted"])
+        self.assertFalse(report["score_ready"])
+        self.assertEqual(report["execution_authorization"], "not_granted")
+        for row in self.fixture.worksheet["records"]:
+            self.assertNotIn(row["review_token"], output.getvalue())
+        self.assertTrue(changed.is_file())
 
     def test_inventory_role_omission_is_rejected_before_audit(self):
         self.manifest["artifact_sources"].pop("claim_lineage")

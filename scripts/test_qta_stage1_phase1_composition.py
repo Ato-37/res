@@ -27,6 +27,18 @@ class Stage1Phase1CompositionTests(unittest.TestCase):
             pins, sort_keys=True, separators=(",", ":"), ensure_ascii=False
         ).encode("utf-8")
         self.external_pin_raw = build_external_cohort_pin_candidate(self.stage1_raw)
+        # Phase-1 uses the SHA-256 of each opaque Stage-1 review token as its
+        # record identity. The receipt fixture's default cohort is deliberately
+        # separate, so rebind its synthetic rows to this adapter output before
+        # testing composition.
+        self.phase.records = [
+            {
+                "record_token": hashlib.sha256(token.encode("ascii")).hexdigest(),
+                "processor_batch_sha256": self.phase.records[index][
+                    "processor_batch_sha256"],
+            }
+            for index, token in enumerate(pins["expected_cohort_tokens"])
+        ]
 
     def _phase1_artifacts(self):
         artifacts = dict(self.phase.p1_artifacts)
