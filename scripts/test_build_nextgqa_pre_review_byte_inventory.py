@@ -98,6 +98,9 @@ class SyntheticPreReviewInventoryTests(unittest.TestCase):
             "qta_actual_qa_source_contract",
             "qta_actual_qa_source_binding_cli",
             "qta_actual_prebaseline_diagnostic",
+            "qta_stage1_bundle_audit",
+            "qta_stage1_source_pin_adapter",
+            "qta_prescore_mapping_binding",
             "qta_prescore_review_row_adapter",
             "annotation_clock_calibration",
             "claim_input_manifest_builder",
@@ -118,6 +121,8 @@ class SyntheticPreReviewInventoryTests(unittest.TestCase):
         self.assertIn("review_runbook", roles)
         self.assertIn("qta_protocol_draft", roles)
         self.assertIn("qta_treatment_selection", roles)
+        self.assertNotIn("python_source_import_closure",
+                         result["missing_required_slots"])
         self.assertEqual(result["missing_required_slots"], [])
         self.assertFalse(result["joint_freeze"])
         self.assertFalse(result["score_ready"])
