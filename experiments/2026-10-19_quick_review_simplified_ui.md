@@ -32,3 +32,11 @@ The artifact now matches a short impression check: entering a nickname is the on
 ```bash
 xdg-open ./data/private_nextgqa/quick_review_ja_simple_20261019_itemid_v4.html
 ```
+
+## Follow-up wording adjustment (2026-10-19)
+
+The user clarified that this is only a lightweight check and should not ask reviewers to make a complete hallucination judgment. Updated the prompt to ask whether the explanation generally matches the video, with plain choices: “はい、だいたい合っている”, “違うところがある気がする”, and “わからない”. The nickname remains the only setup before the first embedded video/question. The page explicitly describes this as a preliminary impression check, not a strict hallucination test or performance evaluation. No file picker, timestamp, or free-text entry was added.
+
+- Updated the private local artifact in place; it remains mode `0600` and must not be published.
+- Builder tests: **9/9 passed**. `git diff --check` passed for the source/test changes.
+- No reviewer response was collected. Direct faithfulness scoring remains **0/3**; this UI wording change adds no efficacy evidence.

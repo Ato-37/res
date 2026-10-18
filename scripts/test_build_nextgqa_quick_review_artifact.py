@@ -146,7 +146,11 @@ class QuickReviewArtifactSafetyTests(unittest.TestCase):
             self.assertIn("id=\"nickname\"", rendered)
             self.assertIn("ニックネームを入力", rendered)
             self.assertIn("質問へ", rendered)
-            self.assertIn("動画ファイルの選択や細かい判定はありません", rendered)
+            self.assertIn("ファイル選択や時刻入力はありません", rendered)
+            self.assertIn("厳密な幻覚判定や研究上の性能評価ではありません", rendered)
+            self.assertIn("はい、だいたい合っている", rendered)
+            self.assertIn("違うところがある気がする", rendered)
+            self.assertIn(">わからない</label>", rendered)
             self.assertNotIn('type="file"', rendered)
             self.assertNotIn('id="time"', rendered)
             self.assertNotIn('id="note"', rendered)
@@ -169,7 +173,7 @@ class QuickReviewArtifactSafetyTests(unittest.TestCase):
             self.assertNotIn("answer.note", summary_script)
             self.assertNotIn("item_id", summary_script)
             self.assertIn("正式なレビューやfaithfulness評価ではありません", rendered)
-            self.assertIn("JSONを保存すると、このページにも入力した回答の一覧が表示されます", rendered)
+            self.assertIn("必要なら回答を保存できます", rendered)
             self.assertEqual(output.stat().st_mode & 0o777, 0o600)
 
 
