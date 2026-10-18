@@ -8,10 +8,9 @@ import unittest
 from qta_prescore_clock_row_adapter import adapt_calibration_to_clock_row
 from qta_prescore_processor_row_adapter import processor_binding_row
 from qta_synthetic_cohort_preflight import preflight_synthetic_qta_cohort
-from test_qta_prescore_clock_row_adapter import (
-    QtaPrescoreClockRowAdapterTests, seal,
-)
-from test_qta_prescore_processor_row_adapter import QtaPrescoreProcessorRowAdapterTests
+import test_qta_prescore_clock_row_adapter as clock_adapter_test
+import test_qta_prescore_processor_row_adapter as processor_adapter_test
+from test_qta_prescore_clock_row_adapter import seal
 from test_qta_synthetic_cohort_preflight import synthetic_mapping_inputs
 
 
@@ -38,9 +37,9 @@ def _replace_tokens(inputs):
 
 
 def _actual_adapter_rows(inputs):
-    clock_fixture = QtaPrescoreClockRowAdapterTests()
+    clock_fixture = clock_adapter_test.QtaPrescoreClockRowAdapterTests()
     clock_fixture.setUp()
-    processor_fixture = QtaPrescoreProcessorRowAdapterTests()
+    processor_fixture = processor_adapter_test.QtaPrescoreProcessorRowAdapterTests()
     processor_fixture.setUp()
     clock_rows, processor_rows = [], []
     try:

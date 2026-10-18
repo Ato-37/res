@@ -31,19 +31,22 @@ reports zero verified rows; its regression now checks this contract.
 ## Checks and limits
 
 - New adapter composition tests: **3/3 passed**.
-- Combined clock-adapter, processor-adapter, composition, and cohort-wrapper
-  suites: **20/20 passed** with
-  `PYTHONPATH=scripts .venv/bin/python -m unittest test_qta_synthetic_adapter_composition test_qta_synthetic_cohort_preflight -v`.
+- The first focused composition + cohort run reported 20 passing executions,
+  including 13 duplicated clock/processor test methods; those imports were
+  corrected as described below. The corrected command is the 7-test run
+  recorded below.
 - `py_compile` and `git diff --check`: passed.
-- An independent audit reran the clock, processor, composition, and cohort
-  modules: 33 test executions passed (20 distinct methods; imported clock and
-  processor test classes run twice in that command). The audit confirmed the
-  fixed 3-row denominator, no partial row hashes on failure, and
-  non-authorization. It also confirmed that fixtures are synthetic and do not
-  exercise a real Qwen processor or browser capture.
-- Full `scripts/` unittest discovery passed **1,928/1,928** in 60.708 s after
-  the final privacy assertions. The CUDA devices were hidden from this
-  CPU-only regression run.
+- An independent audit confirmed the fixed 3-row denominator, no partial row
+  hashes on failure, and non-authorization. It also found that importing the
+  clock/processor `TestCase` classes directly caused duplicate test execution
+  during full discovery. Changed the composition test to use module aliases.
+  The focused command now runs **7 tests** (3 composition + 4 cohort), all
+  passing; the independent audit confirmed there are no duplicate IDs.
+- After removing those duplicate test registrations, full `scripts/` unittest
+  discovery passed **1,915/1,915** in 60.282 s using the repository `.venv`
+  with CUDA hidden. An independent attempt using system `python3` did not pass
+  because that interpreter lacked required dependencies; it is not counted as
+  validation evidence.
 - The successful-composition test checks that output JSON contains neither
   row tokens nor source-video hashes.
 - These tests use synthetic capture/calibration metadata and synthetic mapper
@@ -65,11 +68,12 @@ reports zero verified rows; its regression now checks this contract.
   `scripts/test_qta_synthetic_cohort_preflight.py`
   `6bfdc27be21457d095c1d6e512ff06690363e89f7667ed4b1d1eb6ec5df0543b`;
   `scripts/test_qta_synthetic_adapter_composition.py`
-  `575eaf40683668c5f85581bd6104cdf5e3f3a18cefb8ef4e99cca41621836e1a`.
+  `d8b81a08d6ab3d105941dad741d55dfc4f2f016822851fa2729b4614240500a5`.
 - Syntax and whitespace checks: `PYTHONPATH=scripts .venv/bin/python -m py_compile scripts/qta_synthetic_cohort_preflight.py scripts/test_qta_synthetic_cohort_preflight.py scripts/test_qta_synthetic_adapter_composition.py` and `git diff --check`.
-- Next, complete an independent audit and full CPU regression pass, publish
-  only this code/test/log, then implement the non-authorizing composition
-  contract that combines these row adapters with the signed phase receipts.
-  Real scoring remains blocked by missing actual trusted role assignments,
-  stage-1 review, 15 timing correspondences, and stage-2 judgments. Rights
-  remain unverified; protected files stay local.
+- Next, specify and independently audit canonical per-role schemas and row
+  cross-links for phase-1 preflight and phase-2 branch-plan artifacts before
+  implementing a non-authorizing composition verifier. The role-name byte
+  receipts alone do not validate artifact meaning. Real scoring remains
+  blocked by missing trusted role assignments, stage-1 review, 15 timing
+  correspondences, and stage-2 judgments. Rights remain unverified; protected
+  files stay local.
