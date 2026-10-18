@@ -169,6 +169,21 @@ def _record_bindings(rows: Any) -> list[dict[str, str]]:
     return out
 
 
+def _verify_stage1_record_bindings(stage1_review_and_lineage_raw: bytes,
+                                  records: list[dict[str, str]]) -> None:
+    """Bind pre-baseline receipt rows to the pinned Stage-1 cohort order."""
+    # Reuse the cohort validator so malformed or internally inconsistent rows
+    # cannot be converted into record identities here.
+    _cohort_binding_sha256(stage1_review_and_lineage_raw)
+    stage1 = _parse(stage1_review_and_lineage_raw,
+                    "external_cohort_source_json_invalid")
+    expected = [_sha(token.encode("ascii"))
+                for token in stage1["expected_cohort_tokens"]]
+    actual = [row["record_token"] for row in records]
+    if actual != expected:
+        raise ReceiptError("phase_record_tokens_do_not_match_stage1_cohort")
+
+
 def _roster_keys(*, integrity_roster_raw: bytes, release_roster_raw: bytes,
                  root_public_key_pem: bytes,
                  expected_root_public_der_sha256: str) -> tuple[dict, dict[str, bytes]]:
@@ -251,6 +266,9 @@ def create_phase_freeze_receipt(*, phase: str, freeze_id: str,
             expected_external_cohort_pin_sha256=_sha(
                 artifact_bytes["external_cohort_pin"]))
     records = _record_bindings(record_rows)
+    if phase == "pre_baseline":
+        _verify_stage1_record_bindings(
+            artifact_bytes["stage1_review_and_lineage"], records)
     release, _ = _roster_keys(
         integrity_roster_raw=integrity_roster_raw,
         release_roster_raw=release_roster_raw,
@@ -327,6 +345,9 @@ def verify_phase_freeze_receipt(*, receipt_raw: bytes, phase: str,
             or obj.get("purpose") != f"qta_two_phase_score_freeze_candidate_v{version}"):
         raise ReceiptError("phase_receipt_schema_version_invalid")
     record_rows = _record_bindings(obj["record_bindings"])
+    if phase == "pre_baseline":
+        _verify_stage1_record_bindings(
+            artifact_bytes["stage1_review_and_lineage"], record_rows)
     if records_from_call is not None and record_rows != records_from_call:
         raise ReceiptError("phase2_record_binding_differs_from_phase1")
     prior_hash = _sha(prior_phase1_receipt_raw) if phase == "post_baseline" else None

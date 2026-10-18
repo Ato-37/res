@@ -73,7 +73,8 @@ class QtaPhaseFreezeReceiptTests(unittest.TestCase):
         self.release = self._signed_roster(
             "nextgqa_review_release_roster_v1", "release-01",
             release_entries, _RELEASE_DOMAIN)
-        self.records = [{"record_token": f"{i + 1:064x}",
+        self.records = [{"record_token": hashlib.sha256(
+                             f"{i + 1:024d}".encode("ascii")).hexdigest(),
                          "processor_batch_sha256": f"{i + 1:064x}"}
                         for i in range(3)]
         self.p1_artifacts = {role: ("fixture:" + role).encode()
@@ -326,6 +327,26 @@ class QtaPhaseFreezeReceiptTests(unittest.TestCase):
         readable[0]["record_token"] = "video_123_question_5"
         with self.assertRaisesRegex(ReceiptError, "phase_record_token_invalid_or_duplicate"):
             self._create("pre_baseline", readable, self.p1_artifacts)
+
+    def test_phase1_creation_rejects_reordered_cohort_bindings(self):
+        reordered = [dict(row) for row in self.records]
+        reordered[0], reordered[1] = reordered[1], reordered[0]
+        with self.assertRaisesRegex(
+                ReceiptError, "phase_record_tokens_do_not_match_stage1_cohort"):
+            self._create("pre_baseline", reordered, self.p1_artifacts)
+
+    def test_phase1_verifier_rejects_resigned_mismatched_cohort_bindings(self):
+        body = json.loads(self.p1)
+        body["record_bindings"][0]["record_token"] = "f" * 64
+        unsigned = {key: value for key, value in body.items()
+                    if key != "signature_ed25519_base64"}
+        body["signature_ed25519_base64"] = base64.b64encode(_sign(
+            self.keys["owner"][0], self.keys["owner"][1],
+            _PHASE_DOMAINS["pre_baseline"] + _canonical(unsigned))).decode("ascii")
+        forged = _canonical(body) + b"\n"
+        with self.assertRaisesRegex(
+                ReceiptError, "phase_record_tokens_do_not_match_stage1_cohort"):
+            self._verify(forged, "pre_baseline", self.p1_artifacts)
 
     def test_phase1_verifier_rejects_phase2_only_arguments(self):
         with self.assertRaisesRegex(ReceiptError, "phase1_receipt_not_allowed"):
