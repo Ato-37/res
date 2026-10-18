@@ -70,11 +70,17 @@ The [official NExT-GQA dataset README](https://github.com/doc-doc/NExT-GQA/blob/
 defines `map_vid_vidorID` only as video-ID-to-path mapping. The [VidOR dataset
 documentation](https://xdshang.github.io/docs/vidor.html) identifies its
 `video_id` as a YFCC100M ID and separately provides a `video_hash` field for
-indexing the source media. Thus the unique local path stems verify distinct
-benchmark item IDs, but do not verify distinct source media or independent
-recording/event provenance. A YFCC file hash could expose repeated identical
-source media under different IDs if available, but different hashes would
-still not prove independent events. The [Multimedia Commons index guidance](https://multimediacommons.wordpress.com/preparing-a-multimedia-commons-expansion-pack/)
+indexing the source media. It lists train/validation videos and annotations,
+while stating that test videos and annotations are available after
+participating in the grand challenges. The 490-item pool documented in
+`2026-10-18_qta_candidate_pool_visual_overlap.md` is drawn from the local
+NExT-GQA test-ID mapping, so the public train/validation annotation files do
+not supply a crosswalk for that pool. Thus the unique local
+path stems verify distinct benchmark item IDs, but do not verify distinct
+source media or independent recording/event provenance. A YFCC file hash
+could expose repeated identical source media under different IDs if available,
+but different hashes would still not prove independent events. The
+[Multimedia Commons index guidance](https://multimediacommons.wordpress.com/preparing-a-multimedia-commons-expansion-pack/)
 describes an ID-to-MD5 index; the [YFCC core dataset page](https://multimediacommons.wordpress.com/yfcc100m-core-dataset/)
 states that access is handled through Yahoo Webscope and, when retrieved on
 2026-10-18, said Webscope was not currently offering access. That page-level
