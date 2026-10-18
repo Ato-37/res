@@ -71,3 +71,58 @@ condition forward. Validate tamper, row-order, transfer, and target-appended
 input cases synthetically before any direct GPU run. Independently, the direct
 experiment still needs completed human claim review, all 15 clock/frame
 checks, frozen baseline `p/q`, and Stage-2 prediction-link judgments.
+
+## Follow-up: mapper-to-scorer batch composition (2026-10-19)
+
+### Purpose and setup
+
+The prior code bound a mapper snapshot but left untested whether it matched the
+full batch reconstructed later by the scorer's batch builder. Added a
+CPU-only, synthetic integration case in
+`scripts/test_qta_synthetic_adapter_composition.py`: build a deterministic
+three-row 3-condition bundle twice, pass first-build full batches through the
+actual temporal mapper and processor-row adapter, then compare the resulting
+typed digests against all nine second-build batches. Expected hashes for the
+freeze come from the first build, not the second objects being frozen.
+
+### Verified results
+
+- Focused composition test: **5/5 passed**.
+- Combined composition, batch-builder, and atomic-freezer suites: **32/32
+  passed** in an independent primary rerun; Python compilation and scoped
+  `git diff --check` passed.
+- All three mapper snapshots matched the corresponding reprocessed full batch;
+  all nine second-build condition batches matched first-build hashes and were
+  frozen in the original row order.
+- A changed second-build processor output was rejected as
+  `exact_condition_batch_hash_mismatch` before the final callback. A reordered
+  mapper row was rejected by the cohort join, and a reversed scorer row order
+  was rejected before the freezer precheck.
+- The successful fixture traversed all nine batch mappings, but reported
+  `execution_authorization=not_granted`. No model/scorer was constructed and
+  forwards remained zero. The fixture used only synthetic local inputs; no
+  protected data, GPU, or external source was accessed.
+
+### Interpretation and limitations
+
+This closes a narrow deterministic composition gap between two synthetic CPU
+processor builds and the mapper's captured full-batch snapshot. Typed SHA-256
+comparison covers mapping structure and tensor dtype, shape, and bytes. The
+fixture's precheck/final callbacks are trivial test callbacks, not authenticated
+phase gates. It does not execute the production scorer or ModelCallBoundary,
+prove real-video/media-source authenticity, establish human judgments, or
+measure explanation faithfulness. The exact nine-condition freeze remains
+non-authorizing by contract.
+
+Faithfulness remains **0/3** claim-reviewed, **0/15** player-clock/decoder
+correspondences, **0/3** prediction-link judgments, and **0/3** directly
+scored. No direct `ΔF`, interval, or test exists.
+
+### Next action
+
+Retain this synthetic invariant as regression coverage. Continue only with
+useful CPU-side handoff or phase-gate integration while human/trust inputs are
+absent. Do not use a trivial synthetic callback to justify any real-data score;
+once formal prerequisites are present, the first GPU run remains a bounded
+three-row baseline-only smoke, followed by a separate Stage-2 decision before
+intervention scoring.
