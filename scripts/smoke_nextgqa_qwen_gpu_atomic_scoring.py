@@ -7,8 +7,10 @@ it prints only aggregate runtime/resource counters, never item scores.
 """
 from __future__ import annotations
 
+import argparse
 from datetime import datetime, timezone
 from fractions import Fraction
+import hashlib
 import json
 import os
 from pathlib import Path
@@ -25,12 +27,30 @@ from transformers import AutoProcessor, BitsAndBytesConfig, Qwen2_5_VLForConditi
 from nextgqa_atomic_batch_freeze import CONDITIONS, batch_sha256, freeze_all_batches
 from nextgqa_claim_mask_scoring import score_preflighted_triplets
 from nextgqa_condition_batch_builder import build_exact_triplet_batches
+from nextgqa_model_call_boundary import ModelCallBoundary
 
 
 MODEL_REV = "cc594898137f460bfe9f0759e9844b3ce807cfb5"
 MIN_MAX_PIXELS = 256 * 28 * 28
 MIN_FREE_BEFORE_LOAD = 12 * 1024**3
 MIN_FREE_BEFORE_FORWARD = 512 * 1024**2
+
+
+def _write_private_report(path: Path, report: dict) -> None:
+    """Create one mode-0600 aggregate receipt without overwriting any file."""
+    path.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
+    fd = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+    try:
+        with os.fdopen(fd, "w", encoding="utf-8") as stream:
+            json.dump(report, stream, indent=2, sort_keys=True)
+            stream.write("\n")
+    except BaseException:
+        try:
+            path.unlink()
+        except OSError:
+            pass
+        raise
+    os.chmod(path, 0o600)
 
 
 def synthetic_records() -> list[dict]:
@@ -60,7 +80,19 @@ def synthetic_records() -> list[dict]:
     return records
 
 
-def main() -> int:
+def main(argv: list[str] | None = None) -> int:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--output", type=Path, required=True,
+                        help="new aggregate-only JSON path under data/private_nextgqa")
+    args = parser.parse_args(argv)
+    repo = Path(__file__).resolve().parent.parent
+    private_root = (repo / "data/private_nextgqa").resolve()
+    output_path = args.output.resolve()
+    if not output_path.is_relative_to(private_root):
+        raise SystemExit("output_must_be_under_private_nextgqa")
+    if output_path.exists():
+        raise SystemExit("output_already_exists")
+
     started_utc = datetime.now(timezone.utc).isoformat()
     if not torch.cuda.is_available() or not torch.cuda.is_bf16_supported():
         raise SystemExit("CUDA_and_BF16_required")
@@ -119,6 +151,17 @@ def main() -> int:
     forward_guard = None
     scoring_started = None
     stats_reset = False
+    source_files = {
+        "gpu_smoke": Path(__file__).resolve(),
+        "model_call_boundary": Path(__file__).resolve().parent / "nextgqa_model_call_boundary.py",
+        "scorer": Path(__file__).resolve().parent / "nextgqa_claim_mask_scoring.py",
+        "batch_freezer": Path(__file__).resolve().parent / "nextgqa_atomic_batch_freeze.py",
+        "condition_builder": Path(__file__).resolve().parent / "nextgqa_condition_batch_builder.py",
+    }
+    source_sha256 = {
+        name: hashlib.sha256(path.read_bytes()).hexdigest()
+        for name, path in source_files.items()
+    }
     try:
         model = Qwen2_5_VLForConditionalGeneration.from_pretrained(
             str(model_path), local_files_only=True, torch_dtype=torch.bfloat16,
@@ -131,29 +174,36 @@ def main() -> int:
         stats_reset = True
 
         class ForwardMemoryGuard:
-            """Check free VRAM after batch transfer, directly before model call."""
+            """Check VRAM and exact root-model kwargs for each condition call."""
             def __init__(self):
-                self.calls = 0
                 self.minimum_free_gib = None
+                self.boundary = ModelCallBoundary(on_root_entry=self._root_entry)
 
-            def __call__(self, **batch):
+            def _root_entry(self):
                 free, _total = torch.cuda.mem_get_info(device_index)
                 free_gib = free / 1024**3
                 self.minimum_free_gib = (free_gib if self.minimum_free_gib is None
                                          else min(self.minimum_free_gib, free_gib))
                 if free < MIN_FREE_BEFORE_FORWARD:
                     raise RuntimeError("synthetic_gpu_resource_floor")
-                self.calls += 1
-                return model(**batch)
+
+            def __call__(self, **call):
+                free, _total = torch.cuda.mem_get_info(device_index)
+                free_gib = free / 1024**3
+                self.minimum_free_gib = (free_gib if self.minimum_free_gib is None
+                                         else min(self.minimum_free_gib, free_gib))
+                if free < MIN_FREE_BEFORE_FORWARD:
+                    raise RuntimeError("synthetic_gpu_resource_floor")
+                return self.boundary(**call)
 
         forward_guard = ForwardMemoryGuard()
 
         scoring_started = time.monotonic()
         scoring = score_preflighted_triplets(
-            model=forward_guard, triplets=frozen["triplets"],
+            model=model, triplets=frozen["triplets"],
             token_ids=frozen["token_ids"], record_ids=frozen["record_ids"],
             expected_batch_hashes=frozen["batch_sha256"], torch_module=torch,
-            device="cuda")
+            device="cuda", model_call=forward_guard)
         torch.cuda.synchronize()
         elapsed = time.monotonic() - scoring_started
         free_after, _ = torch.cuda.mem_get_info(device_index)
@@ -170,7 +220,9 @@ def main() -> int:
             "requested_records": scoring["requested_records"],
             "requested_forwards": scoring["requested_forwards"],
             "scorer_attempts_including_guard_rejections": scoring["attempted_forwards"],
-            "qwen_model_forward_calls": forward_guard.calls,
+            "root_model_call_entries": forward_guard.boundary.root_call_entries,
+            "verified_root_model_calls": forward_guard.boundary.verified_root_calls,
+            "completed_guarded_model_calls": forward_guard.boundary.completed_calls,
             "completed_forwards": scoring["completed_forwards"],
             "completed_triplets": scoring["completed_triplets"],
             "failure_code": scoring["failure_code"],
@@ -184,8 +236,10 @@ def main() -> int:
             "faithfulness_result": False,
             "source_review_clock_authentication": "not_performed",
             "execution_authorization": "not_granted",
+            "source_sha256": source_sha256,
         }
         # Never emit item log-probabilities or D3 from the synthetic fixture.
+        _write_private_report(output_path, report)
         print(json.dumps(report, sort_keys=True))
         return 0 if report["status"] == "passed" else 2
     except Exception as exc:
@@ -204,7 +258,12 @@ def main() -> int:
             "requested_forwards": 9,
             "scorer_attempts_including_guard_rejections": (
                 scoring["attempted_forwards"] if scoring is not None else 0),
-            "qwen_model_forward_calls": (forward_guard.calls if forward_guard else 0),
+            "root_model_call_entries": (
+                forward_guard.boundary.root_call_entries if forward_guard else 0),
+            "verified_root_model_calls": (
+                forward_guard.boundary.verified_root_calls if forward_guard else 0),
+            "completed_guarded_model_calls": (
+                forward_guard.boundary.completed_calls if forward_guard else 0),
             "completed_forwards": (scoring["completed_forwards"] if scoring is not None else 0),
             "completed_triplets": (scoring["completed_triplets"] if scoring is not None else 0),
             "failure_code": "gpu_smoke_failed_" + type(exc).__name__,
@@ -222,7 +281,9 @@ def main() -> int:
             "faithfulness_result": False,
             "source_review_clock_authentication": "not_performed",
             "execution_authorization": "not_granted",
+            "source_sha256": source_sha256,
         }
+        _write_private_report(output_path, report)
         print(json.dumps(report, sort_keys=True))
         return 2
     finally:

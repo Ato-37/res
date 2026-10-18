@@ -14,6 +14,7 @@ from nextgqa_claim_mask_scoring import (
     score_preflighted_triplets,
 )
 from nextgqa_atomic_batch_freeze import FrozenBatch, batch_sha256
+from nextgqa_model_call_boundary import ModelCallBoundary
 
 
 Batch = FrozenBatch
@@ -73,6 +74,24 @@ class FakeModel:
         return Output(logits.reshape(1, 1, 5))
 
 
+class HookableFakeModel(torch.nn.Module):
+    """PyTorch module so tests exercise real global/local pre-hook ordering."""
+    def __init__(self, fail_at=None, nonfinite_at=None):
+        super().__init__()
+        self.calls = 0
+        self.fail_at = fail_at
+        self.nonfinite_at = nonfinite_at
+
+    def forward(self, synthetic_logits, input_ids, use_cache, logits_to_keep):
+        self.calls += 1
+        if self.calls == self.fail_at:
+            raise RuntimeError("synthetic failure")
+        logits = synthetic_logits.clone()
+        if self.calls == self.nonfinite_at:
+            logits[0] = float("nan")
+        return Output(logits.reshape(1, 1, 5))
+
+
 def triplets():
     rows = []
     for gold in range(3):
@@ -102,6 +121,121 @@ def hash_binding(rows):
 
 @unittest.skipIf(torch is None, "torch unavailable")
 class NextgqaClaimMaskScoringTests(unittest.TestCase):
+    def test_exact_final_kwargs_are_verified_at_root_entry_for_all_nine_calls(self):
+        model = HookableFakeModel()
+        boundary = ModelCallBoundary()
+        rows = triplets()
+        result = score_preflighted_triplets(
+            model=model, triplets=rows, token_ids=[0, 1, 2, 3, 4],
+            **hash_binding(rows), torch_module=torch, device="cpu",
+            model_call=boundary)
+        self.assertEqual(result["status"], "completed")
+        self.assertEqual(model.calls, 9)
+        self.assertEqual(boundary.root_call_entries, 9)
+        self.assertEqual(boundary.verified_root_calls, 9)
+        self.assertEqual(boundary.completed_calls, 9)
+        self.assertEqual(len(model._forward_pre_hooks), 0)
+
+    def test_root_boundary_rejects_modified_batch_before_model_forward(self):
+        model = HookableFakeModel()
+        boundary = ModelCallBoundary()
+        rows = triplets()
+
+        def tamper_before_root(**call):
+            call["call_kwargs"]["input_ids"][0, 0] = 99
+            return boundary(**call)
+
+        result = score_preflighted_triplets(
+            model=model, triplets=rows, token_ids=[0, 1, 2, 3, 4],
+            **hash_binding(rows), torch_module=torch, device="cpu",
+            model_call=tamper_before_root)
+        self.assertEqual(result["status"], "failed")
+        self.assertEqual(result["attempted_forwards"], 1)
+        self.assertEqual(result["completed_forwards"], 0)
+        self.assertEqual(model.calls, 0)
+        self.assertEqual(boundary.root_call_entries, 1)
+        self.assertEqual(boundary.verified_root_calls, 0)
+        self.assertIsNone(result["D3_control_minus_claim_mask_nats"])
+        self.assertEqual(len(model._forward_pre_hooks), 0)
+
+    def test_later_root_pre_hook_rewrite_is_rejected_at_forward_entry(self):
+        model = HookableFakeModel()
+        boundary = ModelCallBoundary()
+        rows = triplets()
+
+        def rewrite_kwargs(_module, _args, kwargs):
+            rewritten = dict(kwargs)
+            rewritten["input_ids"] = kwargs["input_ids"].clone()
+            rewritten["input_ids"][0, 0] = 99
+            return (), rewritten
+
+        model.register_forward_pre_hook(rewrite_kwargs, with_kwargs=True)
+        result = score_preflighted_triplets(
+            model=model, triplets=rows, token_ids=[0, 1, 2, 3, 4],
+            **hash_binding(rows), torch_module=torch, device="cpu",
+            model_call=boundary)
+        self.assertEqual(result["status"], "failed")
+        self.assertEqual(result["attempted_forwards"], 1)
+        self.assertEqual(result["completed_forwards"], 0)
+        self.assertEqual(model.calls, 0)
+        self.assertEqual(boundary.root_call_entries, 1)
+        self.assertEqual(boundary.verified_root_calls, 0)
+        self.assertNotIn("forward", model.__dict__)
+        self.assertIsNone(result["D3_control_minus_claim_mask_nats"])
+
+    def test_forward_exception_restores_class_defined_forward(self):
+        model = HookableFakeModel(fail_at=1)
+        boundary = ModelCallBoundary()
+        rows = triplets()
+        result = score_preflighted_triplets(
+            model=model, triplets=rows, token_ids=[0, 1, 2, 3, 4],
+            **hash_binding(rows), torch_module=torch, device="cpu",
+            model_call=boundary)
+        self.assertEqual(result["status"], "failed")
+        self.assertEqual(result["attempted_forwards"], 1)
+        self.assertEqual(result["completed_forwards"], 0)
+        self.assertEqual(model.calls, 1)
+        self.assertEqual(boundary.root_call_entries, 1)
+        self.assertEqual(boundary.verified_root_calls, 1)
+        self.assertEqual(boundary.completed_calls, 0)
+        self.assertNotIn("forward", model.__dict__)
+        self.assertIsNone(result["D3_control_minus_claim_mask_nats"])
+
+    def test_preexisting_instance_forward_is_restored_after_success(self):
+        model = HookableFakeModel()
+        original_instance_forward = model.forward
+        model.forward = original_instance_forward
+        boundary = ModelCallBoundary()
+        rows = triplets()
+        result = score_preflighted_triplets(
+            model=model, triplets=rows, token_ids=[0, 1, 2, 3, 4],
+            **hash_binding(rows), torch_module=torch, device="cpu",
+            model_call=boundary)
+        self.assertEqual(result["status"], "completed")
+        self.assertIs(model.__dict__["forward"], original_instance_forward)
+        self.assertEqual(boundary.root_call_entries, 9)
+        self.assertEqual(boundary.verified_root_calls, 9)
+        self.assertEqual(boundary.completed_calls, 9)
+
+    def test_boundary_rejects_extra_model_option_before_root_entry(self):
+        model = HookableFakeModel()
+        boundary = ModelCallBoundary()
+        rows = triplets()
+
+        def add_extra_option(**call):
+            call["call_kwargs"]["return_dict"] = True
+            return boundary(**call)
+
+        result = score_preflighted_triplets(
+            model=model, triplets=rows, token_ids=[0, 1, 2, 3, 4],
+            **hash_binding(rows), torch_module=torch, device="cpu",
+            model_call=add_extra_option)
+        self.assertEqual(result["status"], "failed")
+        self.assertEqual(result["attempted_forwards"], 1)
+        self.assertEqual(model.calls, 0)
+        self.assertEqual(boundary.root_call_entries, 0)
+        self.assertIsNone(result["D3_control_minus_claim_mask_nats"])
+
     def test_success_runs_exactly_nine_forwards_and_only_finite_d3(self):
         model = FakeModel()
         rows = triplets()

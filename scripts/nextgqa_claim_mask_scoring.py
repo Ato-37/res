@@ -102,7 +102,8 @@ def _validate_frozen_hashes(*, triplets: Any, record_ids: Any,
 def score_preflighted_triplets(*, model: Any, triplets: Any, token_ids: Any,
                                record_ids: Any, expected_batch_hashes: Any,
                                torch_module: Any, device: str = "cuda",
-                               before_forward: Callable[[int, int, str], None] | None = None
+                               before_forward: Callable[[int, int, str], None] | None = None,
+                               model_call: Callable[..., Any] | None = None,
                                ) -> dict:
     """Run the fixed nine forwards and return a finite-cohort descriptive result.
 
@@ -160,8 +161,19 @@ def score_preflighted_triplets(*, model: Any, triplets: Any, token_ids: Any,
                     failure = "frozen_batch_hash_changed_after_device_transfer"
                     break
                 attempted += 1
+                call_kwargs = dict(batch)
+                call_kwargs.update(use_cache=False, logits_to_keep=1)
                 with torch_module.inference_mode():
-                    output = model(**batch, use_cache=False, logits_to_keep=1)
+                    if model_call is None:
+                        output = model(**call_kwargs)
+                    else:
+                        output = model_call(
+                            model=model, call_kwargs=call_kwargs,
+                            expected_batch_keys=tuple(batch),
+                            expected_batch_sha256=expected_hash,
+                            row_position=row_position,
+                            condition_position=condition_position,
+                            condition=condition)
                 logits = output.logits[0, -1].float()
                 if not bool(torch_module.isfinite(logits).all()):
                     failure = "nonfinite_next_token_logits"
