@@ -142,7 +142,7 @@ class SyntheticQtaCohortPreflightTests(unittest.TestCase):
         self.assertEqual(report["status"], "blocked_structural_row_binding_integration")
         self.assertEqual(report["requested_records"], 3)
         self.assertEqual(report["failure_code"], "review_token_binding_mismatch")
-        self.assertEqual(report["verified_structural_rows"], 1)
+        self.assertEqual(report["verified_structural_rows"], 0)
         self.assertEqual(report["row_binding_sha256"], [])
         self._assert_non_authorizing(report)
 

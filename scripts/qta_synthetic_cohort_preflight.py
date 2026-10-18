@@ -86,6 +86,11 @@ def preflight_synthetic_qta_cohort(**inputs: Any) -> dict[str, Any]:
         verified_rows = 0
     if not isinstance(failure_code, str) or not _FAILURE_CODE.fullmatch(failure_code):
         failure_code = "structural_join_failed"
+    # This adapter exposes only an atomic three-row cohort result. The lower
+    # level binder may report how many rows it inspected before a mismatch,
+    # but that partial-completion count is not accepted evidence here.
+    if not succeeded:
+        verified_rows = 0
     return _result(
         status=("structural_row_binding_passed_unvalidated" if succeeded
                 else "blocked_structural_row_binding_integration"),
