@@ -77,7 +77,7 @@ and v2 manifests; only the phase-2 composition gate requires v2.
 - `scripts/qta_baseline_pq_candidate.py`:
   `a5e9af0259814fcf2300f389eb14f3d7094b6bff131156ee6108fecaa5fe3ede`
 - `scripts/qta_phase2_plan_manifest.py`:
-  `9cc53e234771ad43c200df4725743a2837c4d8640780b893e8795086fbf24719`
+  `649eae33578db02551a38986b2ee6b3c765581154819216b9daa07c981de45a0`
 - `scripts/nextgqa_prediction_link_review.py`:
   `036842ea7d528dbf7f8fe0ad4cbfc180386412f16d4c9783cf4c0bbe3e03655a`
 - `scripts/render_nextgqa_prediction_link_review.py`:
