@@ -34,8 +34,11 @@ from qwen_visual_attention_boost import (  # noqa: E402
     install_video_key_bias_hooks,
     remove_hooks,
 )
+from qta_attention_forward_capture import (  # noqa: E402
+    aggregate_captured_qta_rows,
+    capture_qta_attention_forward_once,
+)
 from qwen_question_temporal_attention_selector import (  # noqa: E402
-    aggregate_temporal_group_attention,
     map_question_token_positions,
     select_top_temporal_groups,
 )
@@ -78,18 +81,6 @@ def _processor_fingerprint(processor) -> str:
     payload = json.dumps(descriptor, sort_keys=True, separators=(",", ":"),
                          ensure_ascii=True, allow_nan=False).encode("ascii")
     return hashlib.sha256(payload).hexdigest()
-
-
-def _capture_attention(output, layer_index, rows, torch_module,
-                       question_positions, groups):
-    if (not isinstance(output, tuple) or len(output) < 2
-            or not torch_module.is_tensor(output[1]) or output[1].ndim != 4
-            or int(output[1].shape[0]) != 1):
-        raise RuntimeError("attention_matrix_unavailable")
-    rows[layer_index] = aggregate_temporal_group_attention(
-        attention_by_layer={layer_index: output[1]}, layer_indices=(layer_index,),
-        question_positions=question_positions, group_positions=groups,
-        torch_module=torch_module)[0:]
 
 
 def question_for_video(dataset: Path, video_path: Path, video_root: Path) -> str:
@@ -172,7 +163,7 @@ def _temporal_visual_groups(*, token_ids, video_token_id, temporal_steps,
 
 
 def _run_baseline_and_selector(*, model, batch, processor, torch_module,
-                               rendered_text, question):
+                               rendered_text, question, forward_callable=None):
     input_ids = batch.get("input_ids")
     if (not torch_module.is_tensor(input_ids) or input_ids.ndim != 2
             or int(input_ids.shape[0]) != 1):
@@ -205,23 +196,17 @@ def _run_baseline_and_selector(*, model, batch, processor, torch_module,
         video_token_id=video_token_id)
     if max(question_positions) >= query_position:
         raise RuntimeError("question_span_not_before_score_query")
-    rows = {}
-    handles = []
-    try:
-        for layer_index in LAYER_INDICES:
-            def capture(_module, _inputs, output, *, selected_layer=layer_index):
-                _capture_attention(output, selected_layer, rows, torch_module,
-                                   question_positions, groups)
-            handles.append(model.model.language_model.layers[layer_index].self_attn
-                           .register_forward_hook(capture))
-        with torch_module.inference_mode():
-            output = model(**batch, use_cache=False, logits_to_keep=1)
-    finally:
-        remove_hooks(handles)
-    if tuple(sorted(rows)) != LAYER_INDICES:
-        raise RuntimeError("baseline_attention_capture_incomplete")
-    group_scores = [sum(rows[layer][group] for layer in LAYER_INDICES)
-                    / len(LAYER_INDICES) for group in range(temporal_steps)]
+    if forward_callable is not None and not callable(forward_callable):
+        raise RuntimeError("baseline_forward_callback_invalid")
+    if forward_callable is None:
+        invoke = lambda: model(**batch, use_cache=False, logits_to_keep=1)
+    else:
+        invoke = forward_callable
+    output, rows, capture_report = capture_qta_attention_forward_once(
+        model=model, forward=invoke, question_positions=question_positions,
+        input_length=sequence_length, torch_module=torch_module)
+    group_scores = aggregate_captured_qta_rows(
+        rows=rows, group_positions=groups, torch_module=torch_module)
     top_k = max(1, math.ceil(temporal_steps * VISUAL_RATIO))
     selected_groups = select_top_temporal_groups(group_scores, top_k=top_k)
     selected = tuple(sorted(position for group in selected_groups
@@ -230,7 +215,8 @@ def _run_baseline_and_selector(*, model, batch, processor, torch_module,
             or not all(math.isfinite(float(value)) for value in group_scores)):
         raise RuntimeError("frozen_visual_selector_invalid")
     return (output, selected, len(visual_positions), query_position,
-            selected_groups, len(question_positions), temporal_steps)
+            selected_groups, len(question_positions), temporal_steps,
+            capture_report)
 
 
 def _write_private_json(path: Path, value: dict) -> None:
@@ -349,7 +335,8 @@ def main(argv=None):
                 raise RuntimeError("gpu_resource_floor_before_baseline")
             attempted += 1
             (baseline, selected, visual_count, query_position,
-             selected_groups, question_token_count, temporal_group_count) = _run_baseline_and_selector(
+             selected_groups, question_token_count, temporal_group_count,
+             capture_report) = _run_baseline_and_selector(
                 model=model, batch=batch, processor=processor, torch_module=torch,
                 rendered_text=rendered_text, question=question)
             if batch_sha256(batch) != batch_digest_before:
@@ -394,6 +381,7 @@ def main(argv=None):
                 "question_token_count": question_token_count,
                 "sequence_length": int(batch["input_ids"].shape[1]),
                 "query_position": query_position,
+                "attention_capture": capture_report,
                 "max_abs_logit_change": float(delta.abs().max().item()),
                 "rms_logit_change": float(delta.square().mean().sqrt().item()),
                 "top_vocabulary_token_changed": (
@@ -415,6 +403,7 @@ def main(argv=None):
             "runner": Path(__file__).resolve(),
             "intervention_helper": Path(__file__).with_name("qwen_visual_attention_boost.py"),
             "question_selector": Path(__file__).with_name("qwen_question_temporal_attention_selector.py"),
+            "attention_forward_capture": Path(__file__).with_name("qta_attention_forward_capture.py"),
             "candidate_selector": repo / "scripts/run_nextgqa_real_video_gpu_smoke.py",
             "video_decoder": repo / "scripts/claim_mask_video_decoder.py",
             "typed_batch_hasher": repo / "scripts/nextgqa_atomic_batch_freeze.py",
@@ -493,6 +482,8 @@ def main(argv=None):
             "peak_reserved_gib": torch.cuda.max_memory_reserved(device) / 1024**3,
             "elapsed_seconds": time.monotonic() - timer,
             "faithfulness_result": False,
+            "forward_source_authenticated": False,
+            "attention_capture_authenticated": False,
             "qa_question_text_used": True,
             "qa_answer_text_used": False,
             "answer_or_generated_text_saved": False,

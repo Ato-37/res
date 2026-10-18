@@ -573,6 +573,46 @@ NumPy, so it did not independently reproduce the test pass; the primary
 checkout's `.venv/bin/python` reported NumPy 2.5.2 and reran both focused and
 full suites successfully.
 
+### BF16 real-capture normalization repair
+
+The first GPU integration of explicit question-row capture stopped on the
+first baseline because its old source-dtype-agnostic `2e-4` row-sum tolerance
+was too strict. A diagnostic rerun completed 3/3 local NExT-GQA videos and
+measured maximum selected-row deviations `0.0026866`, `0.0027470`, and
+`0.0028209`. The installed Transformers 5.18.0 Qwen eager path computes
+softmax in float32 and casts the weights to `query.dtype`; the pinned smoke
+uses BF16 activations, so the capture rows are BF16-rounded. The selection
+values themselves are unchanged; this is a representation/validation repair.
+
+The sidecar schema now records `attention_source_dtype` and uses a bound of
+`2e-4` for float32 and `0.0041` for BF16 (the BF16 relative rounding unit is
+`2^-8 = 0.00390625`, with small float32 softmax-sum slack). The forward hook
+path enforces the same dtype-specific limit and rejects mixed dtypes. Tests
+cover a BF16 row whose sum error exceeds the float32 threshold but fits the
+BF16 bound, and a larger BF16 error that remains rejected. Independent review
+found the new fail-closed checks consistent; it noted and we added the
+intermediate BF16 acceptance boundary fixture.
+
+After the repair, a new local-only real-video smoke completed 3/3 videos and
+6/6 forwards in 38.25 seconds. All 12 requested layers were captured once per
+baseline, all were BF16, and max row-sum deviations were the same three values
+above, each within 0.0041. Peak allocated/reserved VRAM was 7.2399/8.0781 GiB;
+pre-load free VRAM was 14.6572 GiB. Mean RMS logit change was 1.14009 and the
+top vocabulary token changed on 0/3 videos; these are wiring diagnostics, not
+QA or faithfulness outcomes. The second and third deterministic wiring runs
+matched selector sizes, counts, query positions, logit diagnostics, and
+top-token indicators exactly. The final private report records exact per-layer
+module paths, class names, call counts, source dtype, row deviation/tolerance,
+and source hashes. It still says
+`forward_source_authenticated=false`,
+`attention_capture_authenticated=false`, and `faithfulness_result=false`.
+
+Final focused capture/sidecar/receipt tests pass **68/68** and the full suite
+passes **1,993/1,993** in **70.847 seconds**. The phase-2 verifier still only
+checks signed dtype assertions and byte/mass consistency; it does not
+authenticate that BF16 bytes came from the pinned model/runtime. The private
+GPU JSONs remain under ignored `data/private_nextgqa/` and are not published.
+
 The binary layout avoids JSON hex expansion. Limits are 128 MiB per raw row,
 384 MiB summed across rows, and 24 MB for the index. This is not a streaming
 validator: the current sidecar mapping is resident in memory, so the aggregate

@@ -23,6 +23,8 @@ SCHEMA_VERSION = 1
 PURPOSE = "qta_attention_capture_binary_sidecar_index_non_authorizing"
 MAX_INDEX_BYTES = 24_000_000
 MAX_TOTAL_SIDECAR_BYTES = 384 * 1024 * 1024
+_ATTENTION_SOURCE_DTYPES = {"float32", "bfloat16"}
+_ROW_SUM_TOLERANCE = {"float32": 2e-4, "bfloat16": 0.0041}
 _SHA256 = re.compile(r"^[0-9a-f]{64}$")
 _INDEX_KEYS = {"schema_version", "purpose", "record_count", "records",
                "forward_source_authenticated", "attention_capture_authenticated",
@@ -30,6 +32,7 @@ _INDEX_KEYS = {"schema_version", "purpose", "record_count", "records",
                "scoring_authorized", "execution_authorization"}
 _ROW_KEYS = _BINDING_FIELDS | {
     "input_length", "layers_1_based", "attention_shape",
+    "attention_source_dtype",
     "attention_bytes_length", "attention_bytes_sha256",
     "layer_group_masses_f32_be_hex", "model_load_permitted",
     "scoring_authorized", "execution_authorization",
@@ -89,7 +92,7 @@ def _mass_hex(attention_array, shape, groups) -> list[list[str]]:
 
 def pack_qta_attention_sidecar_bytes(*, attention_layers: Mapping[int, Any],
                                     question_positions: Sequence[int],
-                                    input_length: int) -> tuple[list[int], bytes]:
+                                    input_length: int) -> tuple[list[int], bytes, str]:
     """Pack selected query rows from Qwen attention tensors without Python floats."""
     if (not isinstance(attention_layers, Mapping)
             or set(attention_layers) != set(LAYERS)):
@@ -106,6 +109,7 @@ def pack_qta_attention_sidecar_bytes(*, attention_layers: Mapping[int, Any],
 
     packed = bytearray()
     head_count = None
+    source_dtype = None
     for layer_index in LAYERS:
         layer = attention_layers[layer_index]
         tensor = layer.detach() if hasattr(layer, "detach") else layer
@@ -116,6 +120,12 @@ def pack_qta_attention_sidecar_bytes(*, attention_layers: Mapping[int, Any],
         if (len(shape) != 3 or shape[1] != input_length
                 or shape[2] != input_length or shape[0] < 1):
             _fail("capture_sidecar_attention_tensor_shape_invalid")
+        current_dtype = str(getattr(tensor, "dtype", "float32")).removeprefix("torch.")
+        if current_dtype not in _ATTENTION_SOURCE_DTYPES:
+            _fail("capture_sidecar_attention_source_dtype_invalid")
+        if source_dtype is not None and current_dtype != source_dtype:
+            _fail("capture_sidecar_attention_source_dtype_mismatch")
+        source_dtype = current_dtype
         if head_count is None:
             head_count = shape[0]
             projected_bytes = len(LAYERS) * head_count * len(question_positions) * input_length * 4
@@ -135,7 +145,8 @@ def pack_qta_attention_sidecar_bytes(*, attention_layers: Mapping[int, Any],
         packed.extend(selected.astype(">f4", copy=True).tobytes(order="C"))
         if len(packed) > MAX_CAPTURE_BYTES:
             _fail("capture_sidecar_payload_too_large")
-    return [len(LAYERS), head_count, len(question_positions), input_length], bytes(packed)
+    return ([len(LAYERS), head_count, len(question_positions), input_length],
+            bytes(packed), source_dtype)
 
 
 def build_qta_capture_sidecar_index(*, entries: Sequence[Mapping[str, Any]]) -> tuple[bytes, dict[str, bytes]]:
@@ -149,7 +160,7 @@ def build_qta_capture_sidecar_index(*, entries: Sequence[Mapping[str, Any]]) -> 
         if (not isinstance(entry, Mapping)
                 or set(entry) not in ({"binding", "attention", "input_length"},
                                      {"binding", "attention_bytes", "attention_shape",
-                                      "input_length"})):
+                                      "input_length", "attention_source_dtype"})):
             _fail("capture_sidecar_entry_schema_invalid")
         input_length = entry["input_length"]
         if type(input_length) is not int or input_length < 1:
@@ -159,8 +170,13 @@ def build_qta_capture_sidecar_index(*, entries: Sequence[Mapping[str, Any]]) -> 
         if "attention" in entry:
             shape, raw = _pack_attention(entry["attention"], query_count=len(qpos),
                                          input_length=input_length)
+            source_dtype = "float32"
         else:
             shape, raw = entry["attention_shape"], entry["attention_bytes"]
+            source_dtype = entry["attention_source_dtype"]
+            if (not isinstance(source_dtype, str)
+                    or source_dtype not in _ATTENTION_SOURCE_DTYPES):
+                _fail("capture_sidecar_attention_source_dtype_invalid")
             if not isinstance(raw, bytes):
                 _fail("capture_sidecar_payload_bytes_invalid")
             if (not isinstance(shape, list) or len(shape) != 4
@@ -176,7 +192,8 @@ def build_qta_capture_sidecar_index(*, entries: Sequence[Mapping[str, Any]]) -> 
         array = _attention_array(raw, shape)
         import numpy as np
         if (not np.isfinite(array).all() or (array < 0).any()
-                or (np.abs(array.sum(axis=-1, dtype=np.float64) - 1.0) > 2e-4).any()):
+                or (np.abs(array.sum(axis=-1, dtype=np.float64) - 1.0)
+                    > _ROW_SUM_TOLERANCE[source_dtype]).any()):
             _fail("capture_sidecar_attention_row_invalid")
         digest = _sha(raw)
         if digest in sidecars and sidecars[digest] != raw:
@@ -185,6 +202,7 @@ def build_qta_capture_sidecar_index(*, entries: Sequence[Mapping[str, Any]]) -> 
         rows.append({
             **dict(binding), "input_length": input_length,
             "layers_1_based": list(LAYERS), "attention_shape": shape,
+            "attention_source_dtype": source_dtype,
             "attention_bytes_length": len(raw), "attention_bytes_sha256": digest,
             "layer_group_masses_f32_be_hex": _mass_hex(array, shape, groups),
             "model_load_permitted": False, "scoring_authorized": False,
@@ -273,6 +291,10 @@ def validate_qta_capture_sidecar_index(*, index_raw: bytes,
             _fail("capture_sidecar_record_token_duplicate")
         seen_rows.add(binding["record_token"])
         shape = row.get("attention_shape")
+        source_dtype = row.get("attention_source_dtype")
+        if (not isinstance(source_dtype, str)
+                or source_dtype not in _ATTENTION_SOURCE_DTYPES):
+            _fail("capture_sidecar_attention_source_dtype_invalid")
         if (type(input_length) is not int or input_length < 1
                 or row.get("input_length") != input_length
                 or row.get("layers_1_based") != list(LAYERS)
@@ -298,7 +320,8 @@ def validate_qta_capture_sidecar_index(*, index_raw: bytes,
         import numpy as np
         if (not np.isfinite(array).all() or (array < 0).any()):
             _fail("capture_sidecar_attention_value_invalid")
-        if (np.abs(array.sum(axis=-1, dtype=np.float64) - 1.0) > 2e-4).any():
+        if (np.abs(array.sum(axis=-1, dtype=np.float64) - 1.0)
+                > _ROW_SUM_TOLERANCE[source_dtype]).any():
             _fail("capture_sidecar_attention_row_not_normalized")
         masses = _mass_hex(array, shape, groups)
         if row.get("layer_group_masses_f32_be_hex") != masses:

@@ -322,21 +322,94 @@ class AttentionCaptureContractTests(unittest.TestCase):
                 full[0, head_index, 4, :] = torch.tensor(head[0])
                 full[0, head_index, 5, :] = torch.tensor(head[1])
             layers.append(full)
-        shape, raw = pack_qta_attention_sidecar_bytes(
+        shape, raw, source_dtype = pack_qta_attention_sidecar_bytes(
             attention_layers=dict(zip(LAYERS, layers, strict=True)),
             question_positions=[4, 5], input_length=8)
         self.assertEqual(shape, [12, 2, 2, 8])
+        self.assertEqual(source_dtype, "float32")
         self.assertEqual(raw.hex(), self.capture["attention_f32_be_hex"])
         binding = self.binding
         indexed_raw, indexed_sidecars = build_qta_capture_sidecar_index(entries=[{
             "binding": binding, "attention_shape": shape,
-            "attention_bytes": raw, "input_length": 8,
+            "attention_bytes": raw, "attention_source_dtype": source_dtype,
+            "input_length": 8,
         }])
         list_raw, list_sidecars = build_qta_capture_sidecar_index(entries=[{
             "binding": binding, "attention": self.attention, "input_length": 8,
         }])
         self.assertEqual(indexed_raw, list_raw)
         self.assertEqual(indexed_sidecars, list_sidecars)
+
+    def test_bfloat16_attention_rounding_uses_dtype_bound_not_float32_bound(self):
+        import torch
+
+        torch.manual_seed(20261018)
+        layers = [torch.softmax(torch.randn(2, 8, 8), dim=-1).to(torch.bfloat16)
+                  for _ in LAYERS]
+        shape, raw, source_dtype = pack_qta_attention_sidecar_bytes(
+            attention_layers=dict(zip(LAYERS, layers, strict=True)),
+            question_positions=[4, 5], input_length=8)
+        self.assertEqual(source_dtype, "bfloat16")
+        index_raw, sidecars = build_qta_capture_sidecar_index(entries=[{
+            "binding": self.binding, "attention_shape": shape,
+            "attention_bytes": raw, "attention_source_dtype": source_dtype,
+            "input_length": 8,
+        }])
+        value = json.loads(index_raw)
+        self.assertEqual(value["records"][0]["attention_source_dtype"], "bfloat16")
+        self.assertEqual(len(sidecars), 1)
+
+    def test_bfloat16_dtype_does_not_allow_excessive_row_sum_error(self):
+        import numpy as np
+        import torch
+
+        torch.manual_seed(20261018)
+        layers = [torch.softmax(torch.randn(2, 8, 8), dim=-1).to(torch.bfloat16)
+                  for _ in LAYERS]
+        shape, raw, source_dtype = pack_qta_attention_sidecar_bytes(
+            attention_layers=dict(zip(LAYERS, layers, strict=True)),
+            question_positions=[4, 5], input_length=8)
+        values = np.frombuffer(raw, dtype=">f4").copy().reshape(shape)
+        values[0, 0, 0, 0] += 0.01
+        changed_raw = values.astype(">f4").tobytes()
+        with self.assertRaisesRegex(ValueError,
+                                   "capture_sidecar_attention_row_invalid"):
+            build_qta_capture_sidecar_index(entries=[{
+                "binding": self.binding, "attention_shape": shape,
+                "attention_bytes": changed_raw,
+                "attention_source_dtype": source_dtype, "input_length": 8,
+            }])
+
+    def test_bfloat16_sidecar_and_selection_mass_join_validate(self):
+        import torch
+
+        torch.manual_seed(20261019)
+        layers = [torch.softmax(torch.randn(2, 8, 8), dim=-1).to(torch.bfloat16)
+                  for _ in LAYERS]
+        shape, raw, source_dtype = pack_qta_attention_sidecar_bytes(
+            attention_layers=dict(zip(LAYERS, layers, strict=True)),
+            question_positions=[4, 5], input_length=8)
+        index_raw, sidecars = build_qta_capture_sidecar_index(entries=[{
+            "binding": self.binding, "attention_shape": shape,
+            "attention_bytes": raw, "attention_source_dtype": source_dtype,
+            "input_length": 8,
+        }])
+        index = json.loads(index_raw)
+        masses = [[struct.unpack(">f", bytes.fromhex(value))[0] for value in row]
+                  for row in index["records"][0]["layer_group_masses_f32_be_hex"]]
+        bindings = self._selection_bindings()
+        selection = build_qta_selection_provenance(
+            **bindings, layer_group_masses=masses)
+        report = validate_qta_capture_sidecar_index(
+            index_raw=index_raw, sidecars=sidecars, expected_rows=[{
+                "expected_capture_binding": self.binding,
+                "input_length": 8,
+                "selection_provenance": selection,
+                "expected_selection_bindings": bindings,
+                "plan": None,
+            }])
+        self.assertEqual(report["record_count"], 1)
+        self.assertFalse(report["attention_capture_authenticated"])
 
     def test_tensor_packer_rejects_oversize_before_tensor_slicing(self):
         class OversizeTensor:
