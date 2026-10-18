@@ -23,6 +23,8 @@ from qta_selection_provenance import (
     FROZEN_SELECTOR_SOURCE_SHA256, validate_qta_selection_provenance,
 )
 from qta_attention_capture_sidecars import validate_qta_capture_sidecar_index
+from qta_attention_call_receipts import validate_qta_attention_call_receipt_index
+from qta_sampler_runtime_descriptor import validate_qta_sampler_model_runtime_descriptor
 
 
 ROW_COUNT = 3
@@ -68,7 +70,7 @@ _SCORE_BINDING_KEYS = {
 }
 _RUN_DIGEST_KEYS = {
     "protocol_sha256", "model_sha256", "tokenizer_sha256",
-    "scorer_sha256", "processor_sha256",
+    "scorer_sha256", "processor_sha256", "runtime_sha256",
 }
 _STAGE1_SOURCE_PIN_KEYS = {
     "schema_version", "purpose", "classification", "status",
@@ -336,6 +338,19 @@ def _baseline_rows(raw: bytes) -> list[dict[str, Any]]:
             "row_sha256": _sha(_canonical_utf8(row)),
         })
     return checked
+
+
+def _validate_baseline_runtime_binding(*, baseline_pq_manifest_raw: bytes,
+                                       sampler_model_runtime_raw: bytes) -> str:
+    """Require every baseline run digest to name the signed runtime artifact."""
+    if not isinstance(sampler_model_runtime_raw, bytes) or not sampler_model_runtime_raw:
+        raise ValueError("phase1_sampler_model_runtime_artifact_invalid")
+    validate_qta_sampler_model_runtime_descriptor(sampler_model_runtime_raw)
+    runtime_sha256 = _sha(sampler_model_runtime_raw)
+    for row in _baseline_rows(baseline_pq_manifest_raw):
+        if row["score_binding"]["run_digests"]["runtime_sha256"] != runtime_sha256:
+            raise ValueError("phase2_baseline_runtime_digest_mismatch")
+    return runtime_sha256
 
 
 def _core_manifest(*, phase1_receipt_sha256: str,
@@ -606,7 +621,8 @@ def verify_qta_phase2_plan_candidate(*, phase1_receipt_raw: bytes,
                                      integrity_roster_raw: bytes,
                                      release_roster_raw: bytes,
                                      root_public_key_pem: bytes,
-                                     expected_root_public_der_sha256: str) -> dict[str, Any]:
+                                     expected_root_public_der_sha256: str,
+                                     expected_external_cohort_pin_sha256: str) -> dict[str, Any]:
     """Verify both signed byte envelopes, then validate their plan-row join.
 
     The report confirms signatures and structure only. It never authorizes
@@ -619,6 +635,7 @@ def verify_qta_phase2_plan_candidate(*, phase1_receipt_raw: bytes,
         release_roster_raw=release_roster_raw,
         root_public_key_pem=root_public_key_pem,
         expected_root_public_der_sha256=expected_root_public_der_sha256,
+        expected_external_cohort_pin_sha256=expected_external_cohort_pin_sha256,
         prior_phase1_receipt_raw=phase1_receipt_raw,
         prior_phase1_artifact_bytes=phase1_artifact_bytes)
     phase1_obj = _strict_json(phase1_receipt_raw)
@@ -627,6 +644,7 @@ def verify_qta_phase2_plan_candidate(*, phase1_receipt_raw: bytes,
         raise ValueError("phase2_freeze_id_differs_from_phase1")
     manifest_raw = phase2_artifact_bytes.get("nine_branch_plan_manifest")
     phase1_preflight_raw = phase1_artifact_bytes.get("atomic_cohort_preflight")
+    sampler_model_runtime_raw = phase1_artifact_bytes.get("sampler_model_runtime")
     baseline_pq_manifest_raw = phase2_artifact_bytes.get("baseline_pq_manifest")
     stage1_source_pins_raw = phase1_artifact_bytes.get("stage1_review_and_lineage")
     report = _validate_manifest_bytes(
@@ -639,6 +657,9 @@ def verify_qta_phase2_plan_candidate(*, phase1_receipt_raw: bytes,
         baseline_pq_manifest_raw=baseline_pq_manifest_raw)
     manifest = _strict_json(manifest_raw)
     baselines = _baseline_rows(baseline_pq_manifest_raw)
+    runtime_sha256 = _validate_baseline_runtime_binding(
+        baseline_pq_manifest_raw=baseline_pq_manifest_raw,
+        sampler_model_runtime_raw=sampler_model_runtime_raw)
     expected_capture_rows = []
     for row, baseline in zip(manifest["records"], baselines, strict=True):
         plan = row["plan"]
@@ -655,6 +676,7 @@ def verify_qta_phase2_plan_candidate(*, phase1_receipt_raw: bytes,
             "model_sha256": run_digests["model_sha256"],
             "processor_sha256": run_digests["processor_sha256"],
             "tokenizer_sha256": run_digests["tokenizer_sha256"],
+            "runtime_sha256": runtime_sha256,
             "question_positions": score_binding["question_positions"],
             "temporal_groups": plan["temporal_groups"],
         }
@@ -687,6 +709,21 @@ def verify_qta_phase2_plan_candidate(*, phase1_receipt_raw: bytes,
     capture_report = validate_qta_capture_sidecar_index(
         index_raw=phase2_artifact_bytes["attention_capture_index"],
         sidecars=attention_capture_sidecars, expected_rows=expected_capture_rows)
+    capture_index = _strict_json(phase2_artifact_bytes["attention_capture_index"])
+    expected_call_receipts = []
+    for expected, captured in zip(expected_capture_rows,
+                                  capture_index["records"], strict=True):
+        binding = expected["expected_capture_binding"]
+        expected_call_receipts.append({
+            "record_token": binding["record_token"],
+            "runtime_sha256": binding["runtime_sha256"],
+            "input_length": expected["input_length"],
+            "question_positions": binding["question_positions"],
+            "attention_bytes_sha256": captured["attention_bytes_sha256"],
+        })
+    call_receipt_report = validate_qta_attention_call_receipt_index(
+        index_raw=phase2_artifact_bytes["attention_call_receipts"],
+        expected_rows=expected_call_receipts)
     return {
         **report,
         "capture_sidecar_index_sha256": _sha(
@@ -697,9 +734,17 @@ def verify_qta_phase2_plan_candidate(*, phase1_receipt_raw: bytes,
         "expected_attention_source_dtype": manifest[
             "expected_attention_source_dtype"],
         "capture_sidecars_joined_to_selection_masses": True,
+        "capture_call_receipts_joined_to_sidecar_payloads": True,
+        "capture_call_receipts_validated": call_receipt_report[
+            "call_receipt_records_validated"],
+        "capture_call_receipt_index_sha256": _sha(
+            phase2_artifact_bytes["attention_call_receipts"]),
         "attention_capture_authenticated": False,
         "forward_source_authenticated": False,
         "phase1_receipt_signature_valid": True,
+        "external_cohort_pin_matches_caller_pin": receipt_report[
+            "external_cohort_pin_matches_caller_pin"],
+        "external_cohort_pin_origin_authenticated": False,
         "phase2_receipt_signature_valid": receipt_report["receipt_signature_valid"],
         "phase2_artifact_bytes_match": receipt_report["artifact_bytes_match"],
         "phase1_receipt_recursively_verified": receipt_report["prior_phase1_receipt_valid"],

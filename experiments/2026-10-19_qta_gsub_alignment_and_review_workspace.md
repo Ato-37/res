@@ -85,3 +85,13 @@ artifact内の判定は**形式・件数の限定監査**である。署名・�
 この変更は簡易印象チェックの入力条件を揃えるだけで、claimの真偽や完全な幻覚性の判定にはならない。現行作業ツリーに探索的JSONは見つからず、実レビュー実施を確認できていない。直接faithfulnessは引き続き claim review **0/3**、clock/frame照合 **0/15**、prediction-link判定 **0/3**、直接score **0/3**。直接効果量、CI、検定は未取得。GPU側では既定proxy/full-cohort診断が実施済みで、これらを繰り返しても直接スコアには進まない。人間の回答と正式なレビュー/信頼ゲートがない現状で、新しい実動画score GPU forwardを正当化する入力はない。
 
 次は案内ページの映像のみartifactをローカルで開き、探索的回答を完了した場合だけ、その回答を正式レビュー記録と分離して読み取る。回答を受け取れない間は、CPUでphase-gateと署名済みstage-1/外部cohort-pin検証の合成テストを独立監査し、実鍵・実担当者がない段階でexecution authorizationを与えない。
+
+## 外部cohort pinをphase receiptへ接続（追記、2026-10-19）
+
+独立監査で、phase receiptは候補内のartifact bytesを署名していたものの、別経路で凍結したcohort hashをphase-1/phase-2検証へ渡して照合する入力がなかった。phase-1 artifact roleに `external_cohort_pin` を追加し、ordered `expected_cohort_tokens` と各 `source_rows`（question/options/claim/video/interval digest、およびsupport decision）からcanonical identity digestを作る非認可candidate builderを追加した。phase-1検証は署名receiptが束縛するpin bytesのSHA-256を必須caller値 `expected_external_cohort_pin_sha256` と比較し、pin内digestを現在のsource rowsから再計算する。phase-2検証も同じcaller pinでphase-1を再帰検証する。
+
+検査: 合成Ed25519 keyで、pin一致、pin hash不一致、古いpin bodyに対するsource差し替え拒否、差し替えcohortを新pin/receiptで再署名した後も古い外部pinでは拒否、phase-2経由の古いpin拒否を確認した。関連5 suiteは **60/60成功**、Python compileと対象ファイルの`git diff --check`成功。独立監査でtoken/source row順序結合、署名済みrole経由、stale-pinケース、`model_load_permitted=false`、`scoring_authorized=false`、`authorized_forwards=0`を確認した。全て合成データ・鍵で、実レビュー、実trust root、GPU、モデルロードは未実施。
+
+**信頼上の限界:** verifierはcallerから渡されたpin digestとの一致を確認するだけで、その値を別の信頼経路から取得した事実までは認証せず、reportも`external_cohort_pin_origin_authenticated=false`とする。production runnerはroot/freeze-ownerから独立に配布されたhashをtrusted configとして読む必要がある。候補builderの出力を同じ呼出し側がそのままhashして渡すだけでは外部pinにならない。このCPU構造検査は署名済みstage-1レビューreceiptのブラウザ内完結検証やphase gate/runnerを実装したものではなく、実行許可も与えない。
+
+直接faithfulnessは引き続きclaim review **0/3**、clock/frame照合 **0/15**、prediction-link判定 **0/3**、直接score **0/3**。直接効果量、CI、検定に進捗はない。探索的回答JSONもローカルprivate data rootでは未確認。実データの直接scoreを伴うGPU runは今回も実行していない。次は署名済みstage-1 receiptのartifact内検証と、外部pinを受け取るproduction caller contractを、同じ非認可のまま独立監査する。人手review・15箇所対応・実root/role資料なしにGPUスコアを開始しない。

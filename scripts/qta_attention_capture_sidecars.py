@@ -279,17 +279,16 @@ def validate_qta_capture_sidecar_index(*, index_raw: bytes,
             _fail("capture_sidecar_expected_input_length_invalid")
         qpos, groups = _validate_binding(
             {key: row[key] for key in _BINDING_FIELDS}, input_length)
-        expected_binding_fields = _BINDING_FIELDS - {"runtime_sha256"}
         if (not isinstance(binding, Mapping)
-                or (set(binding) != _BINDING_FIELDS
-                    and set(binding) != expected_binding_fields)):
+                or set(binding) != _BINDING_FIELDS):
             _fail("capture_sidecar_expected_binding_schema_invalid")
         for key in _BINDING_FIELDS - {"question_positions", "temporal_groups"}:
             if key in binding and (not isinstance(binding[key], str)
                                    or not _SHA256.fullmatch(binding[key])):
                 _fail("capture_sidecar_expected_binding_digest_invalid")
-        # The signed plan does not currently pin runtime_sha256; every field
-        # explicitly present in its expected map must match the indexed row.
+        # Every capture binding field, including the runtime digest derived
+        # from the signed pre-baseline sampler_model_runtime artifact, must
+        # match the indexed row.
         if any(row.get(key) != binding[key] for key in binding):
             _fail("capture_sidecar_binding_mismatch")
         if binding["record_token"] in seen_rows:

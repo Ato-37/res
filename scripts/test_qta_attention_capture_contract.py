@@ -313,6 +313,14 @@ class AttentionCaptureContractTests(unittest.TestCase):
         self.assertFalse(report["attention_capture_authenticated"])
         self.assertFalse(report["scoring_authorized"])
 
+    def test_sidecar_expected_binding_requires_runtime_digest(self):
+        (index_raw, sidecars), expected_rows = self._sidecar_bundle()
+        expected_rows[0]["expected_capture_binding"].pop("runtime_sha256")
+        with self.assertRaisesRegex(
+                ValueError, "capture_sidecar_expected_binding_schema_invalid"):
+            validate_qta_capture_sidecar_index(
+                index_raw=index_raw, sidecars=sidecars, expected_rows=expected_rows)
+
     def test_tensor_packer_matches_capture_bytes_and_binary_index(self):
         import torch
 

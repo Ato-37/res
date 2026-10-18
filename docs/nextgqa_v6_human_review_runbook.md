@@ -1,5 +1,12 @@
 # NExT-GQA v6 local human-review runbook
 
+日本語の実施者向け要約は
+[`nextgqa_v6_human_review_runbook_ja.md`](nextgqa_v6_human_review_runbook_ja.md)を参照。
+ローカルで生成済みのオフラインレビュー画面を一つの作業枠に読み込むartifactは
+[`nextgqa_human_review_workspace_ja.html`](nextgqa_human_review_workspace_ja.html)を参照。
+phase receipt bundleの作成・非認可検証CLIの使い方は
+[`qta_phase_receipt_verifier_bundle_ja.md`](qta_phase_receipt_verifier_bundle_ja.md)を参照。
+
 Status: **preparation only**. The local byte inventory is a candidate receipt,
 not a freeze, review, or authorization. Use two distinct freeze stages: a
 review-only release freeze before any reviewer opens the package, followed by
@@ -245,6 +252,17 @@ independently verified phase receipt may authorize only three baseline forwards
 total (one per row); it must not authorize treatment or ablation forwards. This
 gate and baseline-only runner do not currently exist.
 
+The current non-authorizing receipt candidate has one additional binding:
+`external_cohort_pin` covers the ordered three-row identity formed from review
+tokens and the question/options/claim/video/interval digests. Phase-1 receipt
+verification requires an `expected_external_cohort_pin_sha256` supplied by the
+caller, and phase 2 recursively checks that same pin. The caller must obtain
+that expected digest through a separately trusted freeze-owner channel; a hash
+computed from the candidate package itself is not an external pin. The verifier
+reports that the pin origin is unauthenticated and still denies model loading,
+scoring, and forwards. This structural binding does not implement either
+production gate or authorize a baseline run.
+
 After baseline `p/q` is produced, bind the baseline manifest and the
 independently attested stage-2 prediction-link review. The **post-baseline
 gate** must additionally bind the exact nine branch plans per row (including
@@ -253,16 +271,20 @@ specification, and condition labels), scorer code, and accepted stage-2
 judgments. A separate signed, independently verified phase receipt may
 authorize only the remaining 24 forwards total (eight per row). The
 same exact processor batch is reused for all nine branches; there are not nine
-separately processed or masked processor batches. Neither freeze is currently
-implemented as a production score-freeze receipt, and neither may be inferred
-from a review-only receipt or structural artifacts alone. The phase-1 receipt
-must bind the QTA draft, frozen sampler, and legacy v2 review/export contract
-before baseline model loading; phase 2 must bind that receipt plus all baseline
-and stage-2 artifacts before treatment forwards. These phase schemas, signature
-verification, and runners do not yet exist. The legacy
+separately processed or masked processor batches. The code contains signed
+phase-1/phase-2 byte-binding candidate envelopes and a phase-2 plan-manifest
+verifier (`scripts/qta_phase_freeze_receipts.py` and
+`scripts/qta_phase2_plan_manifest.py`). These candidates always deny model
+loading, scoring, and forwards. They bind exact artifact bytes but do not
+themselves rerun every upstream validator or provide an executable production
+gate. No production score-freeze runner currently exists, and neither phase is
+authorized. The phase-1 envelope is designed to bind the QTA draft, frozen
+sampler, and legacy v2 review/export contract before baseline model loading;
+phase 2 binds that receipt plus all baseline and stage-2 artifacts before
+treatment forwards. The legacy
 `protocol_v2_status` field records only the annotation/export contract status;
 it does not identify or freeze QTA scoring. No production score-freeze
-receipt currently exists.
+authorizing score-freeze receipt currently exists.
 
 Assign people to these roles before opening the package. The freeze owner may
 also serve as custodian, but must not serve as a reviewer or capture operator.

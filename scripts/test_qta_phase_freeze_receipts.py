@@ -17,7 +17,7 @@ from audit_nextgqa_review_release_order import RELEASE_ROLES, _ROSTER_DOMAIN as 
 from qta_phase_freeze_receipts import (
     _PHASE_DOMAINS,
     PHASE_ARTIFACT_ROLES, PHASE_BRANCHES, create_phase_freeze_receipt,
-    verify_phase_freeze_receipt,
+    build_external_cohort_pin_candidate, verify_phase_freeze_receipt,
 )
 from qta_nine_branch_plan import BRANCH_ORDER, _plan_digest
 from qta_phase2_plan_manifest import (
@@ -25,6 +25,10 @@ from qta_phase2_plan_manifest import (
     verify_qta_phase2_plan_candidate,
 )
 from qta_attention_capture_sidecars import build_qta_capture_sidecar_index
+from qta_attention_call_receipts import (
+    build_qta_attention_call_receipt,
+    build_qta_attention_call_receipt_index,
+)
 from qta_nine_branch_plan import build_qta_nine_branch_plan
 from qta_three_row_plan_aggregate import (
     FROZEN_QTA_LAYERS_1_BASED, FROZEN_QTA_LOGIT_BIAS, FROZEN_QTA_SHAM_SEED,
@@ -34,6 +38,11 @@ from qta_selection_provenance import (
 )
 from qta_synthetic_cohort_preflight import preflight_synthetic_qta_cohort
 import test_qta_synthetic_adapter_composition as synthetic_composition
+
+SYNTHETIC_PHASE1_EXTERNAL_COHORT_PIN_SHA256 = (
+    "4249bb7a4a5ef1914af7f8c779447565e793ef0439e6bebf8b191024407ffd1a")
+SYNTHETIC_PHASE2_EXTERNAL_COHORT_PIN_SHA256 = (
+    "6d056d8008c616c91d59849c083b1e1a0a0639da2c2ac500c89fc7cb0f583969")
 
 
 class QtaPhaseFreezeReceiptTests(unittest.TestCase):
@@ -69,6 +78,25 @@ class QtaPhaseFreezeReceiptTests(unittest.TestCase):
                         for i in range(3)]
         self.p1_artifacts = {role: ("fixture:" + role).encode()
                              for role in PHASE_ARTIFACT_ROLES["pre_baseline"]}
+        self.p1_artifacts["stage1_review_and_lineage"] = self._stage1_source_pins()
+        self.p1_artifacts["external_cohort_pin"] = build_external_cohort_pin_candidate(
+            self.p1_artifacts["stage1_review_and_lineage"])
+        self.assertEqual(hashlib.sha256(
+            self.p1_artifacts["external_cohort_pin"]).hexdigest(),
+            SYNTHETIC_PHASE1_EXTERNAL_COHORT_PIN_SHA256)
+        self.expected_external_cohort_pin_sha256 = (
+            SYNTHETIC_PHASE1_EXTERNAL_COHORT_PIN_SHA256)
+        # The protocol currently signs this role as opaque exact bytes; use a
+        # canonical, non-content-bearing synthetic descriptor for phase2 tests.
+        self.p1_artifacts["sampler_model_runtime"] = json.dumps({
+            "schema_version": 1,
+            "purpose": "qta_sampler_model_runtime_descriptor_non_authorizing_v1",
+            "python_version": "3.12.0", "torch_version": "2.11.0+cpu",
+            "cuda_runtime_version": None, "transformers_version": "5.18.0",
+            "bitsandbytes_version": None, "device_type": "cpu",
+            "precision": "float32", "quantization": "none",
+            "deterministic_algorithms": True, "allow_tf32": False,
+        }, sort_keys=True, separators=(",", ":")).encode("ascii")
         self.p1 = self._create("pre_baseline", self.records, self.p1_artifacts)
         self.p2_artifacts = {
             "phase1_receipt": self.p1,
@@ -77,9 +105,48 @@ class QtaPhaseFreezeReceiptTests(unittest.TestCase):
             "nine_branch_plan_manifest": b"fixture:branch-plans",
             "condition_scorer_source_closure": b"fixture:scorer-closure",
             "attention_capture_index": b"fixture:attention-capture-index",
+            "attention_call_receipts": b"fixture:attention-call-receipts",
         }
         self.p2 = self._create("post_baseline", self.records, self.p2_artifacts,
                                prior_phase1_receipt_raw=self.p1)
+
+    def _stage1_source_pins(self):
+        tokens = [f"{i + 1:024d}" for i in range(3)]
+        source_rows = [{
+            "review_token": token,
+            "question_sha256": f"{i + 1:064x}",
+            "options_sha256": f"{i + 11:064x}",
+            "claim_sha256": f"{i + 21:064x}",
+            "source_video_sha256": f"{i + 31:064x}",
+            "video_support_decision": "supports_claim",
+            "reviewed_intervals_sha256": f"{i + 41:064x}",
+        } for i, token in enumerate(tokens)]
+        value = {
+            "schema_version": 1,
+            "purpose": "qta_stage1_source_pins_structurally_derived_non_authorizing",
+            "classification": "private_local_only_structural_source_pins",
+            "status": "three_row_source_pins_structurally_derived",
+            "requested_records": 3, "effective_records": 3,
+            "source_rows": source_rows,
+            "expected_baseline_source_sha256_by_token": {},
+            "cohort_review_source_pins_by_token": {},
+            "expected_baseline_candidate_source_bindings_by_token": {},
+            "expected_cohort_tokens": tokens,
+            "expected_video_claim_review_receipt_sha256": "a" * 64,
+            "expected_review_payload_sha256": "b" * 64,
+            "stage1_audit_status": "synthetic",
+            "actual_qa_source_status": "synthetic",
+            "stage1_source_bytes_sha256": {"worksheet": "c" * 64},
+            "private_qa_bundle_sha256": "d" * 64,
+            "reviewer_identity_verified": False,
+            "semantic_review_authenticated": False,
+            "clock_frame_correspondence_verified": False,
+            "scoring_authorized": False,
+            "limitations": ["synthetic fixture"],
+            "model_load_permitted": False,
+            "execution_authorization": "not_granted",
+        }
+        return json.dumps(value, sort_keys=True, separators=(",", ":")).encode()
 
     def tearDown(self):
         self.temp.cleanup()
@@ -110,6 +177,8 @@ class QtaPhaseFreezeReceiptTests(unittest.TestCase):
             prior_phase1_receipt_raw=prior_phase1_receipt_raw)
 
     def _verify(self, receipt, phase, artifacts, **kwargs):
+        kwargs.setdefault("expected_external_cohort_pin_sha256",
+                          self.expected_external_cohort_pin_sha256)
         return verify_phase_freeze_receipt(
             receipt_raw=receipt, phase=phase, artifact_bytes=artifacts,
             integrity_roster_raw=self.integrity, release_roster_raw=self.release,
@@ -178,14 +247,19 @@ class QtaPhaseFreezeReceiptTests(unittest.TestCase):
                          prior_phase1_receipt_raw=self.p1,
                          prior_phase1_artifact_bytes=prior_inputs)
 
-    def test_phase2_v2_requires_signed_capture_index_role(self):
+    def test_phase2_v3_requires_signed_capture_artifact_roles(self):
         incomplete = dict(self.p2_artifacts)
         incomplete.pop("attention_capture_index")
         with self.assertRaisesRegex(ReceiptError, "phase_artifact_role_set_invalid"):
             self._create("post_baseline", self.records, incomplete,
                           prior_phase1_receipt_raw=self.p1)
+        incomplete = dict(self.p2_artifacts)
+        incomplete.pop("attention_call_receipts")
+        with self.assertRaisesRegex(ReceiptError, "phase_artifact_role_set_invalid"):
+            self._create("post_baseline", self.records, incomplete,
+                          prior_phase1_receipt_raw=self.p1)
 
-    def test_phase2_v2_rejects_v1_domain_downgrade(self):
+    def test_phase2_v3_rejects_v1_domain_downgrade(self):
         changed = json.loads(self.p2)
         changed["schema_version"] = 1
         changed["purpose"] = "qta_two_phase_score_freeze_candidate_v1"
@@ -196,7 +270,7 @@ class QtaPhaseFreezeReceiptTests(unittest.TestCase):
                          prior_phase1_receipt_raw=self.p1,
                          prior_phase1_artifact_bytes=self.p1_artifacts)
 
-    def test_phase2_v2_signature_rejects_v1_domain_even_with_matching_key(self):
+    def test_phase2_v3_signature_rejects_v1_domain_even_with_matching_key(self):
         changed = json.loads(self.p2)
         body = {key: value for key, value in changed.items()
                 if key != "signature_ed25519_base64"}
@@ -237,7 +311,9 @@ class QtaPhaseFreezeReceiptTests(unittest.TestCase):
                 receipt_raw=self.p1, phase="pre_baseline", artifact_bytes=self.p1_artifacts,
                 integrity_roster_raw=self.integrity, release_roster_raw=self.release,
                 root_public_key_pem=self.keys["root"][1],
-                expected_root_public_der_sha256="0" * 64)
+                expected_root_public_der_sha256="0" * 64,
+                expected_external_cohort_pin_sha256=
+                self.expected_external_cohort_pin_sha256)
 
     def test_missing_artifact_role_is_rejected(self):
         incomplete = dict(self.p1_artifacts)
@@ -256,6 +332,37 @@ class QtaPhaseFreezeReceiptTests(unittest.TestCase):
             self._verify(self.p1, "pre_baseline", self.p1_artifacts,
                          prior_phase1_receipt_raw=self.p1,
                          prior_phase1_artifact_bytes=self.p1_artifacts)
+
+    def test_phase1_verifier_requires_independent_external_pin_hash(self):
+        with self.assertRaisesRegex(ReceiptError,
+                                    "external_cohort_pin_external_hash_mismatch"):
+            self._verify(self.p1, "pre_baseline", self.p1_artifacts,
+                         expected_external_cohort_pin_sha256="0" * 64)
+
+    def test_resigned_substituted_cohort_fails_against_stale_external_pin(self):
+        changed = dict(self.p1_artifacts)
+        stage1 = json.loads(changed["stage1_review_and_lineage"])
+        stage1["source_rows"][0]["source_video_sha256"] = "f" * 64
+        changed["stage1_review_and_lineage"] = json.dumps(
+            stage1, sort_keys=True, separators=(",", ":")).encode()
+        changed["external_cohort_pin"] = build_external_cohort_pin_candidate(
+            changed["stage1_review_and_lineage"])
+        substituted_receipt = self._create("pre_baseline", self.records, changed)
+        with self.assertRaisesRegex(ReceiptError,
+                                    "external_cohort_pin_external_hash_mismatch"):
+            self._verify(
+                substituted_receipt, "pre_baseline", changed,
+                expected_external_cohort_pin_sha256=self.expected_external_cohort_pin_sha256)
+
+    def test_stale_pin_body_cannot_be_signed_for_substituted_stage1_source(self):
+        changed = dict(self.p1_artifacts)
+        stage1 = json.loads(changed["stage1_review_and_lineage"])
+        stage1["source_rows"][0]["claim_sha256"] = "e" * 64
+        changed["stage1_review_and_lineage"] = json.dumps(
+            stage1, sort_keys=True, separators=(",", ":")).encode()
+        with self.assertRaisesRegex(ReceiptError,
+                                    "external_cohort_pin_cohort_binding_mismatch"):
+            self._create("pre_baseline", self.records, changed)
 
     def test_signed_receipts_do_not_echo_protected_artifact_contents(self):
         self.assertNotIn(b"fixture:clock_frame_evidence", self.p1)
@@ -310,8 +417,10 @@ class QtaPhaseFreezeReceiptTests(unittest.TestCase):
                 "p_index": 0, "q_index": 1,
                 "run_digests": {name: f"{index + 601:064x}" for name in (
                     "protocol_sha256", "model_sha256", "tokenizer_sha256",
-                    "scorer_sha256", "processor_sha256")},
+                    "scorer_sha256", "processor_sha256", "runtime_sha256")},
             }
+            score_binding["run_digests"]["runtime_sha256"] = hashlib.sha256(
+                self.p1_artifacts["sampler_model_runtime"]).hexdigest()
             row = {
                 "review_token": token, "question": "synthetic question",
                 "options": ["A", "B", "C", "D", "E"],
@@ -405,6 +514,13 @@ class QtaPhaseFreezeReceiptTests(unittest.TestCase):
             "scoring_authorized": False, "model_load_permitted": False,
             "execution_authorization": "not_granted",
         }, sort_keys=True, separators=(",", ":")).encode()
+        p1_artifacts["external_cohort_pin"] = build_external_cohort_pin_candidate(
+            p1_artifacts["stage1_review_and_lineage"])
+        self.assertEqual(hashlib.sha256(
+            p1_artifacts["external_cohort_pin"]).hexdigest(),
+            SYNTHETIC_PHASE2_EXTERNAL_COHORT_PIN_SHA256)
+        self.expected_external_cohort_pin_sha256 = (
+            SYNTHETIC_PHASE2_EXTERNAL_COHORT_PIN_SHA256)
         records = [{"record_token": hashlib.sha256(token.encode("ascii")).hexdigest(),
                     "processor_batch_sha256": inputs[
                         "expected_processor_batch_sha256_by_token"][token]}
@@ -460,31 +576,77 @@ class QtaPhaseFreezeReceiptTests(unittest.TestCase):
                     "model_sha256": score_binding["run_digests"]["model_sha256"],
                     "processor_sha256": score_binding["run_digests"]["processor_sha256"],
                     "tokenizer_sha256": score_binding["run_digests"]["tokenizer_sha256"],
-                    "runtime_sha256": hashlib.sha256(b"synthetic runtime").hexdigest(),
+                    "runtime_sha256": hashlib.sha256(
+                        self.p1_artifacts["sampler_model_runtime"]).hexdigest(),
                     "question_positions": qpos,
                     "temporal_groups": groups,
                 }, "attention": attention, "input_length": input_length,
             })
         capture_index_raw, self.capture_sidecars = build_qta_capture_sidecar_index(
             entries=capture_entries)
+        capture_index = json.loads(capture_index_raw)
+        call_receipts = []
+        for row in capture_index["records"]:
+            binding = {key: row[key] for key in (
+                "record_token", "runtime_sha256", "input_length",
+                "question_positions", "attention_bytes_sha256")}
+            module_classes = {str(layer): "synthetic.FakeSelfAttention"
+                              for layer in FROZEN_QTA_LAYERS_1_BASED}
+            report = {
+                "status": "one_forward_attention_rows_captured_non_authorizing",
+                "forward_calls": 1,
+                "layer_calls": {str(layer): 1
+                                for layer in FROZEN_QTA_LAYERS_1_BASED},
+                "layer_indices_1_based": list(FROZEN_QTA_LAYERS_1_BASED),
+                "layer_module_classes": module_classes,
+                "layer_module_paths": {
+                    str(layer): f"model.model.language_model.layers[{layer - 1}].self_attn"
+                    for layer in FROZEN_QTA_LAYERS_1_BASED},
+                "question_query_count": len(binding["question_positions"]),
+                "input_length": binding["input_length"],
+                "attention_row_sum_max_abs_deviation": 0.0,
+                "attention_source_dtype": row["attention_source_dtype"],
+                "attention_row_sum_tolerance": 2e-4,
+                "attention_rows_satisfy_source_dtype_normalization_tolerance": True,
+                "attention_shape": row["attention_shape"],
+                "attention_source_dtypes": {
+                    str(layer): row["attention_source_dtype"]
+                    for layer in FROZEN_QTA_LAYERS_1_BASED},
+                "forward_source_authenticated": False,
+                "attention_capture_authenticated": False,
+                "scoring_authorized": False,
+            }
+            call_receipts.append(build_qta_attention_call_receipt(
+                report=report, record_token=binding["record_token"],
+                runtime_sha256=binding["runtime_sha256"],
+                input_length=binding["input_length"],
+                question_positions=binding["question_positions"],
+                attention_bytes_sha256=binding["attention_bytes_sha256"],
+                expected_module_classes=module_classes))
+        call_receipts_raw = build_qta_attention_call_receipt_index(
+            receipts=call_receipts)
         p2_artifacts = dict(self.p2_artifacts)
         p2_artifacts.update({"phase1_receipt": p1,
                              "baseline_pq_manifest": baseline_raw,
                              "nine_branch_plan_manifest": manifest,
-                             "attention_capture_index": capture_index_raw})
+                             "attention_capture_index": capture_index_raw,
+                             "attention_call_receipts": call_receipts_raw})
         p2 = self._create("post_baseline", records, p2_artifacts,
                           prior_phase1_receipt_raw=p1)
         return p1_artifacts, p1, p2_artifacts, p2, records
 
-    def _verify_phase2_candidate(self, bundle):
+    def _verify_phase2_candidate(self, bundle, *, expected_external_cohort_pin_sha256=None):
         p1_artifacts, p1, p2_artifacts, p2, _records = bundle
+        if expected_external_cohort_pin_sha256 is None:
+            expected_external_cohort_pin_sha256 = self.expected_external_cohort_pin_sha256
         return verify_qta_phase2_plan_candidate(
             phase1_receipt_raw=p1, phase1_artifact_bytes=p1_artifacts,
             phase2_receipt_raw=p2, phase2_artifact_bytes=p2_artifacts,
             attention_capture_sidecars=self.capture_sidecars,
             integrity_roster_raw=self.integrity, release_roster_raw=self.release,
             root_public_key_pem=self.keys["root"][1],
-            expected_root_public_der_sha256=self.root_pin)
+            expected_root_public_der_sha256=self.root_pin,
+            expected_external_cohort_pin_sha256=expected_external_cohort_pin_sha256)
 
     def test_phase2_plan_manifest_binds_exact_receipts_preflight_and_baseline_rows(self):
         report = self._verify_phase2_candidate(self._phase2_candidate_bundle())
@@ -497,13 +659,78 @@ class QtaPhaseFreezeReceiptTests(unittest.TestCase):
         self.assertFalse(report["attention_capture_authenticated"])
         self.assertTrue(report["capture_sidecars_joined_to_selection_masses"])
         self.assertEqual(report["capture_sidecar_records_validated"], 3)
+        self.assertTrue(report["capture_call_receipts_joined_to_sidecar_payloads"])
+        self.assertEqual(report["capture_call_receipts_validated"], 3)
         self.assertEqual(report["expected_attention_source_dtype"], "float32")
         self.assertTrue(report["phase1_receipt_signature_valid"])
         self.assertTrue(report["phase2_receipt_signature_valid"])
+        self.assertTrue(report["external_cohort_pin_matches_caller_pin"])
+        self.assertFalse(report["external_cohort_pin_origin_authenticated"])
         self.assertTrue(report["phase1_receipt_recursively_verified"])
         self.assertTrue(report["same_freeze_id"])
         self.assertFalse(report["plan_semantics_authenticated"])
         self.assertEqual(report["authorized_forwards"], 0)
+
+    def test_phase2_rejects_stale_external_cohort_pin(self):
+        bundle = self._phase2_candidate_bundle()
+        with self.assertRaisesRegex(
+                ReceiptError, "external_cohort_pin_external_hash_mismatch"):
+            self._verify_phase2_candidate(
+                bundle, expected_external_cohort_pin_sha256="0" * 64)
+
+    def test_baseline_runtime_digest_must_equal_signed_sampler_runtime_bytes(self):
+        from qta_phase2_plan_manifest import _validate_baseline_runtime_binding
+
+        bundle = self._phase2_candidate_bundle()
+        p1_artifacts, _p1, p2_artifacts, _p2, _records = bundle
+        runtime_sha256 = hashlib.sha256(
+            p1_artifacts["sampler_model_runtime"]).hexdigest()
+        self.assertEqual(_validate_baseline_runtime_binding(
+            baseline_pq_manifest_raw=p2_artifacts["baseline_pq_manifest"],
+            sampler_model_runtime_raw=p1_artifacts["sampler_model_runtime"]),
+            runtime_sha256)
+
+        baseline = json.loads(p2_artifacts["baseline_pq_manifest"])
+        binding = baseline["records"][0]["score_binding"]
+        binding["run_digests"]["runtime_sha256"] = "f" * 64
+        baseline["records"][0]["score_binding_sha256"] = hashlib.sha256(json.dumps(
+            binding, ensure_ascii=False, sort_keys=True,
+            separators=(",", ":")).encode()).hexdigest()
+        tampered_raw = json.dumps(baseline, ensure_ascii=False, sort_keys=True,
+                                  separators=(",", ":")).encode()
+        with self.assertRaisesRegex(
+                ValueError, "phase2_baseline_runtime_digest_mismatch"):
+            _validate_baseline_runtime_binding(
+                baseline_pq_manifest_raw=tampered_raw,
+                sampler_model_runtime_raw=p1_artifacts["sampler_model_runtime"])
+
+    def test_signed_capture_index_runtime_digest_must_match_baseline_and_phase1(self):
+        bundle = self._phase2_candidate_bundle()
+        p1_artifacts, p1, p2_artifacts, _p2, records = bundle
+        index = json.loads(p2_artifacts["attention_capture_index"])
+        index["records"][0]["runtime_sha256"] = "f" * 64
+        p2_artifacts["attention_capture_index"] = json.dumps(
+            index, sort_keys=True, separators=(",", ":")).encode("ascii") + b"\n"
+        changed_p2 = self._create("post_baseline", records, p2_artifacts,
+                                  prior_phase1_receipt_raw=p1)
+        with self.assertRaisesRegex(ValueError, "capture_sidecar_binding_mismatch"):
+            self._verify_phase2_candidate(
+                (p1_artifacts, p1, p2_artifacts, changed_p2, records))
+
+    def test_signed_phase2_call_receipt_must_join_to_capture_payload(self):
+        bundle = self._phase2_candidate_bundle()
+        p1_artifacts, p1, p2_artifacts, _p2, records = bundle
+        receipt_index = json.loads(p2_artifacts["attention_call_receipts"])
+        receipt_index["records"][0]["receipt"]["attention_bytes_sha256"] = "f" * 64
+        p2_artifacts["attention_call_receipts"] = json.dumps(
+            receipt_index, sort_keys=True, separators=(",", ":"),
+            ensure_ascii=True).encode("ascii")
+        changed_p2 = self._create("post_baseline", records, p2_artifacts,
+                                  prior_phase1_receipt_raw=p1)
+        with self.assertRaisesRegex(ValueError,
+                                   "call_receipt_expected_binding_mismatch"):
+            self._verify_phase2_candidate(
+                (p1_artifacts, p1, p2_artifacts, changed_p2, records))
 
     def test_signed_phase2_plan_dtype_mismatch_rejects_relabelled_capture_index(self):
         bundle = self._phase2_candidate_bundle()

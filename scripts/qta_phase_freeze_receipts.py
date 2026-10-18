@@ -28,11 +28,13 @@ PHASE_ARTIFACT_ROLES = {
         "source_backed_targets", "prompt_answer_token_bindings",
         "sampler_model_runtime", "condition_scorer_source_closure",
         "full_video_processor_batches", "atomic_cohort_preflight",
+        "external_cohort_pin",
     ),
     "post_baseline": (
         "phase1_receipt", "baseline_pq_manifest",
         "stage2_prediction_link_review", "nine_branch_plan_manifest",
         "condition_scorer_source_closure", "attention_capture_index",
+        "attention_call_receipts",
     ),
 }
 PHASE_BRANCHES = {
@@ -42,10 +44,91 @@ PHASE_BRANCHES = {
 _FREEZE_ID = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$")
 _TOKEN = re.compile(r"^[0-9a-f]{64}$")
 _SHA256 = re.compile(r"^[0-9a-f]{64}$")
+_REVIEW_TOKEN = re.compile(r"^[A-Za-z0-9_-]{24}$")
+_COHORT_SOURCE_ROW_KEYS = {
+    "review_token", "question_sha256", "options_sha256", "claim_sha256",
+    "source_video_sha256", "video_support_decision",
+    "reviewed_intervals_sha256",
+}
+_EXTERNAL_COHORT_PIN_KEYS = {
+    "schema_version", "purpose", "cohort_binding_sha256",
+    "execution_authorization",
+}
 _PHASE_DOMAINS = {
     "pre_baseline": b"qta_two_phase_score_freeze_v1\0",
-    "post_baseline": b"qta_two_phase_score_freeze_v2\0",
+    "post_baseline": b"qta_two_phase_score_freeze_v3\0",
 }
+
+
+def _cohort_binding_sha256(stage1_review_and_lineage_raw: bytes) -> str:
+    """Hash the ordered source/review identity rows, excluding derived scores."""
+    if not isinstance(stage1_review_and_lineage_raw, bytes):
+        raise ReceiptError("external_cohort_source_bytes_invalid")
+    try:
+        stage1 = _parse(stage1_review_and_lineage_raw,
+                        "external_cohort_source_json_invalid")
+    except ReceiptError:
+        raise
+    tokens = stage1.get("expected_cohort_tokens") if isinstance(stage1, dict) else None
+    rows = stage1.get("source_rows") if isinstance(stage1, dict) else None
+    if (not isinstance(tokens, list) or len(tokens) != ROW_COUNT
+            or any(not isinstance(token, str) or not _REVIEW_TOKEN.fullmatch(token)
+                   for token in tokens)
+            or len(set(tokens)) != ROW_COUNT
+            or not isinstance(rows, list) or len(rows) != ROW_COUNT):
+        raise ReceiptError("external_cohort_source_rows_invalid")
+    for token, row in zip(tokens, rows, strict=True):
+        if (not isinstance(row, dict) or set(row) != _COHORT_SOURCE_ROW_KEYS
+                or row.get("review_token") != token
+                or row.get("video_support_decision") != "supports_claim"
+                or any(not isinstance(row.get(key), str)
+                       or not _SHA256.fullmatch(row[key])
+                       for key in _COHORT_SOURCE_ROW_KEYS
+                       if key not in {"review_token", "video_support_decision"})):
+            raise ReceiptError("external_cohort_source_row_invalid")
+    return _sha(_canonical({"expected_cohort_tokens": tokens,
+                            "source_rows": rows}))
+
+
+def build_external_cohort_pin_candidate(stage1_review_and_lineage_raw: bytes) -> bytes:
+    """Build a non-authorizing pin candidate for independent freeze-owner adoption.
+
+    The returned bytes must be independently checked and their SHA-256 pinned
+    through a separate trusted channel before they are supplied to a verifier.
+    """
+    body = {
+        "schema_version": 1,
+        "purpose": "qta_external_cohort_pin_candidate_v1",
+        "cohort_binding_sha256": _cohort_binding_sha256(
+            stage1_review_and_lineage_raw),
+        "execution_authorization": "not_granted",
+    }
+    return _canonical(body) + b"\n"
+
+
+def _verify_external_cohort_pin(*, stage1_review_and_lineage_raw: bytes,
+                                external_cohort_pin_raw: bytes,
+                                expected_external_cohort_pin_sha256: str) -> str:
+    if (not isinstance(expected_external_cohort_pin_sha256, str)
+            or not _SHA256.fullmatch(expected_external_cohort_pin_sha256)):
+        raise ReceiptError("external_cohort_pin_expected_hash_invalid")
+    if (not isinstance(external_cohort_pin_raw, bytes)
+            or _sha(external_cohort_pin_raw) != expected_external_cohort_pin_sha256):
+        raise ReceiptError("external_cohort_pin_external_hash_mismatch")
+    pin = _parse(external_cohort_pin_raw, "external_cohort_pin_json_invalid")
+    if (not isinstance(pin, dict) or set(pin) != _EXTERNAL_COHORT_PIN_KEYS
+            or type(pin.get("schema_version")) is not int
+            or pin.get("schema_version") != 1
+            or pin.get("purpose") != "qta_external_cohort_pin_candidate_v1"
+            or pin.get("execution_authorization") != "not_granted"
+            or not isinstance(pin.get("cohort_binding_sha256"), str)
+            or not _SHA256.fullmatch(pin["cohort_binding_sha256"])
+            or _canonical(pin) + b"\n" != external_cohort_pin_raw):
+        raise ReceiptError("external_cohort_pin_schema_invalid")
+    if pin["cohort_binding_sha256"] != _cohort_binding_sha256(
+            stage1_review_and_lineage_raw):
+        raise ReceiptError("external_cohort_pin_cohort_binding_mismatch")
+    return expected_external_cohort_pin_sha256
 
 
 def _bindings(phase: str, artifact_bytes: Mapping[str, bytes]) -> list[dict[str, Any]]:
@@ -101,7 +184,7 @@ def _body(*, phase: str, freeze_id: str, records: list[dict[str, str]],
           prior_phase1_receipt_sha256: str | None = None) -> dict[str, Any]:
     if phase not in PHASE_ARTIFACT_ROLES:
         raise ReceiptError("phase_invalid")
-    version = 1 if phase == "pre_baseline" else 2
+    version = 1 if phase == "pre_baseline" else 3
     if not isinstance(freeze_id, str) or not _FREEZE_ID.fullmatch(freeze_id):
         raise ReceiptError("freeze_id_invalid")
     result = {
@@ -160,6 +243,13 @@ def create_phase_freeze_receipt(*, phase: str, freeze_id: str,
     if not roles:
         raise ReceiptError("phase_invalid")
     bindings = _bindings(phase, artifact_bytes)
+    if phase == "pre_baseline":
+        # Validate that the owner is signing a pin for these exact source rows.
+        _verify_external_cohort_pin(
+            stage1_review_and_lineage_raw=artifact_bytes["stage1_review_and_lineage"],
+            external_cohort_pin_raw=artifact_bytes["external_cohort_pin"],
+            expected_external_cohort_pin_sha256=_sha(
+                artifact_bytes["external_cohort_pin"]))
     records = _record_bindings(record_rows)
     release, _ = _roster_keys(
         integrity_roster_raw=integrity_roster_raw,
@@ -183,6 +273,7 @@ def verify_phase_freeze_receipt(*, receipt_raw: bytes, phase: str,
                                 release_roster_raw: bytes,
                                 root_public_key_pem: bytes,
                                 expected_root_public_der_sha256: str,
+                                expected_external_cohort_pin_sha256: str,
                                 prior_phase1_receipt_raw: bytes | None = None,
                                 prior_phase1_artifact_bytes: Mapping[str, bytes] | None = None) -> dict[str, Any]:
     """Verify signatures and exact bytes; return a non-authorizing report only."""
@@ -190,6 +281,11 @@ def verify_phase_freeze_receipt(*, receipt_raw: bytes, phase: str,
         raise ReceiptError("phase_receipt_bytes_invalid")
     bindings = _bindings(phase, artifact_bytes)
     records_from_call = None
+    if phase == "pre_baseline":
+        pin_sha256 = _verify_external_cohort_pin(
+            stage1_review_and_lineage_raw=artifact_bytes["stage1_review_and_lineage"],
+            external_cohort_pin_raw=artifact_bytes["external_cohort_pin"],
+            expected_external_cohort_pin_sha256=expected_external_cohort_pin_sha256)
     if phase == "post_baseline":
         if (not isinstance(prior_phase1_receipt_raw, bytes)
                 or not isinstance(prior_phase1_artifact_bytes, Mapping)
@@ -201,7 +297,8 @@ def verify_phase_freeze_receipt(*, receipt_raw: bytes, phase: str,
             integrity_roster_raw=integrity_roster_raw,
             release_roster_raw=release_roster_raw,
             root_public_key_pem=root_public_key_pem,
-            expected_root_public_der_sha256=expected_root_public_der_sha256)
+            expected_root_public_der_sha256=expected_root_public_der_sha256,
+            expected_external_cohort_pin_sha256=expected_external_cohort_pin_sha256)
         prior_obj = _parse(prior_phase1_receipt_raw, "phase_receipt_json_invalid")
         records_from_call = _record_bindings(prior_obj.get("record_bindings"))
     elif phase != "pre_baseline":
@@ -224,7 +321,7 @@ def verify_phase_freeze_receipt(*, receipt_raw: bytes, phase: str,
         expected_keys.add("phase1_receipt_sha256")
     if not isinstance(obj, dict) or set(obj) != expected_keys:
         raise ReceiptError("phase_receipt_schema_invalid")
-    version = 1 if phase == "pre_baseline" else 2
+    version = 1 if phase == "pre_baseline" else 3
     if (type(obj.get("schema_version")) is not int
             or obj.get("schema_version") != version
             or obj.get("purpose") != f"qta_two_phase_score_freeze_candidate_v{version}"):
@@ -258,6 +355,10 @@ def verify_phase_freeze_receipt(*, receipt_raw: bytes, phase: str,
         "artifact_binding_count": len(bindings),
         "receipt_signature_valid": True,
         "artifact_bytes_match": True,
+        "external_cohort_pin_sha256": (pin_sha256 if phase == "pre_baseline"
+                                        else expected_external_cohort_pin_sha256),
+        "external_cohort_pin_matches_caller_pin": True,
+        "external_cohort_pin_origin_authenticated": False,
         "prior_phase1_receipt_valid": phase == "post_baseline",
         "human_identity_verified": False,
         "semantic_review_authenticated": False,
