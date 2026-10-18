@@ -5,6 +5,7 @@ import hashlib
 import json
 import unittest
 from fractions import Fraction
+from types import SimpleNamespace
 
 from necessity_choice_margin_utils import uniform_sample_indices
 from qta_prescore_clock_row_adapter import adapt_calibration_to_clock_row
@@ -14,6 +15,8 @@ from nextgqa_atomic_batch_freeze import (
     CONDITIONS, PreflightError, batch_sha256, freeze_all_batches,
 )
 from nextgqa_condition_batch_builder import build_exact_triplet_batches
+from nextgqa_claim_mask_scoring import score_preflighted_triplets
+from nextgqa_model_call_boundary import ModelCallBoundary
 from qwen_processor_batch_review_mapping import map_review_interval_from_processor_batch
 from qta_synthetic_cohort_preflight import preflight_synthetic_qta_cohort
 import test_qta_prescore_clock_row_adapter as clock_adapter_test
@@ -341,6 +344,72 @@ class QtaSyntheticAdapterCompositionTests(unittest.TestCase):
         # The test never constructs a model and the freezer has no scoring API.
         self.assertNotIn("model_load_permitted", frozen)
         self.assertNotIn("completed_forwards", frozen)
+
+        # Exercise the actual CPU scoring core and final forward boundary with
+        # the mapper-derived hashes and batches frozen above. This remains a
+        # synthetic software-path check; successful forwards do not grant
+        # research authorization or represent a faithfulness measurement.
+        torch = batch_builder_test.torch
+
+        class SyntheticModel(torch.nn.Module):
+            def __init__(self):
+                super().__init__()
+                self.calls = 0
+
+            def forward(self, **_kwargs):
+                self.calls += 1
+                return SimpleNamespace(logits=torch.zeros((1, 1, 16)))
+
+        model = SyntheticModel()
+        boundary = ModelCallBoundary()
+        scored = score_preflighted_triplets(
+            model=model,
+            triplets=frozen["triplets"],
+            token_ids=frozen["token_ids"],
+            record_ids=frozen["record_ids"],
+            expected_batch_hashes=frozen["batch_sha256"],
+            torch_module=torch,
+            device="cpu",
+            model_call=boundary,
+        )
+        self.assertEqual(scored["status"], "completed")
+        self.assertEqual(scored["attempted_forwards"], 9)
+        self.assertEqual(scored["completed_forwards"], 9)
+        self.assertEqual(model.calls, 9)
+        self.assertEqual(boundary.root_call_entries, 9)
+        self.assertEqual(boundary.verified_root_calls, 9)
+        self.assertEqual(boundary.completed_calls, 9)
+        self.assertEqual(scored["execution_authorization"], "not_granted")
+
+        rewritten_model = SyntheticModel()
+        rewritten_boundary = ModelCallBoundary()
+
+        def rewrite_after_transfer(_module, _args, kwargs):
+            rewritten = dict(kwargs)
+            rewritten["input_ids"] = kwargs["input_ids"].clone()
+            rewritten["input_ids"][0, 0] += 1
+            return (), rewritten
+
+        rewritten_model.register_forward_pre_hook(
+            rewrite_after_transfer, with_kwargs=True)
+        rejected = score_preflighted_triplets(
+            model=rewritten_model,
+            triplets=frozen["triplets"],
+            token_ids=frozen["token_ids"],
+            record_ids=frozen["record_ids"],
+            expected_batch_hashes=frozen["batch_sha256"],
+            torch_module=torch,
+            device="cpu",
+            model_call=rewritten_boundary,
+        )
+        self.assertEqual(rejected["status"], "failed")
+        self.assertEqual(rejected["attempted_forwards"], 1)
+        self.assertEqual(rejected["completed_forwards"], 0)
+        self.assertEqual(rewritten_model.calls, 0)
+        self.assertEqual(rewritten_boundary.root_call_entries, 1)
+        self.assertEqual(rewritten_boundary.verified_root_calls, 0)
+        self.assertIsNone(rejected["D3_control_minus_claim_mask_nats"])
+        self.assertEqual(rejected["execution_authorization"], "not_granted")
 
         callbacks = []
         with self.assertRaisesRegex(PreflightError, "record_order_or_identity_mismatch"):

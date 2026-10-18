@@ -126,3 +126,48 @@ absent. Do not use a trivial synthetic callback to justify any real-data score;
 once formal prerequisites are present, the first GPU run remains a bounded
 three-row baseline-only smoke, followed by a separate Stage-2 decision before
 intervention scoring.
+
+## Follow-up: scorer-forward boundary composition (2026-10-19)
+
+### Purpose and setup
+
+Extend the synthetic CPU composition path through the existing fixed 3-row,
+3-condition claim-mask scorer. The test reuses the first mapper/build pass's
+frozen batch hashes, passes the resulting `FrozenBatch` inputs through
+`score_preflighted_triplets`, and verifies the exact `ModelCallBoundary` at
+PyTorch root-forward entry. A second pass installs a synthetic root pre-hook
+that rewrites `input_ids` after transfer, testing rejection before the model
+body. Inputs and logits are synthetic; the fake model returns constant logits.
+
+### Verified results
+
+- Command: `PYTHONPATH=scripts .venv/bin/python -m unittest
+  test_qta_synthetic_adapter_composition test_nextgqa_claim_mask_scoring
+  test_qta_phase_freeze_receipts -q`.
+- Result: **65/65 tests passed**.
+- The integrated positive path completed exactly 9/9 forwards and 9/9 final
+  boundary verifications; the scorer retained
+  `execution_authorization=not_granted`.
+- The post-transfer root-hook rewrite failed at the first boundary, before any
+  model-body call (1 attempted, 0 completed); `D3` remained null and execution
+  authorization remained denied.
+
+### Interpretation and limits
+
+This connects the mapper-derived synthetic processor digests, second-build
+batches, atomic freezer, CPU scorer, and final root-forward integrity wrapper
+in one regression path. It checks that a call reaching the model body uses the
+expected batch bytes after transfer and framework pre-hooks. It does not
+authenticate real inputs or callbacks, execute a Qwen model/GPU, establish
+human judgments, or authorize a direct score. The formal direct-faithfulness
+counts remain 0/3 claims reviewed, 0/15 player-clock/decoder correspondences,
+0/3 prediction-link judgments, and 0/3 direct scores; no direct `DeltaF`,
+interval, or test exists.
+
+### Next action
+
+Keep this synthetic test as regression coverage. Build a production source-bound
+caller only after the remaining trust, review, clock, target, and protocol
+validators have a concrete integration contract; otherwise it could falsely
+look score-ready. In parallel, continue the lightweight browser handoff and
+keep its impression responses separate from formal faithfulness review.
