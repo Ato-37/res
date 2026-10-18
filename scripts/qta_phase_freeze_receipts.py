@@ -32,7 +32,7 @@ PHASE_ARTIFACT_ROLES = {
     "post_baseline": (
         "phase1_receipt", "baseline_pq_manifest",
         "stage2_prediction_link_review", "nine_branch_plan_manifest",
-        "condition_scorer_source_closure",
+        "condition_scorer_source_closure", "attention_capture_index",
     ),
 }
 PHASE_BRANCHES = {
@@ -42,7 +42,10 @@ PHASE_BRANCHES = {
 _FREEZE_ID = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$")
 _TOKEN = re.compile(r"^[0-9a-f]{64}$")
 _SHA256 = re.compile(r"^[0-9a-f]{64}$")
-_DOMAIN = b"qta_two_phase_score_freeze_v1\0"
+_PHASE_DOMAINS = {
+    "pre_baseline": b"qta_two_phase_score_freeze_v1\0",
+    "post_baseline": b"qta_two_phase_score_freeze_v2\0",
+}
 
 
 def _bindings(phase: str, artifact_bytes: Mapping[str, bytes]) -> list[dict[str, Any]]:
@@ -98,11 +101,12 @@ def _body(*, phase: str, freeze_id: str, records: list[dict[str, str]],
           prior_phase1_receipt_sha256: str | None = None) -> dict[str, Any]:
     if phase not in PHASE_ARTIFACT_ROLES:
         raise ReceiptError("phase_invalid")
+    version = 1 if phase == "pre_baseline" else 2
     if not isinstance(freeze_id, str) or not _FREEZE_ID.fullmatch(freeze_id):
         raise ReceiptError("freeze_id_invalid")
     result = {
-        "schema_version": 1,
-        "purpose": "qta_two_phase_score_freeze_candidate_v1",
+        "schema_version": version,
+        "purpose": f"qta_two_phase_score_freeze_candidate_v{version}",
         "phase": phase,
         "freeze_id": freeze_id,
         "record_bindings": records,
@@ -168,7 +172,7 @@ def create_phase_freeze_receipt(*, phase: str, freeze_id: str,
                  prior_phase1_receipt_sha256=prior_hash)
     signature = _sign(freeze_owner_private_key_pem,
                       role_keys["freeze_owner"],
-                      _DOMAIN + _canonical(body))
+                      _PHASE_DOMAINS[phase] + _canonical(body))
     return _canonical({**body, "signature_ed25519_base64":
                        base64.b64encode(signature).decode("ascii")}) + b"\n"
 
@@ -220,6 +224,11 @@ def verify_phase_freeze_receipt(*, receipt_raw: bytes, phase: str,
         expected_keys.add("phase1_receipt_sha256")
     if not isinstance(obj, dict) or set(obj) != expected_keys:
         raise ReceiptError("phase_receipt_schema_invalid")
+    version = 1 if phase == "pre_baseline" else 2
+    if (type(obj.get("schema_version")) is not int
+            or obj.get("schema_version") != version
+            or obj.get("purpose") != f"qta_two_phase_score_freeze_candidate_v{version}"):
+        raise ReceiptError("phase_receipt_schema_version_invalid")
     record_rows = _record_bindings(obj["record_bindings"])
     if records_from_call is not None and record_rows != records_from_call:
         raise ReceiptError("phase2_record_binding_differs_from_phase1")
@@ -235,7 +244,7 @@ def verify_phase_freeze_receipt(*, receipt_raw: bytes, phase: str,
     signed_body = {key: value for key, value in obj.items()
                    if key != "signature_ed25519_base64"}
     if not _verify_signature(role_keys["freeze_owner"], signature,
-                             _DOMAIN + _canonical(signed_body)):
+                             _PHASE_DOMAINS[phase] + _canonical(signed_body)):
         raise ReceiptError("phase_receipt_signature_invalid")
     if phase == "post_baseline":
         prior_role = next(row for row in bindings if row["role"] == "phase1_receipt")

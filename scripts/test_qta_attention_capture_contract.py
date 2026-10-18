@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import copy
 import hashlib
+import json
 import struct
 import unittest
 from collections.abc import Sequence
@@ -11,6 +12,10 @@ from qta_attention_capture_contract import (
     build_attention_capture,
     validate_capture_selection_bridge,
     validate_attention_capture,
+)
+from qta_attention_capture_sidecars import (
+    build_qta_capture_sidecar_index, pack_qta_attention_sidecar_bytes,
+    validate_qta_capture_sidecar_index,
 )
 from qta_selection_provenance import (
     FROZEN_SELECTOR_SOURCE_SHA256, build_qta_selection_provenance,
@@ -72,6 +77,47 @@ class AttentionCaptureContractTests(unittest.TestCase):
             "selector_layers_1_based": LAYERS,
             "sham_seed": FROZEN_QTA_SHAM_SEED,
         }
+
+    def _sidecar_bundle(self):
+        rows = []
+        entries = []
+        masses = [[struct.unpack(">f", bytes.fromhex(value))[0]
+                   for value in row]
+                  for row in self.capture["layer_group_masses_f32_be_hex"]]
+        for i in range(3):
+            binding = {**self.binding,
+                "record_token": sha(f"record-{i}"),
+                "row_binding_sha256": sha(f"row-{i}"),
+                "typed_batch_sha256": sha(f"batch-{i}"),
+                "baseline_pq_row_sha256": sha(f"baseline-{i}"),
+                "prompt_sha256": sha(f"prompt-{i}"),
+                "input_ids_sha256": sha(f"ids-{i}"),
+            }
+            selection_bindings = {
+                "record_token": binding["record_token"],
+                "opaque_review_token": f"review_token_synthetic{i:02d}",
+                "row_binding_sha256": binding["row_binding_sha256"],
+                "typed_batch_sha256": binding["typed_batch_sha256"],
+                "score_binding_sha256": sha(f"score-{i}"),
+                "baseline_pq_row_sha256": binding["baseline_pq_row_sha256"],
+                "prompt_sha256": binding["prompt_sha256"],
+                "input_ids_sha256": binding["input_ids_sha256"],
+                "input_length": 8, "score_position": 7,
+                "question_positions": binding["question_positions"],
+                "temporal_groups": binding["temporal_groups"],
+                "selector_source_sha256": FROZEN_SELECTOR_SOURCE_SHA256,
+                "selector_layers_1_based": LAYERS,
+                "sham_seed": FROZEN_QTA_SHAM_SEED,
+            }
+            selection = build_qta_selection_provenance(
+                **selection_bindings, layer_group_masses=masses)
+            entries.append({"binding": binding, "attention": self.attention,
+                            "input_length": 8})
+            rows.append({"expected_capture_binding": binding,
+                "input_length": 8, "selection_provenance": selection,
+                "expected_selection_bindings": selection_bindings,
+                "plan": None})
+        return build_qta_capture_sidecar_index(entries=entries), rows
 
     def test_synthetic_bytes_and_group_masses_recompute(self):
         report = validate_attention_capture(self.capture,
@@ -255,6 +301,124 @@ class AttentionCaptureContractTests(unittest.TestCase):
                         expected_capture_binding=self.binding,
                         input_length=8, selection_provenance=selection,
                         expected_selection_bindings=self._selection_bindings())
+
+    def test_binary_sidecar_index_joins_three_rows_and_deduplicates_payload(self):
+        index_raw, sidecars = self._sidecar_bundle()[0]
+        expected_rows = self._sidecar_bundle()[1]
+        report = validate_qta_capture_sidecar_index(
+            index_raw=index_raw, sidecars=sidecars, expected_rows=expected_rows)
+        self.assertEqual(report["record_count"], 3)
+        self.assertEqual(report["sidecar_count"], 1)
+        self.assertFalse(report["attention_capture_authenticated"])
+        self.assertFalse(report["scoring_authorized"])
+
+    def test_tensor_packer_matches_capture_bytes_and_binary_index(self):
+        import torch
+
+        layers = []
+        for layer in self.attention:
+            full = torch.zeros((1, 2, 8, 8), dtype=torch.float32)
+            for head_index, head in enumerate(layer):
+                full[0, head_index, 4, :] = torch.tensor(head[0])
+                full[0, head_index, 5, :] = torch.tensor(head[1])
+            layers.append(full)
+        shape, raw = pack_qta_attention_sidecar_bytes(
+            attention_layers=dict(zip(LAYERS, layers, strict=True)),
+            question_positions=[4, 5], input_length=8)
+        self.assertEqual(shape, [12, 2, 2, 8])
+        self.assertEqual(raw.hex(), self.capture["attention_f32_be_hex"])
+        binding = self.binding
+        indexed_raw, indexed_sidecars = build_qta_capture_sidecar_index(entries=[{
+            "binding": binding, "attention_shape": shape,
+            "attention_bytes": raw, "input_length": 8,
+        }])
+        list_raw, list_sidecars = build_qta_capture_sidecar_index(entries=[{
+            "binding": binding, "attention": self.attention, "input_length": 8,
+        }])
+        self.assertEqual(indexed_raw, list_raw)
+        self.assertEqual(indexed_sidecars, list_sidecars)
+
+    def test_tensor_packer_rejects_oversize_before_tensor_slicing(self):
+        class OversizeTensor:
+            shape = (30_000, 4096, 4096)
+
+            def __getitem__(self, _key):
+                raise AssertionError("oversize tensor sliced before cap check")
+
+        with self.assertRaisesRegex(ValueError, "capture_sidecar_payload_too_large"):
+            pack_qta_attention_sidecar_bytes(
+                attention_layers={layer: OversizeTensor() for layer in LAYERS},
+                question_positions=[100, 101], input_length=4096)
+
+    def test_binary_sidecar_index_rejects_payload_mutation_or_binding_rebind(self):
+        (index_raw, sidecars), expected_rows = self._sidecar_bundle()
+        digest, payload = next(iter(sidecars.items()))
+        with self.assertRaisesRegex(ValueError,
+                                   "capture_sidecar_digest_or_length_mismatch"):
+            validate_qta_capture_sidecar_index(
+                index_raw=index_raw, sidecars={digest: b"x" + payload[1:]},
+                expected_rows=expected_rows)
+        rebound_rows = copy.deepcopy(expected_rows)
+        rebound_rows[0]["expected_capture_binding"]["typed_batch_sha256"] = sha("other")
+        with self.assertRaisesRegex(ValueError, "capture_sidecar_binding_mismatch"):
+            validate_qta_capture_sidecar_index(
+                index_raw=index_raw, sidecars=sidecars, expected_rows=rebound_rows)
+
+    def test_binary_sidecar_index_rejects_row_reordering(self):
+        (index_raw, sidecars), expected_rows = self._sidecar_bundle()
+        index = json.loads(index_raw)
+        index["records"][0], index["records"][1] = (
+            index["records"][1], index["records"][0])
+        reordered = (json.dumps(index, sort_keys=True, separators=(",", ":"))
+                     + "\n").encode("ascii")
+        with self.assertRaisesRegex(ValueError, "capture_sidecar_binding_mismatch"):
+            validate_qta_capture_sidecar_index(
+                index_raw=reordered, sidecars=sidecars,
+                expected_rows=expected_rows)
+
+    def test_binary_sidecar_index_rejects_duplicate_record_token(self):
+        (index_raw, sidecars), expected_rows = self._sidecar_bundle()
+        index = json.loads(index_raw)
+        index["records"][1] = copy.deepcopy(index["records"][0])
+        duplicate = (json.dumps(index, sort_keys=True, separators=(",", ":"))
+                     + "\n").encode("ascii")
+        expected_rows[1] = copy.deepcopy(expected_rows[0])
+        with self.assertRaisesRegex(ValueError, "capture_sidecar_record_token_duplicate"):
+            validate_qta_capture_sidecar_index(
+                index_raw=duplicate, sidecars=sidecars,
+                expected_rows=expected_rows)
+
+    def test_binary_sidecar_index_rejects_mass_mismatch(self):
+        (index_raw, sidecars), expected_rows = self._sidecar_bundle()
+        expected = expected_rows[0]
+        changed = [[struct.unpack(">f", bytes.fromhex(value))[0]
+                    for value in row]
+                   for row in expected["selection_provenance"][
+                       "layer_group_mass_f32_be_hex"]]
+        changed[0][0] += 0.01
+        bindings = expected["expected_selection_bindings"]
+        expected["selection_provenance"] = build_qta_selection_provenance(
+            **bindings, layer_group_masses=changed)
+        with self.assertRaisesRegex(ValueError,
+                                   "capture_sidecar_selection_mass_mismatch"):
+            validate_qta_capture_sidecar_index(
+                index_raw=index_raw, sidecars=sidecars, expected_rows=expected_rows)
+
+    def test_binary_sidecar_index_rejects_authority_or_canonical_json_tampering(self):
+        (index_raw, sidecars), expected_rows = self._sidecar_bundle()
+        value = json.loads(index_raw)
+        value["scoring_authorized"] = True
+        tampered = (json.dumps(value, sort_keys=True, separators=(",", ":"),
+                               ensure_ascii=True) + "\n").encode("ascii")
+        with self.assertRaisesRegex(ValueError,
+                                   "capture_sidecar_index_schema_or_authority_invalid"):
+            validate_qta_capture_sidecar_index(
+                index_raw=tampered, sidecars=sidecars, expected_rows=expected_rows)
+        with self.assertRaisesRegex(ValueError,
+                                   "capture_sidecar_index_schema_or_authority_invalid"):
+            validate_qta_capture_sidecar_index(
+                index_raw=index_raw + b" ", sidecars=sidecars,
+                expected_rows=expected_rows)
 
     def test_selector_float32_reduction_matches_bitwise(self):
         import torch

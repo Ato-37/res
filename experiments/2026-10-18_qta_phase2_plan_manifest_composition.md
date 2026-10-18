@@ -536,3 +536,62 @@ review remains blocked on an independently trusted root pin, independently
 verified role-to-key identities and signed rosters, review-only freeze, and a
 witnessed unopened handoff. Continue independent human-free protocol checks
 while those inputs are unavailable.
+
+## Binary attention sidecars joined into phase-2 receipt
+
+To make the capture payload reviewable without expanding the signed JSON
+receipt by hex-encoding every float32, added
+`scripts/qta_attention_capture_sidecars.py`. It stores canonical per-row
+metadata and SHA-256 references in an index and keeps raw attention bytes in
+content-addressed sidecars. The index validator checks exact joins to the
+three expected phase-2 rows, batch/model/processor/tokenizer/prompt/input and
+question/group bindings, payload hashes and lengths, normalized rows,
+recomputed per-layer group masses, and the already-frozen selector provenance.
+The post-baseline receipt now requires this index as a signed role and uses a
+version-2 purpose/signature domain; pre-baseline receipts remain version 1.
+An explicit downgrade test confirms a v1-shaped post-baseline receipt is
+rejected.
+
+Verified checks: the focused sidecar and receipt tests passed **52/52**; the
+complete `scripts/test_*.py` suite passed **1,977/1,977** in **70.68 s**;
+`git diff --check` passed. Synthetic phase-2 fixtures cover three rows,
+payload deduplication, mutation and missing-sidecar failures, rebinding,
+mass divergence even after re-signing the altered index, authority-field
+tampering, canonical JSON, and version downgrade. A bounded CUDA packing
+smoke used the RTX 5070 Ti and PyTorch 2.11.0+cu128 on synthetic tensors:
+shape `[12,2,2,8]`, 1,536 bytes, exact CPU fixture parity, 0.0631 s. No model
+forward or dataset row was involved in that CUDA smoke. The separate real-video
+wiring smoke above exercised 3 local videos but did not produce or authenticate
+an attention capture.
+
+An independent code review found no material join, signature-domain,
+downgrade, or resource-cap bypass in the inspected path. It flagged a few
+boundary cases worth pinning down; regression tests now explicitly reject
+record reordering, duplicate record tokens, and a post-baseline signature made
+with the pre-baseline domain. The auditor's own test process could not import
+NumPy, so it did not independently reproduce the test pass; the primary
+checkout's `.venv/bin/python` reported NumPy 2.5.2 and reran both focused and
+full suites successfully.
+
+The binary layout avoids JSON hex expansion. Limits are 128 MiB per raw row,
+384 MiB summed across rows, and 24 MB for the index. This is not a streaming
+validator: the current sidecar mapping is resident in memory, so the aggregate
+cap is not a claim of low peak RSS. The tensor packer checks projected byte
+size before slicing, but layer mapping keys alone cannot prove that a caller
+passed tensors from the intended Qwen layer identities. More fundamentally,
+hashes and recomputed masses prove internal byte consistency, not that bytes
+came from an actual Qwen forward. The runtime digest is not pinned by the
+existing baseline; it remains a signed assertion. Therefore
+`forward_source_authenticated=false`,
+`attention_capture_authenticated=false`, and scoring authorization remains
+false. No direct faithfulness effect estimate or human judgment was produced;
+claim review, prediction-link review, frame correspondence, and direct scores
+remain **0/3**, **0/3**, **0/15**, and **0/3** respectively. Rights status is
+unverified; protected data and outputs remain local.
+
+Next: independently audit the new receipt integration, then add a source-bound
+capture runner that records the actual model hook/layer identities and runtime
+environment and can be checked against the frozen baseline. Keep its first
+execution synthetic or a bounded local-video wiring smoke; do not label a
+capture as authenticated or score faithfulness until the human review and
+prediction-link prerequisites are met.

@@ -6,6 +6,7 @@ import json
 import subprocess
 import tempfile
 import unittest
+import struct
 from pathlib import Path
 
 from nextgqa_pre_review_integrity_receipt import (
@@ -14,6 +15,7 @@ from nextgqa_pre_review_integrity_receipt import (
 )
 from audit_nextgqa_review_release_order import RELEASE_ROLES, _ROSTER_DOMAIN as _RELEASE_DOMAIN
 from qta_phase_freeze_receipts import (
+    _PHASE_DOMAINS,
     PHASE_ARTIFACT_ROLES, PHASE_BRANCHES, create_phase_freeze_receipt,
     verify_phase_freeze_receipt,
 )
@@ -22,6 +24,7 @@ from qta_phase2_plan_manifest import (
     create_qta_phase2_plan_manifest_candidate,
     verify_qta_phase2_plan_candidate,
 )
+from qta_attention_capture_sidecars import build_qta_capture_sidecar_index
 from qta_nine_branch_plan import build_qta_nine_branch_plan
 from qta_three_row_plan_aggregate import (
     FROZEN_QTA_LAYERS_1_BASED, FROZEN_QTA_LOGIT_BIAS, FROZEN_QTA_SHAM_SEED,
@@ -73,6 +76,7 @@ class QtaPhaseFreezeReceiptTests(unittest.TestCase):
             "stage2_prediction_link_review": b"fixture:stage2-review",
             "nine_branch_plan_manifest": b"fixture:branch-plans",
             "condition_scorer_source_closure": b"fixture:scorer-closure",
+            "attention_capture_index": b"fixture:attention-capture-index",
         }
         self.p2 = self._create("post_baseline", self.records, self.p2_artifacts,
                                prior_phase1_receipt_raw=self.p1)
@@ -173,6 +177,37 @@ class QtaPhaseFreezeReceiptTests(unittest.TestCase):
             self._verify(self.p2, "post_baseline", self.p2_artifacts,
                          prior_phase1_receipt_raw=self.p1,
                          prior_phase1_artifact_bytes=prior_inputs)
+
+    def test_phase2_v2_requires_signed_capture_index_role(self):
+        incomplete = dict(self.p2_artifacts)
+        incomplete.pop("attention_capture_index")
+        with self.assertRaisesRegex(ReceiptError, "phase_artifact_role_set_invalid"):
+            self._create("post_baseline", self.records, incomplete,
+                          prior_phase1_receipt_raw=self.p1)
+
+    def test_phase2_v2_rejects_v1_domain_downgrade(self):
+        changed = json.loads(self.p2)
+        changed["schema_version"] = 1
+        changed["purpose"] = "qta_two_phase_score_freeze_candidate_v1"
+        with self.assertRaisesRegex(ReceiptError,
+                                   "phase_receipt_schema_version_invalid"):
+            self._verify(_canonical(changed) + b"\n", "post_baseline",
+                         self.p2_artifacts,
+                         prior_phase1_receipt_raw=self.p1,
+                         prior_phase1_artifact_bytes=self.p1_artifacts)
+
+    def test_phase2_v2_signature_rejects_v1_domain_even_with_matching_key(self):
+        changed = json.loads(self.p2)
+        body = {key: value for key, value in changed.items()
+                if key != "signature_ed25519_base64"}
+        changed["signature_ed25519_base64"] = base64.b64encode(_sign(
+            self.keys["owner"][0], self.keys["owner"][1],
+            _PHASE_DOMAINS["pre_baseline"] + _canonical(body))).decode("ascii")
+        with self.assertRaisesRegex(ReceiptError, "phase_receipt_signature_invalid"):
+            self._verify(_canonical(changed) + b"\n", "post_baseline",
+                         self.p2_artifacts,
+                         prior_phase1_receipt_raw=self.p1,
+                         prior_phase1_artifact_bytes=self.p1_artifacts)
 
     def test_phase2_must_preserve_phase1_record_and_batch_bindings(self):
         changed_records = [dict(row) for row in self.records]
@@ -297,7 +332,8 @@ class QtaPhaseFreezeReceiptTests(unittest.TestCase):
             layer_masses = [[0.01 * (group + 1) for group in range(len(temporal_groups))]
                             for _ in FROZEN_QTA_LAYERS_1_BASED]
             for mass_row in layer_masses:
-                mass_row[1] = 1.0
+                mass_row[1] = 1.0 - sum(value for group, value in enumerate(mass_row)
+                                        if group != 1)
             selection_provenance = build_qta_selection_provenance(
                 record_token=hashlib.sha256(token.encode("ascii")).hexdigest(),
                 opaque_review_token=token,
@@ -379,10 +415,63 @@ class QtaPhaseFreezeReceiptTests(unittest.TestCase):
             phase1_preflight_raw=preflight_raw,
             phase1_stage1_source_pins_raw=p1_artifacts["stage1_review_and_lineage"],
             baseline_pq_manifest_raw=baseline_raw, plans=plans)
+        capture_entries = []
+        for index, (token, plan, baseline_row) in enumerate(
+                zip(tokens, plans, baseline_rows, strict=True)):
+            selection = plan["selection_provenance"]
+            score_binding = baseline_row["score_binding"]
+            groups = plan["temporal_groups"]
+            input_length = score_binding["input_length"]
+            qpos = score_binding["question_positions"]
+            masses = [[struct.unpack(">f", bytes.fromhex(value))[0]
+                       for value in row]
+                      for row in selection["layer_group_mass_f32_be_hex"]]
+            group_positions = {position for group in groups for position in group}
+            residual_positions = [position for position in range(input_length)
+                                  if position not in group_positions
+                                  and position < qpos[0]]
+            attention = []
+            for layer_masses in masses:
+                heads = []
+                for _head in range(2):
+                    queries = []
+                    for _query in qpos:
+                        values = [0.0] * input_length
+                        for group_index, group in enumerate(groups):
+                            values[group[0]] = layer_masses[group_index]
+                        residual = 1.0 - sum(layer_masses)
+                        if residual_positions:
+                            values[residual_positions[0]] = residual
+                        elif abs(residual) > 1e-6:
+                            raise AssertionError("synthetic_attention_residual_unplaceable")
+                        queries.append(values)
+                    heads.append(queries)
+                attention.append(heads)
+            capture_entries.append({
+                "binding": {
+                    "record_token": hashlib.sha256(token.encode("ascii")).hexdigest(),
+                    "row_binding_sha256": preflight["row_binding_sha256"][index],
+                    "typed_batch_sha256": score_binding["processor_batch_sha256"],
+                    "baseline_pq_row_sha256": hashlib.sha256(json.dumps(
+                        baseline_row, ensure_ascii=False, sort_keys=True,
+                        separators=(",", ":")).encode()).hexdigest(),
+                    "prompt_sha256": score_binding["prompt_sha256"],
+                    "input_ids_sha256": score_binding["input_ids_sha256"],
+                    "model_sha256": score_binding["run_digests"]["model_sha256"],
+                    "processor_sha256": score_binding["run_digests"]["processor_sha256"],
+                    "tokenizer_sha256": score_binding["run_digests"]["tokenizer_sha256"],
+                    "runtime_sha256": hashlib.sha256(b"synthetic runtime").hexdigest(),
+                    "question_positions": qpos,
+                    "temporal_groups": groups,
+                }, "attention": attention, "input_length": input_length,
+            })
+        capture_index_raw, self.capture_sidecars = build_qta_capture_sidecar_index(
+            entries=capture_entries)
         p2_artifacts = dict(self.p2_artifacts)
         p2_artifacts.update({"phase1_receipt": p1,
                              "baseline_pq_manifest": baseline_raw,
-                             "nine_branch_plan_manifest": manifest})
+                             "nine_branch_plan_manifest": manifest,
+                             "attention_capture_index": capture_index_raw})
         p2 = self._create("post_baseline", records, p2_artifacts,
                           prior_phase1_receipt_raw=p1)
         return p1_artifacts, p1, p2_artifacts, p2, records
@@ -392,6 +481,7 @@ class QtaPhaseFreezeReceiptTests(unittest.TestCase):
         return verify_qta_phase2_plan_candidate(
             phase1_receipt_raw=p1, phase1_artifact_bytes=p1_artifacts,
             phase2_receipt_raw=p2, phase2_artifact_bytes=p2_artifacts,
+            attention_capture_sidecars=self.capture_sidecars,
             integrity_roster_raw=self.integrity, release_roster_raw=self.release,
             root_public_key_pem=self.keys["root"][1],
             expected_root_public_der_sha256=self.root_pin)
@@ -405,12 +495,45 @@ class QtaPhaseFreezeReceiptTests(unittest.TestCase):
         self.assertEqual(report["selection_arithmetic_reproduced_records"], 3)
         self.assertFalse(report["forward_source_authenticated"])
         self.assertFalse(report["attention_capture_authenticated"])
+        self.assertTrue(report["capture_sidecars_joined_to_selection_masses"])
+        self.assertEqual(report["capture_sidecar_records_validated"], 3)
         self.assertTrue(report["phase1_receipt_signature_valid"])
         self.assertTrue(report["phase2_receipt_signature_valid"])
         self.assertTrue(report["phase1_receipt_recursively_verified"])
         self.assertTrue(report["same_freeze_id"])
         self.assertFalse(report["plan_semantics_authenticated"])
         self.assertEqual(report["authorized_forwards"], 0)
+
+    def test_signed_phase2_capture_index_rejects_rehashed_mass_divergence(self):
+        bundle = self._phase2_candidate_bundle()
+        p1_artifacts, p1, p2_artifacts, _p2, records = bundle
+        index = json.loads(p2_artifacts["attention_capture_index"])
+        index["records"][0]["layer_group_masses_f32_be_hex"][0][0] = "00000000"
+        p2_artifacts["attention_capture_index"] = (
+            json.dumps(index, sort_keys=True, separators=(",", ":")) + "\n").encode()
+        changed_p2 = self._create("post_baseline", records, p2_artifacts,
+                                  prior_phase1_receipt_raw=p1)
+        changed_bundle = (p1_artifacts, p1, p2_artifacts, changed_p2, records)
+        with self.assertRaisesRegex(ValueError,
+                                   "capture_sidecar_group_mass_recomputation_mismatch"):
+            self._verify_phase2_candidate(changed_bundle)
+
+    def test_signed_phase2_capture_index_rejects_missing_or_changed_sidecar(self):
+        bundle = self._phase2_candidate_bundle()
+        p1_artifacts, p1, p2_artifacts, p2, records = bundle
+        digest, payload = next(iter(self.capture_sidecars.items()))
+        original = self.capture_sidecars
+        try:
+            self.capture_sidecars = {digest: b"x" + payload[1:]}
+            changed_bundle = (p1_artifacts, p1, p2_artifacts, p2, records)
+            with self.assertRaisesRegex(ValueError,
+                                       "capture_sidecar_digest_or_length_mismatch"):
+                self._verify_phase2_candidate(changed_bundle)
+            self.capture_sidecars = {}
+            with self.assertRaisesRegex(ValueError, "capture_sidecar_payload_set_invalid"):
+                self._verify_phase2_candidate(changed_bundle)
+        finally:
+            self.capture_sidecars = original
 
     def test_phase2_plan_manifest_rejects_changed_signed_baseline_bytes(self):
         bundle = self._phase2_candidate_bundle()

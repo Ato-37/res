@@ -22,6 +22,7 @@ from qta_three_row_plan_aggregate import (
 from qta_selection_provenance import (
     FROZEN_SELECTOR_SOURCE_SHA256, validate_qta_selection_provenance,
 )
+from qta_attention_capture_sidecars import validate_qta_capture_sidecar_index
 
 
 ROW_COUNT = 3
@@ -588,6 +589,7 @@ def verify_qta_phase2_plan_candidate(*, phase1_receipt_raw: bytes,
                                      phase1_artifact_bytes: Mapping[str, bytes],
                                      phase2_receipt_raw: bytes,
                                      phase2_artifact_bytes: Mapping[str, bytes],
+                                     attention_capture_sidecars: Mapping[str, bytes],
                                      integrity_roster_raw: bytes,
                                      release_roster_raw: bytes,
                                      root_public_key_pem: bytes,
@@ -622,8 +624,64 @@ def verify_qta_phase2_plan_candidate(*, phase1_receipt_raw: bytes,
         phase1_preflight_raw=phase1_preflight_raw,
         phase1_stage1_source_pins_raw=stage1_source_pins_raw,
         baseline_pq_manifest_raw=baseline_pq_manifest_raw)
+    manifest = _strict_json(manifest_raw)
+    baselines = _baseline_rows(baseline_pq_manifest_raw)
+    expected_capture_rows = []
+    for row, baseline in zip(manifest["records"], baselines, strict=True):
+        plan = row["plan"]
+        selection = plan["selection_provenance"]
+        score_binding = baseline["score_binding"]
+        run_digests = score_binding["run_digests"]
+        expected_capture_binding = {
+            "record_token": row["record_token"],
+            "row_binding_sha256": row["row_binding_sha256"],
+            "typed_batch_sha256": row["processor_batch_sha256"],
+            "baseline_pq_row_sha256": row["baseline_pq_row_sha256"],
+            "prompt_sha256": score_binding["prompt_sha256"],
+            "input_ids_sha256": score_binding["input_ids_sha256"],
+            "model_sha256": run_digests["model_sha256"],
+            "processor_sha256": run_digests["processor_sha256"],
+            "tokenizer_sha256": run_digests["tokenizer_sha256"],
+            "question_positions": score_binding["question_positions"],
+            "temporal_groups": plan["temporal_groups"],
+        }
+        expected_selection_bindings = {
+            "record_token": row["record_token"],
+            "opaque_review_token": baseline["review_token"],
+            "row_binding_sha256": row["row_binding_sha256"],
+            "typed_batch_sha256": row["processor_batch_sha256"],
+            "score_binding_sha256": baseline["score_binding_sha256"],
+            "baseline_pq_row_sha256": row["baseline_pq_row_sha256"],
+            "prompt_sha256": score_binding["prompt_sha256"],
+            "input_ids_sha256": score_binding["input_ids_sha256"],
+            "input_length": score_binding["input_length"],
+            "score_position": score_binding["score_position"],
+            "question_positions": score_binding["question_positions"],
+            "temporal_groups": plan["temporal_groups"],
+            "selector_source_sha256": FROZEN_SELECTOR_SOURCE_SHA256,
+            "selector_layers_1_based": FROZEN_QTA_LAYERS_1_BASED,
+            "sham_seed": FROZEN_QTA_SHAM_SEED,
+        }
+        expected_capture_rows.append({
+            "expected_capture_binding": expected_capture_binding,
+            "input_length": score_binding["input_length"],
+            "selection_provenance": selection,
+            "expected_selection_bindings": expected_selection_bindings,
+            "plan": plan,
+        })
+    capture_report = validate_qta_capture_sidecar_index(
+        index_raw=phase2_artifact_bytes["attention_capture_index"],
+        sidecars=attention_capture_sidecars, expected_rows=expected_capture_rows)
     return {
         **report,
+        "capture_sidecar_index_sha256": _sha(
+            phase2_artifact_bytes["attention_capture_index"]),
+        "capture_sidecar_index_valid": True,
+        "capture_sidecar_records_validated": capture_report["record_count"],
+        "capture_sidecar_total_bytes": capture_report["total_sidecar_bytes"],
+        "capture_sidecars_joined_to_selection_masses": True,
+        "attention_capture_authenticated": False,
+        "forward_source_authenticated": False,
         "phase1_receipt_signature_valid": True,
         "phase2_receipt_signature_valid": receipt_report["receipt_signature_valid"],
         "phase2_artifact_bytes_match": receipt_report["artifact_bytes_match"],
