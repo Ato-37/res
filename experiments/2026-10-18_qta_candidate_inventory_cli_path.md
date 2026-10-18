@@ -19,6 +19,7 @@ An independent reviewer confirmed the pattern is anchored and does not permit se
 - No GPU, video, HTML, reviewer judgment, or score was used in this code/test subcycle.
 - The actual source-binding CLI was run against the fixed local three-row QA cohort after the CLI and scope clarification were committed at local `HEAD` `25ddf9a43c101ef91187f611bd7f2218be74da97`. A freshly rebuilt candidate inventory had 80 roles and 0 required omissions; the caller-pinned inventory digest matched. The aggregate-only receipt reports `source_binding_passed_unvalidated`, 3/3 validated rows, exact protocol/config blob matches, and 0 forwards/0 score calls. `execution_authorized`, `model_load_permitted`, and `scoring_authorized` are all false; inventory and commit pins remain caller-supplied and unverified. The receipt retained no private bundle. The inventory and receipt remain local.
 - The CLI run printed only its allow-listed aggregate receipt; no row-level QA/claim text, video, or review material was displayed. No human review or semantic validation was performed.
+- An independent auditor reran the sanitized CLI against the same candidate and pinned `HEAD`; it reproduced the 3/3 source binding and all zero-forward/zero-score/deny flags. It explicitly found no evidence here for inventory authenticity, media correspondence, review semantics, prediction-link correctness, baseline validity, or faithfulness. Since there is no persistent receipt, the auditor validated by a second sanitized execution rather than by reading stored result bytes.
 - The initial fetch in the normal sandbox could not write `.git/FETCH_HEAD`; an individually elevated fetch then succeeded. It showed the remote branch at the prior commit and local `HEAD` one commit ahead. This confirms fetch state only; the newly appended log update still needs its own scoped commit and push verification.
 
 ## Limits and faithfulness progress
@@ -27,7 +28,7 @@ This change only permits the CLI to read a candidate inventory at the official b
 
 ## Next action
 
-Independently audit the aggregate receipt and record the result. Then continue with another useful local-only experiment-preparation task that does not require human review, while preserving the requirement for human claim/prediction-link review before direct faithfulness scoring. Retry scoped Git publication only through an authorized writable Git path; do not claim remote verification from cached refs.
+Continue with another useful local-only experiment-preparation task that does not require human review, while preserving the requirement for human claim/prediction-link review before direct faithfulness scoring. Push the scoped commits and verify them from the remote branch before relying on remote publication.
 
 Full scripts unit suite after the path-allowlist change passed **1,728/1,728** in **51.124 s**. Expected negative-path fixture diagnostics and Transformers deprecation warnings were emitted; exit code 0.
 
