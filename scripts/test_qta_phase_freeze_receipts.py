@@ -13,9 +13,10 @@ from nextgqa_pre_review_integrity_receipt import (
 )
 from audit_nextgqa_review_release_order import RELEASE_ROLES, _ROSTER_DOMAIN as _RELEASE_DOMAIN
 from qta_phase_freeze_receipts import (
-    PHASE_ARTIFACT_ROLES, create_phase_freeze_receipt,
+    PHASE_ARTIFACT_ROLES, PHASE_BRANCHES, create_phase_freeze_receipt,
     verify_phase_freeze_receipt,
 )
+from qta_nine_branch_plan import BRANCH_ORDER
 
 
 class QtaPhaseFreezeReceiptTests(unittest.TestCase):
@@ -98,6 +99,8 @@ class QtaPhaseFreezeReceiptTests(unittest.TestCase):
             expected_root_public_der_sha256=self.root_pin, **kwargs)
 
     def test_phase1_signs_exact_synthetic_artifacts_and_denies_execution(self):
+        self.assertEqual(PHASE_BRANCHES["pre_baseline"], BRANCH_ORDER[:1])
+        self.assertEqual(PHASE_BRANCHES["post_baseline"], BRANCH_ORDER[1:])
         report = self._verify(self.p1, "pre_baseline", self.p1_artifacts)
         self.assertEqual(report["status"], "verified_signed_byte_bindings_non_authorizing")
         self.assertEqual(report["requested_rows"], 3)

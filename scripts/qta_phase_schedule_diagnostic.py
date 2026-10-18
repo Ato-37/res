@@ -7,17 +7,16 @@ or execution authorization, and must never be used as a production score gate.
 from __future__ import annotations
 
 import re
-from collections import Counter
 from collections.abc import Mapping
 from typing import Any
 
+from qta_nine_branch_plan import BRANCH_ORDER
+
 ROW_COUNT = 3
-BASELINE = ("baseline_full",)
-POST_BASELINE = (
-    "baseline_evidence", "baseline_control",
-    "qta_full", "qta_evidence", "qta_control",
-    "sham_full", "sham_evidence", "sham_control",
-)
+# The nine-branch plan is the canonical condition vocabulary and order.
+# Phase 1 runs baseline_full; phase 2 runs the remaining eight branches.
+BASELINE = BRANCH_ORDER[:1]
+POST_BASELINE = BRANCH_ORDER[1:]
 DENIAL = {
     "model_load_permitted": False,
     "scoring_authorized": False,
@@ -45,7 +44,7 @@ def _valid_rows(rows: Any, expected_branches: tuple[str, ...]) -> tuple[list[dic
             return [], "processor_batch_digest_invalid"
         if (not isinstance(branches, list) or len(branches) != len(expected_branches)
                 or any(not isinstance(name, str) for name in branches)
-                or Counter(branches) != Counter(expected_branches)):
+                or branches != list(expected_branches)):
             return [], "branch_set_invalid"
         tokens.add(token)
         clean.append({"record_token": token, "processor_batch_sha256": digest,

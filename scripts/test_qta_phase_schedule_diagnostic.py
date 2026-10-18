@@ -3,6 +3,7 @@ import unittest
 from qta_phase_schedule_diagnostic import (
     BASELINE, POST_BASELINE, diagnose_qta_phase_schedule,
 )
+from qta_nine_branch_plan import BRANCH_ORDER
 
 
 def fixture():
@@ -32,6 +33,8 @@ class QtaPhaseScheduleDiagnosticTests(unittest.TestCase):
         self.assertIs(report["counts_are_schedule_shape_only"], True)
 
     def test_exact_three_plus_twenty_four_schedule_passes_shape_only(self):
+        self.assertEqual(BASELINE, BRANCH_ORDER[:1])
+        self.assertEqual(POST_BASELINE, BRANCH_ORDER[1:])
         p1, p2, pins = fixture()
         report = diagnose_qta_phase_schedule(
             phase1_rows=p1, phase2_rows=p2, phase2_bindings=pins)
@@ -69,6 +72,18 @@ class QtaPhaseScheduleDiagnosticTests(unittest.TestCase):
             phase1_rows=p1, phase2_rows=p2, phase2_bindings=pins)
         self.assertEqual(report["gates"]["phase2_branch_schedule"]["failure_code"],
                          "branch_set_invalid")
+        self.assertEqual(report["total_schedule_branches"], 0)
+        self.assert_denied(report)
+
+    def test_reordered_phase2_branches_fail_the_frozen_sequence(self):
+        p1, p2, pins = fixture()
+        p2[0]["branches"][0], p2[0]["branches"][1] = (
+            p2[0]["branches"][1], p2[0]["branches"][0])
+        report = diagnose_qta_phase_schedule(
+            phase1_rows=p1, phase2_rows=p2, phase2_bindings=pins)
+        self.assertEqual(report["gates"]["phase2_branch_schedule"]["failure_code"],
+                         "branch_set_invalid")
+        self.assertEqual(report["phase2_schedule_branches"], 0)
         self.assertEqual(report["total_schedule_branches"], 0)
         self.assert_denied(report)
 

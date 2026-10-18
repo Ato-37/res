@@ -13,6 +13,7 @@ from collections.abc import Mapping
 from typing import Any
 
 from audit_nextgqa_review_release_order import _validate_release_roster
+from qta_nine_branch_plan import BRANCH_ORDER
 from nextgqa_pre_review_integrity_receipt import (
     _MAX_JSON, _canonical, _decode_signature, _parse, _sha, _sign,
     _verify_signature, ReceiptError,
@@ -35,12 +36,8 @@ PHASE_ARTIFACT_ROLES = {
     ),
 }
 PHASE_BRANCHES = {
-    "pre_baseline": ("baseline_full",),
-    "post_baseline": (
-        "baseline_evidence", "baseline_control",
-        "qta_full", "qta_evidence", "qta_control",
-        "sham_full", "sham_evidence", "sham_control",
-    ),
+    "pre_baseline": BRANCH_ORDER[:1],
+    "post_baseline": BRANCH_ORDER[1:],
 }
 _FREEZE_ID = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$")
 _TOKEN = re.compile(r"^[0-9a-f]{64}$")
