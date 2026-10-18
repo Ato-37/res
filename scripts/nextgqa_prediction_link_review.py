@@ -40,6 +40,9 @@ BASELINE_RECORD_KEYS = {
     "review_token", "question", "options", "claim", "option_log_probabilities",
     "p_index", "q_index", "video_support_decision", "reviewed_intervals_sha256",
 }
+BASELINE_SCORE_BINDING_RECORD_KEYS = BASELINE_RECORD_KEYS | {
+    "score_binding", "score_binding_sha256",
+}
 MAX_BASELINE_MANIFEST_BYTES = 8 * 1024 * 1024
 
 
@@ -147,8 +150,9 @@ def validate_prediction_link_receipt(
         _fail("baseline_manifest_json_invalid")
     if (not isinstance(manifest, dict) or set(manifest) != BASELINE_MANIFEST_KEYS
             or type(manifest.get("schema_version")) is not int
-            or manifest.get("schema_version") != 1
-            or manifest.get("purpose") != "qta_baseline_prediction_link_manifest"):
+            or (manifest.get("schema_version"), manifest.get("purpose")) not in (
+                (1, "qta_baseline_prediction_link_manifest"),
+                (2, "qta_baseline_prediction_link_manifest_v2"))):
         _fail("baseline_manifest_schema_invalid")
     expected_protocol = _sha(expected_protocol_sha256,
                              "expected_protocol_hash_invalid")
@@ -196,7 +200,9 @@ def validate_prediction_link_receipt(
     expected_tokens = []
     expected_digests = {}
     for row in baseline_rows:
-        if not isinstance(row, dict) or set(row) != BASELINE_RECORD_KEYS:
+        if (not isinstance(row, dict)
+                or set(row) not in (BASELINE_RECORD_KEYS,
+                                    BASELINE_SCORE_BINDING_RECORD_KEYS)):
             _fail("baseline_manifest_record_schema_invalid")
         digest = displayed_fields_sha256(
             row, video_claim_review_receipt_sha256=expected_video_review)

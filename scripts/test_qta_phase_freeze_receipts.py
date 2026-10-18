@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import base64
+import hashlib
 import json
 import subprocess
 import tempfile
@@ -17,6 +18,16 @@ from qta_phase_freeze_receipts import (
     verify_phase_freeze_receipt,
 )
 from qta_nine_branch_plan import BRANCH_ORDER
+from qta_phase2_plan_manifest import (
+    create_qta_phase2_plan_manifest_candidate,
+    verify_qta_phase2_plan_candidate,
+)
+from qta_nine_branch_plan import build_qta_nine_branch_plan
+from qta_three_row_plan_aggregate import (
+    FROZEN_QTA_LAYERS_1_BASED, FROZEN_QTA_LOGIT_BIAS, FROZEN_QTA_SHAM_SEED,
+)
+from qta_synthetic_cohort_preflight import preflight_synthetic_qta_cohort
+import test_qta_synthetic_adapter_composition as synthetic_composition
 
 
 class QtaPhaseFreezeReceiptTests(unittest.TestCase):
@@ -212,6 +223,185 @@ class QtaPhaseFreezeReceiptTests(unittest.TestCase):
         self.assertNotIn(b"fixture:clock_frame_evidence", self.p1)
         self.assertNotIn(b"fixture:stage2-review", self.p2)
         self.assertNotIn(b"fixture:baseline-pq", self.p2)
+
+    def _phase2_candidate_bundle(self):
+        inputs = synthetic_composition._replace_tokens(
+            synthetic_composition.synthetic_mapping_inputs())
+        clocks, processors = synthetic_composition._actual_adapter_rows(inputs)
+        inputs["clock_rows"], inputs["processor_rows"] = clocks, processors
+        preflight = preflight_synthetic_qta_cohort(**inputs)
+        preflight_raw = json.dumps(preflight, sort_keys=True,
+                                   separators=(",", ":")).encode()
+        tokens = inputs["expected_cohort_tokens"]
+        plans = []
+        baseline_rows = []
+        for index, token in enumerate(tokens):
+            group_data = inputs["expected_processor_groups_by_token"][token]
+            batch_sha = inputs["expected_processor_batch_sha256_by_token"][token]
+            scores = [-0.1, -3.0, -4.0, -5.0, -6.0]
+            score_binding = {
+                "schema_version": 1, "review_token": token,
+                "answer_label_order": ["A", "B", "C", "D", "E"],
+                "answer_token_ids": [10, 11, 12, 13, 14],
+                "choice_token_binding_sha256": f"{index + 301:064x}",
+                "prompt_sha256": f"{index + 401:064x}",
+                "input_ids_sha256": f"{index + 501:064x}",
+                "input_length": 4, "score_position": 3,
+                "score_input_token_id": 3,
+                "processor_batch_sha256": batch_sha,
+                "option_log_probabilities": scores,
+                "p_index": 0, "q_index": 1,
+                "run_digests": {name: f"{index + 601:064x}" for name in (
+                    "protocol_sha256", "model_sha256", "tokenizer_sha256",
+                    "scorer_sha256", "processor_sha256")},
+            }
+            row = {
+                "review_token": token, "question": "synthetic question",
+                "options": ["A", "B", "C", "D", "E"],
+                "claim": "synthetic claim",
+                "option_log_probabilities": scores,
+                "p_index": 0, "q_index": 1,
+                "video_support_decision": "supports_claim",
+                "reviewed_intervals_sha256": f"{index + 201:064x}",
+                "score_binding": score_binding,
+                "score_binding_sha256": hashlib.sha256(json.dumps(
+                    score_binding, ensure_ascii=False, sort_keys=True,
+                    separators=(",", ":")).encode()).hexdigest(),
+            }
+            baseline_rows.append(row)
+            plan = build_qta_nine_branch_plan(
+                row_binding_sha256=preflight["row_binding_sha256"][index],
+                temporal_groups=group_data["temporal_group_token_positions"],
+                target_group_indices=[1], sham_group_indices=[3],
+                evidence_group_indices=group_data["evidence_group_indices"],
+                control_group_indices=group_data["control_group_indices"],
+                typed_batch_sha256=batch_sha,
+                score_binding_sha256=row["score_binding_sha256"],
+                intervention_layers_1_based=FROZEN_QTA_LAYERS_1_BASED,
+                logit_bias=FROZEN_QTA_LOGIT_BIAS,
+                sham_seed=FROZEN_QTA_SHAM_SEED)
+            plans.append(plan)
+        baseline_raw = json.dumps({
+            "schema_version": 2,
+            "purpose": "qta_baseline_prediction_link_manifest_v2",
+            "video_claim_review_receipt_sha256": "a" * 64,
+            "records": baseline_rows,
+        }, ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode()
+        p1_artifacts = dict(self.p1_artifacts)
+        p1_artifacts["atomic_cohort_preflight"] = preflight_raw
+        records = [{"record_token": hashlib.sha256(token.encode("ascii")).hexdigest(),
+                    "processor_batch_sha256": inputs[
+                        "expected_processor_batch_sha256_by_token"][token]}
+                   for token in tokens]
+        p1 = self._create("pre_baseline", records, p1_artifacts)
+        manifest = create_qta_phase2_plan_manifest_candidate(
+            phase1_receipt_raw=p1, phase1_record_bindings=records,
+            phase1_preflight_raw=preflight_raw,
+            baseline_pq_manifest_raw=baseline_raw, plans=plans)
+        p2_artifacts = dict(self.p2_artifacts)
+        p2_artifacts.update({"phase1_receipt": p1,
+                             "baseline_pq_manifest": baseline_raw,
+                             "nine_branch_plan_manifest": manifest})
+        p2 = self._create("post_baseline", records, p2_artifacts,
+                          prior_phase1_receipt_raw=p1)
+        return p1_artifacts, p1, p2_artifacts, p2, records
+
+    def _verify_phase2_candidate(self, bundle):
+        p1_artifacts, p1, p2_artifacts, p2, _records = bundle
+        return verify_qta_phase2_plan_candidate(
+            phase1_receipt_raw=p1, phase1_artifact_bytes=p1_artifacts,
+            phase2_receipt_raw=p2, phase2_artifact_bytes=p2_artifacts,
+            integrity_roster_raw=self.integrity, release_roster_raw=self.release,
+            root_public_key_pem=self.keys["root"][1],
+            expected_root_public_der_sha256=self.root_pin)
+
+    def test_phase2_plan_manifest_binds_exact_receipts_preflight_and_baseline_rows(self):
+        report = self._verify_phase2_candidate(self._phase2_candidate_bundle())
+        self.assertEqual(report["status"], "phase2_plan_manifest_bound_unvalidated")
+        self.assertEqual(report["validated_plan_rows"], 3)
+        self.assertEqual(report["scheduled_phase2_forwards"], 24)
+        self.assertEqual(report["total_phase_forwards_including_phase1"], 27)
+        self.assertTrue(report["phase1_receipt_signature_valid"])
+        self.assertTrue(report["phase2_receipt_signature_valid"])
+        self.assertTrue(report["phase1_receipt_recursively_verified"])
+        self.assertTrue(report["same_freeze_id"])
+        self.assertFalse(report["plan_semantics_authenticated"])
+        self.assertEqual(report["authorized_forwards"], 0)
+
+    def test_phase2_plan_manifest_rejects_changed_signed_baseline_bytes(self):
+        bundle = self._phase2_candidate_bundle()
+        p1_artifacts, p1, p2_artifacts, _p2, records = bundle
+        p2_artifacts["baseline_pq_manifest"] += b" "
+        changed_p2 = self._create("post_baseline", records, p2_artifacts,
+                                  prior_phase1_receipt_raw=p1)
+        changed_bundle = (p1_artifacts, p1, p2_artifacts, changed_p2, records)
+        with self.assertRaisesRegex(ValueError, "phase2_manifest_baseline_pq_manifest_mismatch"):
+            self._verify_phase2_candidate(changed_bundle)
+
+    def test_phase2_plan_manifest_rejects_nonfrozen_treatment(self):
+        bundle = self._phase2_candidate_bundle()
+        p1_artifacts, p1, p2_artifacts, _p2, records = bundle
+        from qta_phase2_plan_manifest import _strict_json
+        candidate = _strict_json(p2_artifacts["nine_branch_plan_manifest"])
+        valid = candidate["records"][0]["plan"]
+        wrong = build_qta_nine_branch_plan(
+            row_binding_sha256=valid["row_binding_sha256"],
+            temporal_groups=valid["temporal_groups"],
+            target_group_indices=valid["selected_groups"]["target"],
+            sham_group_indices=valid["selected_groups"]["sham"],
+            evidence_group_indices=valid["selected_groups"]["evidence"],
+            control_group_indices=valid["selected_groups"]["control"],
+            typed_batch_sha256=valid["typed_batch_sha256"],
+            score_binding_sha256=valid["score_binding_sha256"],
+            intervention_layers_1_based=[5, 6], logit_bias=0.5,
+            sham_seed="wrong-synthetic-seed")
+        with self.assertRaisesRegex(ValueError,
+                                    "phase2_plan_differs_from_frozen_qta_protocol"):
+            create_qta_phase2_plan_manifest_candidate(
+                phase1_receipt_raw=p1, phase1_record_bindings=records,
+                phase1_preflight_raw=p1_artifacts["atomic_cohort_preflight"],
+                baseline_pq_manifest_raw=p2_artifacts["baseline_pq_manifest"],
+                plans=[wrong, *(row["plan"] for row in candidate["records"][1:])])
+
+    def test_phase2_plan_manifest_rejects_unbound_score_hash(self):
+        bundle = self._phase2_candidate_bundle()
+        p1_artifacts, p1, p2_artifacts, _p2, records = bundle
+        from qta_phase2_plan_manifest import _strict_json
+        candidate = _strict_json(p2_artifacts["nine_branch_plan_manifest"])
+        valid = candidate["records"][0]["plan"]
+        wrong = build_qta_nine_branch_plan(
+            row_binding_sha256=valid["row_binding_sha256"],
+            temporal_groups=valid["temporal_groups"],
+            target_group_indices=valid["selected_groups"]["target"],
+            sham_group_indices=valid["selected_groups"]["sham"],
+            evidence_group_indices=valid["selected_groups"]["evidence"],
+            control_group_indices=valid["selected_groups"]["control"],
+            typed_batch_sha256=valid["typed_batch_sha256"],
+            score_binding_sha256="f" * 64,
+            intervention_layers_1_based=FROZEN_QTA_LAYERS_1_BASED,
+            logit_bias=FROZEN_QTA_LOGIT_BIAS, sham_seed=FROZEN_QTA_SHAM_SEED)
+        with self.assertRaisesRegex(ValueError, "phase2_plan_score_binding_mismatch"):
+            create_qta_phase2_plan_manifest_candidate(
+                phase1_receipt_raw=p1, phase1_record_bindings=records,
+                phase1_preflight_raw=p1_artifacts["atomic_cohort_preflight"],
+                baseline_pq_manifest_raw=p2_artifacts["baseline_pq_manifest"],
+                plans=[wrong, *(row["plan"] for row in candidate["records"][1:])])
+
+    def test_phase2_candidate_rejects_different_freeze_id(self):
+        bundle = self._phase2_candidate_bundle()
+        p1_artifacts, p1, p2_artifacts, _p2, records = bundle
+        from qta_phase_freeze_receipts import create_phase_freeze_receipt
+        changed_p2 = create_phase_freeze_receipt(
+            phase="post_baseline", freeze_id="different-freeze-02",
+            record_rows=records, artifact_bytes=p2_artifacts,
+            integrity_roster_raw=self.integrity, release_roster_raw=self.release,
+            root_public_key_pem=self.keys["root"][1],
+            expected_root_public_der_sha256=self.root_pin,
+            freeze_owner_private_key_pem=self.keys["owner"][0],
+            prior_phase1_receipt_raw=p1)
+        with self.assertRaisesRegex(ValueError, "phase2_freeze_id_differs_from_phase1"):
+            self._verify_phase2_candidate((p1_artifacts, p1, p2_artifacts,
+                                           changed_p2, records))
 
 
 if __name__ == "__main__":

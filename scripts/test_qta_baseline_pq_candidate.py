@@ -3,11 +3,18 @@ from __future__ import annotations
 import hashlib
 import json
 import unittest
+from unittest.mock import patch
 
 from qta_baseline_pq_candidate import (
     CandidateError,
     build_baseline_pq_candidate,
 )
+from qta_choice_token_binding import (
+    build_choice_token_binding,
+    resolve_choice_continuation_ids,
+    validate_processed_choice_suffix,
+)
+import qta_baseline_pq_candidate as baseline_candidate
 from render_nextgqa_prediction_link_review import render_prediction_link_review_page
 
 
@@ -23,7 +30,19 @@ class BaselinePqCandidateTests(unittest.TestCase):
                 "protocol_sha256", "model_sha256", "tokenizer_sha256",
                 "scorer_sha256", "processor_sha256")
         }
-        self.answer_ids = [101, 102, 103, 104, 105]
+        self.answer_ids = list(map(ord, "ABCDE"))
+        class FakeTokenizer:
+            def encode(inner_self, text, add_special_tokens=False):
+                del add_special_tokens
+                for index in range(3):
+                    prefix = f"prompt-{index}"
+                    if text == prefix:
+                        return [300 + index, 400]
+                    if text.startswith(prefix) and len(text) == len(prefix) + 1:
+                        return [300 + index, 400, ord(text[-1])]
+                raise ValueError("unknown test prompt")
+        self.tokenizer = FakeTokenizer()
+        self.prompts = {token: f"prompt-{i}" for i, token in enumerate(self.tokens)}
         self.video_review_sha = sha("prior-video-review")
         self.rows = []
         self.source_pins = {}
@@ -81,7 +100,8 @@ class BaselinePqCandidateTests(unittest.TestCase):
             "expected_run_digests": self.run_digests,
             "expected_video_claim_review_receipt_sha256": self.video_review_sha,
             "expected_source_bindings_by_token": self.source_pins,
-            "expected_answer_token_ids": self.answer_ids,
+            "rendered_prompts_by_token": self.prompts,
+            "tokenizer": self.tokenizer,
         }
         kwargs.update(overrides)
         return build_baseline_pq_candidate(**kwargs)
@@ -97,9 +117,21 @@ class BaselinePqCandidateTests(unittest.TestCase):
         self.assertEqual(hashlib.sha256(result["baseline_manifest_raw"]).hexdigest(),
                          result["baseline_manifest_sha256"])
         manifest = json.loads(result["baseline_manifest_raw"])
-        self.assertEqual(manifest["purpose"], "qta_baseline_prediction_link_manifest")
+        self.assertEqual(manifest["schema_version"], 2)
+        self.assertEqual(manifest["purpose"], "qta_baseline_prediction_link_manifest_v2")
         self.assertEqual(len(manifest["records"]), 3)
+        for row in manifest["records"]:
+            binding = row["score_binding"]
+            self.assertEqual(binding["answer_token_ids"], self.answer_ids)
+            self.assertEqual(binding["score_position"], binding["input_length"] - 1)
+            self.assertEqual(binding["p_index"], row["p_index"])
+            self.assertEqual(binding["q_index"], row["q_index"])
+            self.assertEqual(row["score_binding_sha256"], hashlib.sha256(
+                json.dumps(binding, ensure_ascii=False, sort_keys=True,
+                           separators=(",", ":")).encode()).hexdigest())
         self.assertFalse(result["model_load_permitted"])
+        self.assertTrue(result["text_token_binding_verified"])
+        self.assertFalse(result["processor_prompt_association_verified"])
         self.assertEqual(result["branch_forwards"], 0)
         self.assertEqual(result["score_forwards"], 0)
         self.assertEqual(result["execution_authorization"], "not_granted")
@@ -112,6 +144,14 @@ class BaselinePqCandidateTests(unittest.TestCase):
             video_claim_review_receipt_sha256=self.video_review_sha)
         self.assertEqual(worksheet.count('class="p-choice"'), 3)
         self.assertEqual(worksheet.count('class="q-choice"'), 3)
+        self.assertNotIn('"score_binding"', worksheet)
+        self.assertNotIn('"answer_token_ids"', worksheet)
+        self.assertNotIn('"choice_token_binding_sha256"', worksheet)
+        self.assertNotIn('"input_ids_sha256"', worksheet)
+        for name in ("model_sha256", "tokenizer_sha256", "scorer_sha256",
+                     "processor_sha256"):
+            digest = self.run_digests[name]
+            self.assertNotIn(digest, worksheet)
 
     def test_requires_fixed_three_rows_and_expected_three_tokens(self):
         for tokens in (["opaque-1", "opaque-2"], ["opaque-1"] * 3):
@@ -122,6 +162,11 @@ class BaselinePqCandidateTests(unittest.TestCase):
         with self.assertRaisesRegex(CandidateError,
                                     "baseline_input_fixed_three_rows_required"):
             self._build()
+
+    def test_candidate_manifest_output_size_is_capped(self):
+        with patch.object(baseline_candidate, "MAX_CANDIDATE_MANIFEST_BYTES", 1):
+            with self.assertRaisesRegex(CandidateError, "baseline_manifest_bytes_invalid"):
+                self._build()
 
     def test_rejects_wrong_run_source_prompt_position_and_token_bindings(self):
         cases = [
@@ -151,6 +196,84 @@ class BaselinePqCandidateTests(unittest.TestCase):
                         self._build()
                 finally:
                     self.input_obj, self.rows = original_obj, original_rows
+
+    def test_rejects_self_consistent_but_forged_ids_and_prompt_hash(self):
+        original = self.rows[0]
+        forged_ids = [201, 202, 203, 204, 205]
+        self.rows[0] = {**original, "answer_token_ids": forged_ids,
+                        "scored_option_token_ids": forged_ids}
+        self.input_obj["records"] = self.rows
+        with self.assertRaisesRegex(CandidateError,
+                                    "baseline_option_token_binding_invalid"):
+            self._build()
+        self.rows[0] = original
+        self.input_obj["records"] = self.rows
+
+        self.rows[0] = {**original, "prompt_sha256": sha("forged-prompt")}
+        self.input_obj["records"] = self.rows
+        with self.assertRaisesRegex(CandidateError, "baseline_prompt_binding_mismatch"):
+            self._build()
+
+    def test_tokenizer_prompt_merge_and_multitoken_suffix_fail_closed(self):
+        class RetokenizingTokenizer:
+            def encode(inner_self, text, add_special_tokens=False):
+                del add_special_tokens
+                return [1, 2] if text == "prompt-0" else [1, 99, 100]
+
+        with self.assertRaisesRegex(CandidateError,
+                                    "choice_prompt_tokenization_or_binding_failed"):
+            self._build(tokenizer=RetokenizingTokenizer())
+
+        class MultiTokenTokenizer:
+            def encode(inner_self, text, add_special_tokens=False):
+                del add_special_tokens
+                if text == "prompt-0":
+                    return [1, 2]
+                if text == "prompt-0A":
+                    return [1, 2, 9, 10]
+                return [1, 2, ord(text[-1])]
+
+        with self.assertRaisesRegex(CandidateError,
+                                    "choice_prompt_tokenization_or_binding_failed"):
+            self._build(tokenizer=MultiTokenTokenizer())
+
+        class OneLabelChangedTokenizer:
+            def encode(inner_self, text, add_special_tokens=False):
+                del add_special_tokens
+                for index in range(3):
+                    prefix = f"prompt-{index}"
+                    if text == prefix:
+                        return [300 + index, 400]
+                    if text.startswith(prefix) and len(text) == len(prefix) + 1:
+                        label_id = ord(text[-1]) + (1 if text[-1] == "E" else 0)
+                        return [300 + index, 400, label_id]
+                raise ValueError("unknown test prompt")
+
+        with self.assertRaisesRegex(CandidateError,
+                                    "baseline_option_token_binding_invalid"):
+            self._build(tokenizer=OneLabelChangedTokenizer())
+
+    def test_tokenizer_binding_rejects_duplicate_ids_and_preserves_processor_suffix(self):
+        class DuplicateTokenizer:
+            def encode(inner_self, text, add_special_tokens=False):
+                del add_special_tokens
+                return [1] if text == "prefix" else [1, 7]
+
+        with self.assertRaisesRegex(ValueError, "choice_continuation_ids_not_distinct"):
+            resolve_choice_continuation_ids(DuplicateTokenizer(), "prefix")
+        with self.assertRaisesRegex(ValueError, "choice_prompt_or_label_order_invalid"):
+            resolve_choice_continuation_ids(self.tokenizer, "prompt-0", "EDCBA")
+        binding = build_choice_token_binding(
+            tokenizer=self.tokenizer, rendered_prompt="prompt-0",
+            tokenizer_sha256=self.run_digests["tokenizer_sha256"])
+        self.assertEqual(binding["answer_token_ids"], self.answer_ids)
+        validate_processed_choice_suffix([1, 2, 3], [1, 2, 3, ord("A")], ord("A"))
+        with self.assertRaisesRegex(ValueError, "processed_choice_suffix_prefix_mismatch"):
+            validate_processed_choice_suffix([1, 2, 3], [1, 8, 3, ord("A")], ord("A"))
+        with self.assertRaisesRegex(ValueError, "processed_choice_suffix_token_mismatch"):
+            validate_processed_choice_suffix([1, 2, 3], [1, 2, 3, ord("B")], ord("A"))
+        with self.assertRaisesRegex(ValueError, "processed_choice_suffix_input_invalid"):
+            validate_processed_choice_suffix([1], [True, 1], 1)
 
     def test_rejects_duplicate_keys_and_nonfinite_scores(self):
         raw = (b'{"schema_version":1,"schema_version":1,"purpose":'

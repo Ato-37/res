@@ -1,8 +1,10 @@
 """Build a non-authorizing QTA baseline p/q review-manifest candidate.
 
 This is a structural contract only. It checks a fixed three-row input bundle,
-caller-pinned source and run digests, processor/prompt/token bindings, and
-recomputes p/q from each baseline-full A-E log-probability vector. It does not
+caller-pinned source and run digests, re-derives A-E continuation IDs from each
+exact caller-supplied rendered prompt using the supplied tokenizer, binds those
+IDs and prompt hashes to the row, and recomputes p/q from each baseline-full
+A-E log-probability vector. It does not
 authenticate any pin, execute a model, verify a human review, or authorize any
 forward. A successful result is only candidate manifest bytes plus hashes.
 """
@@ -14,8 +16,11 @@ import math
 import re
 from typing import Any, Sequence
 
+from qta_choice_token_binding import build_choice_token_binding
+
 
 SHA256 = re.compile(r"^[0-9a-f]{64}$")
+MAX_CANDIDATE_MANIFEST_BYTES = 8 * 1024 * 1024
 TOKENS = ("A", "B", "C", "D", "E")
 RUN_DIGEST_FIELDS = (
     "protocol_sha256", "model_sha256", "tokenizer_sha256",
@@ -91,7 +96,7 @@ def _valid_log_probability(value: Any) -> bool:
 
 
 def _validate_row(row: Any, *, token: str, expected_source: dict[str, str],
-                  answer_token_ids: list[int]) -> dict[str, Any]:
+                  choice_binding: dict, run_digests: dict[str, str]) -> dict[str, Any]:
     if not isinstance(row, dict) or set(row) != ROW_KEYS:
         _fail("baseline_input_record_schema_invalid")
     if row["review_token"] != token:
@@ -134,6 +139,14 @@ def _validate_row(row: Any, *, token: str, expected_source: dict[str, str],
         _fail("processor_input_ids_invalid")
     if hashlib.sha256(_canonical_json(ids)).hexdigest() != row["input_ids_sha256"]:
         _fail("processor_input_ids_digest_mismatch")
+    if (not isinstance(choice_binding, dict)
+            or row["prompt_sha256"] != choice_binding.get("prompt_sha256")):
+        _fail("baseline_prompt_binding_mismatch")
+    answer_token_ids = choice_binding.get("answer_token_ids")
+    if (not isinstance(answer_token_ids, list) or len(answer_token_ids) != 5
+            or any(type(value) is not int or value < 0 for value in answer_token_ids)
+            or len(set(answer_token_ids)) != 5):
+        _fail("baseline_choice_token_binding_invalid")
     if (type(row["input_length"]) is not int or row["input_length"] != len(ids)
             or type(row["score_position"]) is not int
             or row["score_position"] != len(ids) - 1
@@ -148,6 +161,24 @@ def _validate_row(row: Any, *, token: str, expected_source: dict[str, str],
         _fail("baseline_option_token_binding_invalid")
     if type(row["score_input_token_id"]) is not int or row["score_input_token_id"] < 0:
         _fail("baseline_score_position_binding_invalid")
+    score_binding = {
+        "schema_version": 1,
+        "review_token": token,
+        "answer_label_order": list(TOKENS),
+        "answer_token_ids": list(answer_token_ids),
+        "choice_token_binding_sha256": _digest(
+            choice_binding.get("binding_sha256"), "choice_token_binding_sha256"),
+        "prompt_sha256": row["prompt_sha256"],
+        "input_ids_sha256": row["input_ids_sha256"],
+        "input_length": row["input_length"],
+        "score_position": row["score_position"],
+        "score_input_token_id": row["score_input_token_id"],
+        "processor_batch_sha256": row["processor_batch_sha256"],
+        "option_log_probabilities": list(scores),
+        "p_index": p_index,
+        "q_index": q_index,
+        "run_digests": dict(run_digests),
+    }
     return {
         "review_token": token,
         "question": row["question"], "options": row["options"],
@@ -156,6 +187,9 @@ def _validate_row(row: Any, *, token: str, expected_source: dict[str, str],
         "p_index": p_index, "q_index": q_index,
         "video_support_decision": row["video_support_decision"],
         "reviewed_intervals_sha256": row["reviewed_intervals_sha256"],
+        "score_binding": score_binding,
+        "score_binding_sha256": hashlib.sha256(
+            _canonical_json(score_binding)).hexdigest(),
     }
 
 
@@ -164,7 +198,8 @@ def build_baseline_pq_candidate(*, input_raw: bytes,
                                 expected_run_digests: dict[str, str],
                                 expected_video_claim_review_receipt_sha256: str,
                                 expected_source_bindings_by_token: dict[str, dict[str, str]],
-                                expected_answer_token_ids: Sequence[int]) -> dict[str, Any]:
+                                rendered_prompts_by_token: dict[str, str],
+                                tokenizer) -> dict[str, Any]:
     """Validate three baseline rows and return review-manifest candidate bytes.
 
     Expected digests/cohort must be supplied by a separate frozen-input process;
@@ -189,13 +224,19 @@ def build_baseline_pq_candidate(*, input_raw: bytes,
     if (not isinstance(expected_source_bindings_by_token, dict)
             or set(expected_source_bindings_by_token) != set(expected_cohort_tokens)):
         _fail("expected_source_binding_inventory_invalid")
-    if (not isinstance(expected_answer_token_ids, Sequence)
-            or isinstance(expected_answer_token_ids, (str, bytes))
-            or len(expected_answer_token_ids) != 5
-            or any(type(x) is not int or x < 0 for x in expected_answer_token_ids)
-            or len(set(expected_answer_token_ids)) != 5):
-        _fail("expected_answer_token_ids_invalid")
-    answer_ids = list(expected_answer_token_ids)
+    if (not isinstance(rendered_prompts_by_token, dict)
+            or set(rendered_prompts_by_token) != set(expected_cohort_tokens)
+            or any(not isinstance(prompt, str) or not prompt
+                   for prompt in rendered_prompts_by_token.values())):
+        _fail("rendered_prompt_inventory_invalid")
+    try:
+        choice_bindings = {
+            token: build_choice_token_binding(
+                tokenizer=tokenizer, rendered_prompt=rendered_prompts_by_token[token],
+                tokenizer_sha256=run_digests["tokenizer_sha256"])
+            for token in expected_cohort_tokens}
+    except (TypeError, ValueError, KeyError, OverflowError):
+        _fail("choice_prompt_tokenization_or_binding_failed")
     try:
         source = json.loads(input_raw.decode("utf-8"), object_pairs_hook=_unique_object,
                             parse_constant=lambda _: _fail("nonfinite_json"))
@@ -220,21 +261,29 @@ def build_baseline_pq_candidate(*, input_raw: bytes,
     manifest_rows = [
         _validate_row(row, token=token,
                       expected_source=expected_source_bindings_by_token[token],
-                      answer_token_ids=answer_ids)
+                      choice_binding=choice_bindings[token], run_digests=run_digests)
         for token, row in zip(expected_cohort_tokens, rows, strict=True)
     ]
     manifest = {
-        "schema_version": 1,
-        "purpose": "qta_baseline_prediction_link_manifest",
+        "schema_version": 2,
+        "purpose": "qta_baseline_prediction_link_manifest_v2",
         "video_claim_review_receipt_sha256": video_review_sha,
         "records": manifest_rows,
     }
     manifest_raw = _canonical_json(manifest)
+    if len(manifest_raw) > MAX_CANDIDATE_MANIFEST_BYTES:
+        _fail("baseline_manifest_bytes_invalid")
     manifest_sha = hashlib.sha256(manifest_raw).hexdigest()
     binding_commitment = {
         "input_bytes_sha256": hashlib.sha256(input_raw).hexdigest(),
         "run_digests": run_digests,
-        "answer_token_ids_sha256": hashlib.sha256(_canonical_json(answer_ids)).hexdigest(),
+        "answer_token_ids_sha256_by_token": {
+            token: hashlib.sha256(_canonical_json(
+                choice_bindings[token]["answer_token_ids"])).hexdigest()
+            for token in expected_cohort_tokens},
+        "choice_token_binding_sha256_by_token": {
+            token: choice_bindings[token]["binding_sha256"]
+            for token in expected_cohort_tokens},
         "processor_batch_sha256_by_token": {
             row["review_token"]: row["processor_batch_sha256"] for row in rows},
         "source_video_sha256_by_token": {
@@ -251,7 +300,7 @@ def build_baseline_pq_candidate(*, input_raw: bytes,
             row["review_token"]: row["score_input_token_id"] for row in rows},
     }
     return {
-        "status": "baseline_pq_review_manifest_candidate_structurally_valid",
+        "status": "baseline_pq_review_manifest_candidate_text_token_binding_valid",
         "requested_records": 3, "effective_records": 3,
         "baseline_manifest_raw": manifest_raw,
         "baseline_manifest_sha256": manifest_sha,
@@ -261,6 +310,8 @@ def build_baseline_pq_candidate(*, input_raw: bytes,
         "p_indices": [row["p_index"] for row in manifest_rows],
         "q_indices": [row["q_index"] for row in manifest_rows],
         "model_load_permitted": False,
+        "text_token_binding_verified": True,
+        "processor_prompt_association_verified": False,
         "branch_forwards": 0,
         "score_forwards": 0,
         "execution_authorization": "not_granted",
@@ -268,6 +319,8 @@ def build_baseline_pq_candidate(*, input_raw: bytes,
         "semantic_proof": False,
         "limitations": [
             "structural contract only; caller pins and candidate input are unauthenticated",
+            "rendered prompts and tokenizer object are caller supplied; prompt rendering and tokenizer bytes are not independently authenticated",
+            "multimodal processor/video token expansion and its association with the rendered text prompt are not verified by this candidate; the separate processor suffix helper is only a check primitive",
             "does not verify the trusted release/root/witness gate or stage-1 human review",
             "per-record review decisions are caller-pinned; stage-1 receipt bytes are not revalidated here",
             "does not verify model output provenance or p/q semantics beyond recomputation",
