@@ -268,3 +268,55 @@ def validate_attention_capture(capture: Any, *, expected_binding: Mapping[str, A
         "execution_authorization": "not_granted",
         "scoring_authorized": False,
     }
+
+
+def validate_capture_selection_bridge(*, capture: Any,
+                                      expected_capture_binding: Mapping[str, Any],
+                                      input_length: int,
+                                      selection_provenance: Any,
+                                      expected_selection_bindings: Mapping[str, Any],
+                                      plan: Mapping[str, Any] | None = None) -> dict[str, Any]:
+    """Join captured attention bytes to the masses used by selection arithmetic.
+
+    This proves byte/mass/selection consistency only. It does not authenticate
+    that the bytes came from a Qwen forward or authorize scoring.
+    """
+    capture_report = validate_attention_capture(
+        capture, expected_binding=expected_capture_binding,
+        input_length=input_length)
+    if not isinstance(selection_provenance, Mapping):
+        _fail("capture_selection_provenance_invalid")
+    if not isinstance(expected_selection_bindings, Mapping):
+        _fail("capture_selection_expected_bindings_invalid")
+    from qta_selection_provenance import (
+        validate_qta_selection_provenance,
+    )
+
+    validate_qta_selection_provenance(
+        selection_provenance, expected_bindings=expected_selection_bindings, plan=plan)
+    common_fields = (
+        "record_token", "row_binding_sha256", "typed_batch_sha256",
+        "baseline_pq_row_sha256", "prompt_sha256", "input_ids_sha256",
+        "question_positions", "temporal_groups",
+    )
+    if any(selection_provenance.get(field) != capture.get(field)
+           for field in common_fields):
+        _fail("capture_selection_binding_mismatch")
+    if any(expected_selection_bindings.get(field) != capture.get(field)
+           for field in common_fields):
+        _fail("capture_selection_expected_binding_mismatch")
+    if (selection_provenance.get("selector_layers_1_based")
+            != capture.get("layers_1_based")
+            or selection_provenance.get("layer_group_mass_f32_be_hex")
+            != capture.get("layer_group_masses_f32_be_hex")):
+        _fail("capture_selection_group_mass_mismatch")
+    return {
+        "status": "capture_bytes_joined_to_selection_masses_non_authorizing",
+        "attention_bytes_sha256": capture["attention_bytes_sha256"],
+        "layer_count": capture_report["layer_count"],
+        "temporal_group_count": capture_report["temporal_group_count"],
+        "forward_source_authenticated": False,
+        "attention_capture_authenticated": False,
+        "scoring_authorized": False,
+        "execution_authorization": "not_granted",
+    }

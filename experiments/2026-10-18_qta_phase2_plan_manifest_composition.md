@@ -400,6 +400,34 @@ effect estimate, uncertainty interval, or hypothesis test exists. The GPU
 smoke, real-video decode, and synthetic capture contract improve feasibility
 and reproducibility only.
 
+## Capture artifact size feasibility check
+
+The latest local real-video wiring smoke recorded only compact aggregate
+diagnostics, not attention tensors. From its observed question-token counts
+and sequence lengths (`22 x 2161`, `13 x 2056`, `13 x 2056`), the pinned
+checkpoint's 28 attention heads, 12 selected layers, and float32 storage, a
+full question-query attention capture would require **63,896,448 bytes**,
+**35,922,432 bytes**, and **35,922,432 bytes** per row: **135,741,312 bytes
+(129.43 MiB)** total before serialization. The capture-contract JSON's hex
+encoding would be about **271,482,624 bytes** before metadata. These are
+shape-derived storage estimates, not observed attention values. They exceed
+the phase receipt's current **24,000,000-byte per-artifact** and
+**96,000,000-byte total** caps, so adding full captures as-is would fail
+closed. The next capture-format design must use a bounded lossless encoding or
+recompute only the exact per-layer group masses from captured tensors, and
+must test real cohort payload size before adding a signed artifact role. No
+faithfulness scoring is authorized by this feasibility calculation.
+
+An initial component-level bridge now validates capture bytes and selection
+arithmetic separately, then requires identical row/batch/baseline/prompt/input
+bindings, layer order, and per-layer group-mass float32 encodings. Synthetic
+tampering tests cover a mass change that remains internally self-consistent
+and a re-bound batch. The bridge returns non-authorizing status and leaves
+forward/capture authenticity false. It is not yet joined to the signed phase-2
+receipt: the size check above shows that full uncompressed captures exceed
+the current receipt envelope. Focused capture tests pass **15/15**; full
+repository discovery passes **1,963/1,963** after this addition.
+
 Independent audit limitations: the standalone capture contract does not prove
 that packed bytes came from Qwen; its authority fields remain false. Native
 CUDA reductions differed from its CPU reduction, so the selector now transfers

@@ -9,8 +9,13 @@ from collections.abc import Sequence
 from qta_attention_capture_contract import (
     LAYERS,
     build_attention_capture,
+    validate_capture_selection_bridge,
     validate_attention_capture,
 )
+from qta_selection_provenance import (
+    FROZEN_SELECTOR_SOURCE_SHA256, build_qta_selection_provenance,
+)
+from qta_three_row_plan_aggregate import FROZEN_QTA_SHAM_SEED
 from qwen_question_temporal_attention_selector import aggregate_temporal_group_attention
 
 
@@ -48,6 +53,25 @@ class AttentionCaptureContractTests(unittest.TestCase):
         self.capture = build_attention_capture(binding=self.binding,
                                                attention=self.attention,
                                                input_length=8)
+
+    def _selection_bindings(self):
+        return {
+            "record_token": self.binding["record_token"],
+            "opaque_review_token": "synthetic_review_token01",
+            "row_binding_sha256": self.binding["row_binding_sha256"],
+            "typed_batch_sha256": self.binding["typed_batch_sha256"],
+            "score_binding_sha256": sha("score-binding"),
+            "baseline_pq_row_sha256": self.binding["baseline_pq_row_sha256"],
+            "prompt_sha256": self.binding["prompt_sha256"],
+            "input_ids_sha256": self.binding["input_ids_sha256"],
+            "input_length": 8,
+            "score_position": 7,
+            "question_positions": self.binding["question_positions"],
+            "temporal_groups": self.binding["temporal_groups"],
+            "selector_source_sha256": FROZEN_SELECTOR_SOURCE_SHA256,
+            "selector_layers_1_based": LAYERS,
+            "sham_seed": FROZEN_QTA_SHAM_SEED,
+        }
 
     def test_synthetic_bytes_and_group_masses_recompute(self):
         report = validate_attention_capture(self.capture,
@@ -110,6 +134,113 @@ class AttentionCaptureContractTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "capture_attention_row_not_normalized"):
             build_attention_capture(binding=self.binding, attention=changed,
                                     input_length=8)
+
+    def test_capture_bytes_join_to_exact_selection_masses(self):
+        masses = [[struct.unpack(">f", bytes.fromhex(value))[0]
+                   for value in row]
+                  for row in self.capture["layer_group_masses_f32_be_hex"]]
+        selection = build_qta_selection_provenance(
+            record_token=self.binding["record_token"],
+            opaque_review_token="synthetic_review_token01",
+            row_binding_sha256=self.binding["row_binding_sha256"],
+            typed_batch_sha256=self.binding["typed_batch_sha256"],
+            score_binding_sha256=sha("score-binding"),
+            baseline_pq_row_sha256=self.binding["baseline_pq_row_sha256"],
+            prompt_sha256=self.binding["prompt_sha256"],
+            input_ids_sha256=self.binding["input_ids_sha256"],
+            input_length=8, score_position=7,
+            question_positions=self.binding["question_positions"],
+            temporal_groups=self.binding["temporal_groups"],
+            selector_source_sha256=FROZEN_SELECTOR_SOURCE_SHA256,
+            selector_layers_1_based=LAYERS,
+            layer_group_masses=masses, sham_seed=FROZEN_QTA_SHAM_SEED)
+        report = validate_capture_selection_bridge(
+            capture=self.capture, expected_capture_binding=self.binding,
+            input_length=8, selection_provenance=selection,
+            expected_selection_bindings=self._selection_bindings())
+        self.assertEqual(report["layer_count"], 12)
+        self.assertFalse(report["forward_source_authenticated"])
+        self.assertFalse(report["scoring_authorized"])
+
+    def test_capture_selection_bridge_rejects_mass_or_binding_rebind(self):
+        masses = [[struct.unpack(">f", bytes.fromhex(value))[0]
+                   for value in row]
+                  for row in self.capture["layer_group_masses_f32_be_hex"]]
+        selection = build_qta_selection_provenance(
+            record_token=self.binding["record_token"],
+            opaque_review_token="synthetic_review_token01",
+            row_binding_sha256=self.binding["row_binding_sha256"],
+            typed_batch_sha256=self.binding["typed_batch_sha256"],
+            score_binding_sha256=sha("score-binding"),
+            baseline_pq_row_sha256=self.binding["baseline_pq_row_sha256"],
+            prompt_sha256=self.binding["prompt_sha256"],
+            input_ids_sha256=self.binding["input_ids_sha256"],
+            input_length=8, score_position=7,
+            question_positions=self.binding["question_positions"],
+            temporal_groups=self.binding["temporal_groups"],
+            selector_source_sha256=FROZEN_SELECTOR_SOURCE_SHA256,
+            selector_layers_1_based=LAYERS,
+            layer_group_masses=masses, sham_seed=FROZEN_QTA_SHAM_SEED)
+        changed_masses = copy.deepcopy(masses)
+        changed_masses[0][0] += 0.01
+        changed_mass = build_qta_selection_provenance(
+            record_token=self.binding["record_token"],
+            opaque_review_token="synthetic_review_token01",
+            row_binding_sha256=self.binding["row_binding_sha256"],
+            typed_batch_sha256=self.binding["typed_batch_sha256"],
+            score_binding_sha256=sha("score-binding"),
+            baseline_pq_row_sha256=self.binding["baseline_pq_row_sha256"],
+            prompt_sha256=self.binding["prompt_sha256"],
+            input_ids_sha256=self.binding["input_ids_sha256"],
+            input_length=8, score_position=7,
+            question_positions=self.binding["question_positions"],
+            temporal_groups=self.binding["temporal_groups"],
+            selector_source_sha256=FROZEN_SELECTOR_SOURCE_SHA256,
+            selector_layers_1_based=LAYERS,
+            layer_group_masses=changed_masses, sham_seed=FROZEN_QTA_SHAM_SEED)
+        with self.assertRaisesRegex(ValueError,
+                                    "capture_selection_group_mass_mismatch"):
+            validate_capture_selection_bridge(
+                capture=self.capture, expected_capture_binding=self.binding,
+                input_length=8, selection_provenance=changed_mass,
+                expected_selection_bindings=self._selection_bindings())
+        changed_binding = copy.deepcopy(selection)
+        changed_binding["typed_batch_sha256"] = sha("other-batch")
+        with self.assertRaisesRegex(ValueError,
+                                    "qta_selection_binding_mismatch"):
+            validate_capture_selection_bridge(
+                capture=self.capture, expected_capture_binding=self.binding,
+                input_length=8, selection_provenance=changed_binding,
+                expected_selection_bindings=self._selection_bindings())
+
+    def test_capture_selection_bridge_rejects_recomputed_token_or_seed_rebind(self):
+        masses = [[struct.unpack(">f", bytes.fromhex(value))[0]
+                   for value in row]
+                  for row in self.capture["layer_group_masses_f32_be_hex"]]
+        for token, seed in (("different_review_token01", FROZEN_QTA_SHAM_SEED),
+                            ("synthetic_review_token01", "changed-seed")):
+            with self.subTest(token=token, seed=seed):
+                selection = build_qta_selection_provenance(
+                    record_token=self.binding["record_token"],
+                    opaque_review_token=token,
+                    row_binding_sha256=self.binding["row_binding_sha256"],
+                    typed_batch_sha256=self.binding["typed_batch_sha256"],
+                    score_binding_sha256=sha("score-binding"),
+                    baseline_pq_row_sha256=self.binding["baseline_pq_row_sha256"],
+                    prompt_sha256=self.binding["prompt_sha256"],
+                    input_ids_sha256=self.binding["input_ids_sha256"],
+                    input_length=8, score_position=7,
+                    question_positions=self.binding["question_positions"],
+                    temporal_groups=self.binding["temporal_groups"],
+                    selector_source_sha256=FROZEN_SELECTOR_SOURCE_SHA256,
+                    selector_layers_1_based=LAYERS,
+                    layer_group_masses=masses, sham_seed=seed)
+                with self.assertRaises(ValueError):
+                    validate_capture_selection_bridge(
+                        capture=self.capture,
+                        expected_capture_binding=self.binding,
+                        input_length=8, selection_provenance=selection,
+                        expected_selection_bindings=self._selection_bindings())
 
     def test_selector_float32_reduction_matches_bitwise(self):
         import torch
