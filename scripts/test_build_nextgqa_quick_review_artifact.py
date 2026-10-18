@@ -5,16 +5,16 @@ from pathlib import Path
 from unittest.mock import patch
 
 from build_nextgqa_quick_review_artifact import (
-    DEFAULT_OUTPUT, browser_compatible_bytes, exploratory_item_id, private_output_path,
-    serialize_inline_json,
+    DEFAULT_OUTPUT, browser_compatible_bytes, build, exploratory_item_id, load_translations,
+    private_output_path, serialize_inline_json, translation_key,
 )
 
 
 class QuickReviewArtifactSafetyTests(unittest.TestCase):
-    def test_default_output_targets_current_traceable_v2_artifact(self):
+    def test_default_output_targets_current_traceable_v3_artifact(self):
         self.assertEqual(
             DEFAULT_OUTPUT.name,
-            "quick_review_ja_video_only_20261019_itemid_v2.html",
+            "quick_review_ja_video_only_20261019_itemid_v3.html",
         )
         self.assertTrue(DEFAULT_OUTPUT.is_relative_to(
             Path(__file__).resolve().parents[1] / "data/private_nextgqa"
@@ -73,6 +73,82 @@ class QuickReviewArtifactSafetyTests(unittest.TestCase):
 
             with patch("build_nextgqa_quick_review_artifact.subprocess.run", side_effect=fake_run):
                 self.assertEqual(browser_compatible_bytes(source), b"video-only")
+
+    def test_translation_key_does_not_reveal_source_text(self):
+        question = "private source question"
+        claim = "private source claim"
+        key = translation_key(question, claim)
+        self.assertEqual(len(key), 64)
+        self.assertNotIn(question, key)
+        self.assertNotIn(claim, key)
+        self.assertNotEqual(key, translation_key(question, "changed claim"))
+
+    def test_translation_json_requires_exact_schema_and_pair_hash_key(self):
+        with tempfile.TemporaryDirectory(dir=Path(__file__).resolve().parents[1] / "data/private_nextgqa") as tmp:
+            path = Path(tmp) / "translations.json"
+            key = translation_key("source question", "source claim")
+            path.write_text(json.dumps({"schema_version": 1, "items": {
+                key: {"question_ja": "質問？", "claim_ja": "説明。"}
+            }}), encoding="utf-8")
+            self.assertEqual(load_translations(path)[key], ("質問？", "説明。"))
+            path.write_text(json.dumps({"schema_version": 1.0, "items": {}}), encoding="utf-8")
+            with self.assertRaisesRegex(ValueError, "schema"):
+                load_translations(path)
+
+    def test_unknown_question_is_rejected_instead_of_silently_shown_in_english(self):
+        with tempfile.TemporaryDirectory(dir=Path(__file__).resolve().parents[1] / "data/private_nextgqa") as tmp:
+            package = Path(tmp) / "package"
+            package.mkdir()
+            output = Path(tmp) / "review.html"
+            records = [{"review_token": f"tok{i}", "question": f"known {i}", "claim_text": "claim"}
+                       for i in range(2)]
+            records.append({"review_token": "tok2", "question": "new item", "claim_text": "claim"})
+            (package / "index.html").write_text(
+                '<script id="data" type="application/json">'
+                + json.dumps({"records": records}) + "</script>", encoding="utf-8"
+            )
+            for i in range(3):
+                (package / f"tok{i}.mp4").write_bytes(b"mock")
+            with patch("build_nextgqa_quick_review_artifact.browser_compatible_bytes", return_value=b"mp4"):
+                with self.assertRaisesRegex(ValueError, "日本語訳がありません"):
+                    build(package, output, translations={
+                        translation_key("known 0", "claim"): ("質問0", "説明0"),
+                        translation_key("known 1", "claim"): ("質問1", "説明1"),
+                    })
+            self.assertFalse(output.exists())
+
+    def test_rendered_page_displays_japanese_and_keeps_english_source_optional(self):
+        question, question_ja, claim, claim_ja = (
+            "private source question", "日本語の質問？", "private source claim", "日本語の説明。"
+        )
+        with tempfile.TemporaryDirectory(dir=Path(__file__).resolve().parents[1] / "data/private_nextgqa") as tmp:
+            package = Path(tmp) / "package"
+            package.mkdir()
+            output = Path(tmp) / "review.html"
+            records = [{"review_token": f"tok{i}", "question": f"private question {i}", "claim_text": f"private claim {i}"}
+                       for i in range(3)]
+            records[0] = {"review_token": "tok0", "question": question, "claim_text": claim}
+            (package / "index.html").write_text(
+                '<script id="data" type="application/json">'
+                + json.dumps({"records": records}) + "</script>", encoding="utf-8"
+            )
+            for i in range(3):
+                (package / f"tok{i}.mp4").write_bytes(b"mock")
+            with patch("build_nextgqa_quick_review_artifact.browser_compatible_bytes", return_value=b"mp4"):
+                build(package, output, translations={
+                    translation_key(question, claim): (question_ja, claim_ja),
+                    translation_key("private question 1", "private claim 1"): ("質問1", "説明1"),
+                    translation_key("private question 2", "private claim 2"): ("質問2", "説明2"),
+                })
+            rendered = output.read_text(encoding="utf-8")
+            self.assertIn(question_ja, rendered)
+            self.assertIn(claim_ja, rendered)
+            self.assertIn("元の英語を見る（任意）", rendered)
+            self.assertIn("item.question_ja", rendered)
+            self.assertIn("item.claim_ja", rendered)
+            self.assertIn("item.question;", rendered)
+            self.assertIn("item.claim;", rendered)
+            self.assertEqual(output.stat().st_mode & 0o777, 0o600)
 
 
 if __name__ == "__main__":

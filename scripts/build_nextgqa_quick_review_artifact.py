@@ -10,14 +10,43 @@ import argparse
 import base64
 import hashlib
 import json
+import re
 import subprocess
 import tempfile
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_PACKAGE = ROOT / "data/private_nextgqa/reviewer_package_v6_20261018_0243"
-DEFAULT_OUTPUT = ROOT / "data/private_nextgqa/quick_review_ja_video_only_20261019_itemid_v2.html"
+DEFAULT_OUTPUT = ROOT / "data/private_nextgqa/quick_review_ja_video_only_20261019_itemid_v3.html"
+DEFAULT_TRANSLATIONS = ROOT / "data/private_nextgqa/quick_review_ja_translations_20261019.json"
 PRIVATE_ROOT = (ROOT / "data/private_nextgqa").resolve()
+
+
+def translation_key(question: str, claim: str) -> str:
+    """Bind a local translation to both protected source strings without exposing them."""
+    if not isinstance(question, str) or not isinstance(claim, str):
+        raise ValueError("訳文の照合元が不正です")
+    return hashlib.sha256((question + "\0" + claim).encode("utf-8")).hexdigest()
+
+
+def load_translations(path: Path = DEFAULT_TRANSLATIONS) -> dict[str, tuple[str, str]]:
+    """Load local-only translations keyed by the question-and-claim source hash."""
+    path = private_output_path(path)
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    if (not isinstance(payload, dict) or set(payload) != {"schema_version", "items"}
+            or type(payload.get("schema_version")) is not int
+            or payload["schema_version"] != 1 or not isinstance(payload.get("items"), dict)):
+        raise ValueError("日本語訳ファイルのschemaが不正です")
+    result = {}
+    for key, item in payload["items"].items():
+        if (not isinstance(key, str) or not re.fullmatch(r"[0-9a-f]{64}", key)
+                or not isinstance(item, dict)
+                or set(item) != {"question_ja", "claim_ja"}
+                or not all(isinstance(item[field], str) and item[field].strip()
+                           for field in ("question_ja", "claim_ja"))):
+            raise ValueError("日本語訳ファイルの項目が不正です")
+        result[key] = (item["question_ja"], item["claim_ja"])
+    return result
 
 
 def serialize_inline_json(value: object) -> str:
@@ -76,7 +105,8 @@ def browser_compatible_bytes(path: Path) -> bytes:
         return converted.read_bytes()
 
 
-def build(package_dir: Path, output: Path, *, overwrite: bool = False) -> None:
+def build(package_dir: Path, output: Path, *, overwrite: bool = False,
+          translations: dict[str, tuple[str, str]] | None = None) -> None:
     output = private_output_path(output)
     if output.exists() and not overwrite:
         raise FileExistsError(f"既存ファイルを上書きしません: {output}")
@@ -89,6 +119,8 @@ def build(package_dir: Path, output: Path, *, overwrite: bool = False) -> None:
     records = source_data.get("records")
     if not isinstance(records, list) or len(records) != 3:
         raise ValueError("この簡易確認用artifactは3件の記録が必要です")
+    if translations is None:
+        translations = load_translations()
 
     items = []
     for row in records:
@@ -97,10 +129,18 @@ def build(package_dir: Path, output: Path, *, overwrite: bool = False) -> None:
             raise ValueError("動画tokenが不正です")
         video_path = package_dir / f"{token}.mp4"
         raw = browser_compatible_bytes(video_path)
+        question = row["question"]
+        claim = row["claim_text"]
+        translated = translations.get(translation_key(question, claim))
+        if translated is None:
+            raise ValueError("固定3件の日本語訳がありません。内容を確認してから追加してください")
+        question_ja, claim_ja = translated
         items.append({
             "item_id": exploratory_item_id(token),
-            "question": row["question"],
-            "claim": row["claim_text"],
+            "question": question,
+            "question_ja": question_ja,
+            "claim": claim,
+            "claim_ja": claim_ja,
             "video_base64": base64.b64encode(raw).decode("ascii"),
         })
 
@@ -114,7 +154,7 @@ def build(package_dir: Path, output: Path, *, overwrite: bool = False) -> None:
 :root{font:16px/1.6 system-ui,sans-serif;color:#183047;background:#f3f7fa}*{box-sizing:border-box}body{margin:0}main{max-width:820px;margin:32px auto;padding:0 18px 50px}.panel{background:white;border:1px solid #d7e2e8;border-radius:18px;padding:24px;box-shadow:0 8px 24px #1232}h1{font-size:1.8rem;line-height:1.25;margin:.2rem 0 1rem}h2{font-size:1.15rem}.muted{color:#536777}.notice{padding:12px 14px;border-radius:12px;background:#fff3d7}label{display:block;margin:14px 0 6px}input[type=text],textarea{font:inherit;width:100%;padding:10px;border:1px solid #9fb3c0;border-radius:9px}textarea{min-height:76px}video{width:100%;max-height:60vh;background:#111;border-radius:12px;margin:12px 0}.choices{display:grid;gap:8px;margin:14px 0}.choices label{margin:0;padding:11px;border:1px solid #c8d8e0;border-radius:10px}.choices input{margin-right:8px}button,.button{font:inherit;font-weight:700;border:0;border-radius:10px;padding:11px 17px;background:#176b87;color:white;cursor:pointer;text-decoration:none;display:inline-block}button:disabled{opacity:.45;cursor:default}.row{display:flex;justify-content:space-between;gap:12px;align-items:center;margin-top:18px}.hidden{display:none}.tag{font-size:.9rem;color:#536777}
 </style></head><body><main>
 <section id="welcome" class="panel"><p class="muted">ローカルで行う、3件だけの探索的な確認</p><h1>ニックネームを入力して始める</h1><p>動画と説明を見て、だいたい合っているかを答えます。迷ったら「わからない」で大丈夫です。厳密な幻覚判定や研究上の結論を出すための作業ではありません。</p><p class="notice">今回は映像だけを使い、音声は含めていません。ニックネームと回答はこの端末でJSONに保存します。実名を避け、JSONは共有しない場所に保存してください。質問・動画を外部へ送信する機能はありません。3件目まで回答して最後に保存してください。この3件は正式レビュー候補と同じです。ここで動画を見た人は、同じ3件の盲検正式レビュー担当にはなれません。</p><label for="nickname">ニックネーム</label><input id="nickname" type="text" maxlength="40" autocomplete="nickname" placeholder="例：さくら"><div class="row"><span class="tag">所要時間の目安：数分</span><button id="start">質問を見る</button></div></section>
-<section id="question" class="panel hidden"><div class="row"><span id="counter" class="tag"></span><span id="who" class="tag"></span></div><h1>この動画の説明は、だいたい合っていますか？</h1><video id="video" controls playsinline preload="metadata"></video><h2>質問</h2><p id="prompt"></p><h2>動画についての説明</h2><p id="claim"></p><div class="choices" id="choices"><label><input type="radio" name="judgment" value="roughly_matches">だいたい合っている</label><label><input type="radio" name="judgment" value="partly_differs">一部ちがうように見える</label><label><input type="radio" name="judgment" value="cannot_tell">動画だけではわからない</label></div><label for="time">気になったところ（任意・およその秒数）</label><input id="time" type="text" maxlength="80" placeholder="例：動画の後半、または 00:12 あたり"><label for="note">ひとことメモ（任意）</label><textarea id="note" maxlength="500" placeholder="気づいたことがあれば"></textarea><div class="row"><button id="next">次へ</button><span id="required" class="tag">回答を1つ選んでください</span></div></section>
+<section id="question" class="panel hidden"><div class="row"><span id="counter" class="tag"></span><span id="who" class="tag"></span></div><h1>この動画の説明は、だいたい合っていますか？</h1><video id="video" controls playsinline preload="metadata"></video><h2>質問</h2><p id="prompt"></p><h2>動画についての説明</h2><p id="claim"></p><details><summary>元の英語を見る（任意）</summary><p>質問: <span id="source_prompt"></span></p><p>説明: <span id="source_claim"></span></p></details><div class="choices" id="choices"><label><input type="radio" name="judgment" value="roughly_matches">だいたい合っている</label><label><input type="radio" name="judgment" value="partly_differs">一部ちがうように見える</label><label><input type="radio" name="judgment" value="cannot_tell">動画だけではわからない</label></div><label for="time">気になったところ（任意・およその秒数）</label><input id="time" type="text" maxlength="80" placeholder="例：動画の後半、または 00:12 あたり"><label for="note">ひとことメモ（任意）</label><textarea id="note" maxlength="500" placeholder="気づいたことがあれば"></textarea><div class="row"><button id="next">次へ</button><span id="required" class="tag">回答を1つ選んでください</span></div></section>
 <section id="done" class="panel hidden"><p class="muted">探索的な確認</p><h1>ありがとうございました</h1><p>回答をローカルJSONとして保存します。この結果だけで説明の完全な正しさや幻覚性を確定することはできません。</p><button id="save">回答を保存</button><p id="saved" class="tag" aria-live="polite"></p></section>
 </main><script>
 'use strict';
@@ -123,7 +163,7 @@ let nickname='';
 let index=0;const answers=[];let activeVideoUrl='';
 const $=id=>document.getElementById(id);
 function begin(){nickname=$('nickname').value.trim();if(!nickname){$('nickname').focus();return}$('welcome').classList.add('hidden');showQuestion()}
-function showQuestion(){if(index>=items.length){$('question').classList.add('hidden');$('done').classList.remove('hidden');if(activeVideoUrl){URL.revokeObjectURL(activeVideoUrl);activeVideoUrl=''}$('video').removeAttribute('src');$('video').load();return}const item=items[index];$('question').classList.remove('hidden');$('counter').textContent=`${index+1} / ${items.length} 件目`;$('who').textContent=`ニックネーム：${nickname}`;$('prompt').textContent=item.question;$('claim').textContent=item.claim;if(activeVideoUrl)URL.revokeObjectURL(activeVideoUrl);const binary=atob(item.video_base64);const bytes=new Uint8Array(binary.length);for(let i=0;i<binary.length;i++)bytes[i]=binary.charCodeAt(i);activeVideoUrl=URL.createObjectURL(new Blob([bytes],{type:'video/mp4'}));$('video').src=activeVideoUrl;$('video').load();document.querySelectorAll('[name=judgment]').forEach(x=>x.checked=false);$('time').value='';$('note').value='';$('next').textContent=index===items.length-1?'確認を終える':'次へ';$('required').textContent='回答を1つ選んでください'}
+function showQuestion(){if(index>=items.length){$('question').classList.add('hidden');$('done').classList.remove('hidden');if(activeVideoUrl){URL.revokeObjectURL(activeVideoUrl);activeVideoUrl=''}$('video').removeAttribute('src');$('video').load();return}const item=items[index];$('question').classList.remove('hidden');$('counter').textContent=`${index+1} / ${items.length} 件目`;$('who').textContent=`ニックネーム：${nickname}`;$('prompt').textContent=item.question_ja;$('claim').textContent=item.claim_ja;$('source_prompt').textContent=item.question;$('source_claim').textContent=item.claim;if(activeVideoUrl)URL.revokeObjectURL(activeVideoUrl);const binary=atob(item.video_base64);const bytes=new Uint8Array(binary.length);for(let i=0;i<binary.length;i++)bytes[i]=binary.charCodeAt(i);activeVideoUrl=URL.createObjectURL(new Blob([bytes],{type:'video/mp4'}));$('video').src=activeVideoUrl;$('video').load();document.querySelectorAll('[name=judgment]').forEach(x=>x.checked=false);$('time').value='';$('note').value='';$('next').textContent=index===items.length-1?'確認を終える':'次へ';$('required').textContent='回答を1つ選んでください'}
 $('start').addEventListener('click',begin);$('nickname').addEventListener('keydown',e=>{if(e.key==='Enter')begin()});
 $('next').addEventListener('click',()=>{const chosen=document.querySelector('[name=judgment]:checked');if(!chosen){$('required').textContent='どれか1つ選んでください';return}answers.push({item_id:items[index].item_id,item_number:index+1,judgment:chosen.value,approximate_time:$('time').value.trim()||null,note:$('note').value.trim()||null});index++;showQuestion()});
 $('save').addEventListener('click',()=>{const result={schema_version:2,purpose:'exploratory_human_impression_check',status:'informal_observations_only',created_at_utc:new Date().toISOString(),nickname,answers,limitations:['簡単な印象確認であり、完全な幻覚判定ではない','item_idはローカルで回答を質問へ対応付けるための匿名化IDで、本人性や視聴を証明しない','本人確認・独立性・動画の視聴完了は検証していない','この結果だけからfaithfulnessの効果やモデル性能を結論づけない']};const blob=new Blob([JSON.stringify(result,null,2)+'\n'],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='exploratory_video_review_'+new Date().toISOString().replace(/[:.]/g,'-')+'.json';a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1500);$('saved').textContent='ダウンロードを開始しました。保存先を確認してください。'});
@@ -137,9 +177,12 @@ def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--package-dir", type=Path, default=DEFAULT_PACKAGE)
     parser.add_argument("--output", type=Path, default=DEFAULT_OUTPUT)
+    parser.add_argument("--translations", type=Path, default=DEFAULT_TRANSLATIONS,
+                        help="ローカル限定の日本語訳JSON（保護対象のため公開しない）")
     parser.add_argument("--overwrite", action="store_true")
     args = parser.parse_args()
-    build(args.package_dir, args.output, overwrite=args.overwrite)
+    build(args.package_dir, args.output, overwrite=args.overwrite,
+          translations=load_translations(args.translations))
 
 
 if __name__ == "__main__":
