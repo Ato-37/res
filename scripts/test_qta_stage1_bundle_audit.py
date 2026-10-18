@@ -257,6 +257,29 @@ class QtaStage1BundleAuditTests(unittest.TestCase):
         with self.assertRaises(TypeError):
             self._audit(review_report={"status": "unvalidated_handoff_structurally_valid"})
 
+    def test_raw_input_size_gate_runs_before_parsing_or_private_file_access(self):
+        with patch.object(stage1_module, "MAX_PRIVATE_ARTIFACT_BYTES", 8), \
+                patch.object(stage1_module.json, "loads",
+                             side_effect=AssertionError("parser_called")), \
+                patch.object(stage1_module, "_open_private_media_dir",
+                             side_effect=AssertionError("media_opened")):
+            result = self._audit(worksheet_raw=b"123456789")
+        self.assertEqual(result["status"], "blocked")
+        self.assertIn("raw_input:worksheet:source_size_invalid",
+                      result["failure_codes"])
+        self.assertFalse(result["model_load_permitted"])
+
+    def test_empty_and_nonbyte_raw_inputs_fail_closed_before_parsing(self):
+        for value, expected_code in ((b"", "source_size_invalid"),
+                                     ("{}", "source_type_invalid")):
+            with self.subTest(value_type=type(value).__name__), \
+                    patch.object(stage1_module.json, "loads",
+                                 side_effect=AssertionError("parser_called")):
+                result = self._audit(worksheet_raw=value)
+            self.assertEqual(result["status"], "blocked")
+            self.assertIn(f"raw_input:worksheet:{expected_code}",
+                          result["failure_codes"])
+
     def test_receipt_tamper_breaks_release_and_review_receipt_binding(self):
         result = self._audit(pre_review_receipt_raw=self.receipt_raw + b" ")
         self.assertEqual(result["status"], "blocked")
@@ -315,6 +338,25 @@ class QtaStage1BundleAuditTests(unittest.TestCase):
         self.assertTrue(result["components"]["custody"]["passed"])
         self.assertFalse(result["components"]["media_snapshot_stability"]["passed"])
         self.assertTrue(any(code.endswith(":media_path_changed_after_snapshot")
+                            for code in result["failure_codes"]))
+
+    def test_unlisted_media_added_after_snapshot_cannot_pass_aggregate(self):
+        original = stage1_module.verify_review_release_order
+
+        def verify_then_add_unlisted(**kwargs):
+            report = original(**kwargs)
+            extra = self.media_dir / ("Z" * 24 + ".mp4")
+            extra.write_bytes(b"unlisted-media")
+            extra.chmod(0o600)
+            return report
+
+        with patch.object(stage1_module, "verify_review_release_order",
+                          verify_then_add_unlisted):
+            result = self._audit()
+        self.assertEqual(result["status"], "blocked")
+        self.assertTrue(result["components"]["release_witness"]["passed"])
+        self.assertFalse(result["components"]["media_snapshot_stability"]["passed"])
+        self.assertTrue(any("media_directory_changed_after_snapshot" in code
                             for code in result["failure_codes"]))
 
     def test_bounded_source_read_rejects_early_eof_and_growth(self):

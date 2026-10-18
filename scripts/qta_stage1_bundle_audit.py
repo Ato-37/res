@@ -77,7 +77,7 @@ def _read_exact_source(value: bytes | str | Path, role: str) -> bytes:
         os.close(fd)
 
 
-def _open_private_media_dir(path: Path, expected_basenames: set[str]) -> tuple[int, tuple[int, int, int, int]]:
+def _open_private_media_dir(path: Path, expected_basenames: set[str]) -> tuple[int, tuple[int, ...]]:
     """Open and validate the private directory before any media path access."""
     if any(not re.fullmatch(r"[A-Za-z0-9_-]{24}\.mp4", name)
            for name in expected_basenames):
@@ -91,7 +91,8 @@ def _open_private_media_dir(path: Path, expected_basenames: set[str]) -> tuple[i
             raise ValueError("media_directory_invalid")
         if set(os.listdir(fd)) != expected_basenames:
             raise ValueError("media_directory_contents_invalid")
-        identity = (info.st_dev, info.st_ino, info.st_mode, info.st_uid)
+        identity = (info.st_dev, info.st_ino, info.st_mode, info.st_uid,
+                    info.st_mtime_ns, info.st_ctime_ns)
         return fd, identity
     except Exception:
         os.close(fd)
@@ -163,6 +164,40 @@ def audit_qta_stage1_bundle(*, worksheet_raw: bytes, lineage_raw: bytes,
     This is an aggregation/preflight report only. It does not evaluate the
     separate clock/frame/calibration gates, authorize model loading, or score.
     """
+    raw_sources = {
+        "worksheet": worksheet_raw, "lineage": lineage_raw,
+        "review": review_raw, "review_index": review_index_raw,
+        "custody": custody_raw, "pre_review_receipt": pre_review_receipt_raw,
+        "integrity_roster": integrity_roster_raw,
+        "release_roster": release_roster_raw, "inventory": inventory_raw,
+        "release_witness": release_witness_raw,
+        "reviewer_attestation": reviewer_attestation_raw,
+        "root_public_key": root_public_key_pem,
+    }
+    raw_input_failures = []
+    for name, raw in raw_sources.items():
+        if not isinstance(raw, bytes):
+            raw_input_failures.append(f"raw_input:{name}:source_type_invalid")
+        elif not 1 <= len(raw) <= MAX_PRIVATE_ARTIFACT_BYTES:
+            raw_input_failures.append(f"raw_input:{name}:source_size_invalid")
+    if raw_input_failures:
+        codes = sorted(raw_input_failures)
+        return {
+            "status": "blocked", "requested_records": 3,
+            "effective_records": 3, "structurally_valid_records": 0,
+            "failure_count": len(codes), "failure_codes": codes,
+            "components": {"raw_input_gate": {
+                "status": "invalid", "failure_codes": codes, "passed": False}},
+            "artifact_role_bindings": {},
+            "clock_frame_status": "not_audited_separate_gate_required",
+            "clock_calibration_status": "not_audited_separate_gate_required",
+            "model_load_permitted": False, "score_ready": False,
+            "reviewer_identity_verified": False,
+            "semantic_review_authenticated": False,
+            "frame_correspondence_verified": False,
+            "execution_authorization": "not_granted",
+        }
+
     components: dict[str, dict[str, Any]] = {}
     failures: list[str] = []
 
@@ -430,12 +465,19 @@ def audit_qta_stage1_bundle(*, worksheet_raw: bytes, lineage_raw: bytes,
             if media_dir_fd is None:
                 raise ValueError("media_directory_changed_after_snapshot")
             directory_now = os.fstat(media_dir_fd)
-            if (directory_now.st_dev, directory_now.st_ino, directory_now.st_mode,
-                    directory_now.st_uid) != media_dir_identity:
+            current_directory_identity = (
+                directory_now.st_dev, directory_now.st_ino, directory_now.st_mode,
+                directory_now.st_uid, directory_now.st_mtime_ns,
+                directory_now.st_ctime_ns)
+            if current_directory_identity != media_dir_identity:
                 raise ValueError("media_directory_changed_after_snapshot")
+            if set(os.listdir(media_dir_fd)) != set(basenames):
+                raise ValueError("media_directory_contents_changed_after_snapshot")
             directory_path_now = os.stat(Path(media_dir), follow_symlinks=False)
             if (directory_path_now.st_dev, directory_path_now.st_ino,
-                    directory_path_now.st_mode, directory_path_now.st_uid) != media_dir_identity:
+                    directory_path_now.st_mode, directory_path_now.st_uid,
+                    directory_path_now.st_mtime_ns,
+                    directory_path_now.st_ctime_ns) != media_dir_identity:
                 raise ValueError("media_directory_path_changed_after_snapshot")
             current = os.stat(basename, dir_fd=media_dir_fd, follow_symlinks=False)
             observed = (current.st_dev, current.st_ino, current.st_mode, current.st_uid,
