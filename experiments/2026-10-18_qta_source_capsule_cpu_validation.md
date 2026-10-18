@@ -50,17 +50,33 @@ source hashes are:
 This establishes synthetic implementation behavior for this utility only. It
 does not reconstruct the missing historical runner, prove the validity of any
 scientific result, or show that a future runner imported or executed capsule
-bytes. Capsule creation is not integrated into a scorer. Same-UID attackers
-remain outside the protection boundary; source allowlists and an externally
-preserved archive digest are required for meaningful provenance. No protected
-data, video, model, or GPU was used. Rights status remains unverified and all
+bytes. A prospective gate is now integrated into
+`scripts/run_nextgqa_validation_qta_annotation_proxy.py`: its CLI requires an
+explicit private capsule directory, the source capsule is captured and verified
+before dataset/checkpoint access, and the run receipt binds only the capsule
+basename, archive digest, and verified source hash map. A separate test file
+checks capture/verification, source mismatch, capsule collision, CLI
+requirement, and early receipt-name collision/symlink handling. The focused
+capsule utility, integration, and runner suites passed **47/47 tests** after
+the collision guard was added; `py_compile` passed. No model or real data was
+loaded. Runner SHA-256 is
+`3ebd42e2fc1125f81838996f02a7547e82dbba90ca8d523a800aa9d30cc903c9`; capsule
+integration test SHA-256 is
+`4d651509fa1baf39adc063a108f24fe3cbd9441cb61db3a9d943824bc7c80c8e`.
+
+Same-UID attackers remain outside the protection boundary; source allowlists
+and an externally preserved archive digest are required for meaningful
+provenance. The runner gate proves only that the declared source bytes were
+captured and verified before this process proceeds; it does not prove the model
+executed capsule bytes from an immutable imported tree. No protected data,
+video, model, or GPU was used. Rights status remains unverified and all
 protected outputs remain local-only.
 
 ## Next action
 
-The next human-free work item is a separate, narrowly scoped prospective
-runner integration that writes capsules only to a mode-0700 location outside
-the Git worktree and binds the archive digest, ordered source allowlist, and
-run-time source hashes into its private receipt before model loading. Verify
-the exact import/source closure before any new GPU run. Keep prior results
-exploratory and do not claim recovered provenance retroactively.
+Next, assess a disjoint, pre-outcome cohort and direct claim-linked measurement
+only after the human review gates provide valid annotations. If an annotation-
+proxy run is proposed before then, use a fresh predeclared cohort and preserve
+its exploratory label; the previously used 30-row validation pilot and 490
+test-video pool are closed to additional outcome-driven searches. Keep prior
+results exploratory and do not claim recovered provenance retroactively.

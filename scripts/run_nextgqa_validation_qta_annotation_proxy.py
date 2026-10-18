@@ -26,6 +26,8 @@ import subprocess
 import sys
 import time
 
+from qta_source_capsule import capture_source_capsule, recover_source_capsule
+
 PILOT_MANIFEST_SHA256 = "968ed130684510de8c6fe7e91a4c0ed90db2cac90a8b2200ff3b55254cd77875"
 PILOT_RUN_MANIFEST = "results/faithfulness_validation_pilot_20261008_run_manifest.json"
 PILOT_RUN_MANIFEST_SHA256 = "20da1bc521c67aad20f6c9593ca7639ddd1b4eaec750263c2edd812493025f83"
@@ -59,6 +61,7 @@ SOURCE_FILES = (
     "scripts/qwen_review_interval_token_groups.py",
     "scripts/fixed_prediction_selective_dependence.py",
     "scripts/audit_qwen_checkpoint_bytes_cpu.py",
+    "scripts/qta_source_capsule.py",
     "docs/qwen_question_attention_faithfulness_protocol_v1_draft.md",
     "experiments/2026-10-18_qta_treatment_selection.md",
     "experiments/2026-10-18_qta_annotation_anchor_proxy_v1.md",
@@ -279,7 +282,8 @@ def validate_shared_batch_fingerprints(fingerprints: dict) -> str:
 def failure_receipt(*, requested_n: int, stage: str, error_type: str,
                     preflight_attempted: int, preflight_completed: int,
                     branch_counts: dict, failure_detail: str | None = None,
-                    evidence_selection_policy="all_annotations") -> dict:
+                    evidence_selection_policy="all_annotations",
+                    source_capsule: dict | None = None) -> dict:
     return {"status": "failed_incomplete_no_cohort_estimate",
             "scope": "NExT-GQA annotation-interval dependence proxy; not explanation faithfulness",
             "evidence_selection_policy": evidence_selection_policy,
@@ -293,6 +297,7 @@ def failure_receipt(*, requested_n: int, stage: str, error_type: str,
                               for name, counts in branch_counts.items()}, "records": [],
             "finite_cohort_delta_f": None,
             "inference": "none; incomplete denominator",
+            "source_capsule": source_capsule,
             "execution_authorization": "local_only_user_authorized"}
 
 
@@ -379,6 +384,40 @@ def source_hashes(repo: Path) -> tuple[str, dict[str, str]]:
     commit = subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=repo,
                                      text=True).strip()
     return commit, {relative: sha256_file(repo / relative) for relative in SOURCE_FILES}
+
+
+class SourceCapsuleMismatch(ValueError):
+    def __init__(self, metadata: dict):
+        super().__init__("source_capsule_source_hash_mismatch")
+        self.source_capsule = metadata
+
+
+def capture_verified_source_capsule(repo: Path, capsule_directory: Path | str,
+                                   output_name: str,
+                                   expected_source_hashes: dict[str, str]) -> dict:
+    """Capture and reverify the frozen source allowlist before data/model work."""
+    if (not isinstance(output_name, str)
+            or not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9_.-]{0,119}", output_name)):
+        raise ValueError("source_capsule_output_name_invalid")
+    if (not isinstance(expected_source_hashes, dict)
+            or tuple(expected_source_hashes) != SOURCE_FILES):
+        raise ValueError("source_capsule_expected_map_invalid")
+    capsule_name = f"{output_name}.source-capsule.zip"
+    capsule_path = Path(capsule_directory) / capsule_name
+    captured = capture_source_capsule(source_root=repo, ordered_paths=SOURCE_FILES,
+                                      output_path=capsule_path)
+    verified = recover_source_capsule(
+        capsule_path=capsule_path, expected_paths=SOURCE_FILES,
+        expected_archive_sha256=captured["archive_sha256"])
+    verified_map = dict(zip(SOURCE_FILES, verified["file_sha256"], strict=True))
+    metadata = {"basename": capsule_name,
+                "archive_sha256": verified["archive_sha256"],
+                "verified_source_sha256": verified_map,
+                "verified_before_data_access": True,
+                "provenance_authenticated": False}
+    if verified_map != expected_source_hashes:
+        raise SourceCapsuleMismatch(metadata)
+    return metadata
 
 
 def _video_key(value: str) -> str:
@@ -756,9 +795,7 @@ def score_one(model, processor, torch, item, *, frames, decode, expected_plan,
 
 def write_private_output(repo: Path, filename: str, payload: dict):
     """Create an exclusive mode-0600 file directly under private_nextgqa."""
-    if (not isinstance(filename, str) or not filename or Path(filename).name != filename
-            or filename in {".", ".."}):
-        raise ValueError("private_output_filename_invalid")
+    validate_private_output_name(filename)
     directory_flags = os.O_RDONLY | getattr(os, "O_DIRECTORY", 0) | getattr(os, "O_NOFOLLOW", 0)
     repo_fd = os.open(repo, directory_flags)
     try:
@@ -788,12 +825,47 @@ def write_private_output(repo: Path, filename: str, payload: dict):
         os.close(private_fd)
 
 
+def validate_private_output_name(filename: str) -> None:
+    if (not isinstance(filename, str)
+            or not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9_.-]{0,119}", filename)):
+        raise ValueError("private_output_filename_invalid")
+
+
+def assert_private_output_slot_free(repo: Path, filename: str) -> None:
+    """Fail before data/model work when a receipt name already exists."""
+    validate_private_output_name(filename)
+    directory_flags = os.O_RDONLY | getattr(os, "O_DIRECTORY", 0) | getattr(os, "O_NOFOLLOW", 0)
+    repo_fd = os.open(repo, directory_flags)
+    try:
+        data_fd = os.open("data", directory_flags, dir_fd=repo_fd)
+        try:
+            private_fd = os.open("private_nextgqa", directory_flags, dir_fd=data_fd)
+        finally:
+            os.close(data_fd)
+    finally:
+        os.close(repo_fd)
+    try:
+        root_stat = os.fstat(private_fd)
+        if (not stat.S_ISDIR(root_stat.st_mode) or root_stat.st_uid != os.getuid()
+                or stat.S_IMODE(root_stat.st_mode) != 0o700):
+            raise ValueError("private_output_root_invalid")
+        try:
+            os.stat(filename, dir_fd=private_fd, follow_symlinks=False)
+        except FileNotFoundError:
+            return
+        raise FileExistsError("private_output_collision")
+    finally:
+        os.close(private_fd)
+
+
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--n", type=int, choices=(1, 30), required=True,
                         help="1 is engineering smoke; 30 is the only cohort analysis")
     parser.add_argument("--output-name", required=True,
                         help="new filename directly under data/private_nextgqa")
+    parser.add_argument("--source-capsule-dir", required=True,
+                        help="existing owner-only mode-0700 directory outside the Git worktree")
     parser.add_argument("--pilot-manifest", default=None,
                         help="defaults to the fixed private manifest inside this repository")
     parser.add_argument("--video-root", default=str(Path.home() / "nextgqa_sample/NExTVideo"))
@@ -806,17 +878,27 @@ def main(argv=None):
     if not args.user_authorized_local_only:
         parser.error("explicit_local_only_authorization_required")
     repo = Path(__file__).resolve().parents[1]
+    try:
+        assert_private_output_slot_free(repo, args.output_name)
+    except FileExistsError:
+        parser.error("private_output_collision")
+    except ValueError:
+        parser.error("private_output_contract_invalid")
     pilot_manifest = resolve_pilot_manifest(repo, args.pilot_manifest)
     smoke = args.n == 1
     branch_counts = {name: {"requested": args.n, "attempted": 0, "completed": 0}
                      for name in BRANCH_NAMES}
     preflight_counts = {"attempted": 0, "completed": 0}
     stage = "source_preflight"
+    source_capsule = None
     outputs = []
     started = datetime.now(timezone.utc).isoformat()
     start = time.monotonic()
     try:
         commit, executed_source_hashes = source_hashes(repo)
+        stage = "source_capsule_capture_verify"
+        source_capsule = capture_verified_source_capsule(
+            repo, args.source_capsule_dir, args.output_name, executed_source_hashes)
         selected, cohort_sha, dataset_hashes, run_manifest_hash, v6_exclusion_hashes = load_fixed_rows(
             repo, pilot_manifest, Path(args.video_root), smoke=smoke)
         model_path = (Path.home() / ".cache/huggingface/hub/models--Qwen--Qwen2.5-VL-7B-Instruct"
@@ -940,6 +1022,7 @@ def main(argv=None):
             "v6_exclusion_set_sha256": _canonical_hash(sorted(v6_exclusion_hashes)),
             "checkpoint_byte_audit": checkpoint_audit,
             "source_commit": commit, "source_sha256": executed_source_hashes,
+            "source_capsule": source_capsule,
             "environment": {name: importlib.metadata.version(name) for name in
                             ("torch", "transformers", "bitsandbytes", "av", "qwen-vl-utils")},
             "execution_authorization": "local_only_user_authorized",
@@ -947,13 +1030,16 @@ def main(argv=None):
             "provenance_limit": "processor/tokenizer/config hashes are measured for this run and bound to the pinned local revision; no independently predeclared expected digest for these artifacts was available",
         }
     except Exception as exc:
+        if isinstance(exc, SourceCapsuleMismatch):
+            source_capsule = exc.source_capsule
         receipt = failure_receipt(requested_n=args.n, stage=stage,
                                   error_type=type(exc).__name__,
                                   preflight_attempted=preflight_counts["attempted"],
                                   preflight_completed=preflight_counts["completed"],
                                   branch_counts=branch_counts,
                                   failure_detail=safe_failure_detail(exc),
-                                  evidence_selection_policy=args.evidence_selection_policy)
+                                  evidence_selection_policy=args.evidence_selection_policy,
+                                  source_capsule=source_capsule)
         try:
             write_private_output(repo, args.output_name, receipt)
         except Exception as write_exc:
