@@ -72,8 +72,6 @@ def bind_qta_actual_qa_source(*, csv_raw: bytes, claim_manifest_raw: bytes,
         "lineage_manifest": lineage_manifest_raw,
         "qta_protocol": qta_protocol_raw, "qta_config": qta_config_raw,
     }
-    hashes = {name: _sha(raw) if isinstance(raw, bytes) else None
-              for name, raw in raw_inputs.items()}
     summary: dict[str, Any] = {
         "schema_version": 1,
         "purpose": "qta_actual_qa_source_binding_unvalidated",
@@ -96,6 +94,9 @@ def bind_qta_actual_qa_source(*, csv_raw: bytes, claim_manifest_raw: bytes,
             raise ValueError("input_bytes_invalid")
         if any(len(raw) > MAX_INPUT_BYTES for raw in raw_inputs.values()):
             raise ValueError("input_byte_limit_exceeded")
+        # Enforce input caps before hashing so oversized caller-controlled byte
+        # strings cannot trigger an unbounded hashing pass before rejection.
+        hashes = {name: _sha(raw) for name, raw in raw_inputs.items()}
         if (not isinstance(expected_qta_protocol_sha256, str)
                 or not SHA256.fullmatch(expected_qta_protocol_sha256)
                 or hashes["qta_protocol"] != expected_qta_protocol_sha256):

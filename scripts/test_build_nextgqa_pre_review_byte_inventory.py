@@ -96,6 +96,7 @@ class SyntheticPreReviewInventoryTests(unittest.TestCase):
             "qta_prediction_link_renderer",
             "actual_qa_source_adapter",
             "qta_actual_qa_source_contract",
+            "qta_actual_qa_source_binding_cli",
             "qta_actual_prebaseline_diagnostic",
             "qta_prescore_review_row_adapter",
             "annotation_clock_calibration",
@@ -305,6 +306,22 @@ class SyntheticPreReviewInventoryTests(unittest.TestCase):
         result = build_inventory(self.root, output)
         self.assertNotIn("python_source_import_closure", result["missing_required_slots"])
         self.assertEqual(result["missing_required_slots"], [])
+
+    def test_qta_binding_cli_direct_contract_dependency_is_registered(self):
+        cli = self.root / "scripts" / "run_qta_actual_qa_source_binding_smoke.py"
+        cli.write_text(
+            "from qta_actual_qa_source_contract import bind_qta_actual_qa_source\n",
+            encoding="utf-8")
+        output = self.root / PRIVATE_ROOT / "inventory-qta-binding-cli-dependency"
+        result = build_inventory(self.root, output)
+        roles = {row["role"] for row in result["artifacts"]}
+        self.assertIn("qta_actual_qa_source_binding_cli", roles)
+        self.assertIn("qta_actual_qa_source_contract", roles)
+        self.assertNotIn("python_source_import_closure", result["missing_required_slots"])
+        self.assertEqual(result["missing_required_slots"], [])
+        self.assertFalse(result["joint_freeze"])
+        self.assertFalse(result["score_ready"])
+        self.assertEqual(result["execution_authorization"], "not_granted")
 
     def test_unsupported_relative_or_package_imports_block_inventory(self):
         scripts = self.root / "scripts"

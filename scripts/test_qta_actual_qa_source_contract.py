@@ -1,8 +1,9 @@
 import hashlib
 import json
 import unittest
+from unittest.mock import patch
 
-from qta_actual_qa_source_contract import bind_qta_actual_qa_source
+from qta_actual_qa_source_contract import MAX_INPUT_BYTES, bind_qta_actual_qa_source
 from nextgqa_actual_qa_source_adapter import build_actual_qa_source
 from test_nextgqa_actual_qa_source_adapter import make_inputs
 
@@ -201,6 +202,16 @@ class QtaActualQaSourceContractTests(unittest.TestCase):
         self.assertEqual(result["summary"]["failure_code"], "duplicate_json_key")
         result = self.invoke(csv_raw=self.csv + b"\n")
         self.assertEqual(result["summary"]["failure_code"], "lineage_test_csv_hash_mismatch")
+        self.assertIsNone(result["private_bundle"])
+        self.assert_denied(result)
+
+    def test_oversized_input_is_rejected_before_hashing(self):
+        with patch("qta_actual_qa_source_contract._sha",
+                   side_effect=AssertionError("hash_should_not_run")):
+            result = self.invoke(csv_raw=b"x" * (MAX_INPUT_BYTES + 1))
+        self.assertEqual(result["summary"]["failure_code"],
+                         "input_byte_limit_exceeded")
+        self.assertEqual(result["summary"]["validated_rows"], 0)
         self.assertIsNone(result["private_bundle"])
         self.assert_denied(result)
 

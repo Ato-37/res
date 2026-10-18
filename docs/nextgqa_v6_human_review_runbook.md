@@ -301,8 +301,11 @@ files mode 0600 in directories mode 0700; do not publish them. The custodian che
 package/media hashes, and source mapping with the existing handoff audit. A
 structural pass does not authenticate reviewer identity or semantic support.
 
-An optional detached reviewer-key attestation v2 is available in
-`scripts/nextgqa_completed_review_attestation.py`. Only after a real review
+The detached reviewer-key attestation v2 is produced separately from the page
+export by `scripts/nextgqa_completed_review_attestation.py`. It is not required
+to save a local draft review, but it is required by the current
+`scripts/qta_stage1_bundle_audit.py` for a passing stage-1 bundle audit. Without
+a valid attestation, keep the pre-load gate blocked. Only after a real review
 export exists and the custodian's structural audit passes, the claim reviewer
 may sign the exact frozen worksheet, lineage, review JSON, and review index
 using the `sign` subcommand. Supply the integrity roster, root public key, and
