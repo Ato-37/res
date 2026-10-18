@@ -215,6 +215,29 @@ class QtaBindingCliTests(unittest.TestCase):
         self.assertNotIn(_sha((self.root / self.paths["protocol"]).read_bytes()), public)
         self.assertNotIn(_sha((self.root / self.paths["config"]).read_bytes()), public)
 
+    def test_official_pre_review_candidate_inventory_path_is_accepted(self):
+        old_directory = (self.root / self.inventory_path).parent
+        new_relative = (
+            "data/private_nextgqa/"
+            "pre_review_inventory_candidate_20261018_synthetic"
+            "/pre_review_candidate_byte_inventory.json")
+        new_directory = self.root / new_relative
+        old_directory.rename(new_directory.parent)
+        self.inventory_path = new_relative
+        code, report, _ = self.run_cli_report()
+        self.assertEqual(code, 0)
+        self.assertEqual(report["status"], "source_binding_passed_unvalidated")
+        self.assertEqual((report["requested_rows"], report["validated_rows"]), (3, 3))
+        self.assertEqual(report["forwards"], 0)
+        self.assertEqual(report["score_calls"], 0)
+        self.assertEqual(report["inventory_pin_provenance"],
+                         "caller_supplied_local_unverified")
+        self.assertFalse(report["inventory_is_trust_root"])
+        self.assertFalse(report["model_load_permitted"])
+        self.assertFalse(report["execution_authorized"])
+        self.assertFalse(report["scoring_authorized"])
+        self.assert_denials(report)
+
     def test_protocol_worktree_must_equal_pinned_git_blob(self):
         path = self.root / self.paths["protocol"]
         path.write_bytes(b"changed synthetic protocol\n")
@@ -401,6 +424,16 @@ class QtaBindingCliTests(unittest.TestCase):
         with self.assertRaisesRegex(BindingInputError, "inventory_path_not_allowlisted_pattern"):
             run_binding(args=self.args(inventory="data/private_nextgqa/other.json"),
                         repo_root=self.root)
+        for unsafe in (
+                "data/private_nextgqa/pre_review_inventory_candidate_/"
+                "pre_review_candidate_byte_inventory.json",
+                "data/private_nextgqa/pre_review_inventory_candidate_ok/../"
+                "inventory-x/pre_review_candidate_byte_inventory.json",
+                "/data/private_nextgqa/pre_review_inventory_candidate_x/"
+                "pre_review_candidate_byte_inventory.json"):
+            with self.subTest(unsafe=unsafe), self.assertRaisesRegex(
+                    BindingInputError, "inventory_path_not_allowlisted_pattern"):
+                run_binding(args=self.args(inventory=unsafe), repo_root=self.root)
 
 
 if __name__ == "__main__":

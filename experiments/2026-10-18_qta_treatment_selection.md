@@ -61,9 +61,24 @@ Human/trust/timing gates, production claim-mapped scorer and cohort-wide
 preflight, confirmatory SESOI/sample-size/uncertainty plan, and treatment
 efficacy remain unresolved. Existing GPU results are synthetic engineering or
 selector-wiring checks and do not count as faithfulness progress. Do not launch
-another GPU job until a separately audited run can use authentic reviewed
-evidence/control mappings and the fixed treatment without relaxing these gates.
-Rights remain unverified; protected inputs and review outputs stay local.
+another GPU job for the claim-linked primary until a separately audited run can
+use authentic reviewed evidence/control mappings and the fixed treatment
+without relaxing these gates. Rights remain unverified; protected inputs and
+review outputs stay local.
+
+### Scope clarification for independent annotation-proxy work (2026-10-18)
+
+The GPU restriction above applies to the claim-linked primary branch and any
+run presented as explanation-faithfulness evidence. It does not prohibit the
+separately specified NExT-GQA annotation-interval dependence proxy in
+`experiments/2026-10-18_qta_validation_annotation_proxy.md`, which the user
+explicitly requested alongside the human-review work. That branch uses only
+benchmark `gsub` intervals and the historical validation cohort; it is
+exploratory, non-primary, and cannot change any direct-faithfulness count or
+claim. Keep its output and conclusions separate from the primary branch. This
+clarification does not relax reviewer, trust-root, clock, or execution gates
+for claim-linked scoring. Rights remain unverified and all data/results stay
+local.
 
 ## Next action
 

@@ -49,7 +49,9 @@ PINNED_CODE_PATHS = (
 )
 PRIVATE_DIRECTORY = "data/private_nextgqa"
 INVENTORY_RE = re.compile(
-    r"^data/private_nextgqa/inventory-[A-Za-z0-9._-]{1,64}/"
+    r"^data/private_nextgqa/(?:"
+    r"inventory-[A-Za-z0-9._-]{1,64}|"
+    r"pre_review_inventory_candidate_[A-Za-z0-9._-]{1,64})/"
     r"pre_review_candidate_byte_inventory\.json$"
 )
 INVENTORY_BINDINGS = {
@@ -573,7 +575,8 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--config", required=True,
                         help="repo-relative QTA config source file path")
     parser.add_argument("--inventory", required=True,
-                        help="local candidate inventory path under data/private_nextgqa/inventory-*/")
+                        help=("local candidate inventory under data/private_nextgqa/ "
+                              "using inventory-* or pre_review_inventory_candidate_*"))
     parser.add_argument("--expected-inventory-sha256", required=True,
                         help="explicit caller pin for the candidate inventory bytes; local and unverified")
     parser.add_argument("--pin-commit", required=True,
