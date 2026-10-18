@@ -21,9 +21,14 @@ The fixed source is arXiv v1, submitted 2026-04-03:
   and add a scaled retrieval vector to intermediate token states. The main
   paper does not report a numerical reinjection scale `lambda` or an
   operational boundary/width for the trigger-layer neighborhood. It says code
-  is in supplementary material. The arXiv TeX-source endpoint was inaccessible
-  through the available source browser; no claim is made about what the
-  supplement contains.
+  is in supplementary material. The arXiv source endpoint was initially
+  unavailable through the browser. A later download of the v1 source archive
+  succeeded (SHA-256
+  `11c9984b8a8f45fd97c7c768a08944bd705385ef0fb3918deaad79397b3c8472`), but
+  its file listing contained only the README, figures, bibliography, and TeX;
+  it did not contain supplementary code. This establishes only what that
+  downloaded archive contains, not whether separate supplementary material or
+  author code exists elsewhere.
 - The Qwen2.5-VL-7B row reports NExT-QA official accuracy of 59.63% baseline
   and 60.87% with STEAR (absolute `+1.24` percentage points). The paper's
   headline comparison is benchmark accuracy; this is not the thesis's
@@ -39,7 +44,8 @@ The fixed source is arXiv v1, submitted 2026-04-03:
 
 STEAR remains prior art and a possible separately named comparator. Do not
 freeze it as the primary treatment from the main paper alone: key operator
-details are unspecified there, the supplementary source was not obtained, and
+details are unspecified there, the downloaded source archive omitted the
+supplementary code, and
 the proposed Qwen mapping changes the method. Do not tune missing parameters on
 the current outcome cohort. A reproduction claim requires the supplement or
 author implementation plus a source-level Qwen mapping; a new adaptation would
