@@ -27,6 +27,8 @@ from typing import Any
 
 from PIL import Image
 from prepare_html5_clock_calibration_inputs import prepare_capture_bundle
+from nextgqa_capture_operator_attestation import verify_attestation
+from nextgqa_pre_review_integrity_receipt import _verify_signature
 
 TOKEN_RE = re.compile(r"^[A-Za-z0-9_-]{24}$")
 SHA_RE = re.compile(r"^[0-9a-f]{64}$")
@@ -38,7 +40,23 @@ EVIDENCE_KEYS = {
     "screenshot_crop_rgb_sha256", "decoder_frame_index", "decoder_pts_seconds",
     "decoder_rgb_sha256", "correspondence_decision",
 }
+EVIDENCE_V2_KEYS = {
+    "schema_version", "purpose", "plan_sha256", "plan_provenance_sha256",
+    "observations_sha256", "observation_index_sha256", "capture_receipt_sha256",
+    "capture_operator_attestation_sha256", "capture_operator_integrity_roster_sha256",
+    "capture_operator_release_roster_sha256", "capture_operator_trust_root_der_sha256",
+    "capture_operator_key_id", "capture_operator_key_der_sha256",
+    "capture_operator_signature_verified", "capture_operator_human_identity_verified",
+    "capture_operator_process_authenticated", "capture_operator_frame_correspondence_reviewed",
+    "capture_operator_score_ready", "model_load_permitted", "scoring_authorized",
+    "execution_authorization", "reviewer_identity_verified",
+    "reviewer_public_key_sha256", "reviewer_pseudonym",
+    "reviewer_role", "independence_attestation", "visual_inspection_attestation",
+    "created_at_utc", "records",
+}
 MAX_FILE = 20_000_000
+MAX_CAPTURE_ARTIFACT = 40_000_000
+EVIDENCE_DOMAIN_V2 = b"nextgqa_clock_frame_evidence_manifest_v2\0"
 
 
 def _sha(raw: bytes) -> str:
@@ -149,13 +167,125 @@ def _leaf(value: Any, label: str) -> str:
     return value
 
 
+def _open_absolute_directory(directory: Path) -> int:
+    if not directory.is_absolute() or any(part in {".", ".."} for part in directory.parts):
+        raise ValueError("artifact_directory_path_invalid")
+    flags = (os.O_RDONLY | getattr(os, "O_DIRECTORY", 0)
+             | getattr(os, "O_NOFOLLOW", 0) | getattr(os, "O_CLOEXEC", 0))
+    current = os.open("/", flags)
+    try:
+        for part in directory.parts[1:]:
+            next_fd = os.open(part, flags, dir_fd=current)
+            os.close(current)
+            current = next_fd
+        return current
+    except Exception:
+        os.close(current)
+        raise
+
+
+def _stat_identity(info: os.stat_result) -> tuple[int, int, int, int, int, int, int]:
+    return (info.st_dev, info.st_ino, info.st_mode, info.st_uid,
+            info.st_size, info.st_mtime_ns, info.st_ctime_ns)
+
+
+def _read_dir_leaf(directory_fd: int, name: str, label: str) -> tuple[bytes, tuple]:
+    flags = os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0) | getattr(os, "O_CLOEXEC", 0)
+    fd = os.open(name, flags, dir_fd=directory_fd)
+    try:
+        before = os.fstat(fd)
+        if (not stat.S_ISREG(before.st_mode) or before.st_uid != os.geteuid()
+                or stat.S_IMODE(before.st_mode) != 0o600
+                or not 0 < before.st_size <= MAX_CAPTURE_ARTIFACT):
+            raise ValueError(label + "_artifact_file_invalid")
+        chunks, remaining = [], before.st_size
+        while remaining:
+            chunk = os.read(fd, min(1024 * 1024, remaining))
+            if not chunk:
+                raise ValueError(label + "_artifact_changed_during_read")
+            chunks.append(chunk)
+            remaining -= len(chunk)
+        if os.read(fd, 1):
+            raise ValueError(label + "_artifact_changed_during_read")
+        after = os.fstat(fd)
+        if _stat_identity(before) != _stat_identity(after):
+            raise ValueError(label + "_artifact_changed_during_read")
+        return b"".join(chunks), _stat_identity(before)
+    finally:
+        os.close(fd)
+
+
+def _artifact_directory(directory: Path, expected_names: set[str], label: str) -> dict[str, bytes]:
+    if (not isinstance(expected_names, set) or not expected_names
+            or any(not isinstance(name, str) or Path(name).name != name
+                   or name in {".", ".."} for name in expected_names)):
+        raise ValueError(label + "_artifact_set_invalid")
+    _private_dir(directory, label)
+    try:
+        directory_fd = _open_absolute_directory(directory)
+    except (OSError, ValueError):
+        raise ValueError(label + "_directory_unavailable_or_symlink") from None
+    try:
+        before_dir = os.fstat(directory_fd)
+        if (not stat.S_ISDIR(before_dir.st_mode) or before_dir.st_uid != os.geteuid()
+                or stat.S_IMODE(before_dir.st_mode) != 0o700):
+            raise ValueError(label + "_directory_invalid")
+        if set(os.listdir(directory_fd)) != expected_names:
+            raise ValueError(label + "_artifact_set_invalid")
+        files, identities = {}, {}
+        for name in sorted(expected_names):
+            files[name], identities[name] = _read_dir_leaf(directory_fd, name, label)
+        if set(os.listdir(directory_fd)) != expected_names:
+            raise ValueError(label + "_directory_changed_during_read")
+        after_dir = os.fstat(directory_fd)
+        dir_identity = (before_dir.st_dev, before_dir.st_ino, before_dir.st_mode,
+                        before_dir.st_uid)
+        if dir_identity != (after_dir.st_dev, after_dir.st_ino, after_dir.st_mode,
+                            after_dir.st_uid):
+            raise ValueError(label + "_directory_changed_during_read")
+        try:
+            path_fd = _open_absolute_directory(directory)
+        except (OSError, ValueError):
+            raise ValueError(label + "_directory_path_changed_during_read") from None
+        try:
+            path_info = os.fstat(path_fd)
+            if dir_identity != (path_info.st_dev, path_info.st_ino,
+                                path_info.st_mode, path_info.st_uid):
+                raise ValueError(label + "_directory_path_changed_during_read")
+            if set(os.listdir(path_fd)) != expected_names:
+                raise ValueError(label + "_directory_changed_during_read")
+            for name, identity in identities.items():
+                try:
+                    check_fd = os.open(name, os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0)
+                                       | getattr(os, "O_CLOEXEC", 0), dir_fd=path_fd)
+                except OSError:
+                    raise ValueError(label + "_artifact_path_changed_during_read") from None
+                try:
+                    if _stat_identity(os.fstat(check_fd)) != identity:
+                        raise ValueError(label + "_artifact_path_changed_during_read")
+                finally:
+                    os.close(check_fd)
+        finally:
+            os.close(path_fd)
+        return files
+    finally:
+        os.close(directory_fd)
+
+
 def _validate_and_build(*, files: dict[str, bytes], crop_dir: Path,
+                        screenshot_dir: Path,
                         public_key_raw: bytes, expected_public_key_sha256: str,
                         expected_capture_helper_sha256: str,
+                        root_public_key_raw: bytes,
+                        expected_root_public_der_sha256: str,
                         reviewer_pseudonym: str, created_at_utc: str,
                         attest_independence: bool,
                         attest_visual_comparison: bool) -> dict:
-    parsed = {name: _json(raw, name) for name, raw in files.items() if name != "reviewer_public_key"}
+    parsed = {name: _json(files[name], name) for name in (
+        "plan", "provenance", "observations", "observation_index",
+        "capture_receipt", "crop_crosswalk", "decoder_crosswalk",
+        "pair_package", "identity_map", "review_export",
+        "capture_operator_attestation")}
     plan = parsed["plan"]
     provenance = parsed["provenance"]
     observations = parsed["observations"]
@@ -346,6 +476,45 @@ def _validate_and_build(*, files: dict[str, bytes], crop_dir: Path,
     if set(receipt_rows) != expected or set(crop_rows) != expected or set(decoder_rows) != expected:
         raise ValueError("crosswalk_anchor_set_mismatch")
 
+    screenshot_names = {row["screenshot_file"] for row in receipt_rows.values()}
+    crop_names = {row["crop_file"] for row in crop_rows.values()}
+    screenshot_files = _artifact_directory(screenshot_dir, screenshot_names, "screenshots")
+    crop_files = _artifact_directory(crop_dir, crop_names, "crops")
+    operator_inputs = {
+        "plan_raw": files["plan"], "expected_plan_sha256": plan_sha,
+        "plan_provenance_raw": files["provenance"],
+        "expected_plan_provenance_sha256": prov_sha,
+        "observations_raw": files["observations"],
+        "observation_index_raw": files["observation_index"],
+        "capture_receipt_raw": files["capture_receipt"],
+        "crop_map_raw": files["crop_map"],
+        "crop_crosswalk_raw": files["crop_crosswalk"],
+        "screenshot_files": screenshot_files, "crop_files": crop_files,
+        "integrity_roster_raw": files["integrity_roster"],
+        "release_roster_raw": files["release_roster"],
+        "root_public_key_pem": root_public_key_raw,
+        "expected_root_public_der_sha256": expected_root_public_der_sha256,
+    }
+    try:
+        operator_report = verify_attestation(
+            attestation_raw=files["capture_operator_attestation"], **operator_inputs)
+    except Exception as exc:
+        code = str(exc)
+        if not re.fullmatch(r"[a-zA-Z0-9_:.-]{1,160}", code):
+            code = "capture_operator_attestation_invalid"
+        raise ValueError("capture_operator_" + code) from None
+    if (operator_report.get("status") !=
+            "capture_operator_key_signature_valid_candidate_artifact_bytes"
+            or operator_report.get("anchor_count") != 15
+            or operator_report.get("all_exact_artifact_hashes_recomputed") is not True
+            or operator_report.get("human_identity_verified") is not False
+            or operator_report.get("capture_process_authenticated") is not False
+            or operator_report.get("frame_correspondence_reviewed") is not False
+            or operator_report.get("score_ready") is not False
+            or operator_report.get("model_load_permitted") is not False
+            or operator_report.get("execution_authorization") != "not_granted"):
+        raise ValueError("capture_operator_report_authority_invalid")
+
     if (not isinstance(package, dict) or package.get("purpose") != "private_blinded_frame_pair_review_package"
             or package.get("status") != "not_authorizing" or package.get("execution_authorization") != "not_granted"
             or package.get("plan_sha256") != plan_sha or package.get("pair_count") != 15):
@@ -438,7 +607,7 @@ def _validate_and_build(*, files: dict[str, bytes], crop_dir: Path,
                 or dec.get("source_media_sha256") != plan_media[token]
                 or dec.get("rgb_sha256") is None):
             raise ValueError("crosswalk_capture_or_decoder_join_invalid")
-        crop_png = _read_private(crop_dir / crop_row["crop_file"], "screenshot_crop", max_bytes=MAX_FILE)
+        crop_png = crop_files[crop_row["crop_file"]]
         if _sha(crop_png) != crop_row.get("crop_sha256"):
             raise ValueError("screenshot_crop_bytes_mismatch")
         source_hashes = {"A": pair.get("A_sha256"), "B": pair.get("B_sha256")}
@@ -470,13 +639,29 @@ def _validate_and_build(*, files: dict[str, bytes], crop_dir: Path,
         evidence_rows.append(record)
 
     return {
-        "schema_version": 1,
-        "purpose": "private_clock_frame_correspondence_reader_attestation",
+        "schema_version": 2,
+        "purpose": "private_clock_frame_correspondence_reader_attestation_v2",
         "plan_sha256": plan_sha,
         "plan_provenance_sha256": prov_sha,
         "observations_sha256": hashes["observations"],
         "observation_index_sha256": hashes["observation_index"],
         "capture_receipt_sha256": hashes["capture_receipt"],
+        "capture_operator_attestation_sha256": hashes["capture_operator_attestation"],
+        "capture_operator_integrity_roster_sha256": _sha(files["integrity_roster"]),
+        "capture_operator_release_roster_sha256": _sha(files["release_roster"]),
+        "capture_operator_trust_root_der_sha256": expected_root_public_der_sha256,
+        "capture_operator_key_id": operator_report["capture_operator_key_id"],
+        "capture_operator_key_der_sha256": parsed["capture_operator_attestation"][
+            "capture_operator_key_der_sha256"],
+        "capture_operator_signature_verified": True,
+        "capture_operator_human_identity_verified": False,
+        "capture_operator_process_authenticated": False,
+        "capture_operator_frame_correspondence_reviewed": False,
+        "capture_operator_score_ready": False,
+        "model_load_permitted": False,
+        "scoring_authorized": False,
+        "execution_authorization": "not_granted",
+        "reviewer_identity_verified": False,
         "reviewer_public_key_sha256": _sha(public_key_raw),
         "reviewer_pseudonym": reviewer_pseudonym.strip(),
         "reviewer_role": "independent_evidence_reader",
@@ -484,6 +669,82 @@ def _validate_and_build(*, files: dict[str, bytes], crop_dir: Path,
         "visual_inspection_attestation": "personally_compared_each_screenshot_crop_to_decoder_frame",
         "created_at_utc": created_at_utc,
         "records": evidence_rows,
+    }
+
+
+def verify_manifest_signature(*, manifest_raw: bytes,
+                              reviewer_public_key_raw: bytes,
+                              expected_reviewer_public_key_sha256: str) -> dict:
+    """Verify the v2 reader signature and fail closed on v1 downgrade."""
+    manifest = _json(manifest_raw, "evidence_manifest")
+    if (not isinstance(manifest, dict)
+            or type(manifest.get("schema_version")) is not int
+            or manifest.get("schema_version") != 2
+            or manifest.get("purpose") !=
+            "private_clock_frame_correspondence_reader_attestation_v2"):
+        raise ValueError("evidence_manifest_schema_invalid")
+    expected_keys = EVIDENCE_V2_KEYS | {"signature_ed25519_base64"}
+    if set(manifest) != expected_keys:
+        raise ValueError("evidence_manifest_schema_invalid")
+    if (not _is_sha(expected_reviewer_public_key_sha256)
+            or _sha(reviewer_public_key_raw) != expected_reviewer_public_key_sha256
+            or manifest.get("reviewer_public_key_sha256") != expected_reviewer_public_key_sha256):
+        raise ValueError("evidence_manifest_reviewer_key_pin_mismatch")
+    if (manifest.get("capture_operator_signature_verified") is not True
+            or manifest.get("capture_operator_human_identity_verified") is not False
+            or manifest.get("capture_operator_process_authenticated") is not False
+            or manifest.get("capture_operator_frame_correspondence_reviewed") is not False
+            or manifest.get("capture_operator_score_ready") is not False
+            or manifest.get("model_load_permitted") is not False
+            or manifest.get("scoring_authorized") is not False
+            or manifest.get("reviewer_identity_verified") is not False
+            or manifest.get("execution_authorization") != "not_granted"):
+        raise ValueError("evidence_manifest_authority_invalid")
+    for field in (
+            "plan_sha256", "plan_provenance_sha256", "observations_sha256",
+            "observation_index_sha256", "capture_receipt_sha256",
+            "capture_operator_attestation_sha256",
+            "capture_operator_integrity_roster_sha256",
+            "capture_operator_release_roster_sha256",
+            "capture_operator_trust_root_der_sha256",
+            "capture_operator_key_der_sha256"):
+        if not _is_sha(manifest.get(field)):
+            raise ValueError("evidence_manifest_digest_invalid")
+    rows = manifest.get("records")
+    if (not isinstance(rows, list) or len(rows) != 15
+            or any(not isinstance(row, dict) or set(row) != EVIDENCE_KEYS for row in rows)):
+        raise ValueError("evidence_manifest_records_invalid")
+    identities = [(row.get("review_token"), row.get("anchor_id")) for row in rows]
+    if any(not isinstance(token, str) or not TOKEN_RE.fullmatch(token)
+           or not isinstance(anchor, str) or anchor not in ANCHORS
+           for token, anchor in identities):
+        raise ValueError("evidence_manifest_records_invalid")
+    if (len(set(identities)) != 15
+            or {anchor for _, anchor in identities} != ANCHORS
+            or len({token for token, _ in identities}) != 3
+            or any(row.get("correspondence_decision") != "match"
+                   for row, (token, anchor) in zip(rows, identities, strict=True))):
+        raise ValueError("evidence_manifest_records_invalid")
+    try:
+        signature = base64.b64decode(manifest["signature_ed25519_base64"], validate=True)
+    except (TypeError, ValueError):
+        raise ValueError("evidence_manifest_signature_invalid") from None
+    if (len(signature) != 64 or not _verify_signature(
+            reviewer_public_key_raw, signature,
+            EVIDENCE_DOMAIN_V2 + _canonical({k: v for k, v in manifest.items()
+                                             if k != "signature_ed25519_base64"}))):
+        raise ValueError("evidence_manifest_signature_invalid")
+    return {
+        "status": "evidence_manifest_v2_signature_valid_non_authorizing",
+        "verified_anchors": 15,
+        "capture_operator_signature_verified": True,
+        "human_identity_verified": False,
+        "capture_process_authenticated": False,
+        "frame_correspondence_reviewed": False,
+        "score_ready": False,
+        "model_load_permitted": False,
+        "scoring_authorized": False,
+        "execution_authorization": "not_granted",
     }
 
 
@@ -566,8 +827,11 @@ def _sign(payload: bytes, private_key_path: Path, public_key_der: bytes) -> byte
 
 
 def build_manifest(*, input_files: dict[str, bytes], crop_dir: Path,
+                   screenshot_dir: Path,
                    private_key_path: Path, public_key_path: Path,
                    expected_public_key_sha256: str, expected_capture_helper_sha256: str,
+                   root_public_key_raw: bytes,
+                   expected_root_public_der_sha256: str,
                    reviewer_pseudonym: str,
                    created_at_utc: str, attest_independence: bool,
                    attest_visual_comparison: bool) -> dict:
@@ -579,14 +843,17 @@ def build_manifest(*, input_files: dict[str, bytes], crop_dir: Path,
         raise ValueError("caller_pinned_public_key_hash_mismatch")
     public_der = _load_public_der(public_key_path)
     evidence = _validate_and_build(files=input_files, crop_dir=crop_dir,
+                                   screenshot_dir=screenshot_dir,
                                    public_key_raw=public_raw,
                                    expected_public_key_sha256=expected_public_key_sha256,
                                    expected_capture_helper_sha256=expected_capture_helper_sha256,
+                                   root_public_key_raw=root_public_key_raw,
+                                   expected_root_public_der_sha256=expected_root_public_der_sha256,
                                    reviewer_pseudonym=reviewer_pseudonym,
                                    created_at_utc=created_at_utc,
                                    attest_independence=attest_independence,
                                    attest_visual_comparison=attest_visual_comparison)
-    signature = _sign(_canonical(evidence), private_key_path, public_der)
+    signature = _sign(EVIDENCE_DOMAIN_V2 + _canonical(evidence), private_key_path, public_der)
     evidence["signature_ed25519_base64"] = base64.b64encode(signature).decode("ascii")
     return evidence
 
@@ -594,6 +861,7 @@ def build_manifest(*, input_files: dict[str, bytes], crop_dir: Path,
 INPUTS = (
     "plan", "provenance", "observations", "observation_index", "capture_receipt",
     "crop_crosswalk", "decoder_crosswalk", "pair_package", "identity_map", "review_export",
+    "crop_map", "capture_operator_attestation", "integrity_roster", "release_roster",
 )
 
 
@@ -602,6 +870,9 @@ def main(argv=None) -> int:
     for name in INPUTS:
         parser.add_argument("--" + name.replace("_", "-"), required=True, type=Path)
     parser.add_argument("--crop-dir", required=True, type=Path)
+    parser.add_argument("--screenshot-dir", required=True, type=Path)
+    parser.add_argument("--trust-root-public-key", required=True, type=Path)
+    parser.add_argument("--expected-trust-root-der-sha256", required=True)
     parser.add_argument("--reviewer-private-key", required=True, type=Path)
     parser.add_argument("--reviewer-public-key", required=True, type=Path)
     parser.add_argument("--expected-reviewer-public-key-sha256", required=True)
@@ -616,6 +887,8 @@ def main(argv=None) -> int:
     created = False
     try:
         _private_dir(args.crop_dir, "crop_directory")
+        _private_dir(args.screenshot_dir, "screenshots")
+        _private_dir(args.trust_root_public_key.parent, "trust_root_public_key_parent", exact=False)
         _private_dir(args.reviewer_private_key.parent, "private_key_parent", exact=False)
         _private_dir(args.reviewer_public_key.parent, "public_key_parent", exact=False)
         parent = output_dir.parent
@@ -625,12 +898,15 @@ def main(argv=None) -> int:
         for name in INPUTS:
             _private_dir(getattr(args, name).parent, name + "_parent", exact=False)
         files = {name: _read_private(getattr(args, name), name) for name in INPUTS}
+        root_public_key_raw = _read_private(args.trust_root_public_key, "trust_root_public_key")
         evidence = build_manifest(
-            input_files=files, crop_dir=args.crop_dir,
+            input_files=files, crop_dir=args.crop_dir, screenshot_dir=args.screenshot_dir,
             private_key_path=args.reviewer_private_key,
             public_key_path=args.reviewer_public_key,
             expected_public_key_sha256=args.expected_reviewer_public_key_sha256,
             expected_capture_helper_sha256=args.expected_capture_helper_sha256,
+            root_public_key_raw=root_public_key_raw,
+            expected_root_public_der_sha256=args.expected_trust_root_der_sha256,
             reviewer_pseudonym=args.reviewer_pseudonym,
             created_at_utc=args.created_at_utc,
             attest_independence=args.attest_independent_of_claim_generation_scoring_custody,
@@ -651,6 +927,8 @@ def main(argv=None) -> int:
             "effective_anchors": len(evidence["records"]),
             "reviewer_key_trust_status": "caller_pinned_hash_not_joint_freeze_authenticated",
             "capture_helper_pin_status": "caller_pinned_hash_match_not_joint_freeze_authenticated",
+            "capture_operator_signature_status": "rostered_key_signature_valid_exact_artifact_hashes_recomputed",
+            "capture_operator_identity_status": "unverified",
             "reviewer_public_key_sha256": args.expected_reviewer_public_key_sha256,
             "joint_freeze_status": "not_jointly_frozen",
             "execution_authorization": "not_granted",

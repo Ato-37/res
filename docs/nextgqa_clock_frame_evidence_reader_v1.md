@@ -92,3 +92,24 @@ They exercise the 3×5 joins, ambiguous decisions, missing/duplicate anchors,
 tampered files, stale timestamps, key/signature failures, and the limit that a
 signed `match` is not an automated image comparison. These tests establish
 software behavior only; they are not browser or human-review evidence.
+
+## Schema-v2 operator-byte binding update (2026-10-18)
+
+The candidate builder now emits a separate schema-v2 manifest and signature
+domain. It includes the rostered capture-operator key ID/fingerprint and hashes
+of the operator attestation, integrity/release rosters, and root DER pin. The
+builder verifies the operator signature over the exact 15 screenshot and crop
+bytes before signing its joined reader candidate. The downstream evidence
+auditor accepts both the legacy v1 domain and v2 domain; for v2, it independently
+rechecks the operator attestation from the same anchored screenshot/crop byte
+snapshots used for the artifact audit and confirms the deny-by-default fields.
+An enabled synthetic integration test exercises builder output through this
+auditor, including signature tampering, missing operator inputs, and schema
+downgrade rejection.
+
+This change binds declarations to bytes only. Trust-root and reviewer pins are
+caller supplied until independently frozen, and a valid operator signature
+does not authenticate the person, capture process, visual identity of a frame,
+crop purity, or clock relationship. V2 remains a non-authorizing candidate;
+human review, joint freeze, witnessed release, and scoring gates remain
+separate.

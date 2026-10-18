@@ -12,11 +12,17 @@ from pathlib import Path
 import subprocess
 import tempfile
 import unittest
+from unittest.mock import patch
 
 from PIL import Image
 
 from build_nextgqa_clock_evidence_manifest import INPUTS, build_manifest, main
 from test_audit_nextgqa_clock_frame_evidence import ClockFrameEvidenceAuditTests, enc, sha
+from test_nextgqa_capture_operator_attestation import CaptureAttestationTests
+from nextgqa_capture_operator_attestation import create_attestation
+from build_nextgqa_clock_evidence_manifest import (
+    _artifact_directory, verify_manifest_signature,
+)
 
 
 def canonical(value):
@@ -35,6 +41,10 @@ class BuilderSyntheticTests(unittest.TestCase):
         os.chmod(self.root, 0o700)
         self.crop_dir = self.root / "crops"
         self.crop_dir.mkdir(mode=0o700)
+        self.screenshot_dir = self.root / "screenshots"
+        self.screenshot_dir.mkdir(mode=0o700)
+        self.operator_fixture = CaptureAttestationTests()
+        self.operator_fixture.setUp()
         self.key = self.root / "reader.pem"
         self.pub = self.root / "reader.pub.pem"
         # Synthetic throwaway fixture key only; production CLI never creates keys.
@@ -47,9 +57,13 @@ class BuilderSyntheticTests(unittest.TestCase):
         self.files = self._synthetic_inputs()
 
     def tearDown(self):
+        self.operator_fixture.tearDown()
         self.temp.cleanup()
 
     def _synthetic_inputs(self):
+        for directory in (self.crop_dir, self.screenshot_dir):
+            for item in directory.iterdir():
+                item.unlink()
         # Tokens must have exactly 24 characters.
         tokens = [f"tok_{i:020d}" for i in range(3)]
         anchors = ["fit_begin", "heldout_quarter", "fit_midpoint",
@@ -83,7 +97,14 @@ class BuilderSyntheticTests(unittest.TestCase):
                                "paused": True, "seeking": False, "ready_state": 4,
                                "current_src_is_staged_media": True, "visibility_state": "visible"})
                 screenshot_file = token + "_" + anchor + ".png"
-                shot_sha = sha((token + anchor + "screenshot").encode())
+                screenshot = Image.new("RGB", (100, 100), (ti * 20, ai * 20, 7))
+                import io
+                screenshot_buffer = io.BytesIO()
+                screenshot.save(screenshot_buffer, format="PNG")
+                screenshot_raw = screenshot_buffer.getvalue()
+                (self.screenshot_dir / screenshot_file).write_bytes(screenshot_raw)
+                os.chmod(self.screenshot_dir / screenshot_file, 0o600)
+                shot_sha = sha(screenshot_raw)
                 rows_capture.append({
                     "review_token": token, "anchor_id": anchor,
                     "screenshot_file": screenshot_file, "screenshot_sha256": shot_sha,
@@ -96,8 +117,7 @@ class BuilderSyntheticTests(unittest.TestCase):
                     "hotkey_message_tick_ms": ai, "capture_complete_tick_ms": ai + 10,
                     "hotkey_to_capture_ms": 10,
                 })
-                image = Image.new("RGB", (2, 2), (ti * 20, ai * 20, 7))
-                import io
+                image = screenshot.crop((0, 0, 2, 2)).convert("RGB")
                 buf = io.BytesIO()
                 image.save(buf, format="PNG")
                 crop_raw = buf.getvalue()
@@ -122,7 +142,9 @@ class BuilderSyntheticTests(unittest.TestCase):
                                   "screenshot_file": screenshot_file,
                                   "screenshot_sha256": shot_sha,
                                   "bbox_xywh": [0, 0, 2, 2], "crop_file": crop_file,
-                                  "crop_sha256": crop_sha})
+                                  "crop_sha256": crop_sha,
+                                  "crop_rgb_dimensions": [2, 2],
+                                  "crop_purity": "human_review_required"})
                 rows_decoder.append({"review_token": token, "anchor_id": anchor,
                                      "source_media_sha256": sha(token.encode()),
                                      "decoder_frame_index": ai,
@@ -181,6 +203,7 @@ class BuilderSyntheticTests(unittest.TestCase):
                    "pair_count": 15, "package_nonce": "a" * 64, "plan_sha256": sha(plan_raw),
                    "pairs": pairs}
         package_raw = canonical(package)
+        crop_map_raw = b"synthetic crop map bytes\n"
         files = {
             "plan": plan_raw,
             "provenance": canonical(prov),
@@ -195,7 +218,10 @@ class BuilderSyntheticTests(unittest.TestCase):
                 "purpose": "private_candidate_screenshot_crop_crosswalk", "status": "candidate_only",
                 "execution_authorization": "not_granted", "plan_sha256": sha(plan_raw),
                 "plan_provenance_sha256": sha(canonical(prov)),
-                "capture_receipt_sha256": sha(canonical(receipt)), "records": rows_crop}),
+                "capture_receipt_sha256": sha(canonical(receipt)),
+                "crop_map_sha256": sha(crop_map_raw),
+                "bbox_video_only_purity": "not_established_human_review_required",
+                "records": rows_crop}),
             "decoder_crosswalk": canonical({"schema_version": 1,
                 "purpose": "private_candidate_decoder_anchor_png_crosswalk",
                 "status": "candidate_artifact_export_only", "execution_authorization": "not_granted",
@@ -211,36 +237,101 @@ class BuilderSyntheticTests(unittest.TestCase):
                 "package_nonce": package["package_nonce"], "reviewer_pseudonym": "synthetic-reader",
                 "reviewer_provenance_status": "self_reported_unauthenticated", "signature_status": "none",
                 "records": rows_review}),
+            "crop_map": crop_map_raw,
+            "integrity_roster": self.operator_fixture.integrity,
+            "release_roster": self.operator_fixture.release,
         }
+        operator_inputs = {
+            "plan_raw": files["plan"], "expected_plan_sha256": sha(files["plan"]),
+            "plan_provenance_raw": files["provenance"],
+            "expected_plan_provenance_sha256": sha(files["provenance"]),
+            "observations_raw": files["observations"],
+            "observation_index_raw": files["observation_index"],
+            "capture_receipt_raw": files["capture_receipt"],
+            "crop_map_raw": crop_map_raw,
+            "crop_crosswalk_raw": files["crop_crosswalk"],
+            "screenshot_files": {p.name: p.read_bytes() for p in self.screenshot_dir.iterdir()},
+            "crop_files": {p.name: p.read_bytes() for p in self.crop_dir.iterdir()},
+            "integrity_roster_raw": files["integrity_roster"],
+            "release_roster_raw": files["release_roster"],
+            "root_public_key_pem": self.operator_fixture.keys["root"][1],
+            "expected_root_public_der_sha256": self.operator_fixture.root_pin,
+        }
+        files["capture_operator_attestation"] = create_attestation(
+            reviewer_private_key_pem=self.operator_fixture.keys["capture"][0],
+            reviewer_public_key_pem=self.operator_fixture.keys["capture"][1],
+            **operator_inputs)
         self.assertEqual(set(files), set(INPUTS))
+        self.root_public_key_raw = self.operator_fixture.keys["root"][1]
+        self.root_pin = self.operator_fixture.root_pin
         return files
 
     def _build(self):
         public_raw = self.pub.read_bytes()
         return build_manifest(input_files=self.files, crop_dir=self.crop_dir,
+                              screenshot_dir=self.screenshot_dir,
                               private_key_path=self.key, public_key_path=self.pub,
                               expected_public_key_sha256=sha(public_raw),
                               expected_capture_helper_sha256=sha(b"synthetic helper"),
+                              root_public_key_raw=self.root_public_key_raw,
+                              expected_root_public_der_sha256=self.root_pin,
                               reviewer_pseudonym="synthetic-reader",
                               created_at_utc="2026-01-01T00:01:00Z",
                               attest_independence=True, attest_visual_comparison=True)
 
-    def test_builds_exact_signed_candidate_without_authorization_fields(self):
+    def test_builds_v2_signed_candidate_with_authority_denied(self):
         result = self._build()
         self.assertEqual(len(result["records"]), 15)
-        self.assertEqual(result["purpose"], "private_clock_frame_correspondence_reader_attestation")
+        self.assertEqual(result["schema_version"], 2)
+        self.assertEqual(result["purpose"], "private_clock_frame_correspondence_reader_attestation_v2")
         self.assertEqual(len(result["signature_ed25519_base64"]), 88)
-        self.assertNotIn("execution_authorization", result)
+        self.assertEqual(result["capture_operator_signature_verified"], True)
+        self.assertEqual(result["capture_operator_human_identity_verified"], False)
+        self.assertEqual(result["capture_operator_process_authenticated"], False)
+        self.assertEqual(result["capture_operator_frame_correspondence_reviewed"], False)
+        self.assertEqual(result["capture_operator_score_ready"], False)
+        self.assertEqual(result["reviewer_identity_verified"], False)
+        self.assertEqual(result["execution_authorization"], "not_granted")
         self.assertTrue(all(row["correspondence_decision"] == "match" for row in result["records"]))
-        signature = base64.b64decode(result.pop("signature_ed25519_base64"), validate=True)
-        payload_path, signature_path = self.root / "payload", self.root / "signature"
-        payload_path.write_bytes(canonical(result))
-        signature_path.write_bytes(signature)
-        os.chmod(payload_path, 0o600)
-        os.chmod(signature_path, 0o600)
-        subprocess.run(["openssl", "pkeyutl", "-verify", "-pubin", "-inkey", str(self.pub),
-                        "-rawin", "-in", str(payload_path), "-sigfile", str(signature_path)],
-                       check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        raw = canonical(result)
+        self.assertEqual(verify_manifest_signature(
+            manifest_raw=raw, reviewer_public_key_raw=self.pub.read_bytes(),
+            expected_reviewer_public_key_sha256=sha(self.pub.read_bytes()))["status"],
+            "evidence_manifest_v2_signature_valid_non_authorizing")
+
+    def test_capture_operator_signature_rechecks_screenshots_and_crops(self):
+        first = next(iter(json.loads(self.files["capture_receipt"])["records"]))
+        path = self.screenshot_dir / first["screenshot_file"]
+        original = path.read_bytes()
+        path.write_bytes(original + b"tamper")
+        os.chmod(path, 0o600)
+        with self.assertRaisesRegex(ValueError, "capture_operator_.*screenshot_artifact_hash_mismatch"):
+            self._build()
+        path.write_bytes(original)
+        os.chmod(path, 0o600)
+        crop = json.loads(self.files["crop_crosswalk"])["records"][0]
+        crop_path = self.crop_dir / crop["crop_file"]
+        crop_original = crop_path.read_bytes()
+        crop_path.write_bytes(crop_original + b"tamper")
+        os.chmod(crop_path, 0o600)
+        with self.assertRaisesRegex(ValueError, "capture_operator_.*crop_artifact_hash_mismatch"):
+            self._build()
+
+    def test_capture_operator_bad_signature_and_manifest_downgrade_rejected(self):
+        envelope = json.loads(self.files["capture_operator_attestation"])
+        sig = bytearray(base64.b64decode(envelope["signature_ed25519_base64"]))
+        sig[0] ^= 1
+        envelope["signature_ed25519_base64"] = base64.b64encode(sig).decode()
+        self.files["capture_operator_attestation"] = canonical(envelope)
+        with self.assertRaisesRegex(ValueError, "capture_operator_capture_operator_signature_invalid"):
+            self._build()
+        self.files = self._synthetic_inputs()
+        result = self._build()
+        result["schema_version"] = 1
+        with self.assertRaisesRegex(ValueError, "evidence_manifest_schema_invalid"):
+            verify_manifest_signature(
+                manifest_raw=canonical(result), reviewer_public_key_raw=self.pub.read_bytes(),
+                expected_reviewer_public_key_sha256=sha(self.pub.read_bytes()))
 
     def test_missing_duplicate_or_ambiguous_review_rows_fail_closed(self):
         review = json.loads(self.files["review_export"])
@@ -300,9 +391,12 @@ class BuilderSyntheticTests(unittest.TestCase):
         public_raw = self.pub.read_bytes()
         with self.assertRaisesRegex(ValueError, "capture_helper_hash_pin_mismatch"):
             build_manifest(input_files=self.files, crop_dir=self.crop_dir,
+                           screenshot_dir=self.screenshot_dir,
                            private_key_path=self.key, public_key_path=self.pub,
                            expected_public_key_sha256=sha(public_raw),
                            expected_capture_helper_sha256=sha(b"different helper"),
+                           root_public_key_raw=self.root_public_key_raw,
+                           expected_root_public_der_sha256=self.root_pin,
                            reviewer_pseudonym="synthetic-reader",
                            created_at_utc="2026-01-01T00:01:00Z",
                            attest_independence=True, attest_visual_comparison=True)
@@ -329,7 +423,7 @@ class BuilderSyntheticTests(unittest.TestCase):
         path = self.crop_dir / row["crop_file"]
         path.write_bytes(b"changed synthetic bytes")
         os.chmod(path, 0o600)
-        with self.assertRaisesRegex(ValueError, "screenshot_crop_bytes_mismatch"):
+        with self.assertRaisesRegex(ValueError, "capture_operator_crop_artifact_hash_mismatch"):
             self._build()
 
     def test_cli_writes_private_candidate_and_reports_caller_pin_limit(self):
@@ -343,7 +437,13 @@ class BuilderSyntheticTests(unittest.TestCase):
         argv = []
         for name in INPUTS:
             argv += ["--" + name.replace("_", "-"), str(input_paths[name])]
+        root_key = self.root / "trust-root.pub.pem"
+        root_key.write_bytes(self.root_public_key_raw)
+        os.chmod(root_key, 0o600)
         argv += ["--crop-dir", str(self.crop_dir),
+                 "--screenshot-dir", str(self.screenshot_dir),
+                 "--trust-root-public-key", str(root_key),
+                 "--expected-trust-root-der-sha256", self.root_pin,
                  "--reviewer-private-key", str(self.key),
                  "--reviewer-public-key", str(self.pub),
                  "--expected-reviewer-public-key-sha256", sha(self.pub.read_bytes()),
@@ -362,16 +462,89 @@ class BuilderSyntheticTests(unittest.TestCase):
                          "caller_pinned_hash_not_joint_freeze_authenticated")
         self.assertEqual(report["capture_helper_pin_status"],
                          "caller_pinned_hash_match_not_joint_freeze_authenticated")
+        self.assertEqual(report["capture_operator_signature_status"],
+                         "rostered_key_signature_valid_exact_artifact_hashes_recomputed")
         self.assertEqual(os.stat(output).st_mode & 0o777, 0o700)
         self.assertEqual(os.stat(output / "clock_frame_evidence_manifest.json").st_mode & 0o777, 0o600)
 
 
+class ArtifactDirectoryRaceTests(unittest.TestCase):
+    def setUp(self):
+        self.temp = tempfile.TemporaryDirectory()
+        self.root = Path(self.temp.name)
+        self.root.chmod(0o700)
+        self.parent = self.root / "private-parent"
+        self.parent.mkdir(mode=0o700)
+        self.directory = self.parent / "artifacts"
+        self.directory.mkdir(mode=0o700)
+        self.leaf = self.directory / "shot.png"
+        self.leaf.write_bytes(b"synthetic screenshot bytes")
+        self.leaf.chmod(0o600)
+
+    def tearDown(self):
+        self.temp.cleanup()
+
+    def test_parent_path_swap_to_symlink_is_rejected(self):
+        original_listdir = os.listdir
+        moved = self.root / "moved-parent"
+        calls = 0
+
+        def swap_after_snapshot(fd):
+            nonlocal calls
+            calls += 1
+            if calls == 2:
+                self.parent.rename(moved)
+                self.parent.symlink_to(moved, target_is_directory=True)
+            return original_listdir(fd)
+
+        with patch("build_nextgqa_clock_evidence_manifest.os.listdir", side_effect=swap_after_snapshot):
+            with self.assertRaisesRegex(ValueError, "screenshots_directory_path_changed_during_read"):
+                _artifact_directory(self.directory, {"shot.png"}, "screenshots")
+
+    def test_leaf_swap_to_symlink_is_rejected(self):
+        original_listdir = os.listdir
+        target = self.root / "replacement.png"
+        target.write_bytes(b"different synthetic bytes")
+        target.chmod(0o600)
+        calls = 0
+
+        def swap_after_snapshot(fd):
+            nonlocal calls
+            calls += 1
+            if calls == 2:
+                self.leaf.unlink()
+                self.leaf.symlink_to(target)
+            return original_listdir(fd)
+
+        with patch("build_nextgqa_clock_evidence_manifest.os.listdir", side_effect=swap_after_snapshot):
+            with self.assertRaisesRegex(ValueError, "screenshots_artifact_path_changed_during_read"):
+                _artifact_directory(self.directory, {"shot.png"}, "screenshots")
+
+    def test_static_leaf_symlink_is_rejected(self):
+        target = self.root / "replacement.png"
+        target.write_bytes(b"synthetic bytes")
+        target.chmod(0o600)
+        self.leaf.unlink()
+        self.leaf.symlink_to(target)
+        with self.assertRaises(OSError):
+            _artifact_directory(self.directory, {"shot.png"}, "screenshots")
+
+    def test_unexpected_directory_member_is_rejected(self):
+        extra = self.directory / "extra.png"
+        extra.write_bytes(b"extra synthetic bytes")
+        extra.chmod(0o600)
+        with self.assertRaisesRegex(ValueError, "screenshots_artifact_set_invalid"):
+            _artifact_directory(self.directory, {"shot.png"}, "screenshots")
+
+
 class BuilderAuditIntegrationTests(unittest.TestCase):
-    """Reuse the independent audit's synthetic media/screenshot fixture."""
+    """The downstream frame auditor verifies v2 operator provenance end-to-end."""
 
     def test_builder_output_passes_real_audit_without_authorizing(self):
         fixture = ClockFrameEvidenceAuditTests()
         fixture.setUp()
+        operator = CaptureAttestationTests()
+        operator.setUp()
         try:
             root = fixture.root
             root.chmod(0o700)
@@ -416,7 +589,9 @@ class BuilderAuditIntegrationTests(unittest.TestCase):
                                   "screenshot_file": source["screenshot_file"],
                                   "screenshot_sha256": source["screenshot_sha256"],
                                   "bbox_xywh": [0, 0, 32, 24], "crop_file": crop_file,
-                                  "crop_sha256": crop_sha})
+                                  "crop_sha256": crop_sha,
+                                  "crop_rgb_dimensions": [32, 24],
+                                  "crop_purity": "human_review_required"})
                 decoder_rows.append({"review_token": token, "anchor_id": anchor,
                                      "source_media_sha256": plan_media[token],
                                      "decoder_frame_index": source["decoder_frame_index"],
@@ -442,17 +617,24 @@ class BuilderAuditIntegrationTests(unittest.TestCase):
                       "reviewer_provenance_status": "self_reported_unauthenticated",
                       "signature_status": "none", "reviewed_at_utc": "2026-10-17T06:01:00Z",
                       "records": review_rows}
+            crop_map_raw = enc({"schema_version": 1,
+                                "purpose": "synthetic_crop_map_for_v2_audit",
+                                "records": crop_rows})
+            crop_crosswalk_raw = enc({"schema_version": 1,
+                    "purpose": "private_candidate_screenshot_crop_crosswalk",
+                    "status": "candidate_only", "execution_authorization": "not_granted",
+                    "plan_sha256": plan_sha, "plan_provenance_sha256": provenance_sha,
+                    "capture_receipt_sha256": receipt_sha,
+                    "crop_map_sha256": sha(crop_map_raw),
+                    "bbox_video_only_purity": "not_established_human_review_required",
+                    "records": crop_rows})
             file_map = {
                 "plan": fixture.plan_raw,
                 "provenance": fixture.provenance_raw,
                 "observations": fixture.observations_raw,
                 "observation_index": fixture.index_raw,
                 "capture_receipt": fixture.capture_receipt_raw,
-                "crop_crosswalk": enc({"schema_version": 1,
-                    "purpose": "private_candidate_screenshot_crop_crosswalk",
-                    "status": "candidate_only", "execution_authorization": "not_granted",
-                    "plan_sha256": plan_sha, "plan_provenance_sha256": provenance_sha,
-                    "capture_receipt_sha256": receipt_sha, "records": crop_rows}),
+                "crop_crosswalk": crop_crosswalk_raw,
                 "decoder_crosswalk": enc({"schema_version": 1,
                     "purpose": "private_candidate_decoder_anchor_png_crosswalk",
                     "status": "candidate_artifact_export_only", "execution_authorization": "not_granted",
@@ -463,24 +645,76 @@ class BuilderAuditIntegrationTests(unittest.TestCase):
                     "purpose": "private_blinded_frame_pair_identity_map", "status": "custodian_only",
                     "package_manifest_sha256": sha(package_raw), "records": identity_rows}),
                 "review_export": enc(review),
+                "crop_map": crop_map_raw,
             }
+            operator_inputs = {
+                "plan_raw": fixture.plan_raw,
+                "expected_plan_sha256": plan_sha,
+                "plan_provenance_raw": fixture.provenance_raw,
+                "expected_plan_provenance_sha256": provenance_sha,
+                "observations_raw": fixture.observations_raw,
+                "observation_index_raw": fixture.index_raw,
+                "capture_receipt_raw": fixture.capture_receipt_raw,
+                "crop_map_raw": crop_map_raw,
+                "crop_crosswalk_raw": crop_crosswalk_raw,
+                "screenshot_files": {p.name: p.read_bytes()
+                                      for p in fixture.screenshot_dir.iterdir()},
+                "crop_files": {p.name: p.read_bytes() for p in crop_dir.iterdir()},
+                "integrity_roster_raw": operator.integrity,
+                "release_roster_raw": operator.release,
+                "root_public_key_pem": operator.keys["root"][1],
+                "expected_root_public_der_sha256": operator.root_pin,
+            }
+            file_map.update({
+                "capture_operator_attestation": create_attestation(
+                    reviewer_private_key_pem=operator.keys["capture"][0],
+                    reviewer_public_key_pem=operator.keys["capture"][1],
+                    **operator_inputs),
+                "integrity_roster": operator.integrity,
+                "release_roster": operator.release,
+            })
             fixture.key_path.chmod(0o600)
             fixture.public_key_path.chmod(0o600)
             evidence = build_manifest(
                 input_files=file_map, crop_dir=crop_dir,
+                screenshot_dir=fixture.screenshot_dir,
                 private_key_path=fixture.key_path, public_key_path=fixture.public_key_path,
                 expected_public_key_sha256=sha(fixture.public_key_raw),
                 expected_capture_helper_sha256=fixture.capture_helper_sha256,
+                root_public_key_raw=operator.keys["root"][1],
+                expected_root_public_der_sha256=operator.root_pin,
                 reviewer_pseudonym="synthetic-independent-reviewer",
                 created_at_utc="2026-10-17T06:01:00Z",
                 attest_independence=True, attest_visual_comparison=True)
             evidence_raw = enc(evidence)
-            result = fixture._audit(evidence_raw)
+            audit_kwargs = dict(crop_dir=crop_dir,
+                capture_operator_attestation_raw=file_map["capture_operator_attestation"],
+                crop_map_raw=crop_map_raw, crop_crosswalk_raw=crop_crosswalk_raw,
+                integrity_roster_raw=operator.integrity,
+                release_roster_raw=operator.release,
+                root_public_key_raw=operator.keys["root"][1],
+                expected_root_public_der_sha256=operator.root_pin)
+            result = fixture._audit(evidence_raw, **audit_kwargs)
             self.assertEqual(result["status"], "candidate_signed_evidence_bytes_consistent")
             self.assertEqual(result["verified_anchors"], 15)
             self.assertEqual(result["execution_authorization"], "not_granted")
             self.assertEqual(result["joint_freeze_status"], "not_jointly_frozen")
+            self.assertTrue(result["capture_operator_signature_verified"])
+            self.assertFalse(result["capture_operator_human_identity_verified"])
+            broken_attestation = json.loads(file_map["capture_operator_attestation"])
+            broken_attestation["signature_ed25519_base64"] = "A" * 88
+            with self.assertRaisesRegex(ValueError, "capture_operator_signature_invalid"):
+                fixture._audit(evidence_raw,
+                    **{**audit_kwargs,
+                       "capture_operator_attestation_raw": enc(broken_attestation)})
+            with self.assertRaisesRegex(ValueError, "capture_operator_audit_inputs_missing"):
+                fixture._audit(evidence_raw, crop_dir=crop_dir)
+            downgraded = json.loads(evidence_raw)
+            downgraded["schema_version"] = 1
+            with self.assertRaisesRegex(ValueError, "evidence_manifest_schema_or_binding_invalid"):
+                fixture._audit(enc(downgraded), **audit_kwargs)
         finally:
+            operator.tearDown()
             fixture.tearDown()
 
 

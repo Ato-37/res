@@ -43,10 +43,11 @@ pre-open handoff and the independent auditor passes immediately before opening.
    to key IDs and public keys; it does not authenticate people. Through the
    separate trusted channel, independently establish and locally record which
    real person controls each key. Assign distinct keys to the freeze owner,
-   claim reviewer, frame-pair reviewer, prediction-link reviewer, and release
-   witness. Name the custodian too; the owner may also be custodian, but no
-   reviewer may fill either role, and the witness must be separate from every
-   other role.
+   capture operator, claim reviewer, frame-pair reviewer, prediction-link
+   reviewer, and release witness. Name the custodian too; the owner may also be
+   custodian, but no reviewer or capture operator may fill either role, and
+   every role key must be distinct except the owner-custodian alias. The witness
+   must be separate from every other role.
    Resolve and pin the identity-to-key mapping before any review content is
    opened.
 3. Rebuild a unique candidate inventory using the current builder. Verify its
@@ -135,6 +136,8 @@ no trusted timestamp service is used.
 
 No real review-only release receipt, independent roster/key pin, or witnessed
 handoff currently exists; the verifier is only an implementation, not evidence.
+The capture-operator identity/key assignment is also not established, and no
+real capture evidence or independent frame-pair review has been completed.
 Do not open the package until the exact receipt and its independently
 established trust-root pin have been checked against the frozen bytes, and
 release order is supported by either trusted timestamp evidence or a witnessed
@@ -151,8 +154,11 @@ real receipt until the roster/trust-root pin is established, and do not open
 the page based on its output.
 
 The helper's integrity-roster schema covers only the freeze owner, claim
-reviewer, and frame-pair reviewer. The release roster now includes a distinct
-QTA prediction-link reviewer key in addition to custody and witness roles.
+reviewer, and frame-pair reviewer. The release roster additionally binds the
+custodian, capture operator, prediction-link reviewer, and release witness.
+The capture operator must be a named real person with a separately root-pinned
+key and may not share a key with any other role except that the
+owner-custodian alias is the sole permitted role-key reuse in the roster.
 The detached stage-2 adoption verifier reruns structural checks against raw
 baseline and receipt bytes but does not provide a second human auditor
 signature. The release roster requires the prediction-link key to differ from
@@ -171,10 +177,13 @@ either arrangement.
 For the separate witnessed handoff, `scripts/audit_nextgqa_review_release_order.py`
 rechecks the integrity receipt and every current inventory-bound artifact,
 then verifies a second root-signed roster with explicit freeze-owner,
-custodian, claim reviewer, frame-pair reviewer, prediction-link reviewer, and
-release-witness roles. The custodian may share the
-freeze owner's key; the witness must have a separate key and key ID from all
-other roles. The witness signature binds the exact receipt, both rosters,
+custodian, capture-operator, claim reviewer, frame-pair reviewer,
+prediction-link reviewer, and release-witness roles. The custodian may share
+the freeze owner's key; the capture-operator key must be distinct from the
+owner/custodian, claim reviewer, frame-pair reviewer, prediction-link reviewer,
+and witness. The witness must have a separate key and key ID from all other
+roles.
+The witness signature binds the exact receipt, both rosters,
 inventory, artifact bindings, and a fresh ceremony ID, and asserts that the
 freeze/package handoff occurred before first opening while review had not
 started. Supply the ceremony ID independently to the verifier and do not reuse
@@ -256,7 +265,10 @@ it does not identify or freeze QTA scoring. No production score-freeze
 receipt currently exists.
 
 Assign people to these roles before opening the package. The freeze owner may
-also serve as custodian, but must not serve as either reviewer.
+also serve as custodian, but must not serve as a reviewer or capture operator.
+Use the [role-assignment intake template](nextgqa_human_review_role_assignment_template.md)
+to collect reviewer IDs, key IDs and local public-key paths without placing
+private keys or review content in the worksheet.
 
 1. **Pre-outcome freeze owner:** records the exact artifact hashes, protocol,
    sampler, capture policy/helper, thresholds, and reviewer-key hashes before
@@ -264,19 +276,61 @@ also serve as custodian, but must not serve as either reviewer.
 2. **Custodian:** verifies source lineage and media bytes, holds the private
    token crosswalk, and validates returned files. Must not generate claims,
    score outcomes, or serve as the claim reviewer.
-3. **Claim reviewer:** independent of claim generation, scoring, and custody.
+3. **Capture operator:** independently operates the actual review browser and
+   capture helper for all 15 preplanned anchors. Produces the raw clock events,
+   screenshots, OS capture receipts, and video-only crops under private local
+   storage. The operator records captures but does not judge screenshot/frame
+   matches; the frame-pair reviewer must be a different person and key.
+4. **Claim reviewer:** independent of claim generation, scoring, and custody.
    Receives only the frozen offline page and token-named videos. Must not see
    dataset identifiers/indexes, the crosswalk, gold answers, seed intervals,
    outcome scores, or external answer sources.
-4. **Frame-pair reviewer:** independent of capture, custody, pair preparation,
+5. **Frame-pair reviewer:** independent of capture, custody, pair preparation,
    and scoring. After capture artifacts are prepared, reviews all 15 blinded
    screenshot-crop/decoder-frame pairs and records match, mismatch, or
-   ambiguous decisions.
-5. **Prediction-link reviewer:** independent of the stage-1 claim reviewer,
+   ambiguous decisions. The reviewer signs the final evidence manifest with
+   the frame-reviewer key whose hash was pinned before review; an unsigned
+   blinded-viewer export alone does not satisfy the signed evidence gate.
+6. **Prediction-link reviewer:** independent of the stage-1 claim reviewer,
    generation, scoring, and custody. The release-roster key is separate and
    root-pinned before the first package opening. The reviewer sees only the
    post-baseline blinded worksheet. The verification code must rerun the
    structural check over exact raw bytes; it does not prove semantics.
+7. **Release witness:** independently trusted through the external root pin.
+   Personally verifies the exact unopened package and signed review-only
+   receipt, observes transfer from freeze owner to custodian, and signs the
+   fresh ceremony attestation only after that event.
+
+The root authority signs both rosters after the identity-to-key assignments
+have been independently established through the separate trusted channel. The
+freeze owner signs the review-only receipt over the exact current inventory;
+the release witness signs the witnessed handoff statement. After stage-1
+review, the claim reviewer signs the exact exported review bytes for the
+stage-1 structural gate. The capture operator's evidence consists of the raw
+capture artifacts and receipts; the operator does not sign match decisions.
+The rostered operator key can sign and verify a **candidate-byte** attestation
+with `scripts/nextgqa_capture_operator_attestation.py`; the private filesystem
+wrapper is `scripts/run_nextgqa_capture_operator_attestation.py`. The candidate
+binds the exact 15-anchor plan and observation, capture receipt, screenshot,
+crop-map, crosswalk, and crop bytes to the capture-role key in the root-signed
+release roster. Its signature establishes key adoption of those byte hashes
+only. It does not establish the signer's identity, that capture occurred, that
+a screenshot matches a decoder frame, or that a crop is video-only.
+
+The frame-pair reviewer can create a schema-v2 candidate with
+`scripts/build_nextgqa_clock_evidence_manifest.py`. The builder rechecks the
+operator attestation against an exact private screenshot/crop snapshot and
+signs the joined candidate. The downstream
+`scripts/audit_nextgqa_clock_frame_evidence.py` accepts v1 and v2; for v2 it
+revalidates the operator signature and byte joins from the supplied rosters,
+trust-root pin, screenshot/crop map, and exact artifact snapshots. This is
+synthetic-tested integration only. The caller-supplied root/reviewer pins are
+not independently authenticated by these commands, and the audit does not
+establish human identity, capture-process truth, visual match, crop purity, or
+clock calibration. All authorization fields remain denied. The package is not
+ready to open: actual root trust, role assignments, signed receipts, witnessed
+handoff, and human reviews remain outstanding. The unsigned blinded-pair viewer
+export alone still does not satisfy the signed evidence gate.
 
 If no independent people can fill these roles, leave the gate blocked; do not
 substitute an agent-generated label or an operator self-attestation.

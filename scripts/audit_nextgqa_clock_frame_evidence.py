@@ -26,6 +26,7 @@ from PIL import Image
 
 from claim_mask_video_decoder import _stream_and_decode
 from prepare_html5_clock_calibration_inputs import prepare_capture_bundle
+from nextgqa_capture_operator_attestation import verify_attestation
 
 MAX_STAGED_VIDEO_BYTES = 128 * 1024 * 1024
 MAX_SCREENSHOT_BYTES = 40_000_000
@@ -54,6 +55,21 @@ TOP_KEYS = {
     "independence_attestation", "visual_inspection_attestation", "created_at_utc",
     "records", "signature_ed25519_base64",
 }
+TOP_KEYS_V2 = {
+    "schema_version", "purpose", "plan_sha256", "plan_provenance_sha256",
+    "observations_sha256", "observation_index_sha256", "capture_receipt_sha256",
+    "capture_operator_attestation_sha256", "capture_operator_integrity_roster_sha256",
+    "capture_operator_release_roster_sha256", "capture_operator_trust_root_der_sha256",
+    "capture_operator_key_id", "capture_operator_key_der_sha256",
+    "capture_operator_signature_verified", "capture_operator_human_identity_verified",
+    "capture_operator_process_authenticated", "capture_operator_frame_correspondence_reviewed",
+    "capture_operator_score_ready", "model_load_permitted", "scoring_authorized",
+    "execution_authorization", "reviewer_identity_verified",
+    "reviewer_public_key_sha256", "reviewer_pseudonym",
+    "reviewer_role", "independence_attestation", "visual_inspection_attestation",
+    "created_at_utc", "records", "signature_ed25519_base64",
+}
+EVIDENCE_V2_DOMAIN = b"nextgqa_clock_frame_evidence_manifest_v2\0"
 CAPTURE_RECEIPT_KEYS = {
     "schema_version", "purpose", "status", "execution_authorization", "plan_sha256",
     "plan_provenance_sha256", "capture_method", "capture_helper_file_sha256",
@@ -252,7 +268,15 @@ def audit_evidence(*, plan_raw: bytes, provenance_raw: bytes,
                    expected_plan_sha256: str,
                    expected_plan_provenance_sha256: str,
                    expected_capture_helper_sha256: str,
-                   expected_reviewer_public_key_sha256: str) -> dict:
+                   expected_reviewer_public_key_sha256: str,
+                   capture_operator_attestation_raw: bytes | None = None,
+                   crop_map_raw: bytes | None = None,
+                   crop_crosswalk_raw: bytes | None = None,
+                   integrity_roster_raw: bytes | None = None,
+                   release_roster_raw: bytes | None = None,
+                   root_public_key_raw: bytes | None = None,
+                   expected_root_public_der_sha256: str | None = None,
+                   crop_dir: Path | None = None) -> dict:
     """Return a sanitized private audit summary; never authorizes scoring."""
     inputs = (plan_raw, provenance_raw, observations_raw,
               observation_index_raw, capture_receipt_raw, evidence_raw, public_key_raw)
@@ -309,10 +333,15 @@ def audit_evidence(*, plan_raw: bytes, provenance_raw: bytes,
         observations_raw, observation_index_raw, plan_raw, _sha(plan_raw),
         provenance_raw, _sha(provenance_raw),
     )
-    if (not isinstance(evidence, dict) or set(evidence) != TOP_KEYS
-            or type(evidence.get("schema_version")) is not int
-            or evidence.get("schema_version") != 1
-            or evidence.get("purpose") != "private_clock_frame_correspondence_reader_attestation"
+    evidence_version = evidence.get("schema_version") if isinstance(evidence, dict) else None
+    evidence_keys = TOP_KEYS if evidence_version == 1 else TOP_KEYS_V2
+    expected_purpose = ("private_clock_frame_correspondence_reader_attestation"
+                        if evidence_version == 1 else
+                        "private_clock_frame_correspondence_reader_attestation_v2")
+    if (not isinstance(evidence, dict) or set(evidence) != evidence_keys
+            or type(evidence_version) is not int
+            or evidence_version not in {1, 2}
+            or evidence.get("purpose") != expected_purpose
             or evidence.get("plan_sha256") != _sha(plan_raw)
             or evidence.get("plan_provenance_sha256") != _sha(provenance_raw)
             or evidence.get("observations_sha256") != _sha(observations_raw)
@@ -322,6 +351,7 @@ def audit_evidence(*, plan_raw: bytes, provenance_raw: bytes,
             or not isinstance(evidence.get("reviewer_pseudonym"), str)
             or not evidence["reviewer_pseudonym"] or len(evidence["reviewer_pseudonym"]) > 80
             or evidence.get("reviewer_role") != "independent_evidence_reader"
+            or (evidence_version == 2 and evidence.get("reviewer_identity_verified") is not False)
             or evidence.get("independence_attestation") !=
                 "independent_of_claim_generation_scoring_and_custody"
             or evidence.get("visual_inspection_attestation") !=
@@ -347,7 +377,23 @@ def audit_evidence(*, plan_raw: bytes, provenance_raw: bytes,
     signature = evidence["signature_ed25519_base64"]
     signed_object = {key: value for key, value in evidence.items()
                      if key != "signature_ed25519_base64"}
-    _verify_signature(public_key_raw, _canonical(signed_object), signature)
+    _verify_signature(public_key_raw,
+                      (EVIDENCE_V2_DOMAIN if evidence_version == 2 else b"")
+                      + _canonical(signed_object), signature)
+    if evidence_version == 2:
+        if any(value is None for value in (capture_operator_attestation_raw,
+                crop_map_raw, crop_crosswalk_raw, integrity_roster_raw,
+                release_roster_raw, root_public_key_raw,
+                expected_root_public_der_sha256, crop_dir)):
+            raise ValueError("capture_operator_audit_inputs_missing")
+        if (not isinstance(expected_root_public_der_sha256, str)
+                or not SHA256.fullmatch(expected_root_public_der_sha256)):
+            raise ValueError("capture_operator_root_pin_invalid")
+    elif any(value is not None for value in (capture_operator_attestation_raw,
+            crop_map_raw, crop_crosswalk_raw, integrity_roster_raw,
+            release_roster_raw, root_public_key_raw,
+            expected_root_public_der_sha256, crop_dir)):
+        raise ValueError("unexpected_capture_operator_inputs_for_v1")
 
     obs_by_token = {}
     for row in observations["records"]:
@@ -445,6 +491,56 @@ def audit_evidence(*, plan_raw: bytes, provenance_raw: bytes,
                                     additional_names={"capture_receipt.json"})
     if screenshot_snapshot["capture_receipt.json"] != capture_receipt_raw:
         raise ValueError("capture_receipt_file_byte_mismatch")
+    crop_snapshot = None
+    crop_snapshot_names: set[str] = set()
+    crop_identities = None
+    crop_directory_identity = None
+    if evidence_version == 2:
+        crop_crosswalk = _strict_json(crop_crosswalk_raw)
+        if (not isinstance(crop_crosswalk, dict)
+                or not isinstance(crop_crosswalk.get("records"), list)):
+            raise ValueError("capture_operator_crop_crosswalk_invalid")
+        crop_snapshot_names = {row.get("crop_file") for row in crop_crosswalk["records"]
+                               if isinstance(row, dict)}
+        if (len(crop_snapshot_names) != 15 or None in crop_snapshot_names
+                or any(not isinstance(name, str) or Path(name).name != name
+                       or name in {".", ".."} for name in crop_snapshot_names)):
+            raise ValueError("capture_operator_crop_artifact_set_invalid")
+        crop_snapshot, crop_identities, crop_directory_identity = \
+            _snapshot_private_directory(crop_dir, crop_snapshot_names, label="screenshot")
+        operator_report = verify_attestation(
+            attestation_raw=capture_operator_attestation_raw,
+            plan_raw=plan_raw, expected_plan_sha256=expected_plan_sha256,
+            plan_provenance_raw=provenance_raw,
+            expected_plan_provenance_sha256=expected_plan_provenance_sha256,
+            observations_raw=observations_raw, observation_index_raw=observation_index_raw,
+            capture_receipt_raw=capture_receipt_raw, crop_map_raw=crop_map_raw,
+            crop_crosswalk_raw=crop_crosswalk_raw,
+            screenshot_files={name: screenshot_snapshot[name]
+                              for name in expected_screenshot_names},
+            crop_files=crop_snapshot,
+            integrity_roster_raw=integrity_roster_raw,
+            release_roster_raw=release_roster_raw,
+            root_public_key_pem=root_public_key_raw,
+            expected_root_public_der_sha256=expected_root_public_der_sha256)
+        operator_envelope = _strict_json(capture_operator_attestation_raw)
+        if (operator_report.get("status") !=
+                "capture_operator_key_signature_valid_candidate_artifact_bytes"
+                or evidence["capture_operator_attestation_sha256"] != _sha(capture_operator_attestation_raw)
+                or evidence["capture_operator_integrity_roster_sha256"] != _sha(integrity_roster_raw)
+                or evidence["capture_operator_release_roster_sha256"] != _sha(release_roster_raw)
+                or evidence["capture_operator_trust_root_der_sha256"] != expected_root_public_der_sha256
+                or evidence["capture_operator_key_id"] != operator_report.get("capture_operator_key_id")
+                or evidence["capture_operator_key_der_sha256"] != operator_envelope.get("capture_operator_key_der_sha256")
+                or evidence["capture_operator_signature_verified"] is not True
+                or evidence["capture_operator_human_identity_verified"] is not False
+                or evidence["capture_operator_process_authenticated"] is not False
+                or evidence["capture_operator_frame_correspondence_reviewed"] is not False
+                or evidence["capture_operator_score_ready"] is not False
+                or evidence["model_load_permitted"] is not False
+                or evidence["scoring_authorized"] is not False
+                or evidence["execution_authorization"] != "not_granted"):
+            raise ValueError("capture_operator_evidence_binding_or_authority_invalid")
     expected_media_names = {token + ".mp4" for token in plan_by_token}
     media_snapshot, media_identities, media_directory_identity = \
         _snapshot_private_directory(media_dir, expected_media_names, label="staged_media")
@@ -597,6 +693,10 @@ def audit_evidence(*, plan_raw: bytes, provenance_raw: bytes,
     _verify_private_snapshot_still_current(
         media_dir, expected_media_names, media_identities,
         media_directory_identity, label="staged_media")
+    if evidence_version == 2:
+        _verify_private_snapshot_still_current(
+            crop_dir, crop_snapshot_names, crop_identities,
+            crop_directory_identity, label="screenshot")
     pass_status = all(decision == "match" for decision in decisions)
     return {
         "status": "candidate_signed_evidence_bytes_consistent" if pass_status
@@ -610,6 +710,9 @@ def audit_evidence(*, plan_raw: bytes, provenance_raw: bytes,
         "mismatch_decisions": decisions.count("mismatch"),
         "screenshot_and_decoder_bytes_checked": True,
         "reviewer_signature_verified": True,
+        "capture_operator_signature_verified": evidence_version == 2,
+        "capture_operator_human_identity_verified": False,
+        "capture_operator_frame_correspondence_reviewed": False,
         "reviewer_attestations_present": True,
         "joint_freeze_status": "not_jointly_frozen",
         "reviewer_key_trust_status": "expected_hash_supplied_by_caller_not_joint_freeze_authenticated",
@@ -663,6 +766,14 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--reviewer-public-key", required=True, type=Path)
     parser.add_argument("--media-dir", required=True, type=Path)
     parser.add_argument("--screenshot-dir", required=True, type=Path)
+    parser.add_argument("--capture-operator-attestation", type=Path)
+    parser.add_argument("--crop-map", type=Path)
+    parser.add_argument("--crop-crosswalk", type=Path)
+    parser.add_argument("--crop-dir", type=Path)
+    parser.add_argument("--integrity-roster", type=Path)
+    parser.add_argument("--release-roster", type=Path)
+    parser.add_argument("--trust-root-public-key", type=Path)
+    parser.add_argument("--expected-trust-root-der-sha256")
     parser.add_argument("--expected-plan-sha256", required=True)
     parser.add_argument("--expected-plan-provenance-sha256", required=True)
     parser.add_argument("--expected-capture-helper-sha256", required=True)
@@ -682,6 +793,17 @@ def main(argv: list[str] | None = None) -> int:
             expected_plan_provenance_sha256=args.expected_plan_provenance_sha256,
             expected_capture_helper_sha256=args.expected_capture_helper_sha256,
             expected_reviewer_public_key_sha256=args.expected_reviewer_public_key_sha256,
+            capture_operator_attestation_raw=(
+                _read_private(args.capture_operator_attestation)
+                if args.capture_operator_attestation else None),
+            crop_map_raw=_read_private(args.crop_map) if args.crop_map else None,
+            crop_crosswalk_raw=_read_private(args.crop_crosswalk) if args.crop_crosswalk else None,
+            integrity_roster_raw=_read_private(args.integrity_roster) if args.integrity_roster else None,
+            release_roster_raw=_read_private(args.release_roster) if args.release_roster else None,
+            root_public_key_raw=_read_private(args.trust_root_public_key)
+                if args.trust_root_public_key else None,
+            expected_root_public_der_sha256=args.expected_trust_root_der_sha256,
+            crop_dir=args.crop_dir,
         )
     except (OSError, ValueError, json.JSONDecodeError) as exc:
         failure_code = str(exc) if isinstance(exc, ValueError) else "private_input_io_error"

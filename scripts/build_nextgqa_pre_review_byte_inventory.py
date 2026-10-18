@@ -83,6 +83,7 @@ CODE_FILES = {
     "clock_plan_provenance_builder": "scripts/bind_html5_clock_calibration_provenance.py",
     "clock_evidence_audit": "scripts/audit_nextgqa_clock_frame_evidence.py",
     "clock_evidence_manifest_builder": "scripts/build_nextgqa_clock_evidence_manifest.py",
+    "clock_capture_operator_attestation": "scripts/nextgqa_capture_operator_attestation.py",
     "clock_capture_input_preparer": "scripts/prepare_html5_clock_calibration_inputs.py",
     "clock_calibration": "scripts/html5_clock_capture_calibration.py",
     "clock_screenshot_capture": "scripts/capture_nextgqa_clock_screenshots.ps1",
