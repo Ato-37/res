@@ -497,12 +497,29 @@ class QtaPhaseFreezeReceiptTests(unittest.TestCase):
         self.assertFalse(report["attention_capture_authenticated"])
         self.assertTrue(report["capture_sidecars_joined_to_selection_masses"])
         self.assertEqual(report["capture_sidecar_records_validated"], 3)
+        self.assertEqual(report["expected_attention_source_dtype"], "float32")
         self.assertTrue(report["phase1_receipt_signature_valid"])
         self.assertTrue(report["phase2_receipt_signature_valid"])
         self.assertTrue(report["phase1_receipt_recursively_verified"])
         self.assertTrue(report["same_freeze_id"])
         self.assertFalse(report["plan_semantics_authenticated"])
         self.assertEqual(report["authorized_forwards"], 0)
+
+    def test_signed_phase2_plan_dtype_mismatch_rejects_relabelled_capture_index(self):
+        bundle = self._phase2_candidate_bundle()
+        p1_artifacts, p1, p2_artifacts, _p2, records = bundle
+        index = json.loads(p2_artifacts["attention_capture_index"])
+        index["records"][0]["attention_source_dtype"] = "bfloat16"
+        p2_artifacts["attention_capture_index"] = (
+            json.dumps(index, sort_keys=True, separators=(",", ":")) + "\n").encode()
+        # Re-sign the mutated index: the expected dtype remains frozen in the
+        # separate signed plan artifact.
+        changed_p2 = self._create("post_baseline", records, p2_artifacts,
+                                  prior_phase1_receipt_raw=p1)
+        changed_bundle = (p1_artifacts, p1, p2_artifacts, changed_p2, records)
+        with self.assertRaisesRegex(
+                ValueError, "capture_sidecar_attention_source_dtype_mismatch"):
+            self._verify_phase2_candidate(changed_bundle)
 
     def test_signed_phase2_capture_index_rejects_rehashed_mass_divergence(self):
         bundle = self._phase2_candidate_bundle()

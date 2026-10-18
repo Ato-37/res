@@ -34,7 +34,7 @@ _TOKEN = re.compile(r"^[0-9a-f]{64}$")
 _REVIEW_TOKEN = re.compile(r"^[A-Za-z0-9_-]{24}$")
 _MANIFEST_KEYS = {
     "schema_version", "purpose", "phase", "phase1_receipt_sha256",
-    "baseline_pq_manifest_sha256",
+    "baseline_pq_manifest_sha256", "expected_attention_source_dtype",
     "requested_records", "planned_forwards", "completed_forwards",
     "selection_arithmetic_reproduced_records",
     "forward_source_authenticated", "attention_capture_authenticated",
@@ -343,7 +343,8 @@ def _core_manifest(*, phase1_receipt_sha256: str,
                    rows: Any, phase1_row_hashes: list[str],
                    baseline_pq_manifest_sha256: str,
                    baseline_rows: list[dict[str, Any]],
-                   phase1_source_pins: dict[str, Any]) -> dict[str, Any]:
+                   phase1_source_pins: dict[str, Any],
+                   expected_attention_source_dtype: str) -> dict[str, Any]:
     if not isinstance(phase1_receipt_sha256, str) or not _SHA256.fullmatch(
             phase1_receipt_sha256):
         raise ValueError("phase1_receipt_hash_invalid")
@@ -356,6 +357,9 @@ def _core_manifest(*, phase1_receipt_sha256: str,
     if (len(phase1_row_hashes) != ROW_COUNT or len(baseline_rows) != ROW_COUNT
             or not _SHA256.fullmatch(baseline_pq_manifest_sha256)):
         raise ValueError("phase2_upstream_binding_count_invalid")
+    if (not isinstance(expected_attention_source_dtype, str)
+            or expected_attention_source_dtype not in {"float32", "bfloat16"}):
+        raise ValueError("phase2_attention_source_dtype_invalid")
 
     clean = []
     row_hashes = set()
@@ -446,11 +450,12 @@ def _core_manifest(*, phase1_receipt_sha256: str,
             "plan": dict(plan),
         })
     return {
-        "schema_version": 1,
-        "purpose": "qta_phase2_nine_branch_plan_manifest_v1",
+        "schema_version": 2,
+        "purpose": "qta_phase2_nine_branch_plan_manifest_v2",
         "phase": "post_baseline",
         "phase1_receipt_sha256": phase1_receipt_sha256,
         "baseline_pq_manifest_sha256": baseline_pq_manifest_sha256,
+        "expected_attention_source_dtype": expected_attention_source_dtype,
         "requested_records": ROW_COUNT,
         "planned_forwards": PHASE2_FORWARDS,
         "completed_forwards": 0,
@@ -469,8 +474,11 @@ def create_qta_phase2_plan_manifest_candidate(*, phase1_receipt_raw: bytes,
                                                phase1_preflight_raw: bytes,
                                                phase1_stage1_source_pins_raw: bytes,
                                                baseline_pq_manifest_raw: bytes,
-                                               plans: Any) -> bytes:
-    """Serialize plans in the signed phase-2 artifact role; grants no authority."""
+                                               plans: Any,
+                                               # Synthetic callers default to
+                                               # float32; model runs pin this.
+                                               expected_attention_source_dtype: str = "float32") -> bytes:
+    """Serialize plans plus expected capture dtype; grants no authority."""
     if not isinstance(phase1_receipt_raw, bytes) or not phase1_receipt_raw:
         raise ValueError("phase1_receipt_bytes_required")
     if len(phase1_receipt_raw) > MAX_UPSTREAM_BYTES:
@@ -509,7 +517,8 @@ def create_qta_phase2_plan_manifest_candidate(*, phase1_receipt_raw: bytes,
         phase1_records=phase1_rows, phase2_records=phase1_rows, rows=rows,
         phase1_row_hashes=phase1_hashes,
         baseline_pq_manifest_sha256=_sha(baseline_pq_manifest_raw),
-        baseline_rows=baseline_rows, phase1_source_pins=stage1_pins)
+        baseline_rows=baseline_rows, phase1_source_pins=stage1_pins,
+        expected_attention_source_dtype=expected_attention_source_dtype)
     return _canonical(manifest) + b"\n"
 
 
@@ -527,8 +536,8 @@ def _validate_manifest_bytes(*, manifest_raw: bytes,
     if (not isinstance(manifest, dict) or set(manifest) != _MANIFEST_KEYS
             or _canonical(manifest) + b"\n" != manifest_raw):
         raise ValueError("phase2_manifest_schema_or_canonical_encoding_invalid")
-    if (type(manifest["schema_version"]) is not int or manifest["schema_version"] != 1
-            or manifest["purpose"] != "qta_phase2_nine_branch_plan_manifest_v1"
+    if (type(manifest["schema_version"]) is not int or manifest["schema_version"] != 2
+            or manifest["purpose"] != "qta_phase2_nine_branch_plan_manifest_v2"
             or manifest["phase"] != "post_baseline"
             or type(manifest["requested_records"]) is not int
             or manifest["requested_records"] != ROW_COUNT
@@ -538,6 +547,8 @@ def _validate_manifest_bytes(*, manifest_raw: bytes,
             or manifest["completed_forwards"] != 0
             or type(manifest["selection_arithmetic_reproduced_records"]) is not int
             or manifest["selection_arithmetic_reproduced_records"] != ROW_COUNT
+            or not isinstance(manifest["expected_attention_source_dtype"], str)
+            or manifest["expected_attention_source_dtype"] not in {"float32", "bfloat16"}
             or manifest["forward_source_authenticated"] is not False
             or manifest["attention_capture_authenticated"] is not False
             or manifest["execution_authorization"] != "not_granted"
@@ -562,7 +573,9 @@ def _validate_manifest_bytes(*, manifest_raw: bytes,
         phase1_row_hashes=_phase1_preflight_row_hashes(phase1_preflight_raw),
         baseline_pq_manifest_sha256=_sha(baseline_pq_manifest_raw),
         baseline_rows=_baseline_rows(baseline_pq_manifest_raw),
-        phase1_source_pins=stage1_pins)
+        phase1_source_pins=stage1_pins,
+        expected_attention_source_dtype=manifest[
+            "expected_attention_source_dtype"])
     return {
         "status": "phase2_plan_manifest_bound_unvalidated",
         "requested_records": ROW_COUNT,
@@ -665,6 +678,8 @@ def verify_qta_phase2_plan_candidate(*, phase1_receipt_raw: bytes,
         expected_capture_rows.append({
             "expected_capture_binding": expected_capture_binding,
             "input_length": score_binding["input_length"],
+            "expected_attention_source_dtype": manifest[
+                "expected_attention_source_dtype"],
             "selection_provenance": selection,
             "expected_selection_bindings": expected_selection_bindings,
             "plan": plan,
@@ -679,6 +694,8 @@ def verify_qta_phase2_plan_candidate(*, phase1_receipt_raw: bytes,
         "capture_sidecar_index_valid": True,
         "capture_sidecar_records_validated": capture_report["record_count"],
         "capture_sidecar_total_bytes": capture_report["total_sidecar_bytes"],
+        "expected_attention_source_dtype": manifest[
+            "expected_attention_source_dtype"],
         "capture_sidecars_joined_to_selection_masses": True,
         "attention_capture_authenticated": False,
         "forward_source_authenticated": False,

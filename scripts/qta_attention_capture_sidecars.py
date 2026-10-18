@@ -266,8 +266,13 @@ def validate_qta_capture_sidecar_index(*, index_raw: bytes,
             _fail("capture_sidecar_record_authority_invalid")
         if (not isinstance(expected, Mapping) or set(expected) != {
                 "expected_capture_binding", "input_length", "selection_provenance",
-                "expected_selection_bindings", "plan"}):
+                "expected_selection_bindings", "expected_attention_source_dtype",
+                "plan"}):
             _fail("capture_sidecar_expected_row_schema_invalid")
+        expected_source_dtype = expected["expected_attention_source_dtype"]
+        if (not isinstance(expected_source_dtype, str)
+                or expected_source_dtype not in _ATTENTION_SOURCE_DTYPES):
+            _fail("capture_sidecar_expected_source_dtype_invalid")
         binding = expected["expected_capture_binding"]
         input_length = expected["input_length"]
         if type(input_length) is not int or input_length < 1:
@@ -295,6 +300,8 @@ def validate_qta_capture_sidecar_index(*, index_raw: bytes,
         if (not isinstance(source_dtype, str)
                 or source_dtype not in _ATTENTION_SOURCE_DTYPES):
             _fail("capture_sidecar_attention_source_dtype_invalid")
+        if source_dtype != expected_source_dtype:
+            _fail("capture_sidecar_attention_source_dtype_mismatch")
         if (type(input_length) is not int or input_length < 1
                 or row.get("input_length") != input_length
                 or row.get("layers_1_based") != list(LAYERS)

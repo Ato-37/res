@@ -107,6 +107,22 @@ claim-linked scores. The separate human package remains candidate-only; no
 trust-root pin, witnessed unopened handoff, or human judgment has been
 completed.
 
+## Follow-up: dtype-label binding audit
+
+An independent code audit found that the raw-byte sidecar builder allowed a
+caller-provided `attention_source_dtype` to choose the row-sum tolerance, but
+the signed phase-2 plan did not independently fix that expected dtype. The
+source flag itself remains an unauthenticated assertion, so this did not
+change the GPU smoke result or create a faithfulness estimate. The phase-2
+manifest is now version 2 and binds an expected dtype; the verifier rejects a
+reindexed dtype label that conflicts with that plan. Synthetic regression
+tests cover a deliberately relabeled row and a re-signed phase-2 index.
+Focused capture-contract/phase-freeze tests pass **57/57**. Actual model dtype
+authentication remains unresolved and all authentication/scoring flags stay
+false. The full repository suite passes **1,995/1,995** in **71.756 s** after
+this repair; an independent source audit confirmed the intended-plan dtype
+comparison is reached by the tamper tests.
+
 ## Next action
 
 Independently audit the run artifact and update the phase-2 sidecar

@@ -608,10 +608,34 @@ and source hashes. It still says
 `attention_capture_authenticated=false`, and `faithfulness_result=false`.
 
 Final focused capture/sidecar/receipt tests pass **68/68** and the full suite
-passes **1,993/1,993** in **70.847 seconds**. The phase-2 verifier still only
-checks signed dtype assertions and byte/mass consistency; it does not
-authenticate that BF16 bytes came from the pinned model/runtime. The private
+passes **1,993/1,993** in **70.847 seconds**. The phase-2 verifier also binds
+the sidecar dtype assertion to the expected dtype in the signed phase-2 plan;
+it does not authenticate that BF16 bytes came from the pinned model/runtime.
+The private
 GPU JSONs remain under ignored `data/private_nextgqa/` and are not published.
+
+### Bind sidecar dtype to the signed phase-2 plan
+
+An independent source audit found that the binary index builder accepted a
+caller-supplied dtype label for raw bytes, while the sidecar verifier selected
+its row-sum tolerance from that same label. A row with sum error 0.002 could
+therefore be reindexed as `bfloat16` and pass the 0.0041 bound even if the
+pre-committed capture expectation was `float32`. This was an integrity gap in
+the dtype-specific contract, although authentication flags remained false.
+
+The phase-2 manifest is now schema v2 and includes
+`expected_attention_source_dtype`. Sidecar verification requires this value
+in each expected row and rejects any index whose dtype label differs. The
+index remains explicitly non-authenticating; matching the signed plan proves
+only consistency of the declared dtype, not which dtype the model returned.
+Regression fixtures reindex raw bytes under a `bfloat16` label and confirm
+rejection against a `float32` expected row, including a row that is inside the
+BF16 tolerance but outside the float32 tolerance. A phase-2 receipt test also
+re-signs an altered index label while preserving the signed plan's expected
+dtype and confirms rejection. Focused capture-contract/phase-freeze tests
+pass **57/57**. The full repository suite passes **1,995/1,995** in
+**71.756 seconds**. Independent audit found no remaining dtype-label reindex
+bypass. The physical source dtype and executed forward remain unauthenticated.
 
 The binary layout avoids JSON hex expansion. Limits are 128 MiB per raw row,
 384 MiB summed across rows, and 24 MB for the index. This is not a streaming

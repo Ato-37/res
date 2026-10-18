@@ -1,5 +1,18 @@
 # AGENTS.md — mandatory first read
 
+## Explicit stop-only continuation rule (user instruction, 2026-10-18)
+
+- During an ongoing research/PDCA task, continue useful, authorized work until the
+  user explicitly says `stop`. Do not end early because one branch is blocked,
+  a scientific stop is reached, progress is slow, a checkpoint is complete, or
+  the current turn feels complete. Switch to another independent, justified task
+  when a branch cannot proceed. The only reason to voluntarily stop this ongoing
+  work is token/context exhaustion; if that happens, report the work as incomplete
+  and do not claim completion. A user `stop` instruction immediately ends work.
+- Treat actual external blockers as blocking only the dependent operation. Continue
+  useful in-scope work elsewhere while documenting the blocker; do not use a branch
+  gate as a reason to stop the whole session.
+
 This file is the single source of truth for all coding agents working in this
 repository. **Read `AGENTS.md` before reading or modifying source, experiments,
 or result artifacts.** `claude.md` is only a compatibility pointer for Claude Code

@@ -116,6 +116,7 @@ class AttentionCaptureContractTests(unittest.TestCase):
             rows.append({"expected_capture_binding": binding,
                 "input_length": 8, "selection_provenance": selection,
                 "expected_selection_bindings": selection_bindings,
+                "expected_attention_source_dtype": "float32",
                 "plan": None})
         return build_qta_capture_sidecar_index(entries=entries), rows
 
@@ -406,10 +407,31 @@ class AttentionCaptureContractTests(unittest.TestCase):
                 "input_length": 8,
                 "selection_provenance": selection,
                 "expected_selection_bindings": bindings,
+                "expected_attention_source_dtype": "bfloat16",
                 "plan": None,
             }])
         self.assertEqual(report["record_count"], 1)
         self.assertFalse(report["attention_capture_authenticated"])
+
+    def test_sidecar_rejects_bfloat16_label_against_float32_plan(self):
+        import numpy as np
+
+        shape = [12, 2, 2, 8]
+        values = np.full(shape, 0.125, dtype=np.float32)
+        values[..., 0] += 0.002  # Fits BF16 tolerance but not float32 tolerance.
+        raw = values.astype(">f4").tobytes()
+        (_bundle_raw, _bundle_sidecars), expected_rows = self._sidecar_bundle()
+        index_raw, sidecars = build_qta_capture_sidecar_index(entries=[{
+            "binding": expected_rows[0]["expected_capture_binding"],
+            "attention_shape": shape,
+            "attention_bytes": raw, "attention_source_dtype": "bfloat16",
+            "input_length": 8,
+        }])
+        with self.assertRaisesRegex(
+                ValueError, "capture_sidecar_attention_source_dtype_mismatch"):
+            validate_qta_capture_sidecar_index(
+                index_raw=index_raw, sidecars=sidecars,
+                expected_rows=[expected_rows[0]])
 
     def test_tensor_packer_rejects_oversize_before_tensor_slicing(self):
         class OversizeTensor:
