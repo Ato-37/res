@@ -27,6 +27,11 @@ faithfulness evidence.
 - The protected local directory contains no quick-review response JSON matching
   the expected response naming patterns. The current runbook correctly points
   to the nickname flow with `xdg-open` and distinguishes it from formal review.
+- Re-ran the existing Stage-1/phase-freeze/Stage-2 Python component suites:
+  **177 test executions passed**. The phase-composition test module imports
+  other `TestCase` classes as fixtures, so the multi-module unittest command
+  discovers some of those tests more than once; 177 is the execution count, not
+  a unique-test count.
 
 ## Interpretation and limits
 
@@ -39,7 +44,8 @@ The repository's prior notes describing a unified formal workspace are not
 evidence that such an artifact exists in the current worktree. The formal
 Stage-1/Stage-2 verifier components remain available, but the browser integration
 and browser E2E described in the prediction-link log are still outstanding.
-This is a software-delivery gap; it does not justify bypassing any real-human or
+Component tests passing does not test that missing integration. This is a
+software-delivery gap; it does not justify bypassing any real-human or
 trusted-root requirements.
 
 ## Faithfulness progress
