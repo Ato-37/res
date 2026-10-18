@@ -57,9 +57,24 @@ provisional observation about the supplied bytes, not an independently frozen
 cohort or source-authenticated reproducibility claim. The current wrapper has
 since been hardened to check its own code and dependencies against current
 HEAD, enforce a candidate-inventory pin against each input's size and digest,
-and reject a coherent cohort replacement against the unchanged inventory.
-Those later changes have so far been tested only on synthetic fixtures; the
-hardened wrapper has not yet been rerun on protected inputs.
+and reject a coherent cohort replacement against the unchanged inventory. It
+was then rerun on the same local inputs at `2026-10-18 00:36:17 UTC` from code
+commit `94fe91be34235c7add5e6bcb2ed336db13c96f67`. The aggregate-only report
+returned `source_binding_passed_unvalidated`, **3/3** rows,
+`inventory_content_match=true`, `protocol_blob_match=true`, and
+`config_blob_match=true`; model/scoring authorization remained false and
+forwards/scores remained zero. The run used a 77-artifact candidate inventory
+with zero missing slots.
+
+The runner verified all ten required inventory role byte sizes/digests against
+the supplied inputs and the three pinned code files. Its expected inventory
+digest and Git HEAD commit were caller-supplied local values; the report labels
+both pins unverified and explicitly states `inventory_is_trust_root=false`.
+Thus this rerun is reproducible relative to the supplied local candidate
+inventory, but the inventory and its expected digest are not independently
+authenticated. Rebuilding a different internally consistent candidate and
+supplying its new digest could bind a replacement cohort. This does not close
+the independent freeze/authority gate.
 
 ## Related hardening and workflow correction
 
@@ -92,10 +107,11 @@ pin; the inventory is explicitly not a trust root.
   judgments; 0/15 independently verified player/decoder anchors; 0/3 scored**.
 - No `DeltaF`, effect estimate, interval, hypothesis test, or multiplicity
   adjustment was produced. No GPU or model forward was run.
-- The hardened aggregate-only CLI still needs one real-input rerun against the
-  fresh inventory after its code is committed. That will improve byte-level
-  reproducibility only; it cannot authenticate the inventory pin or substitute
-  for human review and clock evidence.
+- The hardened aggregate-only CLI did run once on actual local source bytes
+  after code commit, with 3/3 bindings and matching candidate-inventory roles.
+  This improves reproducibility relative to the caller-supplied local
+  inventory; it cannot authenticate that inventory or substitute for human
+  review and clock evidence.
 - This cycle produced engineering/source-plumbing diagnostics only. The next
   evidence-bearing gate remains a real independent stage-1 human review with
   complete occurrence intervals, followed by all 15 clock/frame
