@@ -95,6 +95,7 @@ class SyntheticPreReviewInventoryTests(unittest.TestCase):
             "qta_prediction_link_validator",
             "qta_prediction_link_renderer",
             "actual_qa_source_adapter",
+            "qta_actual_qa_source_contract",
             "annotation_clock_calibration",
             "claim_input_manifest_builder",
             "claim_text_quality",
