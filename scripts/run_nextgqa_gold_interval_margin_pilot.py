@@ -66,6 +66,18 @@ def validate_preflight_cardinality(gate: dict, requested: int, selected_count: i
         raise ValueError("preflight_requested_or_effective_count_mismatch")
 
 
+def validate_second_per_grid(seconds_per_grid: float, sample_fps: tuple | list) -> None:
+    """Validate Qwen's float32 temporal interval with a scale-aware tolerance."""
+    if (not isinstance(sample_fps, (tuple, list)) or len(sample_fps) != 2
+            or sample_fps[0] <= 0 or sample_fps[1] <= 0
+            or not math.isfinite(float(seconds_per_grid))):
+        raise ValueError("qwen_second_per_grid_mismatch")
+    expected = 2 / (sample_fps[0] / sample_fps[1])
+    if not math.isclose(float(seconds_per_grid), expected,
+                        rel_tol=5e-8, abs_tol=1e-6):
+        raise ValueError("qwen_second_per_grid_mismatch")
+
+
 def helper_source_hashes(repo: Path) -> dict:
     """Bind imported timing/control behavior into the preflight contract."""
     return {
@@ -498,8 +510,7 @@ def prepare_conditions(selected, processor, torch, frame_count=FRAMES,
             seconds_per_grid = float(batch["second_per_grid_ts"][0])
             if grid[0] != frame_count // int(processor.video_processor.temporal_patch_size):
                 raise RuntimeError("qwen_temporal_grid_mismatch")
-            if abs(seconds_per_grid - 2 / (sample_fps[0] / sample_fps[1])) > 1e-6:
-                raise RuntimeError("qwen_second_per_grid_mismatch")
+            validate_second_per_grid(seconds_per_grid, sample_fps)
             condition_geometry.append((grid, seconds_per_grid))
             if retain_batches:
                 condition_batches[condition] = batch

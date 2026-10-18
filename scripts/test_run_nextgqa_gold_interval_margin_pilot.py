@@ -22,6 +22,7 @@ from run_nextgqa_gold_interval_margin_pilot import (
     SOURCE_PATHS,
     verify_committed_source_snapshot,
     prepare_conditions,
+    validate_second_per_grid,
     validate_cohort_cardinality,
     validate_cohort_lock_payload,
     validate_locked_selection_assignments,
@@ -36,6 +37,14 @@ from run_nextgqa_gold_interval_margin_pilot import (
 
 
 class GoldIntervalAnswerMarginTests(unittest.TestCase):
+    def test_second_per_grid_accepts_float32_rounding_at_long_intervals(self):
+        # Qwen processor returns float32; absolute 1e-6 rejects this valid value.
+        validate_second_per_grid(83.88200378417969, [1000, 41941])
+        with self.assertRaisesRegex(ValueError, "qwen_second_per_grid_mismatch"):
+            validate_second_per_grid(83.882005, [1000, 41941])
+        with self.assertRaisesRegex(ValueError, "qwen_second_per_grid_mismatch"):
+            validate_second_per_grid(83.9, [1000, 41941])
+
     def test_source_snapshot_requires_exact_committed_bytes(self):
         with tempfile.TemporaryDirectory() as tmp:
             repo = Path(tmp)
