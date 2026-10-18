@@ -17,11 +17,13 @@ from unittest.mock import patch
 from PIL import Image
 
 from build_nextgqa_clock_evidence_manifest import INPUTS, build_manifest, main
+from build_blinded_frame_pair_review import _html
 from test_audit_nextgqa_clock_frame_evidence import ClockFrameEvidenceAuditTests, enc, sha
 from test_nextgqa_capture_operator_attestation import CaptureAttestationTests
 from nextgqa_capture_operator_attestation import create_attestation
 from build_nextgqa_clock_evidence_manifest import (
-    _artifact_directory, verify_manifest_signature,
+    EVIDENCE_DOMAIN_V3, _artifact_directory, _canonical as evidence_canonical,
+    _load_public_der, _sign, verify_manifest_signature,
 )
 
 
@@ -32,6 +34,11 @@ def canonical(value):
 
 def sha(raw):
     return hashlib.sha256(raw).hexdigest()
+
+
+def _rgb_hash_for_test(image):
+    rgb = image.convert("RGB")
+    return sha(f"{rgb.width}x{rgb.height}:".encode("ascii") + rgb.tobytes())
 
 
 class BuilderSyntheticTests(unittest.TestCase):
@@ -45,13 +52,10 @@ class BuilderSyntheticTests(unittest.TestCase):
         self.screenshot_dir.mkdir(mode=0o700)
         self.operator_fixture = CaptureAttestationTests()
         self.operator_fixture.setUp()
-        self.key = self.root / "reader.pem"
-        self.pub = self.root / "reader.pub.pem"
-        # Synthetic throwaway fixture key only; production CLI never creates keys.
-        subprocess.run(["openssl", "genpkey", "-algorithm", "ED25519", "-out", str(self.key)],
-                       check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-        subprocess.run(["openssl", "pkey", "-in", str(self.key), "-pubout", "-out", str(self.pub)],
-                       check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        self.key = self.root / "frame-reviewer.pem"
+        self.pub = self.root / "frame-reviewer.pub.pem"
+        self.key.write_bytes(self.operator_fixture.keys["frame"][0])
+        self.pub.write_bytes(self.operator_fixture.keys["frame"][1])
         os.chmod(self.key, 0o600)
         os.chmod(self.pub, 0o600)
         self.files = self._synthetic_inputs()
@@ -125,7 +129,14 @@ class BuilderSyntheticTests(unittest.TestCase):
                 (self.crop_dir / crop_file).write_bytes(crop_raw)
                 os.chmod(self.crop_dir / crop_file, 0o600)
                 crop_sha = sha(crop_raw)
-                decoder_png_sha = sha((token + anchor + "decoder-png").encode())
+                decoder_image = Image.new("RGB", (2, 2), (ti * 20 + 1, ai * 20 + 2, 8))
+                decoder_buffer = io.BytesIO()
+                decoder_image.save(decoder_buffer, format="PNG")
+                decoder_png = decoder_buffer.getvalue()
+                decoder_png_sha = sha(decoder_png)
+                self.decoder_pngs = getattr(self, "decoder_pngs", {})
+                self.decoder_pngs[(token, anchor)] = decoder_png
+                decoder_rgb_sha = _rgb_hash_for_test(decoder_image)
                 # 24-character opaque-shaped synthetic identifier.
                 pair_id = f"pair{ti:02d}{ai:02d}".ljust(24, "x")
                 crop_on_a = (ti + ai) % 2 == 0
@@ -149,7 +160,7 @@ class BuilderSyntheticTests(unittest.TestCase):
                                      "source_media_sha256": sha(token.encode()),
                                      "decoder_frame_index": ai,
                                      "decoder_relative_pts_seconds": str(ai),
-                                     "rgb_sha256": sha((token + anchor + "rgb").encode()),
+                                     "rgb_sha256": decoder_rgb_sha,
                                      "png_sha256": decoder_png_sha,
                                      "png_file": token + "_" + anchor + ".png"})
             rows_obs.append({"review_token": token, "events": events})
@@ -203,6 +214,21 @@ class BuilderSyntheticTests(unittest.TestCase):
                    "pair_count": 15, "package_nonce": "a" * 64, "plan_sha256": sha(plan_raw),
                    "pairs": pairs}
         package_raw = canonical(package)
+        files_for_html = {}
+        for item in rows_identity:
+            key = (item["review_token"], item["anchor_id"])
+            crop_raw = (self.crop_dir / (key[0] + "_" + key[1] + "_crop.png")).read_bytes()
+            sides = {"screenshot_crop": crop_raw, "decoder_frame": self.decoder_pngs[key]}
+            files_for_html[item["pair_id"]] = {
+                "id": item["pair_id"],
+                "A": "data:image/png;base64," + base64.b64encode(sides[item["A_source"]]).decode(),
+                "B": "data:image/png;base64," + base64.b64encode(sides[item["B_source"]]).decode(),
+            }
+        viewer_pairs = [files_for_html[row["pair_id"]] for row in rows_identity]
+        template = _html("__PACKAGE_SHA__", "__PACKAGE_NONCE__", viewer_pairs)
+        package["reviewer_html_template_sha256"] = sha(template)
+        package_raw = canonical(package)
+        reviewer_html_raw = _html(sha(package_raw), package["package_nonce"], viewer_pairs)
         crop_map_raw = b"synthetic crop map bytes\n"
         files = {
             "plan": plan_raw,
@@ -228,6 +254,7 @@ class BuilderSyntheticTests(unittest.TestCase):
                 "plan_sha256": sha(plan_raw), "provenance_sha256": sha(canonical(prov)),
                 "effective_anchors": 15, "records": rows_decoder}),
             "pair_package": package_raw,
+            "pair_reviewer_html": reviewer_html_raw,
             "identity_map": canonical({"schema_version": 1,
                 "purpose": "private_blinded_frame_pair_identity_map", "status": "custodian_only",
                 "package_manifest_sha256": sha(package_raw), "records": rows_identity}),
@@ -235,7 +262,10 @@ class BuilderSyntheticTests(unittest.TestCase):
                 "purpose": "private_blinded_frame_pair_review_export", "status": "not_authorizing",
                 "execution_authorization": "not_granted", "package_manifest_sha256": sha(package_raw),
                 "package_nonce": package["package_nonce"], "reviewer_pseudonym": "synthetic-reader",
+                "reviewer_role": "independent_frame_pair_reviewer",
+                "independence_attestation": "reviewer_self_reports_independence_from_capture_custody_pair_selection_and_scoring",
                 "reviewer_provenance_status": "self_reported_unauthenticated", "signature_status": "none",
+                "reviewed_at_utc": "2026-01-01T00:01:00Z",
                 "records": rows_review}),
             "crop_map": crop_map_raw,
             "integrity_roster": self.operator_fixture.integrity,
@@ -279,11 +309,11 @@ class BuilderSyntheticTests(unittest.TestCase):
                               created_at_utc="2026-01-01T00:01:00Z",
                               attest_independence=True, attest_visual_comparison=True)
 
-    def test_builds_v2_signed_candidate_with_authority_denied(self):
+    def test_builds_v3_signed_candidate_with_authority_denied(self):
         result = self._build()
         self.assertEqual(len(result["records"]), 15)
-        self.assertEqual(result["schema_version"], 2)
-        self.assertEqual(result["purpose"], "private_clock_frame_correspondence_reader_attestation_v2")
+        self.assertEqual(result["schema_version"], 3)
+        self.assertEqual(result["purpose"], "private_clock_frame_correspondence_reader_attestation_v3")
         self.assertEqual(len(result["signature_ed25519_base64"]), 88)
         self.assertEqual(result["capture_operator_signature_verified"], True)
         self.assertEqual(result["capture_operator_human_identity_verified"], False)
@@ -293,11 +323,54 @@ class BuilderSyntheticTests(unittest.TestCase):
         self.assertEqual(result["reviewer_identity_verified"], False)
         self.assertEqual(result["execution_authorization"], "not_granted")
         self.assertTrue(all(row["correspondence_decision"] == "match" for row in result["records"]))
+        self.assertEqual(result["reviewer_role"], "frame_reviewer")
+        self.assertEqual(result["frame_reviewer_key_id"], "frame-key")
+        self.assertTrue(result["frame_reviewer_role_signature_verified"])
         raw = canonical(result)
         self.assertEqual(verify_manifest_signature(
             manifest_raw=raw, reviewer_public_key_raw=self.pub.read_bytes(),
             expected_reviewer_public_key_sha256=sha(self.pub.read_bytes()))["status"],
-            "evidence_manifest_v2_signature_valid_non_authorizing")
+            "evidence_manifest_v3_signature_valid_non_authorizing")
+
+    def test_identity_map_exact_schema_is_required_before_signing(self):
+        original = self.files["identity_map"]
+        mutations = (
+            ("unknown top-level field", "identity_map_schema_invalid",
+             lambda value: value.update(unexpected=True)),
+            ("boolean schema version", "identity_map_schema_invalid",
+             lambda value: value.update(schema_version=True)),
+            ("unknown record field", "identity_row_schema_invalid",
+             lambda value: value["records"][0].update(unexpected=True)),
+        )
+        for label, error, mutate in mutations:
+            with self.subTest(case=label):
+                value = json.loads(original)
+                mutate(value)
+                self.files["identity_map"] = canonical(value)
+                with self.assertRaisesRegex(ValueError, error):
+                    self._build()
+        self.files["identity_map"] = original
+
+    def test_unrostered_reviewer_key_cannot_sign_candidate(self):
+        capture_private, capture_public = self.operator_fixture.keys["capture"]
+        private_path = self.root / "capture-operator.pem"
+        public_path = self.root / "capture-operator.pub.pem"
+        private_path.write_bytes(capture_private)
+        public_path.write_bytes(capture_public)
+        private_path.chmod(0o600)
+        public_path.chmod(0o600)
+        with self.assertRaisesRegex(ValueError, "reviewer_key_not_rostered_frame_reviewer"):
+            build_manifest(
+                input_files=self.files, crop_dir=self.crop_dir,
+                screenshot_dir=self.screenshot_dir,
+                private_key_path=private_path, public_key_path=public_path,
+                expected_public_key_sha256=sha(capture_public),
+                expected_capture_helper_sha256=sha(b"synthetic helper"),
+                root_public_key_raw=self.root_public_key_raw,
+                expected_root_public_der_sha256=self.root_pin,
+                reviewer_pseudonym="synthetic-reader",
+                created_at_utc="2026-01-01T00:01:00Z",
+                attest_independence=True, attest_visual_comparison=True)
 
     def test_capture_operator_signature_rechecks_screenshots_and_crops(self):
         first = next(iter(json.loads(self.files["capture_receipt"])["records"]))
@@ -459,7 +532,7 @@ class BuilderSyntheticTests(unittest.TestCase):
         report = json.loads(stdout.getvalue())
         self.assertEqual(report["execution_authorization"], "not_granted")
         self.assertEqual(report["reviewer_key_trust_status"],
-                         "caller_pinned_hash_not_joint_freeze_authenticated")
+                         "root_signed_frame_reviewer_role_key_match_root_pin_externality_unverified")
         self.assertEqual(report["capture_helper_pin_status"],
                          "caller_pinned_hash_match_not_joint_freeze_authenticated")
         self.assertEqual(report["capture_operator_signature_status"],
@@ -551,6 +624,7 @@ class BuilderAuditIntegrationTests(unittest.TestCase):
             crop_dir = root / "builder-crops"
             crop_dir.mkdir(mode=0o700)
             crop_rows, decoder_rows = [], []
+            pair_image_bytes = {}
             identity_rows, review_rows, pairs = [], [], []
             rows_by_key = {(r["review_token"], r["anchor_id"]): r for r in fixture.evidence}
             plan_media = {r["review_token"]: r["source_media_sha256"] for r in fixture.plan_rows}
@@ -573,7 +647,10 @@ class BuilderAuditIntegrationTests(unittest.TestCase):
                 decoder_buffer = io.BytesIO()
                 fixture.frames[token][source["decoder_frame_index"]].save(
                     decoder_buffer, format="PNG", optimize=False)
-                decoder_png_sha = sha(decoder_buffer.getvalue())
+                decoder_png = decoder_buffer.getvalue()
+                decoder_png_sha = sha(decoder_png)
+                pair_image_bytes[(token, anchor)] = {
+                    "screenshot_crop": crop_raw, "decoder_frame": decoder_png}
                 pair_id = f"pair{index:020d}"
                 crop_on_a = index % 2 == 0
                 pairs.append({"pair_id": pair_id,
@@ -606,6 +683,20 @@ class BuilderAuditIntegrationTests(unittest.TestCase):
                        "pair_count": 15, "package_nonce": "b" * 64,
                        "plan_sha256": plan_sha, "pairs": pairs}
             package_raw = enc(package)
+            viewer_pairs = []
+            for item in identity_rows:
+                images = pair_image_bytes[(item["review_token"], item["anchor_id"])]
+                viewer_pairs.append({
+                    "id": item["pair_id"],
+                    "A": "data:image/png;base64," + base64.b64encode(
+                        images[item["A_source"]]).decode(),
+                    "B": "data:image/png;base64," + base64.b64encode(
+                        images[item["B_source"]]).decode(),
+                })
+            package["reviewer_html_template_sha256"] = sha(
+                _html("__PACKAGE_SHA__", "__PACKAGE_NONCE__", viewer_pairs))
+            package_raw = enc(package)
+            reviewer_html_raw = _html(sha(package_raw), package["package_nonce"], viewer_pairs)
             review = {"schema_version": 1,
                       "purpose": "private_blinded_frame_pair_review_export",
                       "status": "not_authorizing", "execution_authorization": "not_granted",
@@ -641,6 +732,7 @@ class BuilderAuditIntegrationTests(unittest.TestCase):
                     "plan_sha256": plan_sha, "provenance_sha256": provenance_sha,
                     "requested_anchors": 15, "effective_anchors": 15, "records": decoder_rows}),
                 "pair_package": package_raw,
+                "pair_reviewer_html": reviewer_html_raw,
                 "identity_map": enc({"schema_version": 1,
                     "purpose": "private_blinded_frame_pair_identity_map", "status": "custodian_only",
                     "package_manifest_sha256": sha(package_raw), "records": identity_rows}),
@@ -675,6 +767,11 @@ class BuilderAuditIntegrationTests(unittest.TestCase):
             })
             fixture.key_path.chmod(0o600)
             fixture.public_key_path.chmod(0o600)
+            fixture.key_path.write_bytes(operator.keys["frame"][0])
+            fixture.public_key_path.write_bytes(operator.keys["frame"][1])
+            fixture.key_path.chmod(0o600)
+            fixture.public_key_path.chmod(0o600)
+            fixture.public_key_raw = fixture.public_key_path.read_bytes()
             evidence = build_manifest(
                 input_files=file_map, crop_dir=crop_dir,
                 screenshot_dir=fixture.screenshot_dir,
@@ -693,14 +790,45 @@ class BuilderAuditIntegrationTests(unittest.TestCase):
                 integrity_roster_raw=operator.integrity,
                 release_roster_raw=operator.release,
                 root_public_key_raw=operator.keys["root"][1],
-                expected_root_public_der_sha256=operator.root_pin)
+                expected_root_public_der_sha256=operator.root_pin,
+                pair_package_raw=file_map["pair_package"],
+                pair_identity_map_raw=file_map["identity_map"],
+                pair_review_export_raw=file_map["review_export"],
+                pair_reviewer_html_raw=file_map["pair_reviewer_html"])
             result = fixture._audit(evidence_raw, **audit_kwargs)
             self.assertEqual(result["status"], "candidate_signed_evidence_bytes_consistent")
             self.assertEqual(result["verified_anchors"], 15)
             self.assertEqual(result["execution_authorization"], "not_granted")
             self.assertEqual(result["joint_freeze_status"], "not_jointly_frozen")
             self.assertTrue(result["capture_operator_signature_verified"])
+            self.assertTrue(result["frame_reviewer_role_key_verified"])
+            self.assertEqual(
+                result["reviewer_key_trust_status"],
+                "root_signed_frame_reviewer_role_key_match_root_pin_externality_unverified")
             self.assertFalse(result["capture_operator_human_identity_verified"])
+            for artifact_name, audit_name in (
+                    ("pair_package", "pair_package_raw"),
+                    ("identity_map", "pair_identity_map_raw"),
+                    ("review_export", "pair_review_export_raw"),
+                    ("pair_reviewer_html", "pair_reviewer_html_raw")):
+                with self.subTest(artifact=artifact_name):
+                    tampered = dict(audit_kwargs)
+                    tampered[audit_name] += b"\n"
+                    with self.assertRaisesRegex(ValueError, "pair_review_artifact_hash_mismatch"):
+                        fixture._audit(evidence_raw, **tampered)
+            bad_identity = json.loads(file_map["identity_map"])
+            bad_identity["unexpected"] = True
+            bad_identity_raw = enc(bad_identity)
+            resigned = json.loads(evidence_raw)
+            resigned["pair_identity_map_sha256"] = sha(bad_identity_raw)
+            payload = evidence_canonical({key: value for key, value in resigned.items()
+                                         if key != "signature_ed25519_base64"})
+            signature = _sign(EVIDENCE_DOMAIN_V3 + payload, fixture.key_path,
+                              _load_public_der(fixture.public_key_path))
+            resigned["signature_ed25519_base64"] = base64.b64encode(signature).decode()
+            with self.assertRaisesRegex(ValueError, "pair_identity_map_schema_invalid"):
+                fixture._audit(enc(resigned), **{**audit_kwargs,
+                    "pair_identity_map_raw": bad_identity_raw})
             broken_attestation = json.loads(file_map["capture_operator_attestation"])
             broken_attestation["signature_ed25519_base64"] = "A" * 88
             with self.assertRaisesRegex(ValueError, "capture_operator_signature_invalid"):

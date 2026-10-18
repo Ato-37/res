@@ -24,9 +24,12 @@ from typing import Any
 
 from PIL import Image
 
+from build_blinded_frame_pair_review import audit_export_bytes
 from claim_mask_video_decoder import _stream_and_decode
 from prepare_html5_clock_calibration_inputs import prepare_capture_bundle
 from nextgqa_capture_operator_attestation import verify_attestation
+from audit_nextgqa_review_release_order import _validate_release_roster
+from nextgqa_pre_review_integrity_receipt import ReceiptError, _public_der
 
 MAX_STAGED_VIDEO_BYTES = 128 * 1024 * 1024
 MAX_SCREENSHOT_BYTES = 40_000_000
@@ -48,6 +51,7 @@ EVIDENCE_KEYS = {
     "decoder_frame_index", "decoder_pts_seconds", "decoder_rgb_sha256",
     "correspondence_decision",
 }
+EVIDENCE_V3_RECORD_KEYS = EVIDENCE_KEYS | {"pair_id"}
 TOP_KEYS = {
     "schema_version", "purpose", "plan_sha256", "plan_provenance_sha256",
     "observations_sha256", "observation_index_sha256", "capture_receipt_sha256",
@@ -65,11 +69,19 @@ TOP_KEYS_V2 = {
     "capture_operator_process_authenticated", "capture_operator_frame_correspondence_reviewed",
     "capture_operator_score_ready", "model_load_permitted", "scoring_authorized",
     "execution_authorization", "reviewer_identity_verified",
+    "frame_reviewer_key_id", "frame_reviewer_key_der_sha256",
+    "frame_reviewer_role_signature_verified",
     "reviewer_public_key_sha256", "reviewer_pseudonym",
     "reviewer_role", "independence_attestation", "visual_inspection_attestation",
     "created_at_utc", "records", "signature_ed25519_base64",
 }
+TOP_KEYS_V3 = (TOP_KEYS_V2 - {"signature_ed25519_base64"}) | {
+    "pair_package_sha256", "pair_identity_map_sha256",
+    "pair_review_export_sha256", "pair_reviewer_html_sha256",
+    "pair_package_nonce", "signature_ed25519_base64",
+}
 EVIDENCE_V2_DOMAIN = b"nextgqa_clock_frame_evidence_manifest_v2\0"
+EVIDENCE_V3_DOMAIN = b"nextgqa_clock_frame_evidence_manifest_v3\0"
 CAPTURE_RECEIPT_KEYS = {
     "schema_version", "purpose", "status", "execution_authorization", "plan_sha256",
     "plan_provenance_sha256", "capture_method", "capture_helper_file_sha256",
@@ -276,7 +288,11 @@ def audit_evidence(*, plan_raw: bytes, provenance_raw: bytes,
                    release_roster_raw: bytes | None = None,
                    root_public_key_raw: bytes | None = None,
                    expected_root_public_der_sha256: str | None = None,
-                   crop_dir: Path | None = None) -> dict:
+                   crop_dir: Path | None = None,
+                   pair_package_raw: bytes | None = None,
+                   pair_identity_map_raw: bytes | None = None,
+                   pair_review_export_raw: bytes | None = None,
+                   pair_reviewer_html_raw: bytes | None = None) -> dict:
     """Return a sanitized private audit summary; never authorizes scoring."""
     inputs = (plan_raw, provenance_raw, observations_raw,
               observation_index_raw, capture_receipt_raw, evidence_raw, public_key_raw)
@@ -334,13 +350,16 @@ def audit_evidence(*, plan_raw: bytes, provenance_raw: bytes,
         provenance_raw, _sha(provenance_raw),
     )
     evidence_version = evidence.get("schema_version") if isinstance(evidence, dict) else None
-    evidence_keys = TOP_KEYS if evidence_version == 1 else TOP_KEYS_V2
+    evidence_keys = (TOP_KEYS if evidence_version == 1 else TOP_KEYS_V2
+                     if evidence_version == 2 else TOP_KEYS_V3)
     expected_purpose = ("private_clock_frame_correspondence_reader_attestation"
                         if evidence_version == 1 else
-                        "private_clock_frame_correspondence_reader_attestation_v2")
+                        "private_clock_frame_correspondence_reader_attestation_v2"
+                        if evidence_version == 2 else
+                        "private_clock_frame_correspondence_reader_attestation_v3")
     if (not isinstance(evidence, dict) or set(evidence) != evidence_keys
             or type(evidence_version) is not int
-            or evidence_version not in {1, 2}
+            or evidence_version not in {1, 2, 3}
             or evidence.get("purpose") != expected_purpose
             or evidence.get("plan_sha256") != _sha(plan_raw)
             or evidence.get("plan_provenance_sha256") != _sha(provenance_raw)
@@ -350,8 +369,9 @@ def audit_evidence(*, plan_raw: bytes, provenance_raw: bytes,
             or evidence.get("reviewer_public_key_sha256") != _sha(public_key_raw)
             or not isinstance(evidence.get("reviewer_pseudonym"), str)
             or not evidence["reviewer_pseudonym"] or len(evidence["reviewer_pseudonym"]) > 80
-            or evidence.get("reviewer_role") != "independent_evidence_reader"
-            or (evidence_version == 2 and evidence.get("reviewer_identity_verified") is not False)
+            or evidence.get("reviewer_role") != (
+                "independent_evidence_reader" if evidence_version == 1 else "frame_reviewer")
+            or (evidence_version in {2, 3} and evidence.get("reviewer_identity_verified") is not False)
             or evidence.get("independence_attestation") !=
                 "independent_of_claim_generation_scoring_and_custody"
             or evidence.get("visual_inspection_attestation") !=
@@ -359,6 +379,36 @@ def audit_evidence(*, plan_raw: bytes, provenance_raw: bytes,
             ):
         raise ValueError("evidence_manifest_schema_or_binding_invalid")
     _utc(evidence["created_at_utc"])
+
+    if evidence_version in {2, 3} and any(value is None for value in (
+            capture_operator_attestation_raw, crop_map_raw, crop_crosswalk_raw,
+            integrity_roster_raw, release_roster_raw, root_public_key_raw,
+            expected_root_public_der_sha256, crop_dir)):
+        raise ValueError("capture_operator_audit_inputs_missing")
+    pair_audit = None
+    if evidence_version == 3:
+        if any(raw is None for raw in (pair_package_raw, pair_identity_map_raw,
+                pair_review_export_raw, pair_reviewer_html_raw)):
+            raise ValueError("pair_review_audit_inputs_missing")
+        if (evidence.get("pair_package_sha256") != _sha(pair_package_raw)
+                or evidence.get("pair_identity_map_sha256") != _sha(pair_identity_map_raw)
+                or evidence.get("pair_review_export_sha256") != _sha(pair_review_export_raw)
+                or evidence.get("pair_reviewer_html_sha256") != _sha(pair_reviewer_html_raw)):
+            raise ValueError("pair_review_artifact_hash_mismatch")
+        if (not isinstance(pair_identity_map_raw, bytes)
+                or len(pair_identity_map_raw) > 20_000_000):
+            raise ValueError("pair_identity_map_bytes_invalid")
+        pair_audit = audit_export_bytes(
+            export_raw=pair_review_export_raw, package_raw=pair_package_raw,
+            reviewer_html_raw=pair_reviewer_html_raw)
+        if (pair_audit["status"] != "candidate_review_complete_not_authorizing"
+                or pair_audit["package_manifest"].get("plan_sha256") != _sha(plan_raw)
+                or pair_audit["package_manifest"].get("package_nonce") !=
+                    evidence.get("pair_package_nonce")):
+            raise ValueError("pair_review_manifest_binding_invalid")
+    elif any(raw is not None for raw in (pair_package_raw, pair_identity_map_raw,
+            pair_review_export_raw, pair_reviewer_html_raw)):
+        raise ValueError("pair_review_inputs_unexpected_for_legacy_manifest")
 
     if (not isinstance(capture_receipt, dict) or set(capture_receipt) != CAPTURE_RECEIPT_KEYS
             or capture_receipt.get("schema_version") != 1
@@ -378,9 +428,10 @@ def audit_evidence(*, plan_raw: bytes, provenance_raw: bytes,
     signed_object = {key: value for key, value in evidence.items()
                      if key != "signature_ed25519_base64"}
     _verify_signature(public_key_raw,
-                      (EVIDENCE_V2_DOMAIN if evidence_version == 2 else b"")
+                      (EVIDENCE_V2_DOMAIN if evidence_version == 2 else
+                       EVIDENCE_V3_DOMAIN if evidence_version == 3 else b"")
                       + _canonical(signed_object), signature)
-    if evidence_version == 2:
+    if evidence_version in {2, 3}:
         if any(value is None for value in (capture_operator_attestation_raw,
                 crop_map_raw, crop_crosswalk_raw, integrity_roster_raw,
                 release_roster_raw, root_public_key_raw,
@@ -462,6 +513,37 @@ def audit_evidence(*, plan_raw: bytes, provenance_raw: bytes,
     records = evidence.get("records")
     if not isinstance(records, list) or len(records) != len(expected_anchors):
         raise ValueError("evidence_anchor_count_invalid")
+    if evidence_version == 3:
+        identity = _strict_json(pair_identity_map_raw)
+        identity_rows = identity.get("records") if isinstance(identity, dict) else None
+        if (not isinstance(identity, dict)
+                or set(identity) not in ({"schema_version", "purpose", "status",
+                    "package_manifest_sha256", "records"},
+                    {"schema_version", "purpose", "status", "package_manifest_sha256",
+                     "input_manifest_sha256", "records"})
+                or identity.get("schema_version") != 1
+                or identity.get("purpose") != "private_blinded_frame_pair_identity_map"
+                or identity.get("status") != "custodian_only"
+                or identity.get("package_manifest_sha256") != _sha(pair_package_raw)
+                or ("input_manifest_sha256" in identity
+                    and (not isinstance(identity["input_manifest_sha256"], str)
+                         or not SHA256.fullmatch(identity["input_manifest_sha256"])))
+                or not isinstance(identity_rows, list) or len(identity_rows) != 15
+                or any(not isinstance(item, dict) or set(item) != {
+                    "pair_id", "review_token", "anchor_id", "A_source", "B_source"}
+                    for item in identity_rows)):
+            raise ValueError("pair_identity_map_schema_invalid")
+        mapped_keys = [(item["review_token"], item["anchor_id"]) for item in identity_rows]
+        mapped_pairs = [item["pair_id"] for item in identity_rows]
+        signed_pairs = [item.get("pair_id") for item in records]
+        if (any(not isinstance(token, str) or not TOKEN.fullmatch(token)
+                or not isinstance(anchor, str) or not anchor for token, anchor in mapped_keys)
+                or any(not isinstance(pair, str) or not TOKEN.fullmatch(pair)
+                       for pair in mapped_pairs + signed_pairs)
+                or set(mapped_keys) != set(expected_anchors) or len(set(mapped_keys)) != 15
+                or len(set(mapped_pairs)) != 15 or len(set(signed_pairs)) != 15
+                or set(mapped_pairs) != set(signed_pairs)):
+            raise ValueError("pair_identity_map_coverage_invalid")
     expected_screenshot_names = {
         f"{token}_{anchor_id}.png" for token, anchor_id in expected_anchors
     }
@@ -495,7 +577,7 @@ def audit_evidence(*, plan_raw: bytes, provenance_raw: bytes,
     crop_snapshot_names: set[str] = set()
     crop_identities = None
     crop_directory_identity = None
-    if evidence_version == 2:
+    if evidence_version in {2, 3}:
         crop_crosswalk = _strict_json(crop_crosswalk_raw)
         if (not isinstance(crop_crosswalk, dict)
                 or not isinstance(crop_crosswalk.get("records"), list)):
@@ -523,6 +605,23 @@ def audit_evidence(*, plan_raw: bytes, provenance_raw: bytes,
             release_roster_raw=release_roster_raw,
             root_public_key_pem=root_public_key_raw,
             expected_root_public_der_sha256=expected_root_public_der_sha256)
+        try:
+            release_roster, role_public_keys = _validate_release_roster(
+                release_roster_raw, root_public_key_raw,
+                expected_root_public_der_sha256, integrity_roster_raw)
+        except ReceiptError as exc:
+            raise ValueError("release_roster_invalid:" + str(exc)) from None
+        frame_public = role_public_keys.get("frame_reviewer")
+        frame_entry = next((entry for entry in release_roster["keys"]
+                            if entry.get("role") == "frame_reviewer"), None)
+        if (frame_public is None or not isinstance(frame_entry, dict)
+                or _public_der(public_key_raw) != _public_der(frame_public)
+                or evidence.get("reviewer_role") != "frame_reviewer"
+                or evidence.get("frame_reviewer_key_id") != frame_entry.get("key_id")
+                or evidence.get("frame_reviewer_key_der_sha256") !=
+                    _sha(_public_der(frame_public))
+                or evidence.get("frame_reviewer_role_signature_verified") is not True):
+            raise ValueError("frame_reviewer_rostered_key_binding_invalid")
         operator_envelope = _strict_json(capture_operator_attestation_raw)
         if (operator_report.get("status") !=
                 "capture_operator_key_signature_valid_candidate_artifact_bytes"
@@ -597,7 +696,9 @@ def audit_evidence(*, plan_raw: bytes, provenance_raw: bytes,
         raise ValueError("os_capture_anchor_set_mismatch")
     decisions = []
     for row in records:
-        if not isinstance(row, dict) or set(row) != EVIDENCE_KEYS:
+        expected_record_keys = (EVIDENCE_KEYS if evidence_version in {1, 2}
+                                else EVIDENCE_V3_RECORD_KEYS)
+        if not isinstance(row, dict) or set(row) != expected_record_keys:
             raise ValueError("evidence_record_schema_invalid")
         token, anchor_id = row.get("review_token"), row.get("anchor_id")
         if (not isinstance(token, str) or TOKEN.fullmatch(token) is None
@@ -685,6 +786,50 @@ def audit_evidence(*, plan_raw: bytes, provenance_raw: bytes,
         if row["decoder_rgb_sha256"] != pixel_hashes[frame_index]:
             raise ValueError("decoder_frame_rgb_hash_mismatch")
 
+        if evidence_version == 3:
+            package = pair_audit["package_manifest"]
+            identity = _strict_json(pair_identity_map_raw)
+            identity_rows = identity.get("records") if isinstance(identity, dict) else None
+            mapping = [item for item in identity_rows or []
+                       if isinstance(item, dict)
+                       and item.get("review_token") == token
+                       and item.get("anchor_id") == anchor_id]
+            pair_id = row.get("pair_id")
+            if (len(mapping) != 1 or mapping[0].get("pair_id") != pair_id
+                    or mapping[0].get("A_source") not in {"screenshot_crop", "decoder_frame"}
+                    or mapping[0].get("B_source") not in {"screenshot_crop", "decoder_frame"}
+                    or mapping[0].get("A_source") == mapping[0].get("B_source")):
+                raise ValueError("pair_identity_map_evidence_join_invalid")
+            package_rows = {item["pair_id"]: item for item in package["pairs"]}
+            review_rows = {item["pair_id"]: item
+                           for item in pair_audit["review_export"]["records"]}
+            html_rows = {item["id"]: item for item in pair_audit["reviewer_html_pairs"]}
+            if (pair_id not in package_rows or pair_id not in review_rows
+                    or pair_id not in html_rows
+                    or review_rows[pair_id].get("crop_purity_attestation") is not True
+                    or review_rows[pair_id].get("decision") != "match"):
+                raise ValueError("pair_review_evidence_join_invalid")
+            for side in ("A", "B"):
+                encoded = html_rows[pair_id][side].split(",", 1)[1]
+                png = base64.b64decode(encoded, validate=True)
+                if _sha(png) != package_rows[pair_id][side + "_sha256"]:
+                    raise ValueError("pair_package_html_image_hash_mismatch")
+                try:
+                    with Image.open(io.BytesIO(png)) as image:
+                        image.load()
+                        source = mapping[0][side + "_source"]
+                        rgb = image.convert("RGB")
+                        digest = (_rgb_digest(rgb) if source == "screenshot_crop"
+                                  else _sha(rgb.tobytes()))
+                except (OSError, ValueError):
+                    raise ValueError("pair_review_image_invalid") from None
+                expected_rgb = (row["screenshot_crop_rgb_sha256"]
+                                if source == "screenshot_crop"
+                                else row["decoder_rgb_sha256"])
+                if digest != expected_rgb:
+                    raise ValueError("pair_review_image_evidence_mismatch_" + side + "_" +
+                                     mapping[0][side + "_source"])
+
     if seen != set(expected_anchors):
         raise ValueError("evidence_anchor_set_incomplete")
     _verify_private_snapshot_still_current(
@@ -693,14 +838,22 @@ def audit_evidence(*, plan_raw: bytes, provenance_raw: bytes,
     _verify_private_snapshot_still_current(
         media_dir, expected_media_names, media_identities,
         media_directory_identity, label="staged_media")
-    if evidence_version == 2:
+    if evidence_version in {2, 3}:
         _verify_private_snapshot_still_current(
             crop_dir, crop_snapshot_names, crop_identities,
             crop_directory_identity, label="screenshot")
     pass_status = all(decision == "match" for decision in decisions)
+    status = (
+        "candidate_signed_evidence_bytes_consistent"
+        if pass_status and evidence_version == 3 else
+        "legacy_v2_unrejoined_pair_artifacts_candidate"
+        if pass_status and evidence_version == 2 else
+        "legacy_v1_unrostered_key_candidate"
+        if pass_status else
+        "blocked_correspondence_not_all_match"
+    )
     return {
-        "status": "candidate_signed_evidence_bytes_consistent" if pass_status
-                  else "blocked_correspondence_not_all_match",
+        "status": status,
         "scope": "private_three_video_clock_frame_correspondence_audit",
         "requested_records": 3,
         "requested_anchors": len(expected_anchors),
@@ -710,12 +863,16 @@ def audit_evidence(*, plan_raw: bytes, provenance_raw: bytes,
         "mismatch_decisions": decisions.count("mismatch"),
         "screenshot_and_decoder_bytes_checked": True,
         "reviewer_signature_verified": True,
-        "capture_operator_signature_verified": evidence_version == 2,
+        "frame_reviewer_role_key_verified": evidence_version in {2, 3},
+        "capture_operator_signature_verified": evidence_version in {2, 3},
         "capture_operator_human_identity_verified": False,
         "capture_operator_frame_correspondence_reviewed": False,
         "reviewer_attestations_present": True,
         "joint_freeze_status": "not_jointly_frozen",
-        "reviewer_key_trust_status": "expected_hash_supplied_by_caller_not_joint_freeze_authenticated",
+        "reviewer_key_trust_status": (
+            "root_signed_frame_reviewer_role_key_match_root_pin_externality_unverified"
+            if evidence_version in {2, 3} else
+            "expected_hash_supplied_by_caller_not_joint_freeze_authenticated"),
         "execution_authorization": "not_granted",
         "clock_calibration_status": "not_evaluated",
         "limitations": [
@@ -727,13 +884,13 @@ def audit_evidence(*, plan_raw: bytes, provenance_raw: bytes,
     }
 
 
-def _read_private(path: Path) -> bytes:
+def _read_private(path: Path, *, max_bytes: int = 20_000_000) -> bytes:
     fd = os.open(path, os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0))
     try:
         before = os.fstat(fd)
         if (not stat.S_ISREG(before.st_mode) or before.st_uid != os.geteuid()
                 or stat.S_IMODE(before.st_mode) != 0o600
-                or before.st_size < 1 or before.st_size > 20_000_000):
+                or before.st_size < 1 or before.st_size > max_bytes):
             raise ValueError("private_input_file_invalid")
         chunks = []
         remaining = before.st_size
@@ -773,6 +930,10 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--integrity-roster", type=Path)
     parser.add_argument("--release-roster", type=Path)
     parser.add_argument("--trust-root-public-key", type=Path)
+    parser.add_argument("--pair-package", type=Path)
+    parser.add_argument("--pair-identity-map", type=Path)
+    parser.add_argument("--pair-review-export", type=Path)
+    parser.add_argument("--pair-reviewer-html", type=Path)
     parser.add_argument("--expected-trust-root-der-sha256")
     parser.add_argument("--expected-plan-sha256", required=True)
     parser.add_argument("--expected-plan-provenance-sha256", required=True)
@@ -804,6 +965,14 @@ def main(argv: list[str] | None = None) -> int:
                 if args.trust_root_public_key else None,
             expected_root_public_der_sha256=args.expected_trust_root_der_sha256,
             crop_dir=args.crop_dir,
+            pair_package_raw=_read_private(args.pair_package)
+                if args.pair_package else None,
+            pair_identity_map_raw=_read_private(args.pair_identity_map)
+                if args.pair_identity_map else None,
+            pair_review_export_raw=_read_private(args.pair_review_export)
+                if args.pair_review_export else None,
+            pair_reviewer_html_raw=_read_private(args.pair_reviewer_html, max_bytes=50_000_000)
+                if args.pair_reviewer_html else None,
         )
     except (OSError, ValueError, json.JSONDecodeError) as exc:
         failure_code = str(exc) if isinstance(exc, ValueError) else "private_input_io_error"

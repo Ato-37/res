@@ -109,6 +109,7 @@ class SyntheticPreReviewInventoryTests(unittest.TestCase):
             "presentation_time_utils",
             "private_output_paths",
             "pre_review_inventory_builder",
+            "blinded_pair_review_validator",
         }
         self.assertTrue(required_code_roles.issubset(CODE_FILES))
         self.assertIn("review_runbook", PUBLIC_OR_SOURCE_FILES)

@@ -26,9 +26,11 @@ import subprocess
 from typing import Any
 
 from PIL import Image
+from build_blinded_frame_pair_review import audit_export_bytes
 from prepare_html5_clock_calibration_inputs import prepare_capture_bundle
 from nextgqa_capture_operator_attestation import verify_attestation
-from nextgqa_pre_review_integrity_receipt import _verify_signature
+from audit_nextgqa_review_release_order import _validate_release_roster
+from nextgqa_pre_review_integrity_receipt import ReceiptError, _public_der, _verify_signature
 
 TOKEN_RE = re.compile(r"^[A-Za-z0-9_-]{24}$")
 SHA_RE = re.compile(r"^[0-9a-f]{64}$")
@@ -50,13 +52,22 @@ EVIDENCE_V2_KEYS = {
     "capture_operator_process_authenticated", "capture_operator_frame_correspondence_reviewed",
     "capture_operator_score_ready", "model_load_permitted", "scoring_authorized",
     "execution_authorization", "reviewer_identity_verified",
+    "frame_reviewer_key_id", "frame_reviewer_key_der_sha256",
+    "frame_reviewer_role_signature_verified",
     "reviewer_public_key_sha256", "reviewer_pseudonym",
     "reviewer_role", "independence_attestation", "visual_inspection_attestation",
     "created_at_utc", "records",
 }
+EVIDENCE_V3_KEYS = EVIDENCE_V2_KEYS | {
+    "pair_package_sha256", "pair_identity_map_sha256",
+    "pair_review_export_sha256", "pair_reviewer_html_sha256",
+    "pair_package_nonce",
+}
+EVIDENCE_V3_RECORD_KEYS = EVIDENCE_KEYS | {"pair_id"}
 MAX_FILE = 20_000_000
 MAX_CAPTURE_ARTIFACT = 40_000_000
 EVIDENCE_DOMAIN_V2 = b"nextgqa_clock_frame_evidence_manifest_v2\0"
+EVIDENCE_DOMAIN_V3 = b"nextgqa_clock_frame_evidence_manifest_v3\0"
 
 
 def _sha(raw: bytes) -> str:
@@ -297,6 +308,9 @@ def _validate_and_build(*, files: dict[str, bytes], crop_dir: Path,
     identity = parsed["identity_map"]
     review = parsed["review_export"]
     hashes = {name: _sha(raw) for name, raw in files.items()}
+    package = parsed["pair_package"]
+    identity = parsed["identity_map"]
+    review = parsed["review_export"]
 
     if not _is_sha(expected_public_key_sha256) or _sha(public_key_raw) != expected_public_key_sha256:
         raise ValueError("caller_pinned_public_key_hash_mismatch")
@@ -515,6 +529,21 @@ def _validate_and_build(*, files: dict[str, bytes], crop_dir: Path,
             or operator_report.get("execution_authorization") != "not_granted"):
         raise ValueError("capture_operator_report_authority_invalid")
 
+    try:
+        release_roster, role_public_keys = _validate_release_roster(
+            files["release_roster"], root_public_key_raw,
+            expected_root_public_der_sha256, files["integrity_roster"])
+    except ReceiptError as exc:
+        raise ValueError("release_roster_invalid:" + str(exc)) from None
+    frame_key_raw = role_public_keys.get("frame_reviewer")
+    if (frame_key_raw is None
+            or _public_der(public_key_raw) != _public_der(frame_key_raw)):
+        raise ValueError("reviewer_key_not_rostered_frame_reviewer")
+    frame_entry = next((entry for entry in release_roster["keys"]
+                        if entry.get("role") == "frame_reviewer"), None)
+    if not isinstance(frame_entry, dict) or not isinstance(frame_entry.get("key_id"), str):
+        raise ValueError("release_roster_frame_reviewer_missing")
+
     if (not isinstance(package, dict) or package.get("purpose") != "private_blinded_frame_pair_review_package"
             or package.get("status") != "not_authorizing" or package.get("execution_authorization") != "not_granted"
             or package.get("plan_sha256") != plan_sha or package.get("pair_count") != 15):
@@ -524,6 +553,18 @@ def _validate_and_build(*, files: dict[str, bytes], crop_dir: Path,
             or identity.get("status") != "custodian_only"
             or identity.get("package_manifest_sha256") != package_sha):
         raise ValueError("identity_map_binding_invalid")
+    identity_top_keys = {
+        frozenset({"schema_version", "purpose", "status",
+                   "package_manifest_sha256", "records"}),
+        frozenset({"schema_version", "purpose", "status",
+                   "package_manifest_sha256", "input_manifest_sha256", "records"}),
+    }
+    if (frozenset(identity) not in identity_top_keys
+            or type(identity.get("schema_version")) is not int
+            or identity.get("schema_version") != 1
+            or ("input_manifest_sha256" in identity
+                and not _is_sha(identity["input_manifest_sha256"]))):
+        raise ValueError("identity_map_schema_invalid")
     if (not isinstance(review, dict) or review.get("purpose") != "private_blinded_frame_pair_review_export"
             or review.get("status") != "not_authorizing" or review.get("execution_authorization") != "not_granted"
             or review.get("package_manifest_sha256") != package_sha
@@ -547,8 +588,9 @@ def _validate_and_build(*, files: dict[str, bytes], crop_dir: Path,
     if not isinstance(identity.get("records"), list) or len(identity["records"]) != 15:
         raise ValueError("identity_record_count_invalid")
     for row in identity.get("records", []):
-        if not isinstance(row, dict):
-            raise ValueError("identity_row_invalid")
+        if (not isinstance(row, dict) or set(row) != {
+                "pair_id", "review_token", "anchor_id", "A_source", "B_source"}):
+            raise ValueError("identity_row_schema_invalid")
         pair_id, token, anchor = row.get("pair_id"), row.get("review_token"), row.get("anchor_id")
         key = (token, anchor)
         if (not isinstance(pair_id, str) or not TOKEN_RE.fullmatch(pair_id)
@@ -574,6 +616,16 @@ def _validate_and_build(*, files: dict[str, bytes], crop_dir: Path,
         review_by_pair[row["pair_id"]] = row
     if set(review_by_pair) != set(package_pairs):
         raise ValueError("review_pair_coverage_invalid")
+
+    pair_audit = audit_export_bytes(
+        export_raw=files["review_export"],
+        package_raw=files["pair_package"],
+        reviewer_html_raw=files["pair_reviewer_html"],
+    )
+    if pair_audit["status"] != "candidate_review_complete_not_authorizing":
+        raise ValueError("review_export_not_complete_pure_and_matching")
+    package = pair_audit["package_manifest"]
+    review = pair_audit["review_export"]
 
     if (not isinstance(reviewer_pseudonym, str) or not reviewer_pseudonym.strip()
             or len(reviewer_pseudonym) > 80
@@ -623,6 +675,7 @@ def _validate_and_build(*, files: dict[str, bytes], crop_dir: Path,
             raise ValueError("crop_bbox_invalid")
         record = {
             "review_token": token, "anchor_id": anchor,
+            "pair_id": ident["pair_id"],
             "capture_event_sha256": _sha(_canonical(event)),
             "screenshot_file": cap["screenshot_file"],
             "screenshot_sha256": cap["screenshot_sha256"],
@@ -634,13 +687,13 @@ def _validate_and_build(*, files: dict[str, bytes], crop_dir: Path,
             "decoder_rgb_sha256": dec["rgb_sha256"],
             "correspondence_decision": "match",
         }
-        if set(record) != EVIDENCE_KEYS:
+        if set(record) != EVIDENCE_KEYS | {"pair_id"}:
             raise AssertionError("internal_evidence_schema_invalid")
         evidence_rows.append(record)
 
     return {
-        "schema_version": 2,
-        "purpose": "private_clock_frame_correspondence_reader_attestation_v2",
+        "schema_version": 3,
+        "purpose": "private_clock_frame_correspondence_reader_attestation_v3",
         "plan_sha256": plan_sha,
         "plan_provenance_sha256": prov_sha,
         "observations_sha256": hashes["observations"],
@@ -662,9 +715,17 @@ def _validate_and_build(*, files: dict[str, bytes], crop_dir: Path,
         "scoring_authorized": False,
         "execution_authorization": "not_granted",
         "reviewer_identity_verified": False,
+        "frame_reviewer_key_id": frame_entry["key_id"],
+        "frame_reviewer_key_der_sha256": _sha(_public_der(frame_key_raw)),
+        "frame_reviewer_role_signature_verified": True,
+        "pair_package_sha256": hashes["pair_package"],
+        "pair_identity_map_sha256": hashes["identity_map"],
+        "pair_review_export_sha256": hashes["review_export"],
+        "pair_reviewer_html_sha256": hashes["pair_reviewer_html"],
+        "pair_package_nonce": package["package_nonce"],
         "reviewer_public_key_sha256": _sha(public_key_raw),
         "reviewer_pseudonym": reviewer_pseudonym.strip(),
-        "reviewer_role": "independent_evidence_reader",
+        "reviewer_role": "frame_reviewer",
         "independence_attestation": "independent_of_claim_generation_scoring_and_custody",
         "visual_inspection_attestation": "personally_compared_each_screenshot_crop_to_decoder_frame",
         "created_at_utc": created_at_utc,
@@ -675,15 +736,18 @@ def _validate_and_build(*, files: dict[str, bytes], crop_dir: Path,
 def verify_manifest_signature(*, manifest_raw: bytes,
                               reviewer_public_key_raw: bytes,
                               expected_reviewer_public_key_sha256: str) -> dict:
-    """Verify the v2 reader signature and fail closed on v1 downgrade."""
+    """Verify a roster-bound reader signature; v1 remains explicitly unsupported."""
     manifest = _json(manifest_raw, "evidence_manifest")
+    version = manifest.get("schema_version") if isinstance(manifest, dict) else None
+    purpose = ("private_clock_frame_correspondence_reader_attestation_v2"
+               if version == 2 else
+               "private_clock_frame_correspondence_reader_attestation_v3")
     if (not isinstance(manifest, dict)
-            or type(manifest.get("schema_version")) is not int
-            or manifest.get("schema_version") != 2
-            or manifest.get("purpose") !=
-            "private_clock_frame_correspondence_reader_attestation_v2"):
+            or type(version) is not int or version not in {2, 3}
+            or manifest.get("purpose") != purpose):
         raise ValueError("evidence_manifest_schema_invalid")
-    expected_keys = EVIDENCE_V2_KEYS | {"signature_ed25519_base64"}
+    schema_keys = EVIDENCE_V2_KEYS if version == 2 else EVIDENCE_V3_KEYS
+    expected_keys = schema_keys | {"signature_ed25519_base64"}
     if set(manifest) != expected_keys:
         raise ValueError("evidence_manifest_schema_invalid")
     if (not _is_sha(expected_reviewer_public_key_sha256)
@@ -698,6 +762,12 @@ def verify_manifest_signature(*, manifest_raw: bytes,
             or manifest.get("model_load_permitted") is not False
             or manifest.get("scoring_authorized") is not False
             or manifest.get("reviewer_identity_verified") is not False
+            or manifest.get("reviewer_role") != "frame_reviewer"
+            or not isinstance(manifest.get("frame_reviewer_key_id"), str)
+            or not manifest["frame_reviewer_key_id"]
+            or manifest.get("frame_reviewer_key_der_sha256") !=
+                _sha(_public_der(reviewer_public_key_raw))
+            or manifest.get("frame_reviewer_role_signature_verified") is not True
             or manifest.get("execution_authorization") != "not_granted"):
         raise ValueError("evidence_manifest_authority_invalid")
     for field in (
@@ -711,9 +781,20 @@ def verify_manifest_signature(*, manifest_raw: bytes,
         if not _is_sha(manifest.get(field)):
             raise ValueError("evidence_manifest_digest_invalid")
     rows = manifest.get("records")
+    record_keys = EVIDENCE_KEYS if version == 2 else EVIDENCE_V3_RECORD_KEYS
     if (not isinstance(rows, list) or len(rows) != 15
-            or any(not isinstance(row, dict) or set(row) != EVIDENCE_KEYS for row in rows)):
+            or any(not isinstance(row, dict) or set(row) != record_keys for row in rows)):
         raise ValueError("evidence_manifest_records_invalid")
+    if version == 3 and (
+            any(not _is_sha(manifest.get(field)) for field in (
+                "pair_package_sha256", "pair_identity_map_sha256",
+                "pair_review_export_sha256", "pair_reviewer_html_sha256"))
+            or not _is_sha(manifest.get("pair_package_nonce"))
+            or len({row["pair_id"] for row in rows
+                    if isinstance(row.get("pair_id"), str)}) != 15
+            or any(not isinstance(row.get("pair_id"), str)
+                   or TOKEN_RE.fullmatch(row["pair_id"]) is None for row in rows)):
+        raise ValueError("evidence_manifest_pair_review_binding_invalid")
     identities = [(row.get("review_token"), row.get("anchor_id")) for row in rows]
     if any(not isinstance(token, str) or not TOKEN_RE.fullmatch(token)
            or not isinstance(anchor, str) or anchor not in ANCHORS
@@ -731,11 +812,12 @@ def verify_manifest_signature(*, manifest_raw: bytes,
         raise ValueError("evidence_manifest_signature_invalid") from None
     if (len(signature) != 64 or not _verify_signature(
             reviewer_public_key_raw, signature,
-            EVIDENCE_DOMAIN_V2 + _canonical({k: v for k, v in manifest.items()
+            (EVIDENCE_DOMAIN_V2 if version == 2 else EVIDENCE_DOMAIN_V3)
+            + _canonical({k: v for k, v in manifest.items()
                                              if k != "signature_ed25519_base64"}))):
         raise ValueError("evidence_manifest_signature_invalid")
     return {
-        "status": "evidence_manifest_v2_signature_valid_non_authorizing",
+        "status": f"evidence_manifest_v{version}_signature_valid_non_authorizing",
         "verified_anchors": 15,
         "capture_operator_signature_verified": True,
         "human_identity_verified": False,
@@ -853,7 +935,7 @@ def build_manifest(*, input_files: dict[str, bytes], crop_dir: Path,
                                    created_at_utc=created_at_utc,
                                    attest_independence=attest_independence,
                                    attest_visual_comparison=attest_visual_comparison)
-    signature = _sign(EVIDENCE_DOMAIN_V2 + _canonical(evidence), private_key_path, public_der)
+    signature = _sign(EVIDENCE_DOMAIN_V3 + _canonical(evidence), private_key_path, public_der)
     evidence["signature_ed25519_base64"] = base64.b64encode(signature).decode("ascii")
     return evidence
 
@@ -862,6 +944,7 @@ INPUTS = (
     "plan", "provenance", "observations", "observation_index", "capture_receipt",
     "crop_crosswalk", "decoder_crosswalk", "pair_package", "identity_map", "review_export",
     "crop_map", "capture_operator_attestation", "integrity_roster", "release_roster",
+    "pair_reviewer_html",
 )
 
 
@@ -897,7 +980,10 @@ def main(argv=None) -> int:
             raise ValueError("output_directory_exists_or_invalid")
         for name in INPUTS:
             _private_dir(getattr(args, name).parent, name + "_parent", exact=False)
-        files = {name: _read_private(getattr(args, name), name) for name in INPUTS}
+        files = {name: _read_private(
+            getattr(args, name), name,
+            max_bytes=50_000_000 if name == "pair_reviewer_html" else MAX_FILE)
+            for name in INPUTS}
         root_public_key_raw = _read_private(args.trust_root_public_key, "trust_root_public_key")
         evidence = build_manifest(
             input_files=files, crop_dir=args.crop_dir, screenshot_dir=args.screenshot_dir,
@@ -925,7 +1011,7 @@ def main(argv=None) -> int:
             "scope": "offline_metadata_join_and_human_attestation_signature_only",
             "requested_anchors": 15,
             "effective_anchors": len(evidence["records"]),
-            "reviewer_key_trust_status": "caller_pinned_hash_not_joint_freeze_authenticated",
+            "reviewer_key_trust_status": "root_signed_frame_reviewer_role_key_match_root_pin_externality_unverified",
             "capture_helper_pin_status": "caller_pinned_hash_match_not_joint_freeze_authenticated",
             "capture_operator_signature_status": "rostered_key_signature_valid_exact_artifact_hashes_recomputed",
             "capture_operator_identity_status": "unverified",

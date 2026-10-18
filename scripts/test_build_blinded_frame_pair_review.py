@@ -9,7 +9,9 @@ import unittest
 
 from PIL import Image
 
-from build_blinded_frame_pair_review import ANCHOR_IDS, build_review, audit_export
+from build_blinded_frame_pair_review import (
+    ANCHOR_IDS, build_review, audit_export, audit_export_bytes,
+)
 
 
 class BlindedFramePairReviewTests(unittest.TestCase):
@@ -141,12 +143,30 @@ class BlindedFramePairReviewTests(unittest.TestCase):
         export_path = self.root / "export.json"
         export_path.write_text(json.dumps(export))
         os.chmod(export_path, 0o600)
+        byte_report = audit_export_bytes(
+            export_raw=export_path.read_bytes(), package_raw=package_raw,
+            reviewer_html_raw=(viewer / "index.html").read_bytes())
+        self.assertEqual(byte_report["status"], "candidate_review_complete_not_authorizing")
+        self.assertEqual(len(byte_report["package_manifest"]["pairs"]), 15)
+        self.assertEqual(len(byte_report["review_export"]["records"]), 15)
+        self.assertEqual(len(byte_report["reviewer_html_pairs"]), 15)
+        self.assertTrue(all(set(row) == {"id", "A", "B"}
+                            for row in byte_report["reviewer_html_pairs"]))
+        self.assertEqual(byte_report["execution_authorization"], "not_granted")
         result = audit_export(export_path, viewer / "package_manifest.json", viewer / "index.html")
         self.assertEqual(result["status"], "candidate_review_complete_not_authorizing")
         self.assertEqual(result["match_count"], 15)
+        self.assertNotIn("package_manifest", result)
+        self.assertNotIn("review_export", result)
+        self.assertNotIn("reviewer_html_pairs", result)
         export["records"][0]["decision"] = "ambiguous"
         export_path.write_text(json.dumps(export))
         os.chmod(export_path, 0o600)
+        blocked_bytes = audit_export_bytes(
+            export_raw=export_path.read_bytes(), package_raw=package_raw,
+            reviewer_html_raw=(viewer / "index.html").read_bytes())
+        self.assertEqual(blocked_bytes["status"], "blocked_review_not_all_pure_and_matching")
+        self.assertEqual(blocked_bytes["ambiguous_count"], 1)
         self.assertEqual(audit_export(export_path, viewer / "package_manifest.json", viewer / "index.html")["status"],
                          "blocked_review_not_all_pure_and_matching")
         export["records"] = export["records"][:-1]
@@ -154,6 +174,36 @@ class BlindedFramePairReviewTests(unittest.TestCase):
         os.chmod(export_path, 0o600)
         with self.assertRaisesRegex(ValueError, "review_export_schema_or_package_binding_invalid"):
             audit_export(export_path, viewer / "package_manifest.json", viewer / "index.html")
+
+    def test_bytes_validator_rejects_mutated_package_export_and_html(self):
+        self.build()
+        viewer = self.root / "bundle_viewer"
+        package_raw = (viewer / "package_manifest.json").read_bytes()
+        package = json.loads(package_raw)
+        export_raw = json.dumps({
+            "schema_version": 1,
+            "purpose": "private_blinded_frame_pair_review_export",
+            "status": "not_authorizing", "execution_authorization": "not_granted",
+            "package_manifest_sha256": hashlib.sha256(package_raw).hexdigest(),
+            "package_nonce": package["package_nonce"],
+            "reviewer_pseudonym": "reviewer-1",
+            "reviewer_role": "independent_frame_pair_reviewer",
+            "independence_attestation": "reviewer_self_reports_independence_from_capture_custody_pair_selection_and_scoring",
+            "reviewer_provenance_status": "self_reported_unauthenticated",
+            "signature_status": "none", "reviewed_at_utc": "2026-10-17T00:00:00.000Z",
+            "records": [{"pair_id": row["pair_id"], "crop_purity_attestation": True,
+                         "decision": "match"} for row in package["pairs"]],
+        }).encode()
+        html_raw = (viewer / "index.html").read_bytes()
+        with self.assertRaisesRegex(ValueError, "review_export_file_invalid"):
+            audit_export_bytes(export_raw=b"", package_raw=package_raw,
+                               reviewer_html_raw=html_raw)
+        with self.assertRaisesRegex(ValueError, "package_manifest_invalid"):
+            audit_export_bytes(export_raw=export_raw, package_raw=b"{}",
+                               reviewer_html_raw=html_raw)
+        with self.assertRaisesRegex(ValueError, "reviewer_html_hash_mismatch"):
+            audit_export_bytes(export_raw=export_raw, package_raw=package_raw,
+                               reviewer_html_raw=html_raw + b"\n<!-- altered -->")
 
     def test_rejects_wrong_count_duplicate_and_hash_mismatch(self):
         self.write_manifest(self.records[:-1])

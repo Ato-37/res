@@ -328,7 +328,8 @@ def build_review(manifest_path: Path, screenshot_dir: Path, decoder_dir: Path,
             "execution_authorization": "not_granted"}
 
 
-def _check_html_binding(html_raw: bytes, package_raw: bytes, package: dict) -> None:
+def _check_html_binding(html_raw: bytes, package_raw: bytes,
+                        package: dict) -> list[dict[str, str]]:
     try:
         html = html_raw.decode("utf-8")
     except UnicodeDecodeError:
@@ -347,8 +348,8 @@ def _check_html_binding(html_raw: bytes, package_raw: bytes, package: dict) -> N
     if start < 0 or end < 0:
         raise ValueError("reviewer_html_pairs_invalid")
     try:
-        pairs = json.loads(html[start + len(start_marker):end])
-    except json.JSONDecodeError:
+        pairs = _strict_json(html[start + len(start_marker):end].encode("utf-8"))
+    except (UnicodeDecodeError, json.JSONDecodeError, ValueError):
         raise ValueError("reviewer_html_pairs_invalid") from None
     expected = {row["pair_id"]: row for row in package["pairs"]}
     if not isinstance(pairs, list) or len(pairs) != PAIR_COUNT:
@@ -373,17 +374,26 @@ def _check_html_binding(html_raw: bytes, package_raw: bytes, package: dict) -> N
                 raise ValueError("reviewer_html_image_binding_mismatch")
     if seen != set(expected):
         raise ValueError("reviewer_html_pairs_invalid")
+    return pairs
 
 
-def audit_export(export_path: Path, package_manifest_path: Path,
-                 reviewer_html_path: Path) -> dict:
-    _private_dir(export_path.parent, "review_export_parent_not_private")
-    _private_dir(package_manifest_path.parent, "package_manifest_parent_not_private")
-    export_raw = _private_file(export_path, "review_export_file_invalid", max_bytes=100_000)
-    package_raw = _private_file(package_manifest_path, "package_manifest_file_invalid", max_bytes=100_000)
-    if reviewer_html_path.parent != package_manifest_path.parent:
-        raise ValueError("reviewer_html_directory_mismatch")
-    html_raw = _private_file(reviewer_html_path, "reviewer_html_file_invalid", max_bytes=50_000_000)
+def audit_export_bytes(*, export_raw: bytes, package_raw: bytes,
+                       reviewer_html_raw: bytes) -> dict:
+    """Validate exact package, export, and viewer bytes without filesystem IO.
+
+    This preserves the checks used by :func:`audit_export` while allowing a
+    caller that already holds a bounded private snapshot to reuse the same
+    package/export/HTML join. Returned content is limited to the package
+    manifest and reviewer export; embedded image bytes are validated but not
+    returned. The result is structural and never grants authority.
+    """
+    if (not isinstance(export_raw, bytes) or not 0 < len(export_raw) <= 100_000):
+        raise ValueError("review_export_file_invalid")
+    if (not isinstance(package_raw, bytes) or not 0 < len(package_raw) <= 100_000):
+        raise ValueError("package_manifest_file_invalid")
+    if (not isinstance(reviewer_html_raw, bytes)
+            or not 0 < len(reviewer_html_raw) <= 50_000_000):
+        raise ValueError("reviewer_html_file_invalid")
     try:
         export, package = _strict_json(export_raw), _strict_json(package_raw)
     except (UnicodeDecodeError, json.JSONDecodeError):
@@ -414,7 +424,7 @@ def audit_export(export_path: Path, package_manifest_path: Path,
         expected_ids.append(row["pair_id"])
     if len(set(expected_ids)) != PAIR_COUNT:
         raise ValueError("package_manifest_invalid")
-    _check_html_binding(html_raw, package_raw, package)
+    html_pairs = _check_html_binding(reviewer_html_raw, package_raw, package)
     if (not isinstance(export, dict) or set(export) != {"schema_version", "purpose", "status",
             "execution_authorization", "package_manifest_sha256", "package_nonce", "reviewer_pseudonym",
             "reviewer_role", "independence_attestation", "reviewer_provenance_status", "signature_status",
@@ -463,7 +473,26 @@ def audit_export(export_path: Path, package_manifest_path: Path,
             "match_count": sum(row["decision"] == "match" for row in export["records"]),
             "ambiguous_count": sum(row["decision"] == "ambiguous" for row in export["records"]),
             "mismatch_count": sum(row["decision"] == "mismatch" for row in export["records"]),
+            "package_manifest": package, "review_export": export,
+            "reviewer_html_pairs": html_pairs,
             "execution_authorization": "not_granted"}
+
+
+def audit_export(export_path: Path, package_manifest_path: Path,
+                 reviewer_html_path: Path) -> dict:
+    _private_dir(export_path.parent, "review_export_parent_not_private")
+    _private_dir(package_manifest_path.parent, "package_manifest_parent_not_private")
+    export_raw = _private_file(export_path, "review_export_file_invalid", max_bytes=100_000)
+    package_raw = _private_file(package_manifest_path, "package_manifest_file_invalid", max_bytes=100_000)
+    if reviewer_html_path.parent != package_manifest_path.parent:
+        raise ValueError("reviewer_html_directory_mismatch")
+    html_raw = _private_file(reviewer_html_path, "reviewer_html_file_invalid", max_bytes=50_000_000)
+    report = audit_export_bytes(export_raw=export_raw, package_raw=package_raw,
+                                reviewer_html_raw=html_raw)
+    # Keep the legacy CLI/report payload content-free: only the explicit
+    # bytes-level API returns parsed export and embedded reviewer payloads.
+    return {key: value for key, value in report.items()
+            if key not in {"package_manifest", "review_export", "reviewer_html_pairs"}}
 
 
 def main(argv: list[str] | None = None) -> int:

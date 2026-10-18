@@ -302,7 +302,7 @@ class ClockFrameEvidenceAuditTests(unittest.TestCase):
 
     def test_exact_signed_three_by_five_byte_joins_pass_without_authorizing(self):
         result = self._audit()
-        self.assertEqual(result["status"], "candidate_signed_evidence_bytes_consistent")
+        self.assertEqual(result["status"], "legacy_v1_unrostered_key_candidate")
         self.assertEqual((result["requested_records"], result["requested_anchors"]), (3, 15))
         self.assertEqual(result["verified_anchors"], 15)
         self.assertTrue(result["reviewer_signature_verified"])
@@ -337,7 +337,7 @@ class ClockFrameEvidenceAuditTests(unittest.TestCase):
         # correspondence. The machine can only verify the signature and joins.
         self.capture_receipt_raw = self._make_capture_receipt(rows)
         result = self._audit(self._signed_evidence_raw(rows))
-        self.assertEqual(result["status"], "candidate_signed_evidence_bytes_consistent")
+        self.assertEqual(result["status"], "legacy_v1_unrostered_key_candidate")
         self.assertTrue(any("does not itself inspect" in x for x in result["limitations"]))
 
     def test_screenshot_outside_candidate_event_skew_fails(self):
@@ -475,7 +475,7 @@ class ClockFrameEvidenceAuditTests(unittest.TestCase):
         receipt["records"][0]["hotkey_to_capture_ms"] = 12
         self.capture_receipt_raw = enc(receipt)
         self.assertEqual(self._audit()["status"],
-                         "candidate_signed_evidence_bytes_consistent")
+                         "legacy_v1_unrostered_key_candidate")
 
     def test_missing_anchor_and_duplicate_anchor_block(self):
         for rows in (self.evidence[:-1], self.evidence + [self.evidence[0]]):

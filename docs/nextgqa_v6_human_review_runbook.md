@@ -289,7 +289,8 @@ private keys or review content in the worksheet.
    and scoring. After capture artifacts are prepared, reviews all 15 blinded
    screenshot-crop/decoder-frame pairs and records match, mismatch, or
    ambiguous decisions. The reviewer signs the final evidence manifest with
-   the frame-reviewer key whose hash was pinned before review; an unsigned
+   the `frame_reviewer` key in the root-signed release roster. The schema-v2
+   builder and auditor both verify that role-key match. An unsigned
    blinded-viewer export alone does not satisfy the signed evidence gate.
 6. **Prediction-link reviewer:** independent of the stage-1 claim reviewer,
    generation, scoring, and custody. The release-roster key is separate and
@@ -317,20 +318,25 @@ release roster. Its signature establishes key adoption of those byte hashes
 only. It does not establish the signer's identity, that capture occurred, that
 a screenshot matches a decoder frame, or that a crop is video-only.
 
-The frame-pair reviewer can create a schema-v2 candidate with
+The frame-pair reviewer can create a schema-v3 candidate with
 `scripts/build_nextgqa_clock_evidence_manifest.py`. The builder rechecks the
 operator attestation against an exact private screenshot/crop snapshot and
-signs the joined candidate. The downstream
-`scripts/audit_nextgqa_clock_frame_evidence.py` accepts v1 and v2; for v2 it
-revalidates the operator signature and byte joins from the supplied rosters,
-trust-root pin, screenshot/crop map, and exact artifact snapshots. This is
-synthetic-tested integration only. The caller-supplied root/reviewer pins are
-not independently authenticated by these commands, and the audit does not
-establish human identity, capture-process truth, visual match, crop purity, or
+requires the signing public key to match the `frame_reviewer` entry in the
+root-signed release roster before signing the joined candidate. V3 signs exact
+hashes of the pair package, custodian identity map, review export, and rendered
+HTML, plus the package nonce and randomized pair ID on each evidence row. The
+downstream `scripts/audit_nextgqa_clock_frame_evidence.py` requires those exact
+four artifacts for v3, revalidates the operator signature and byte joins, and
+reconstructs the identity-map → pair → review decision → embedded PNG → crop /
+decoder RGB evidence join. V1 and v2 remain explicitly legacy candidates and
+do not satisfy the current evidence gate. Synthetic-tested integration verifies
+artifact bytes and role-key assignment only. The caller-supplied root pin is not
+independently authenticated by these commands, and the audit does not establish
+human identity, capture-process truth, actual visual judgment, crop purity, or
 clock calibration. All authorization fields remain denied. The package is not
 ready to open: actual root trust, role assignments, signed receipts, witnessed
-handoff, and human reviews remain outstanding. The unsigned blinded-pair viewer
-export alone still does not satisfy the signed evidence gate.
+handoff, and human reviews remain outstanding. The unsigned blinded-pair
+viewer export alone still does not satisfy the signed evidence gate.
 
 If no independent people can fill these roles, leave the gate blocked; do not
 substitute an agent-generated label or an operator self-attestation.
