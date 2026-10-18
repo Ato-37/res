@@ -18,13 +18,24 @@ video-only H.264. Temporary decoded copies were removed when the check exited.
 The artifact remains local under `data/private_nextgqa/`; it was not staged or
 published. No human response was created or read.
 
+## Synthetic browser-flow retest
+
+The existing Windows Chrome E2E was rerun individually elevated after the
+ordinary sandbox run failed its Windows-profile cleanup assertion. This run
+passed **1/1** in 1.77 seconds. It generated and used only synthetic videos and
+verified nickname entry, three sequential question choices, completion screen,
+no file input, an informal-only notice, network denial by CSP, and exact
+temporary Chrome-profile cleanup. It did not open the protected HTML or test
+playback of its three actual embedded videos.
+
 ## Interpretation and limitations
 
-This supports browser-decoder compatibility of the embedded streams. It does
-not prove playback in the user's browser/device, that a person watched the full
-clips, or any claim's truth or hallucination status. It is not human-review or
-faithfulness evidence. Rights status remains unverified and no protected media
-or derived media was published.
+This supports browser-decoder compatibility of the embedded streams and the
+nickname-to-question interaction on a synthetic fixture. It does not prove
+playback of the real artifact in the user's browser/device, that a person
+watched the full clips, or any claim's truth or hallucination status. It is not
+human-review or faithfulness evidence. Rights status remains unverified and no
+protected media or derived media was published.
 
 Direct faithfulness remains **0/3** claim reviews, **0/15** clock/frame
 correspondences, **0/3** prediction-link judgments, and **0/3** direct scores;
