@@ -5,11 +5,13 @@ endpoint grid and exact PTS values. This check does not authenticate either.
 """
 from __future__ import annotations
 
+from collections.abc import Mapping
 from fractions import Fraction
 import re
 from typing import Any
 
 from necessity_choice_margin_utils import uniform_sample_indices
+from nextgqa_atomic_batch_freeze import batch_sha256
 
 SHA256 = re.compile(r"^[0-9a-f]{64}$")
 SAMPLER_FRAMES = 32
@@ -38,6 +40,15 @@ def processor_binding_row(*, review_token: str, source_video_sha256: str,
     if grid_check != "passed_actual_pts_and_scalar_fps_group_sets_equal":
         raise ValueError("processor_uniform_grid_assignment_check_invalid")
     batch_sha = _sha(mapping.get("typed_batch_sha256"), "typed_batch_sha256")
+    snapshot = mapping.get("_processor_batch_snapshot")
+    if not isinstance(snapshot, Mapping) or not snapshot:
+        raise ValueError("processor_row_batch_snapshot_missing")
+    try:
+        observed_batch_sha = batch_sha256(snapshot)
+    except (TypeError, ValueError, OverflowError, RecursionError):
+        raise ValueError("processor_row_batch_snapshot_invalid") from None
+    if observed_batch_sha != batch_sha:
+        raise ValueError("processor_row_typed_batch_digest_mismatch")
     sampling_sha = _sha(mapping.get("sampling_metadata_sha256"),
                         "sampling_metadata_sha256")
     grid = mapping.get("video_grid_thw")

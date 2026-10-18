@@ -5,6 +5,7 @@ import unittest
 from fractions import Fraction
 
 from necessity_choice_margin_utils import uniform_sample_indices
+from nextgqa_atomic_batch_freeze import batch_sha256
 from qta_prescore_processor_row_adapter import processor_binding_row
 
 
@@ -24,9 +25,12 @@ class QtaPrescoreProcessorRowAdapterTests(unittest.TestCase):
             "sampled_indices": sample_indices,
             "sampled_pts": sample_pts,
         }
+        snapshot = {"input_ids": [[1, 2, 3]],
+                    "pixel_values_videos": [[0.25, 0.5]],
+                    "video_grid_thw": [[5, 2, 2]]}
         self.mapping = {
             "status": "processor_batch_snapshot_and_caller_metadata_bound",
-            "typed_batch_sha256": sha("typed-batch"),
+            "typed_batch_sha256": batch_sha256(snapshot),
             "sampling_metadata_sha256": sha("sampling"),
             "video_grid_thw": [5, 2, 2],
             "reviewed_intervals_rational_seconds": [["1/10", "2/5"]],
@@ -39,7 +43,7 @@ class QtaPrescoreProcessorRowAdapterTests(unittest.TestCase):
             "sampled_frame_indices": sample_indices,
             "sampled_pts_rational_seconds": [str(Fraction(*pair))
                                               for pair in sample_pts],
-            "_processor_batch_snapshot": {"private": "must not copy"},
+            "_processor_batch_snapshot": snapshot,
         }
 
     def test_projects_exact_join_fields_and_omits_private_tensor_snapshot(self):
@@ -71,6 +75,43 @@ class QtaPrescoreProcessorRowAdapterTests(unittest.TestCase):
             processor_binding_row(review_token="token", source_video_sha256=sha("video"),
                                   mapping={**self.mapping, "typed_batch_sha256": "bad"},
                                   sampler_row=self.sampler_row)
+
+    def test_recomputes_digest_from_snapshot_and_rejects_forgery_or_mutation(self):
+        changed_digest = {**self.mapping, "typed_batch_sha256": sha("forged")}
+        with self.assertRaisesRegex(ValueError,
+                                    "processor_row_typed_batch_digest_mismatch"):
+            processor_binding_row(review_token="token",
+                source_video_sha256=self.source_video_sha256,
+                mapping=changed_digest, sampler_row=self.sampler_row)
+
+        changed_snapshot = {**self.mapping,
+            "_processor_batch_snapshot": {"input_ids": [[1, 2, 4]],
+                "pixel_values_videos": [[0.25, 0.5]],
+                "video_grid_thw": [[5, 2, 2]]}}
+        with self.assertRaisesRegex(ValueError,
+                                    "processor_row_typed_batch_digest_mismatch"):
+            processor_binding_row(review_token="token",
+                source_video_sha256=self.source_video_sha256,
+                mapping=changed_snapshot, sampler_row=self.sampler_row)
+
+    def test_requires_actual_snapshot(self):
+        mapping = dict(self.mapping)
+        mapping.pop("_processor_batch_snapshot")
+        with self.assertRaisesRegex(ValueError,
+                                    "processor_row_batch_snapshot_missing"):
+            processor_binding_row(review_token="token",
+                source_video_sha256=self.source_video_sha256,
+                mapping=mapping, sampler_row=self.sampler_row)
+
+    def test_rejects_recursive_snapshot_with_stable_error(self):
+        recursive = {}
+        recursive["self"] = recursive
+        mapping = {**self.mapping, "_processor_batch_snapshot": recursive}
+        with self.assertRaisesRegex(ValueError,
+                                    "processor_row_batch_snapshot_invalid"):
+            processor_binding_row(review_token="token",
+                source_video_sha256=self.source_video_sha256,
+                mapping=mapping, sampler_row=self.sampler_row)
 
     def test_requires_explicit_actual_pts_fps_group_equality_pass(self):
         for value in (None, "not_requested", "actual_pts_and_fps_group_sets_mismatch"):

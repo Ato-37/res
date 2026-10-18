@@ -9,6 +9,7 @@ from fractions import Fraction
 from necessity_choice_margin_utils import uniform_sample_indices
 from qta_prescore_clock_row_adapter import adapt_calibration_to_clock_row
 from qta_prescore_processor_row_adapter import processor_binding_row
+from nextgqa_atomic_batch_freeze import batch_sha256
 from qta_synthetic_cohort_preflight import preflight_synthetic_qta_cohort
 import test_qta_prescore_clock_row_adapter as clock_adapter_test
 import test_qta_prescore_processor_row_adapter as processor_adapter_test
@@ -72,8 +73,18 @@ def _actual_adapter_rows(inputs):
                 clock_row["calibration_sha256"])
 
             mapping = copy.deepcopy(processor_fixture.mapping)
-            mapping["typed_batch_sha256"] = (
-                inputs["expected_processor_batch_sha256_by_token"][token])
+            # Give the actual adapter a small synthetic typed batch. Its digest
+            # must be recomputed from these bytes rather than copied from the
+            # caller-provided expected-hash fixture.
+            mapping["_processor_batch_snapshot"] = {
+                "input_ids": [[index + 1, index + 2]],
+                "pixel_values_videos": [[float(index + 1), float(index + 2)]],
+                "video_grid_thw": [[5, 2, 2]],
+            }
+            mapping["typed_batch_sha256"] = batch_sha256(
+                mapping["_processor_batch_snapshot"])
+            inputs["expected_processor_batch_sha256_by_token"][token] = (
+                mapping["typed_batch_sha256"])
             mapping["sampling_metadata_sha256"] = (
                 inputs["expected_sampling_metadata_sha256_by_token"][token])
             mapping["video_grid_thw"] = inputs[
