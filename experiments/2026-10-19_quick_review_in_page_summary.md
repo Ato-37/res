@@ -16,7 +16,8 @@ Reduce friction for the exploratory three-video check. The reviewer should enter
 
 - `PYTHONPATH=scripts .venv/bin/python -m unittest test_build_nextgqa_quick_review_artifact test_inspect_nextgqa_quick_review_response`: **16/16 passed**.
 - Python compilation and scoped `git diff --check`: passed.
-- Rebuilt artifact: 30,650,853 bytes, mode `0600`.
+- A synthetic Node.js execution of the generated `showSummary()` confirmed the 3/3 count and category labels while omitting fake IDs and note strings.
+- Rebuilt artifact: 30,647,526 bytes, mode `0600`.
 - No browser automation runtime was available for an actual click-through. The in-page display is covered by rendered-template assertions, not a real-browser test.
 - No human response was collected or analyzed for this UI change.
 
