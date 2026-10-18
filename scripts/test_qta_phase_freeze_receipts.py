@@ -247,7 +247,7 @@ class QtaPhaseFreezeReceiptTests(unittest.TestCase):
                                             temporal_groups[-1][-1] + 5))
             scores = [-0.1, -3.0, -4.0, -5.0, -6.0]
             score_binding = {
-                "schema_version": 1, "review_token": token,
+                "schema_version": 2, "review_token": token,
                 "answer_label_order": ["A", "B", "C", "D", "E"],
                 "answer_token_ids": [10, 11, 12, 13, 14],
                 "choice_token_binding_sha256": f"{index + 301:064x}",
@@ -264,6 +264,12 @@ class QtaPhaseFreezeReceiptTests(unittest.TestCase):
                 "input_ids_sha256": f"{index + 501:064x}",
                 "input_length": input_length, "score_position": input_length - 1,
                 "score_input_token_id": 3,
+                "video_token_id": 99,
+                "question_positions": question_positions,
+                "question_positions_sha256": hashlib.sha256(json.dumps(
+                    question_positions, sort_keys=True,
+                    separators=(",", ":")).encode()).hexdigest(),
+                "question_position_mapper_sha256": FROZEN_SELECTOR_SOURCE_SHA256,
                 "processor_batch_sha256": batch_sha,
                 "option_log_probabilities": scores,
                 "p_index": 0, "q_index": 1,
@@ -324,8 +330,8 @@ class QtaPhaseFreezeReceiptTests(unittest.TestCase):
                 selection_provenance=selection_provenance)
             plans.append(plan)
         baseline_raw = json.dumps({
-            "schema_version": 2,
-            "purpose": "qta_baseline_prediction_link_manifest_v2",
+            "schema_version": 3,
+            "purpose": "qta_baseline_prediction_link_manifest_v3",
             "video_claim_review_receipt_sha256": "a" * 64,
             "records": baseline_rows,
         }, ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode()
@@ -538,6 +544,28 @@ class QtaPhaseFreezeReceiptTests(unittest.TestCase):
                 phase1_receipt_raw=p1, phase1_record_bindings=records,
                 phase1_preflight_raw=p1_artifacts["atomic_cohort_preflight"],
                 phase1_stage1_source_pins_raw=p1_artifacts["stage1_review_and_lineage"],
+                baseline_pq_manifest_raw=p2_artifacts["baseline_pq_manifest"],
+                plans=plans)
+
+    def test_phase2_candidate_anchors_question_positions_to_baseline_binding(self):
+        bundle = self._phase2_candidate_bundle()
+        p1_artifacts, p1, p2_artifacts, _p2, records = bundle
+        from qta_phase2_plan_manifest import _strict_json
+        candidate = _strict_json(p2_artifacts["nine_branch_plan_manifest"])
+        plans = [row["plan"] for row in candidate["records"]]
+        selection = plans[0]["selection_provenance"]
+        selection["question_positions"] = [p + 1 for p in selection["question_positions"]]
+        selection["question_positions_sha256"] = hashlib.sha256(json.dumps(
+            selection["question_positions"], sort_keys=True,
+            separators=(",", ":")).encode()).hexdigest()
+        plans[0]["plan_sha256"] = _plan_digest(plans[0])
+        with self.assertRaisesRegex(ValueError,
+                                    "qta_selection_geometry_or_protocol_mismatch"):
+            create_qta_phase2_plan_manifest_candidate(
+                phase1_receipt_raw=p1, phase1_record_bindings=records,
+                phase1_preflight_raw=p1_artifacts["atomic_cohort_preflight"],
+                phase1_stage1_source_pins_raw=p1_artifacts[
+                    "stage1_review_and_lineage"],
                 baseline_pq_manifest_raw=p2_artifacts["baseline_pq_manifest"],
                 plans=plans)
 

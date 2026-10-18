@@ -93,6 +93,21 @@ class PredictionLinkReviewTests(unittest.TestCase):
         self.assertFalse(result["semantic_judgment_authenticated"])
         self.assertEqual(result["execution_authorization"], "not_granted")
 
+    def test_baseline_manifest_v3_is_accepted_for_review(self):
+        payload = {
+            "schema_version": 3,
+            "purpose": "qta_baseline_prediction_link_manifest_v3",
+            "video_claim_review_receipt_sha256": self.video_review_hash,
+            "records": self.rows,
+        }
+        raw = json.dumps(payload, ensure_ascii=False, sort_keys=True,
+                         separators=(",", ":")).encode()
+        digest = hashlib.sha256(raw).hexdigest()
+        receipt = {**self.receipt, "baseline_manifest_sha256": digest}
+        result = self._validate(receipt=receipt, baseline_manifest_raw=raw,
+                                expected_baseline_manifest_sha256=digest)
+        self.assertEqual(result["requested_records"], 2)
+
     def test_non_supporting_judgment_makes_cohort_ineligible(self):
         receipt = {**self.receipt, "records": [
             self.receipt["records"][0],

@@ -152,7 +152,8 @@ def validate_prediction_link_receipt(
             or type(manifest.get("schema_version")) is not int
             or (manifest.get("schema_version"), manifest.get("purpose")) not in (
                 (1, "qta_baseline_prediction_link_manifest"),
-                (2, "qta_baseline_prediction_link_manifest_v2"))):
+                (2, "qta_baseline_prediction_link_manifest_v2"),
+                (3, "qta_baseline_prediction_link_manifest_v3"))):
         _fail("baseline_manifest_schema_invalid")
     expected_protocol = _sha(expected_protocol_sha256,
                              "expected_protocol_hash_invalid")

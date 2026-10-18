@@ -32,25 +32,47 @@ class BaselinePqCandidateTests(unittest.TestCase):
         }
         self.answer_ids = list(map(ord, "ABCDE"))
         class FakeTokenizer:
+            def _tokenize(inner_self, text):
+                ids, offsets = [], []
+                cursor = 0
+                marker = "<|video_pad|>"
+                while cursor < len(text):
+                    if text.startswith(marker, cursor):
+                        ids.append(99)
+                        offsets.append((cursor, cursor + len(marker)))
+                        cursor += len(marker)
+                    else:
+                        ids.append(ord(text[cursor]))
+                        offsets.append((cursor, cursor + 1))
+                        cursor += 1
+                return ids, offsets
+
             def encode(inner_self, text, add_special_tokens=False):
                 del add_special_tokens
-                for index in range(3):
-                    prefix = f"prompt-{index}"
-                    if text == prefix:
-                        return [300 + index, 400]
-                    if text.startswith(prefix) and len(text) == len(prefix) + 1:
-                        return [300 + index, 400, ord(text[-1])]
-                raise ValueError("unknown test prompt")
+                return inner_self._tokenize(text)[0]
+
+            def __call__(inner_self, text, add_special_tokens=False,
+                         return_offsets_mapping=False):
+                del add_special_tokens
+                ids, offsets = inner_self._tokenize(text)
+                result = {"input_ids": ids}
+                if return_offsets_mapping:
+                    result["offset_mapping"] = offsets
+                return result
         self.tokenizer = FakeTokenizer()
-        self.prompts = {token: f"prompt-{i}" for i, token in enumerate(self.tokens)}
+        self.prompts = {}
         self.video_review_sha = sha("prior-video-review")
         self.rows = []
         self.source_pins = {}
         for i, token in enumerate(self.tokens):
             question = f"Question {i}?"
+            prompt = f"Video <|video_pad|> {question} Answer:"
+            self.prompts[token] = prompt
             options = [f"choice {i}-{letter}" for letter in "ABCDE"]
             claim = f"Claim {i}."
-            input_ids = [1, 10 + i, 20 + i]
+            input_ids = []
+            for token_id in self.tokenizer.encode(prompt, add_special_tokens=False):
+                input_ids.extend([token_id] * 3 if token_id == 99 else [token_id])
             input_sha = hashlib.sha256(json.dumps(
                 input_ids, separators=(",", ":")).encode()).hexdigest()
             video_sha, intervals_sha = sha(f"video-{i}"), sha(f"intervals-{i}")
@@ -66,12 +88,13 @@ class BaselinePqCandidateTests(unittest.TestCase):
                 "answer_token_ids": self.answer_ids,
                 "input_ids": input_ids,
                 "input_ids_sha256": input_sha,
-                "prompt_sha256": sha(f"prompt-{i}"),
+                "prompt_sha256": sha(prompt),
                 "input_length": len(input_ids),
                 "score_position": len(input_ids) - 1,
                 "score_input_token_id": input_ids[-1],
                 "processor_batch_sha256": sha(f"batch-{i}"),
                 "scored_option_token_ids": self.answer_ids,
+                "video_token_id": 99,
             }
             self.rows.append(row)
             self.source_pins[token] = {
@@ -117,8 +140,17 @@ class BaselinePqCandidateTests(unittest.TestCase):
         self.assertEqual(hashlib.sha256(result["baseline_manifest_raw"]).hexdigest(),
                          result["baseline_manifest_sha256"])
         manifest = json.loads(result["baseline_manifest_raw"])
-        self.assertEqual(manifest["schema_version"], 2)
-        self.assertEqual(manifest["purpose"], "qta_baseline_prediction_link_manifest_v2")
+        self.assertEqual(manifest["schema_version"], 3)
+        self.assertEqual(manifest["purpose"], "qta_baseline_prediction_link_manifest_v3")
+        self.assertTrue(result["question_position_mapping_verified"])
+        self.assertTrue(result["rendered_prompt_video_expansion_mapping_verified"])
+        self.assertFalse(result["processor_prompt_association_verified"])
+        binding = manifest["records"][0]["score_binding"]
+        self.assertEqual(binding["schema_version"], 2)
+        self.assertTrue(binding["question_positions"])
+        self.assertEqual(binding["video_token_id"], 99)
+        self.assertEqual(binding["question_position_mapper_sha256"],
+                         baseline_candidate.FROZEN_SELECTOR_SOURCE_SHA256)
         self.assertEqual(len(manifest["records"]), 3)
         for row in manifest["records"]:
             binding = row["score_binding"]
@@ -180,6 +212,8 @@ class BaselinePqCandidateTests(unittest.TestCase):
              "baseline_score_position_binding_invalid"),
             ("token", {**self.rows[0], "scored_option_token_ids": [1, 2, 3, 4, 5]},
              "baseline_option_token_binding_invalid"),
+            ("video_token", {**self.rows[0], "video_token_id": 100},
+             "baseline_question_position_mapping_invalid"),
             ("input_hash", {**self.rows[0], "input_ids_sha256": sha("other")},
              "processor_input_ids_digest_mismatch"),
         ]
@@ -196,6 +230,64 @@ class BaselinePqCandidateTests(unittest.TestCase):
                         self._build()
                 finally:
                     self.input_obj, self.rows = original_obj, original_rows
+
+    def test_question_position_binding_requires_exact_video_expansion(self):
+        result = self._build()
+        manifest = json.loads(result["baseline_manifest_raw"])
+        binding = manifest["records"][0]["score_binding"]
+        positions = binding["question_positions"]
+        visual_positions = [i for i, value in enumerate(self.rows[0]["input_ids"])
+                            if value == self.rows[0]["video_token_id"]]
+        self.assertTrue(positions)
+        self.assertGreater(positions[0], max(visual_positions))
+        self.assertLess(positions[-1], binding["score_position"])
+        self.assertEqual(binding["question_positions_sha256"], hashlib.sha256(
+            json.dumps(positions, ensure_ascii=False, sort_keys=True,
+                       separators=(",", ":")).encode()).hexdigest())
+        original_obj, original_rows = self.input_obj, self.rows
+        changed = dict(self.rows[0])
+        changed_ids = list(changed["input_ids"])
+        video_position = changed_ids.index(changed["video_token_id"])
+        changed_ids[video_position] += 1
+        changed["input_ids"] = changed_ids
+        changed["input_ids_sha256"] = hashlib.sha256(json.dumps(
+            changed_ids, separators=(",", ":")).encode()).hexdigest()
+        self.rows = [changed, *self.rows[1:]]
+        self.input_obj = {**self.input_obj, "records": self.rows}
+        try:
+            with self.assertRaisesRegex(
+                    CandidateError, "baseline_question_position_mapping_invalid"):
+                self._build()
+        finally:
+            self.input_obj, self.rows = original_obj, original_rows
+
+    def test_question_offset_geometry_rejects_out_of_range_and_overlap(self):
+        base = self.tokenizer
+
+        class MalformedOffsetTokenizer:
+            def __init__(inner_self, kind):
+                inner_self.kind = kind
+
+            def encode(inner_self, text, add_special_tokens=False):
+                return base.encode(text, add_special_tokens=add_special_tokens)
+
+            def __call__(inner_self, text, add_special_tokens=False,
+                         return_offsets_mapping=False):
+                result = base(text, add_special_tokens=add_special_tokens,
+                              return_offsets_mapping=return_offsets_mapping)
+                if return_offsets_mapping:
+                    offsets = list(result["offset_mapping"])
+                    if inner_self.kind == "out_of_range":
+                        offsets[-1] = (len(text), len(text) + 1)
+                    else:
+                        offsets[2] = (offsets[1][0], offsets[1][1] + 1)
+                    result["offset_mapping"] = offsets
+                return result
+
+        for kind in ("out_of_range", "overlap"):
+            with self.subTest(kind=kind), self.assertRaisesRegex(
+                    CandidateError, "baseline_question_position_mapping_invalid"):
+                self._build(tokenizer=MalformedOffsetTokenizer(kind))
 
     def test_rejects_self_consistent_but_forged_ids_and_prompt_hash(self):
         original = self.rows[0]
@@ -240,14 +332,13 @@ class BaselinePqCandidateTests(unittest.TestCase):
         class OneLabelChangedTokenizer:
             def encode(inner_self, text, add_special_tokens=False):
                 del add_special_tokens
-                for index in range(3):
-                    prefix = f"prompt-{index}"
-                    if text == prefix:
-                        return [300 + index, 400]
-                    if text.startswith(prefix) and len(text) == len(prefix) + 1:
-                        label_id = ord(text[-1]) + (1 if text[-1] == "E" else 0)
-                        return [300 + index, 400, label_id]
-                raise ValueError("unknown test prompt")
+                ids = self.tokenizer.encode(text, add_special_tokens=False)
+                if text.endswith("E") and text[:-1] in self.prompts.values():
+                    ids[-1] += 1
+                return ids
+
+            def __call__(inner_self, *args, **kwargs):
+                return self.tokenizer(*args, **kwargs)
 
         with self.assertRaisesRegex(CandidateError,
                                     "baseline_option_token_binding_invalid"):

@@ -83,7 +83,8 @@ def render_prediction_link_review_page(
             or type(manifest.get("schema_version")) is not int
             or (manifest.get("schema_version"), manifest.get("purpose")) not in (
                 (1, "qta_baseline_prediction_link_manifest"),
-                (2, "qta_baseline_prediction_link_manifest_v2"))):
+                (2, "qta_baseline_prediction_link_manifest_v2"),
+                (3, "qta_baseline_prediction_link_manifest_v3"))):
         raise ValueError("baseline_manifest_schema_invalid")
     if manifest.get("video_claim_review_receipt_sha256") != video_claim_review_receipt_sha256:
         raise ValueError("baseline_video_review_receipt_binding_mismatch")

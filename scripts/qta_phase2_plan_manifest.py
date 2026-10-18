@@ -60,6 +60,8 @@ _SCORE_BINDING_KEYS = {
     "video_support_decision",
     "prompt_sha256", "input_ids_sha256",
     "input_length", "score_position", "score_input_token_id",
+    "video_token_id", "question_positions", "question_positions_sha256",
+    "question_position_mapper_sha256",
     "processor_batch_sha256", "option_log_probabilities", "p_index", "q_index",
     "run_digests",
 }
@@ -225,8 +227,8 @@ def _baseline_rows(raw: bytes) -> list[dict[str, Any]]:
     if (not isinstance(manifest, dict) or set(manifest) != _BASELINE_KEYS
             or _canonical_utf8(manifest) != raw
             or type(manifest["schema_version"]) is not int
-            or manifest["schema_version"] != 2
-            or manifest["purpose"] != "qta_baseline_prediction_link_manifest_v2"
+            or manifest["schema_version"] != 3
+            or manifest["purpose"] != "qta_baseline_prediction_link_manifest_v3"
             or not isinstance(manifest["video_claim_review_receipt_sha256"], str)
             or not _SHA256.fullmatch(manifest["video_claim_review_receipt_sha256"])):
         raise ValueError("baseline_pq_manifest_schema_invalid")
@@ -253,7 +255,7 @@ def _baseline_rows(raw: bytes) -> list[dict[str, Any]]:
         binding = row["score_binding"]
         if (not isinstance(binding, dict) or set(binding) != _SCORE_BINDING_KEYS
                 or type(binding["schema_version"]) is not int
-                or binding["schema_version"] != 1
+                or binding["schema_version"] != 2
                 or binding["review_token"] != token
                 or binding["answer_label_order"] != ["A", "B", "C", "D", "E"]
                 or not isinstance(binding["answer_token_ids"], list)
@@ -295,6 +297,18 @@ def _baseline_rows(raw: bytes) -> list[dict[str, Any]]:
                 or type(binding["q_index"]) is not int or binding["q_index"] != q_index
                 or binding["video_support_decision"] != "supports_claim"):
             raise ValueError("baseline_pq_score_binding_content_mismatch")
+        positions = binding["question_positions"]
+        if (type(binding["video_token_id"]) is not int
+                or binding["video_token_id"] < 0
+                or not isinstance(positions, list) or not positions
+                or any(type(position) is not int or position < 0 for position in positions)
+                or positions != list(range(positions[0], positions[-1] + 1))
+                or positions[-1] >= binding["score_position"]
+                or binding["question_positions_sha256"]
+                != _sha(_canonical_utf8(positions))
+                or binding["question_position_mapper_sha256"]
+                != FROZEN_SELECTOR_SOURCE_SHA256):
+            raise ValueError("baseline_pq_question_position_binding_invalid")
         binding_sha256 = _sha(_canonical_utf8(binding))
         if row["score_binding_sha256"] != binding_sha256:
             raise ValueError("baseline_pq_score_binding_hash_mismatch")
@@ -404,7 +418,7 @@ def _core_manifest(*, phase1_receipt_sha256: str,
                 "input_ids_sha256": score_binding["input_ids_sha256"],
                 "input_length": score_binding["input_length"],
                 "score_position": score_binding["score_position"],
-                "question_positions": selection["question_positions"],
+                "question_positions": score_binding["question_positions"],
                 "temporal_groups": plan["temporal_groups"],
                 "selector_source_sha256": FROZEN_SELECTOR_SOURCE_SHA256,
                 "selector_layers_1_based": FROZEN_QTA_LAYERS_1_BASED,

@@ -104,14 +104,16 @@ Independent source audit found that target/sham group indices are still only
 shape-checked: the plan does not recompute top-k selection from baseline
 question-attention scores. Existing phase-1 prompt/token artifact bytes are
 not yet parsed by the phase-2 verifier, and the current phase-2 artifact roles
-do not include a baseline-attention capture or forward receipt. Recomputing a
-selection from caller-supplied vectors would establish arithmetic consistency
-only; it would not authenticate those vectors as Qwen attention. The next
-protocol step is to specify a post-baseline attention artifact with exact batch,
-question-position, model/runtime, layer, and output bindings, then test its
-selector recomputation without granting execution authority. The independent
-human intake still lacks a separately pinned trust root and actual reviewer/key
-assignments, so no review package has been opened.
+do not include a baseline-attention capture or forward receipt. Baseline
+manifest v3 now recomputes question positions from its supplied prompt,
+tokenizer, video-token ID, and processed IDs, but it does not prove those
+inputs are the ones used in the baseline forward. Recomputing selection from
+caller-supplied attention vectors remains arithmetic consistency only; it
+does not authenticate those vectors as Qwen attention. The next protocol step
+is to bind actual processor temporal groups and a post-baseline attention
+artifact with exact batch, question-position, model/runtime, layer, and output
+bytes, then independently recompute selection. The human intake still lacks a
+separately pinned trust root and assigned reviewer/key bindings.
 
 ## Next action
 
@@ -181,10 +183,10 @@ candidate rejects a changed prompt binding.
 This is intentionally an arithmetic and cross-artifact check. The score masses
 remain caller-supplied and are not authenticated as output from a real Qwen
 baseline forward. Question-token positions are also self-declared in this
-record; phase-2 binds them to prompt/input hashes but does not independently
-derive them from rendered text, tokenizer offsets, or a processor mapping.
-Processor temporal-group positions are compared to the plan's signed row
-binding but are not re-derived from a separately parsed processor artifact.
+record at the time of this implementation entry; the baseline mapping repair
+below supersedes that limitation for the current candidate schema. Processor
+temporal-group positions are compared to the plan's signed row binding but are
+not re-derived from a separately parsed processor artifact.
 The artifact explicitly states `forward_source_authenticated=false`,
 `attention_capture_authenticated=false`, `model_load_permitted=false`, and
 `scoring_authorized=false`. The CPU protocol tests did not load a model; a
@@ -202,12 +204,12 @@ measurement. Status remains **0/3** reviewed claims, **0/15** verified
 browser-clock-to-decoder correspondences, **0/3** prediction-link judgments,
 and **0/3** direct scores; no effect estimate, interval, or test exists.
 
-Next: independently parse and bind the actual processor mapping and the
-phase-1 prompt/token artifact, then define a post-baseline forward/capture
-receipt whose underlying output bytes—not only a declared hash—can be checked.
-Keep real scoring behind the unresolved human review, trust, timing, prediction
-link, and capture gates. Continue CPU protocol checks in parallel with the
-local human-review handoff preparation.
+Next: add a post-baseline forward/capture artifact that carries inspectable
+attention bytes and joins them to the phase-1 batch plus baseline v3 question
+positions; add a checker that recomputes the frozen temporal selector from
+those bytes. Keep real scoring behind human review, trusted role assignments,
+clock/PTS correspondence, prediction-link judgments, and capture gates.
+Continue CPU reproducibility checks and local review handoff preparation.
 
 Selection arithmetic revision source hashes:
 
@@ -259,10 +261,29 @@ human-reviewed evidence intervals, and reports `faithfulness_result=false`,
 `attention_capture_authenticated=false`, and `treatment_frozen=false`. It
 provides no direct faithfulness score, effect estimate, interval, or
 significance test. Model/attention capture provenance remains unauthenticated.
-The phase-2 parser also still takes `question_positions` from the selection
-record itself as its expected value, rather than independently deriving that
-span from the rendered prompt/tokenizer artifact. This remains an explicit
-selection provenance gap; the candidate is not execution-ready.
+The r3 run predates the baseline-manifest-v3 position-mapping change below; a
+fresh source-closure GPU smoke is needed before relying on the updated closure.
+
+## Independent question-position binding and baseline schema v3
+
+To remove the phase-2 self-reference, `qta_baseline_pq_candidate.py` now
+recomputes question-token positions from each exact rendered prompt, question,
+caller tokenizer, processed input IDs, and the video token ID using the frozen
+`map_question_token_positions` implementation. That mapper verifies a unique
+question span, offset continuity, and that the processed IDs equal the rendered
+IDs with exactly one video placeholder expanded to its contiguous visual-token
+run. The resulting positions, their canonical hash, video token ID, and frozen
+mapper source hash are stored inside score-binding schema v2. The enclosing
+baseline manifest is schema/purpose v3. Phase-2 requires those fields and uses
+the baseline score-binding positions as the expected values for selection
+provenance. Prediction-link validation and rendering also accept manifest v3.
+
+This is a reproducible mapping over caller-supplied inputs, not proof that the
+tokenizer/processor bytes or those inputs came from the model forward. The
+baseline candidate continues to declare `processor_prompt_association_verified`
+false. Human identity/review, actual capture provenance, and question-span
+semantic correctness remain unauthenticated. Any future candidate must be
+rebuilt against v3; do not mix old v2 manifests or frozen plan hashes.
 
 ## Local real-video sampler eligibility preflight
 
@@ -291,10 +312,10 @@ must not be published.
 
 After adding the raw-token cross-artifact binding and its independent
 raw-versus-hashed ranking regression, the focused suite passed **42/42** tests.
-Root full-suite discovery passed **1,937/1,937** in 68.954 seconds. `git diff
---check` passed. These tests verify structural arithmetic and artifact joins;
-they do not resolve the question-token position or real attention-capture
-authenticity gaps above.
+Root full-suite discovery passed **1,937/1,937** in 68.954 seconds. A later
+candidate schema v3 follow-up has a separate focused run below; it adds
+reproducible question-position mapping but does not authenticate the real
+tokenizer/processor or attention capture.
 
 Current source SHA-256 values for this selection candidate:
 
@@ -312,3 +333,93 @@ Current source SHA-256 values for this selection candidate:
   `cbc96582c21a7b741b799243ca51388f60f229f7fbf0081eba11d58f89a57ea7`
 - `scripts/qta_choice_token_binding.py`:
   `45f7cfce20fd0fcb8fc7709d60f2638fe6e098d38f29b581f6a4c082611552ef`
+
+## Offset-validation and attention-byte contract follow-up
+
+An independent review of baseline schema v3 found that offset pairs were
+checked for nonnegative starts and `end >= start`, but not for exceeding prompt
+length or overlapping/out-of-order token spans. The selector mapper now rejects
+those malformed geometries, with candidate-level regressions for out-of-range
+and overlapping offsets. This repairs malformed offset metadata only. A
+caller-supplied tokenizer can still provide plausible but false offsets while
+keeping input IDs unchanged; tokenizer implementation/revision bytes and their
+use in the actual forward remain unauthenticated. Do not interpret the mapper
+as proof of semantic question-token positions until that provenance is closed.
+
+Added `scripts/qta_attention_capture_contract.py` and synthetic tests. The
+contract serializes caller-supplied attention bytes as big-endian float32 with
+shape `[12 layers, heads, packed question queries, input keys]`, binds those
+bytes to batch, baseline row, prompt/input/model/processor/tokenizer/runtime
+digests, question positions, and temporal groups, then independently recomputes
+per-layer group masses. The packed query axis is explicitly ordered like the
+bound question positions. The verifier requires strict schema keys/types,
+continuous question positions, ordered equal-length groups, valid binding
+digests, normalized finite rows, and a 128 MiB payload cap before flattening.
+It rejects byte/hash, group-mass, batch/geometry, authority-flag and schema
+tampering. Group reductions match the selector's CPU PyTorch float32 path
+bit-for-bit on a two-head synthetic fixture. The contract still does not prove
+that any bytes came from a real model forward.
+
+Independent audit caught and we repaired several initial contract gaps:
+boolean schema version acceptance, non-contiguous question positions,
+out-of-order groups, late size-cap checking, and a one-ULP discrepancy from
+the selector's reduction. The subsequent audit confirmed those repairs and
+found no bypass in the inspected contract. The final capture suite passed
+**12/12**; capture, baseline, selection, and phase-freeze focused tests passed
+**57/57**. Full repository discovery on the final code passed **1,954/1,954**
+in **68.278 s**. Expected fail-closed subprocess diagnostics appeared but did
+not fail tests. `py_compile` and scoped `git diff --check` also passed.
+
+## Updated synthetic GPU smoke r5
+
+After adding the selector mapper's bounds/order guard, the protocol-aligned
+synthetic smoke completed **1/1 record and 9/9 forwards** on RTX 5070 Ti,
+CUDA 12.8, PyTorch 2.11.0+cu128, Transformers 5.18.0, BF16 4-bit weights,
+and the pinned model revision. Runtime was **62.50 s**, peak allocated VRAM
+**10.755 GiB**, peak reserved **12.439 GiB**, free VRAM **14.657 GiB** before
+load and **1.920 GiB** after completion. Its private mode-0600 receipt SHA-256
+is `694804acf5f8a4d994a739a7c2bc6008a376665f7b7d156eb3bcaedc6eb651e1`.
+It passes only synthetic selector/intervention wiring; the receipt keeps
+`faithfulness_result=false`, `attention_capture_authenticated=false`,
+`treatment_frozen=false`, and `execution_authorization=not_granted`. No real
+video, human-reviewed interval, or claim-linked score entered this run.
+
+The refreshed 20:10 JST local candidate inventory has 80 roles and zero
+missing slots, but is candidate-only and does not authorize package opening.
+Its SHA-256 is `7128af12e41e04f0171fe7a8614d3194b54836acecb511d4cfee1612419e122d`
+(identical to 19:53; registered inventory inputs had not changed).
+The separate real-video sampler preflight decoded 3/3 local candidate videos
+with 32 unique sampled PTS and pixel hashes each and maximum grid deviations
+of 16.145, 16.145, and 16.355 ms against the 50 ms engineering tolerance.
+Both mode-restricted receipts remain local-only; rights remain unverified.
+
+Direct faithfulness evidence remains **0/3 reviewed claims**, **0/15 verified
+browser-clock/decoder-PTS correspondences**, **0/15 human frame-pair judgments**,
+**0/3 prediction-link judgments**, and **0/3 direct scores**. No claim-linked
+effect estimate, uncertainty interval, or hypothesis test exists. The GPU
+smoke, real-video decode, and synthetic capture contract improve feasibility
+and reproducibility only.
+
+Independent audit limitations: CPU PyTorch parity does not establish bitwise
+parity for GPU reductions, which were not separately compared. The contract
+labels forward/capture authenticity false and does not establish that the
+packed bytes came from Qwen. Its 128 MiB raw cap is a bound, not a low-memory
+guarantee: nested Python-float decoding and tensors can use more memory than
+the serialized payload.
+
+Current implementation hashes:
+
+- selector mapper: `3cac00200d51623d68826ffb772e239d3448e99c78e885e812c91aa92430802a`
+- baseline candidate: `a9d69ade670f39ad97f1d00d08c0013f015a235eeb53c8ccfd7c01223de94d3c`
+- phase-2 manifest validator: `853ec87b15c393aa62ac94e9f51a375f3f701e5641d1adbf35f12452a10d8ddc`
+- attention capture contract: `2f1bca800a5b17d3fed28d50557a7a92da2cd525dbc05a62d77f7910b59456e1`
+- capture contract tests: `26c0981cd1422f7b87c4d586ee25afdb52881a9be99794df55bcf72cfa580270`
+- baseline candidate tests: `9aaaa99cd891bf5c09fa6c6688ab2f43658fe6bcbb148290b75673bf262a7248`
+- phase-2 receipt tests: `c96607f36e1c0574b3247f17eaa5c3daaea74e944f1e3e1a0b6cbf290dcf36ff`
+
+Next: verify the final source closure and private output modes; refresh the
+byte inventory if another review freeze is prepared. Human
+review remains blocked on an independently trusted root pin, independently
+verified role-to-key identities and signed rosters, review-only freeze, and a
+witnessed unopened handoff. Continue independent human-free protocol checks
+while those inputs are unavailable.

@@ -17,6 +17,10 @@ import re
 from typing import Any, Sequence
 
 from qta_choice_token_binding import build_choice_token_binding
+from qwen_question_temporal_attention_selector import (
+    map_question_token_positions,
+)
+from qta_selection_provenance import FROZEN_SELECTOR_SOURCE_SHA256
 
 
 SHA256 = re.compile(r"^[0-9a-f]{64}$")
@@ -33,7 +37,7 @@ ROW_KEYS = {
     "reviewed_intervals_sha256", "source_video_sha256", "option_log_probabilities",
     "answer_token_ids", "input_ids", "input_ids_sha256", "prompt_sha256",
     "input_length", "score_position", "score_input_token_id",
-    "processor_batch_sha256", "scored_option_token_ids",
+    "processor_batch_sha256", "scored_option_token_ids", "video_token_id",
 }
 
 
@@ -96,7 +100,8 @@ def _valid_log_probability(value: Any) -> bool:
 
 
 def _validate_row(row: Any, *, token: str, expected_source: dict[str, str],
-                  choice_binding: dict, run_digests: dict[str, str]) -> dict[str, Any]:
+                  choice_binding: dict, run_digests: dict[str, str],
+                  rendered_prompt: str, tokenizer) -> dict[str, Any]:
     if not isinstance(row, dict) or set(row) != ROW_KEYS:
         _fail("baseline_input_record_schema_invalid")
     if row["review_token"] != token:
@@ -161,8 +166,20 @@ def _validate_row(row: Any, *, token: str, expected_source: dict[str, str],
         _fail("baseline_option_token_binding_invalid")
     if type(row["score_input_token_id"]) is not int or row["score_input_token_id"] < 0:
         _fail("baseline_score_position_binding_invalid")
+    video_token_id = row["video_token_id"]
+    if type(video_token_id) is not int or video_token_id < 0:
+        _fail("baseline_video_token_id_invalid")
+    try:
+        question_positions = map_question_token_positions(
+            tokenizer=tokenizer, rendered_text=rendered_prompt,
+            question_text=row["question"], processed_input_ids=ids,
+            video_token_id=video_token_id)
+    except (TypeError, ValueError, KeyError, OverflowError):
+        _fail("baseline_question_position_mapping_invalid")
+    question_positions_sha256 = hashlib.sha256(
+        _canonical_json(question_positions)).hexdigest()
     score_binding = {
-        "schema_version": 1,
+        "schema_version": 2,
         "review_token": token,
         "answer_label_order": list(TOKENS),
         "answer_token_ids": list(answer_token_ids),
@@ -179,6 +196,10 @@ def _validate_row(row: Any, *, token: str, expected_source: dict[str, str],
         "input_length": row["input_length"],
         "score_position": row["score_position"],
         "score_input_token_id": row["score_input_token_id"],
+        "video_token_id": video_token_id,
+        "question_positions": question_positions,
+        "question_positions_sha256": question_positions_sha256,
+        "question_position_mapper_sha256": FROZEN_SELECTOR_SOURCE_SHA256,
         "processor_batch_sha256": row["processor_batch_sha256"],
         "option_log_probabilities": list(scores),
         "p_index": p_index,
@@ -267,12 +288,14 @@ def build_baseline_pq_candidate(*, input_raw: bytes,
     manifest_rows = [
         _validate_row(row, token=token,
                       expected_source=expected_source_bindings_by_token[token],
-                      choice_binding=choice_bindings[token], run_digests=run_digests)
+                      choice_binding=choice_bindings[token], run_digests=run_digests,
+                      rendered_prompt=rendered_prompts_by_token[token],
+                      tokenizer=tokenizer)
         for token, row in zip(expected_cohort_tokens, rows, strict=True)
     ]
     manifest = {
-        "schema_version": 2,
-        "purpose": "qta_baseline_prediction_link_manifest_v2",
+        "schema_version": 3,
+        "purpose": "qta_baseline_prediction_link_manifest_v3",
         "video_claim_review_receipt_sha256": video_review_sha,
         "records": manifest_rows,
     }
@@ -317,6 +340,8 @@ def build_baseline_pq_candidate(*, input_raw: bytes,
         "q_indices": [row["q_index"] for row in manifest_rows],
         "model_load_permitted": False,
         "text_token_binding_verified": True,
+        "question_position_mapping_verified": True,
+        "rendered_prompt_video_expansion_mapping_verified": True,
         "processor_prompt_association_verified": False,
         "branch_forwards": 0,
         "score_forwards": 0,
@@ -325,8 +350,8 @@ def build_baseline_pq_candidate(*, input_raw: bytes,
         "semantic_proof": False,
         "limitations": [
             "structural contract only; caller pins and candidate input are unauthenticated",
-            "rendered prompts and tokenizer object are caller supplied; prompt rendering and tokenizer bytes are not independently authenticated",
-            "multimodal processor/video token expansion and its association with the rendered text prompt are not verified by this candidate; the separate processor suffix helper is only a check primitive",
+            "rendered prompts, tokenizer object, video-token ID, and processed IDs are caller supplied; their association with the actual model forward is not independently authenticated",
+            "question positions are recomputed with the frozen selector mapper and bound into the score row, but tokenizer/processor identity and bytes are not authenticated by this candidate",
             "does not verify the trusted release/root/witness gate or stage-1 human review",
             "per-record review decisions are caller-pinned; stage-1 receipt bytes are not revalidated here",
             "does not verify model output provenance or p/q semantics beyond recomputation",

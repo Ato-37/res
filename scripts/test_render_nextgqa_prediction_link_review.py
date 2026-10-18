@@ -60,6 +60,21 @@ class PredictionLinkRendererTests(unittest.TestCase):
         self.assertIn("connect-src 'none'", page)
         self.assertIn("JSON.stringify(receipt,null,2)", page)
 
+    def test_baseline_manifest_v3_is_renderable_for_review_only(self):
+        raw = json.dumps({
+            "schema_version": 3,
+            "purpose": "qta_baseline_prediction_link_manifest_v3",
+            "video_claim_review_receipt_sha256": self.video_review_hash,
+            "records": [self.row],
+        }, ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode()
+        page = render_prediction_link_review_page(
+            baseline_manifest_raw=raw,
+            expected_baseline_manifest_sha256=hashlib.sha256(raw).hexdigest(),
+            protocol_sha256=self.protocol_hash,
+            video_claim_review_receipt_sha256=self.video_review_hash)
+        self.assertIn("execution_authorization:'not_granted'", page)
+        self.assertNotIn("question_positions", page)
+
     def test_hash_protocol_schema_and_prediction_fail_closed(self):
         with self.assertRaisesRegex(ValueError, "baseline_manifest_bytes_hash_mismatch"):
             render_prediction_link_review_page(

@@ -82,11 +82,16 @@ def map_question_token_positions(*, tokenizer: Any, rendered_text: str,
     char_start = rendered_text.find(question_text)
     char_end = char_start + len(question_text)
     raw_question_positions = []
+    previous_start = previous_end = 0
     for index, offset in enumerate(offsets):
         if (not isinstance(offset, Sequence) or len(offset) != 2
                 or type(offset[0]) is not int or type(offset[1]) is not int
-                or offset[0] < 0 or offset[1] < offset[0]):
+                or offset[0] < 0 or offset[1] < offset[0]
+                or offset[1] > len(rendered_text)
+                or (index > 0 and (offset[0] < previous_start
+                                   or offset[0] < previous_end))):
             raise ValueError("token_offsets_invalid")
+        previous_start, previous_end = offset
         if offset[1] > char_start and offset[0] < char_end:
             raw_question_positions.append(index)
     if (not raw_question_positions
