@@ -31,6 +31,10 @@ contents.
   reader, and calibration-input suites passed **84/84** tests. An earlier
   invocation without `PYTHONPATH=scripts` failed at test-module import; it did
   not execute tests and was immediately rerun correctly.
+- The complete current `scripts/` unittest discovery then passed **1,650/1,650**
+  tests in **39.513 s**. Expected negative-path CLI messages and existing
+  Transformers video-processor deprecation warnings appeared; the suite exited
+  successfully.
 - A read-only elevated GPU query at 2026-10-18 00:36 UTC saw an RTX 5070 Ti with
   14,851 MiB free of 16,303 MiB and 0% compute utilization. No GPU forward was
   run in this audit because the score-bearing branch remains protocol-gated;
