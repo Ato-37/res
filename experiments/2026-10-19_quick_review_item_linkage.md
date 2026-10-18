@@ -8,3 +8,7 @@
 独立GPU候補監査と現地GPU確認では、RTX 5070 Ti/CUDA 12.8は個別許可コマンドで利用可能だった。一方、未閉鎖の人手不要GPU候補は見つからず、直近のquestion-swap (80動画、320/320 forward) とmask-specificity (147動画中140適格、868/868 forward) は完了済み。これらの再実行は重複・post-selectionとなる。直接faithfulnessは引き続きclaim review **0/3**、frame correspondence **0/15**、prediction-link **0/3**、direct score **0/3**、実`ΔF`/CI/testなし。回答JSONも未確認。よってこの追記ではGPU forwardを実施しなかった。
 
 次は利用者が探索的JSONを保存した場合に限り、項目IDを用いて簡易所見をローカルで照合し、正式レビュー記録とは分離したまま報告する。別枝では、stage-1 receiptのartifact内検証と、外部pinを受け取るproduction caller契約の未認可検証を続ける。
+
+## 再生成先の整合（追記）
+
+独立UI監査で、案内ページはtraceable v2 artifactを指す一方、builderの既定出力先は旧v1名のままと確認した。既定先を`quick_review_ja_video_only_20261019_itemid_v2.html`へ揃え、誤った版を再生成しないためのunit testを追加した。既存のprivate artifactは上書きせず維持する。関連テスト5/5成功、`py_compile`と対象差分の`git diff --check`も成功した。これは操作・保存先の整合修正であり、レビュー実施や直接faithfulness測定ではない。

@@ -16,7 +16,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_PACKAGE = ROOT / "data/private_nextgqa/reviewer_package_v6_20261018_0243"
-DEFAULT_OUTPUT = ROOT / "data/private_nextgqa/quick_review_ja_video_only_20261019.html"
+DEFAULT_OUTPUT = ROOT / "data/private_nextgqa/quick_review_ja_video_only_20261019_itemid_v2.html"
 PRIVATE_ROOT = (ROOT / "data/private_nextgqa").resolve()
 
 

@@ -5,12 +5,21 @@ from pathlib import Path
 from unittest.mock import patch
 
 from build_nextgqa_quick_review_artifact import (
-    browser_compatible_bytes, exploratory_item_id, private_output_path,
+    DEFAULT_OUTPUT, browser_compatible_bytes, exploratory_item_id, private_output_path,
     serialize_inline_json,
 )
 
 
 class QuickReviewArtifactSafetyTests(unittest.TestCase):
+    def test_default_output_targets_current_traceable_v2_artifact(self):
+        self.assertEqual(
+            DEFAULT_OUTPUT.name,
+            "quick_review_ja_video_only_20261019_itemid_v2.html",
+        )
+        self.assertTrue(DEFAULT_OUTPUT.is_relative_to(
+            Path(__file__).resolve().parents[1] / "data/private_nextgqa"
+        ))
+
     def test_item_id_is_stable_opaque_and_does_not_echo_review_token(self):
         token = "private-review-token-123"
         first = exploratory_item_id(token)
