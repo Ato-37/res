@@ -1,9 +1,12 @@
 from __future__ import annotations
 
+import hashlib
 import json
 import io
 from pathlib import Path
 import shutil
+import subprocess
+import textwrap
 import tempfile
 import unittest
 from contextlib import redirect_stdout
@@ -11,6 +14,7 @@ from unittest.mock import patch
 
 from audit_qta_stage1_bundle_cli import BundleError, PURPOSE, verify_bundle
 import audit_qta_stage1_bundle_cli as cli_module
+from nextgqa_completed_review_attestation import create_attestation
 
 
 class Stage1BundleCliTests(unittest.TestCase):
@@ -85,6 +89,83 @@ class Stage1BundleCliTests(unittest.TestCase):
             expected_root_public_der_sha256=self.fixture.f.root_pin,
             expected_ceremony_id=self.fixture.f.ceremony)
 
+    def _render_synthetic_browser_export(self):
+        """Run the rendered page's actual export handler with synthetic state."""
+        if shutil.which("node") is None:
+            self.skipTest("Node.js unavailable for rendered export handler integration")
+        html = self.fixture.f.artifacts["review_package_html"].decode("utf-8")
+        harness = textwrap.dedent(r'''
+            const vm = require('node:vm');
+            const crypto = require('node:crypto').webcrypto;
+            let source = '';
+            process.stdin.setEncoding('utf8');
+            process.stdin.on('data', chunk => source += chunk);
+            process.stdin.on('end', async () => {
+              const dataMarker = '<script id="data" type="application/json">';
+              const dataStart = source.indexOf(dataMarker) + dataMarker.length;
+              const dataEnd = source.indexOf('</script>', dataStart);
+              const scriptStart = source.lastIndexOf('<script>');
+              const scriptEnd = source.indexOf('</script>', scriptStart);
+              if (dataStart < dataMarker.length || dataEnd < 0 || scriptStart < 0 || scriptEnd < 0)
+                throw new Error('rendered_script_missing');
+              const base = JSON.parse(source.slice(dataStart, dataEnd));
+              const script = source.slice(scriptStart + '<script>'.length, scriptEnd);
+              const marker = "document.getElementById('export').onclick=async()=>{";
+              const begin = script.indexOf(marker);
+              const finish = script.indexOf("\n};\nfunction downloadReviewIndex()", begin);
+              if (begin < 0 || finish < 0) throw new Error('export_handler_missing');
+              const handler = script.slice(begin, finish + 3);
+              const indexStart = script.indexOf('function downloadReviewIndex(){', finish);
+              const clockStart = script.indexOf(
+                "document.getElementById('export-clock').onclick", indexStart);
+              if (indexStart < 0 || clockStart < 0) throw new Error('index_handler_missing');
+              const indexHandler = script.slice(indexStart, clockStart);
+              const downloads = [];
+              const controls = new Map();
+              const firstPlayedAt = new Date(Date.now() - 120000).toISOString();
+              const reviewedAt = new Date(Date.now() - 60000).toISOString();
+              for (const id of ['export','reviewer','role','attest','export-disclosure',
+                'retry-review','retry-index','export-index','handoff-status'])
+                controls.set(id, {disabled:false, value:'synthetic-reviewer', checked:true, textContent:''});
+              controls.get('role').value = 'independent_human';
+              const context = {
+                base,
+                state: Array.from({length:3}, () => ({tokenOK:true, duration:3.0,
+                  firstPlayedAt, full:true, context:true,
+                  seedHidden:true, outcomeHidden:true, decision:'supports_claim',
+                  intervals:[{start:1.001,end:2.002,rationale:'synthetic rationale'}],
+                  reviewedAt})),
+                exportInProgress:false,
+                rows:{querySelectorAll:() => []},
+                document:{getElementById:id => controls.get(id)},
+                window:{}, crypto, TextEncoder, Date, navigator:{userAgent:'Synthetic'},
+                setTimeout:() => 0, alert:() => {}, checkReady:() => {},
+                download:(content,name) => downloads.push({content,name}),
+              };
+              vm.runInNewContext(handler, context);
+              await controls.get('export').onclick();
+              vm.runInNewContext(indexHandler, context);
+              controls.get('export-index').onclick();
+              process.stdout.write(JSON.stringify({downloads, index:context.window.pendingReviewIndex,
+                status:controls.get('handoff-status').textContent}));
+            });
+        ''')
+        completed = subprocess.run(
+            ["node", "-e", harness], input=html, text=True,
+            capture_output=True, check=False, timeout=15,
+        )
+        if completed.returncode != 0:
+            raise AssertionError("synthetic export harness failed: " + completed.stderr[:500])
+        result = json.loads(completed.stdout)
+        if len(result["downloads"]) != 2:
+            raise AssertionError("browser export did not generate both downloads: " +
+                                 result.get("status", "unknown"))
+        review_download, index_download = result["downloads"]
+        self.assertTrue(review_download["name"].endswith(".json"))
+        self.assertEqual(index_download["name"], "nextgqa_human_review_index.json")
+        self.assertEqual(index_download["content"], result["index"])
+        return review_download["content"].encode("utf-8"), index_download["content"].encode("utf-8")
+
     def test_bundle_directory_matches_existing_audit_and_never_authorizes(self):
         report = self._verify()
         self.assertEqual(report, self.fixture._audit())
@@ -117,9 +198,79 @@ class Stage1BundleCliTests(unittest.TestCase):
         self.assertFalse(report["model_load_permitted"])
         self.assertFalse(report["score_ready"])
         self.assertEqual(report["execution_authorization"], "not_granted")
+
         for row in self.fixture.worksheet["records"]:
             self.assertNotIn(row["review_token"], output.getvalue())
         self.assertTrue(changed.is_file())
+
+    def test_actual_rendered_page_export_flows_through_bundle_cli_without_translation(self):
+        review_raw, review_index_raw = self._render_synthetic_browser_export()
+        review = json.loads(review_raw)
+        review_index = json.loads(review_index_raw)
+        self.assertEqual(review["purpose"], "anonymous_local_claim_video_human_review")
+        self.assertEqual(len(review["records"]), 3)
+        self.assertEqual(review_index["review_payload_sha256"],
+                         hashlib.sha256(review_raw).hexdigest())
+
+        reviewer_attestation_raw = create_attestation(
+            worksheet=self.fixture.worksheet,
+            worksheet_raw=self.fixture.worksheet_raw,
+            lineage=self.fixture.lineage,
+            lineage_raw=self.fixture.lineage_raw,
+            review=review,
+            review_raw=review_raw,
+            review_index=review_index,
+            review_index_raw=review_index_raw,
+            expected_lineage_sha256=self.fixture.expected_lineage_sha256,
+            pre_review_receipt_sha256=hashlib.sha256(self.fixture.receipt_raw).hexdigest(),
+            integrity_roster_raw=self.fixture.f.integrity_roster_raw,
+            root_public_key_pem=self.fixture.f.keys["root"][1],
+            expected_root_public_der_sha256=self.fixture.f.root_pin,
+            reviewer_private_key_pem=self.fixture.f.keys["claim"][0],
+            reviewer_public_key_pem=self.fixture.f.keys["claim"][1],
+        )
+        for name, raw in (("review", review_raw), ("review_index", review_index_raw),
+                          ("reviewer_attestation", reviewer_attestation_raw)):
+            self._write(self.sources[name], raw)
+
+        output = io.StringIO()
+        with redirect_stdout(output):
+            status = cli_module.main([
+                "--bundle-dir", str(self.root),
+                "--expected-lineage-sha256", self.fixture.expected_lineage_sha256,
+                "--expected-custody-sha256", self.fixture.expected_custody_sha256,
+                "--expected-root-public-der-sha256", self.fixture.f.root_pin,
+                "--expected-ceremony-id", self.fixture.f.ceremony,
+            ])
+        self.assertEqual(status, 0)
+        report = json.loads(output.getvalue())
+        self.assertEqual(report["status"], "stage1_structurally_valid_non_authorizing")
+        self.assertEqual(report["structurally_valid_records"], 3)
+        self.assertFalse(report["model_load_permitted"])
+        self.assertFalse(report["score_ready"])
+        self.assertEqual(report["execution_authorization"], "not_granted")
+
+        self._write("sources/review-export-mutated.bin", review_raw + b" ")
+        self.manifest["sources"]["review"] = "sources/review-export-mutated.bin"
+        self._save_manifest()
+        blocked_output = io.StringIO()
+        with redirect_stdout(blocked_output):
+            blocked_status = cli_module.main([
+                "--bundle-dir", str(self.root),
+                "--expected-lineage-sha256", self.fixture.expected_lineage_sha256,
+                "--expected-custody-sha256", self.fixture.expected_custody_sha256,
+                "--expected-root-public-der-sha256", self.fixture.f.root_pin,
+                "--expected-ceremony-id", self.fixture.f.ceremony,
+            ])
+        self.assertEqual(blocked_status, 2)
+        blocked = json.loads(blocked_output.getvalue())
+        self.assertEqual(blocked["status"], "blocked")
+        self.assertEqual(blocked["failure_codes"], ["stage1_audit_contract_invalid"])
+        self.assertFalse(blocked["model_load_permitted"])
+        self.assertFalse(blocked["score_ready"])
+        self.assertEqual(blocked["execution_authorization"], "not_granted")
+        for row in self.fixture.worksheet["records"]:
+            self.assertNotIn(row["review_token"], blocked_output.getvalue())
 
     def test_inventory_role_omission_is_rejected_before_audit(self):
         self.manifest["artifact_sources"].pop("claim_lineage")
