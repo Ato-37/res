@@ -67,3 +67,9 @@ judgments. Continue preparing/rechecking the local handoff; do not run faithfuln
 inference until those gates pass. After they pass, run the bounded three-row baseline
 full pass, freeze its output, conduct the score-free human review, and only then
 consider treatment comparisons under the predeclared QTA-Bias `ΔF`.
+
+## Provenance hashes
+
+- Adapter source SHA-256: `740fb9fb77bc5ea4d48bc1f02cdeced84ec03ce83e15d4a1b845b7a723e055ad`
+- Adapter test SHA-256: `bfe53fa32e7b3a70e10a34656f732996321c24ea54e1df512e356682c94d89aa`
+- Scoped commit: `e45434892076ac7184360d38ead4c77bd3fe70b7`
