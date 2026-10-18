@@ -2,7 +2,15 @@ from __future__ import annotations
 
 import unittest
 
-from plan_qta_paired_sample_size import paired_t_power, required_n, sensitivity_grid
+from plan_qta_paired_sample_size import (
+    exact_sign_p_value,
+    exact_sign_test_power,
+    paired_t_power,
+    required_n,
+    required_sign_test_n,
+    sensitivity_grid,
+    sign_test_sensitivity,
+)
 
 
 class QtaPairedSampleSizeTests(unittest.TestCase):
@@ -52,6 +60,52 @@ class QtaPairedSampleSizeTests(unittest.TestCase):
             sensitivity_grid([], [0.4])
         with self.assertRaisesRegex(ValueError, "target_power_must_be_greater"):
             sensitivity_grid([0.2], [0.4], [0.01], alpha=0.05)
+
+    def test_three_video_two_sided_sign_test_cannot_reject(self):
+        self.assertEqual(exact_sign_p_value(3, 0), 0.25)
+        self.assertEqual(exact_sign_test_power(3, 0.9), 0.0)
+        self.assertEqual(exact_sign_p_value(6, 0), 0.03125)
+
+    def test_sign_test_power_and_required_n_match_exact_enumeration(self):
+        self.assertAlmostEqual(exact_sign_test_power(6, 0.8), 0.262208, places=12)
+        n = required_sign_test_n(0.8, 0.8)
+        self.assertEqual(n, 20)
+        self.assertGreaterEqual(exact_sign_test_power(n, 0.8), 0.8)
+        self.assertLess(exact_sign_test_power(n - 1, 0.8), 0.8)
+
+    def test_sign_sensitivity_labels_scenarios_and_not_mean_deltaf(self):
+        rows = sign_test_sensitivity((p for p in (0.7, 0.8)))
+        self.assertEqual(len(rows), 2)
+        self.assertEqual(rows[1]["unit"], "independent_source_video_level_deltaF_sign")
+        self.assertEqual(rows[1]["scope"],
+                         "directional_robustness_sensitivity_not_primary_mean_deltaF_test")
+        self.assertTrue(rows[1]["assumptions_are_scenarios_not_empirical_estimates"])
+        self.assertEqual(rows[1]["n_counts"], "nonzero_video_level_deltaF_signs")
+        self.assertTrue(rows[1]["positive_sign_probability_is_conditional_on_nonzero_deltaF"])
+        self.assertFalse(rows[1]["zero_effect_rate_modeled"])
+
+    def test_sign_functions_reject_bad_counts_and_probabilities(self):
+        for args, code in [
+            ((0, 0), "nonzero_sign_count_must_be_positive"),
+            ((-1, 2), "sign_counts_must_be_nonnegative_integers"),
+            ((1.0, 2), "sign_counts_must_be_nonnegative_integers"),
+        ]:
+            with self.subTest(args=args), self.assertRaisesRegex(ValueError, code):
+                exact_sign_p_value(*args)
+        with self.assertRaisesRegex(ValueError, "probability_positive_must_be_between"):
+            exact_sign_test_power(3, 1.1)
+
+    def test_sign_required_n_uses_smallest_attainable_sample_size(self):
+        self.assertEqual(required_sign_test_n(0.9, 0.8), 12)
+        self.assertEqual(required_sign_test_n(0.7, 0.8), 49)
+
+    def test_sign_sensitivity_rejects_invalid_scenarios(self):
+        with self.assertRaisesRegex(ValueError, "scenario_iterables_must_be_nonempty"):
+            sign_test_sensitivity([], [0.8])
+        with self.assertRaisesRegex(ValueError, "probability_positive_must_be_between"):
+            sign_test_sensitivity([1.1])
+        with self.assertRaisesRegex(ValueError, "target_power_must_be_greater"):
+            sign_test_sensitivity([0.8], [0.05])
 
 
 if __name__ == "__main__":
