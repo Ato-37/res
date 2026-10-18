@@ -11,10 +11,10 @@ from build_nextgqa_quick_review_artifact import (
 
 
 class QuickReviewArtifactSafetyTests(unittest.TestCase):
-    def test_default_output_targets_current_traceable_v3_artifact(self):
+    def test_default_output_targets_current_simple_v4_artifact(self):
         self.assertEqual(
             DEFAULT_OUTPUT.name,
-            "quick_review_ja_video_only_20261019_itemid_v3.html",
+            "quick_review_ja_simple_20261019_itemid_v4.html",
         )
         self.assertTrue(DEFAULT_OUTPUT.is_relative_to(
             Path(__file__).resolve().parents[1] / "data/private_nextgqa"
@@ -117,7 +117,7 @@ class QuickReviewArtifactSafetyTests(unittest.TestCase):
                     })
             self.assertFalse(output.exists())
 
-    def test_rendered_page_displays_japanese_and_keeps_english_source_optional(self):
+    def test_rendered_page_goes_from_nickname_to_simple_questions_without_file_picker(self):
         question, question_ja, claim, claim_ja = (
             "private source question", "日本語の質問？", "private source claim", "日本語の説明。"
         )
@@ -143,11 +143,17 @@ class QuickReviewArtifactSafetyTests(unittest.TestCase):
             rendered = output.read_text(encoding="utf-8")
             self.assertIn(question_ja, rendered)
             self.assertIn(claim_ja, rendered)
-            self.assertIn("元の英語を見る（任意）", rendered)
+            self.assertIn("id=\"nickname\"", rendered)
+            self.assertIn("ニックネームを入力", rendered)
+            self.assertIn("質問へ", rendered)
+            self.assertIn("ファイル選択はありません", rendered)
+            self.assertNotIn('type="file"', rendered)
+            self.assertNotIn('id="time"', rendered)
+            self.assertNotIn('id="note"', rendered)
             self.assertIn("item.question_ja", rendered)
             self.assertIn("item.claim_ja", rendered)
-            self.assertIn("item.question;", rendered)
-            self.assertIn("item.claim;", rendered)
+            self.assertNotIn("item.question;", rendered)
+            self.assertNotIn("item.claim;", rendered)
             self.assertEqual(output.stat().st_mode & 0o777, 0o600)
 
 
