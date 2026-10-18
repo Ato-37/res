@@ -58,6 +58,15 @@ clock, cohort, scorer, and phase-receipt gates pass. The feasibility cohort
 must remain descriptive; any efficacy claim requires a disjoint cohort and a
 pre-outcome precision/SESOI, sample-size, uncertainty, and multiplicity plan.
 
+The first CPU-only synthetic geometry check is implemented in
+`scripts/test_qta_retention_contrast_geometry.py` and passes. It uses four
+synthetic two-token groups, equal-size disjoint evidence/control sets, and the
+existing fixed-query ablation helper. It verifies that the retained visual
+positions are exactly the requested set, all other visual positions are
+ablated, and unrelated query rows remain unchanged. This is helper-level
+software validation only; it does not run a model or validate real temporal
+groups.
+
 ## Known alternatives and failure conditions
 
 Retaining only selected keys can be severely out of distribution; text tokens
