@@ -2,12 +2,16 @@ import contextlib
 import hashlib
 import io
 import json
+import os
 import stat
 import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
-from scripts.build_nextgqa_prior_exposure_manifest import build, main
+from scripts.build_nextgqa_prior_exposure_manifest import (
+    build, main, _read_secret, _read_stable_regular_file,
+)
 
 
 KEY = b"synthetic test key with enough entropy 0123456789abcdef"
@@ -245,6 +249,62 @@ class PriorExposureManifestTests(unittest.TestCase):
             secret.chmod(0o600)
             with contextlib.redirect_stderr(io.StringIO()), self.assertRaises(SystemExit):
                 main(["--input", f"unknown@nextgqa={source}", "--secret-file", str(secret), "--output", str(output)])
+
+    def test_bounded_reader_rejects_oversize_and_symlink_inputs(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            source = root / "source.json"
+            link = root / "source-link.json"
+            parent_link = root / "parent-link"
+            parent_link.mkdir()
+            parent_link.joinpath("nested.json").write_bytes(b"safe")
+            parent_link.rename(root / "real-parent")
+            (root / "parent-alias").symlink_to(root / "real-parent", target_is_directory=True)
+            source.write_bytes(b"12345")
+            link.symlink_to(source)
+            fifo = root / "source.fifo"
+            os.mkfifo(fifo)
+            with self.assertRaisesRegex(ValueError, "input_size_limit_exceeded"):
+                _read_stable_regular_file(source, max_bytes=4)
+            with self.assertRaisesRegex(ValueError, "input_unavailable_or_symlink"):
+                _read_stable_regular_file(link, max_bytes=8)
+            with self.assertRaisesRegex(ValueError, "input_must_be_regular_file"):
+                _read_stable_regular_file(fifo, max_bytes=8)
+            with self.assertRaisesRegex(ValueError, "input_unavailable_or_symlink"):
+                _read_stable_regular_file(root / "parent-alias" / "nested.json", max_bytes=8)
+
+    def test_bounded_reader_rejects_file_mutation_during_snapshot(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            source = Path(tmp) / "source.json"
+            source.write_bytes(b"before")
+            original_fstat = os.fstat
+            calls = 0
+
+            def mutate_after_first_fstat(fd):
+                nonlocal calls
+                result = original_fstat(fd)
+                calls += 1
+                if calls == 1:
+                    source.write_bytes(b"changed while reading")
+                return result
+
+            with patch("scripts.build_nextgqa_prior_exposure_manifest.os.fstat",
+                       side_effect=mutate_after_first_fstat):
+                with self.assertRaisesRegex(ValueError, "input_changed_during_read"):
+                    _read_stable_regular_file(source, max_bytes=128)
+
+    def test_secret_reader_requires_private_mode_and_bounded_size(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            secret = root / "secret"
+            secret.write_bytes(KEY)
+            secret.chmod(0o644)
+            with self.assertRaisesRegex(ValueError, "input_mode_invalid"):
+                _read_secret(secret)
+            secret.chmod(0o600)
+            secret.write_bytes(b"x" * 4097)
+            with self.assertRaisesRegex(ValueError, "input_size_limit_exceeded"):
+                _read_secret(secret)
 
 
 if __name__ == "__main__":

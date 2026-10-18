@@ -48,6 +48,10 @@ FAMILIES = {"sample-json", "lineage-json", "lock-json", "media-set-json",
             "review-custody-json", "result-json", "result-csv", "opaque-legacy"}
 SHA256 = re.compile(r"^[0-9a-f]{64}$")
 NAMESPACE = re.compile(r"^[a-z0-9][a-z0-9._-]*$")
+MAX_SOURCE_BYTES = 128 * 1024 * 1024
+MAX_SECRET_BYTES = 4096
+MAX_INPUT_SOURCES = 64
+MAX_TOTAL_SOURCE_BYTES = 256 * 1024 * 1024
 
 
 def _json_pairs(pairs):
@@ -329,15 +333,74 @@ def build(inputs: list[tuple[str, str, str, bytes]], secret: bytes) -> tuple[dic
     return manifest, encoded
 
 
-def _read_secret(path: Path) -> bytes:
+def _stat_identity(info: os.stat_result) -> tuple[int, ...]:
+    return (info.st_dev, info.st_ino, info.st_mode, info.st_nlink, info.st_size,
+            info.st_mtime_ns, info.st_ctime_ns)
+
+
+def _open_path_no_follow(path: Path) -> int:
+    if not hasattr(os, "O_NOFOLLOW") or not hasattr(os, "O_DIRECTORY"):
+        raise ValueError("safe_open_unavailable")
+    parts = path.parts
+    if path.is_absolute():
+        if not parts or parts[0] != path.anchor:
+            raise ValueError("input_path_invalid")
+        parts = parts[1:]
+    if any(part in {"", ".", ".."} for part in parts):
+        raise ValueError("input_path_invalid")
+    if path.is_absolute():
+        current = os.open(path.anchor, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW)
+    else:
+        current = os.open(".", os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW)
     try:
-        info = path.lstat()
+        if not parts:
+            raise ValueError("input_must_be_regular_file")
+        for component in parts[:-1]:
+            next_fd = os.open(component, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW,
+                               dir_fd=current)
+            os.close(current)
+            current = next_fd
+        result = os.open(parts[-1], os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK,
+                         dir_fd=current)
+        return result
+    finally:
+        os.close(current)
+
+
+def _read_stable_regular_file(path: Path, *, max_bytes: int,
+                              required_mode: int | None = None) -> bytes:
+    try:
+        fd = _open_path_no_follow(path)
     except OSError as exc:
-        raise ValueError("secret_file_unavailable") from exc
-    if (not stat.S_ISREG(info.st_mode) or stat.S_ISLNK(info.st_mode)
-            or stat.S_IMODE(info.st_mode) != 0o600):
-        raise ValueError("secret_file_must_be_regular_mode_0600")
-    raw = path.read_bytes()
+        raise ValueError("input_unavailable_or_symlink") from exc
+    with os.fdopen(fd, "rb") as stream:
+        before = os.fstat(stream.fileno())
+        if not stat.S_ISREG(before.st_mode):
+            raise ValueError("input_must_be_regular_file")
+        if required_mode is not None and stat.S_IMODE(before.st_mode) != required_mode:
+            raise ValueError("input_mode_invalid")
+        if before.st_size < 0 or before.st_size > max_bytes:
+            raise ValueError("input_size_limit_exceeded")
+        chunks = []
+        total = 0
+        while True:
+            chunk = stream.read(min(1024 * 1024, max_bytes + 1 - total))
+            if not chunk:
+                break
+            chunks.append(chunk)
+            total += len(chunk)
+            if total > max_bytes:
+                raise ValueError("input_size_limit_exceeded")
+        after = os.fstat(stream.fileno())
+        if _stat_identity(before) != _stat_identity(after) or total != after.st_size:
+            raise ValueError("input_changed_during_read")
+        raw = b"".join(chunks)
+    return raw
+
+
+def _read_secret(path: Path) -> bytes:
+    raw = _read_stable_regular_file(path, max_bytes=MAX_SECRET_BYTES,
+                                    required_mode=0o600)
     if len(raw) < 32:
         raise ValueError("secret_must_be_at_least_32_bytes")
     return raw
@@ -384,8 +447,11 @@ def main(argv: list[str] | None = None) -> int:
                         help="new private output path; existing files are never overwritten")
     args = parser.parse_args(argv)
     try:
+        if len(args.input) > MAX_INPUT_SOURCES:
+            raise ValueError("input_source_count_limit_exceeded")
         secret = _read_secret(args.secret_file)
         inputs = []
+        total_source_bytes = 0
         for item in args.input:
             family_namespace, sep, raw_path = item.partition("=")
             family, at, namespace = family_namespace.partition("@")
@@ -393,10 +459,11 @@ def main(argv: list[str] | None = None) -> int:
                     or NAMESPACE.fullmatch(namespace) is None):
                 raise ValueError("input_must_be_supported_family_at_namespace_equals_path")
             path = Path(raw_path)
-            info = path.lstat()
-            if not stat.S_ISREG(info.st_mode) or stat.S_ISLNK(info.st_mode):
-                raise ValueError("input_must_be_regular_file")
-            inputs.append((family, namespace, str(path), path.read_bytes()))
+            source_raw = _read_stable_regular_file(path, max_bytes=MAX_SOURCE_BYTES)
+            total_source_bytes += len(source_raw)
+            if total_source_bytes > MAX_TOTAL_SOURCE_BYTES:
+                raise ValueError("total_source_size_limit_exceeded")
+            inputs.append((family, namespace, str(path), source_raw))
         _manifest, encoded = build(inputs, secret)
         _write_exclusive_private(args.output, encoded)
     except (OSError, ValueError) as exc:
