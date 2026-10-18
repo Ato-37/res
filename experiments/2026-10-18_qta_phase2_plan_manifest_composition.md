@@ -72,7 +72,7 @@ and v2 manifests; only the phase-2 composition gate requires v2.
 - These are structural synthetic checks only; they do not establish real-data
   validity, human judgment correctness, reviewer identity, or model faithfulness.
 
-## Source hashes
+## Source hashes (before stage-1 source-pin follow-up)
 
 - `scripts/qta_baseline_pq_candidate.py`:
   `a5e9af0259814fcf2300f389eb14f3d7094b6bff131156ee6108fecaa5fe3ede`
@@ -116,8 +116,48 @@ assignments, so no review package has been opened.
 ## Next action
 
 Keep this candidate out of production execution gating until the unresolved
-selection, stage-1 receipt, and baseline-forward provenance joins are specified
-and independently checked. Continue the human-free
+selection and baseline-forward provenance joins are specified and independently
+checked. The stage-1 source-pin digest is now joined, while review authenticity
+and upstream source-audit provenance remain separate gates. Continue the human-free
 protocol and measurement work while the assigned reviewers prepare the local
 review handoff. Do not run model scoring until the upstream review and trust
 gates are actually satisfied.
+
+## Follow-up: stage-1 source-pin linkage
+
+The next source audit showed that the v2 score descriptor carried option and
+scoring bindings but did not carry all source pins needed to link the
+baseline manifest to the phase-1 source-pin artifact. The descriptor now also
+contains question/options/claim hashes, source-video hash, reviewed-interval
+hash, and the stage-1 support decision. The phase-2 candidate builder and
+verifier bind these fields, row order, 24-character review-token hashes, and
+the prior video-review receipt digest to the exact phase-1
+`stage1_review_and_lineage` artifact. The verifier still labels semantic review
+unauthenticated and grants no scoring authority.
+
+The focused builder, phase-2 receipt, prediction-link, and renderer suite passes
+**63/63** after schema hardening. Negative tests reject a changed stage-1
+receipt digest, a changed claim source pin, a boolean schema version, and an
+unknown top-level key. Full repository discovery passes **1,925/1,925** in
+65.592 seconds. These checks close byte/field mismatch checks only; they do
+not authenticate people, review truth, or model-forward provenance.
+
+The phase-2 parser now requires exact parity with the stage-1 producer's
+top-level key set, including its private-QA/source-binding fields and explicit
+denial fields. It consumes only the review receipt digest and ordered source
+rows for this join; exact schema parity detects producer drift without treating
+the other fields as reviewed evidence. Test fixtures model the complete key
+set, but their non-join payload values remain synthetic. An independent auditor
+compared the producer's complete 26-key output (including the three denial
+fields supplied by `DENIAL`) against the parser set and found no mismatch. The
+auditor reviewed the fixtures and negative tests; its focused suite passed
+**51/51**.
+
+Updated source hashes after this follow-up:
+
+- `scripts/qta_baseline_pq_candidate.py`:
+  `ff30e8455a4dca60d3f64209e9efaac570ab5984d8e0284778d7ba857a2a6799`
+- `scripts/qta_phase2_plan_manifest.py`:
+  `4e37eab6f3384132756feb35448820d3a350416baf20d754f9002eae30000d15`
+- `scripts/test_qta_phase_freeze_receipts.py`:
+  `e911d10cd189adbf7e3a6de6b9c95fe6928bc8392b8520d7c8d19f3520f370fa`

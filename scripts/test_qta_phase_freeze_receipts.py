@@ -244,6 +244,15 @@ class QtaPhaseFreezeReceiptTests(unittest.TestCase):
                 "answer_label_order": ["A", "B", "C", "D", "E"],
                 "answer_token_ids": [10, 11, 12, 13, 14],
                 "choice_token_binding_sha256": f"{index + 301:064x}",
+                "question_sha256": hashlib.sha256(
+                    b"synthetic question").hexdigest(),
+                "options_sha256": hashlib.sha256(json.dumps(
+                    ["A", "B", "C", "D", "E"], ensure_ascii=False,
+                    sort_keys=True, separators=(",", ":")).encode()).hexdigest(),
+                "claim_sha256": hashlib.sha256(b"synthetic claim").hexdigest(),
+                "source_video_sha256": f"{index + 701:064x}",
+                "reviewed_intervals_sha256": f"{index + 201:064x}",
+                "video_support_decision": "supports_claim",
                 "prompt_sha256": f"{index + 401:064x}",
                 "input_ids_sha256": f"{index + 501:064x}",
                 "input_length": 4, "score_position": 3,
@@ -289,6 +298,38 @@ class QtaPhaseFreezeReceiptTests(unittest.TestCase):
         }, ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode()
         p1_artifacts = dict(self.p1_artifacts)
         p1_artifacts["atomic_cohort_preflight"] = preflight_raw
+        p1_artifacts["stage1_review_and_lineage"] = json.dumps({
+            "schema_version": 1,
+            "purpose": "qta_stage1_source_pins_structurally_derived_non_authorizing",
+            "classification": "private_local_only_structural_source_pins",
+            "status": "three_row_source_pins_structurally_derived",
+            "requested_records": 3, "effective_records": 3,
+            "expected_video_claim_review_receipt_sha256": "a" * 64,
+            "expected_cohort_tokens": tokens,
+            "source_rows": [{
+                "review_token": row["review_token"],
+                "question_sha256": row["score_binding"]["question_sha256"],
+                "options_sha256": row["score_binding"]["options_sha256"],
+                "claim_sha256": row["score_binding"]["claim_sha256"],
+                "source_video_sha256": row["score_binding"]["source_video_sha256"],
+                "video_support_decision": "supports_claim",
+                "reviewed_intervals_sha256": row["reviewed_intervals_sha256"],
+            } for row in baseline_rows],
+            "expected_baseline_source_sha256_by_token": {},
+            "cohort_review_source_pins_by_token": {},
+            "expected_baseline_candidate_source_bindings_by_token": {},
+            "expected_review_payload_sha256": "b" * 64,
+            "stage1_audit_status": "synthetic",
+            "actual_qa_source_status": "synthetic",
+            "stage1_source_bytes_sha256": {"worksheet": "c" * 64},
+            "private_qa_bundle_sha256": "d" * 64,
+            "reviewer_identity_verified": False,
+            "semantic_review_authenticated": False,
+            "clock_frame_correspondence_verified": False,
+            "limitations": ["synthetic fixture"],
+            "scoring_authorized": False, "model_load_permitted": False,
+            "execution_authorization": "not_granted",
+        }, sort_keys=True, separators=(",", ":")).encode()
         records = [{"record_token": hashlib.sha256(token.encode("ascii")).hexdigest(),
                     "processor_batch_sha256": inputs[
                         "expected_processor_batch_sha256_by_token"][token]}
@@ -297,6 +338,7 @@ class QtaPhaseFreezeReceiptTests(unittest.TestCase):
         manifest = create_qta_phase2_plan_manifest_candidate(
             phase1_receipt_raw=p1, phase1_record_bindings=records,
             phase1_preflight_raw=preflight_raw,
+            phase1_stage1_source_pins_raw=p1_artifacts["stage1_review_and_lineage"],
             baseline_pq_manifest_raw=baseline_raw, plans=plans)
         p2_artifacts = dict(self.p2_artifacts)
         p2_artifacts.update({"phase1_receipt": p1,
@@ -360,6 +402,7 @@ class QtaPhaseFreezeReceiptTests(unittest.TestCase):
             create_qta_phase2_plan_manifest_candidate(
                 phase1_receipt_raw=p1, phase1_record_bindings=records,
                 phase1_preflight_raw=p1_artifacts["atomic_cohort_preflight"],
+                phase1_stage1_source_pins_raw=p1_artifacts["stage1_review_and_lineage"],
                 baseline_pq_manifest_raw=p2_artifacts["baseline_pq_manifest"],
                 plans=[wrong, *(row["plan"] for row in candidate["records"][1:])])
 
@@ -384,8 +427,67 @@ class QtaPhaseFreezeReceiptTests(unittest.TestCase):
             create_qta_phase2_plan_manifest_candidate(
                 phase1_receipt_raw=p1, phase1_record_bindings=records,
                 phase1_preflight_raw=p1_artifacts["atomic_cohort_preflight"],
+                phase1_stage1_source_pins_raw=p1_artifacts["stage1_review_and_lineage"],
                 baseline_pq_manifest_raw=p2_artifacts["baseline_pq_manifest"],
                 plans=[wrong, *(row["plan"] for row in candidate["records"][1:])])
+
+    def test_phase2_candidate_rejects_stage1_receipt_mismatch(self):
+        bundle = self._phase2_candidate_bundle()
+        p1_artifacts, p1, p2_artifacts, _p2, records = bundle
+        from qta_phase2_plan_manifest import _strict_json
+        candidate = _strict_json(p2_artifacts["nine_branch_plan_manifest"])
+        stage1 = _strict_json(p1_artifacts["stage1_review_and_lineage"])
+        stage1["expected_video_claim_review_receipt_sha256"] = "b" * 64
+        altered_stage1_raw = json.dumps(
+            stage1, sort_keys=True, separators=(",", ":")).encode()
+        with self.assertRaisesRegex(
+                ValueError, "phase1_baseline_video_review_receipt_mismatch"):
+            create_qta_phase2_plan_manifest_candidate(
+                phase1_receipt_raw=p1, phase1_record_bindings=records,
+                phase1_preflight_raw=p1_artifacts["atomic_cohort_preflight"],
+                phase1_stage1_source_pins_raw=altered_stage1_raw,
+                baseline_pq_manifest_raw=p2_artifacts["baseline_pq_manifest"],
+                plans=[row["plan"] for row in candidate["records"]])
+
+    def test_phase2_candidate_rejects_noncanonical_stage1_source_pin_schema(self):
+        bundle = self._phase2_candidate_bundle()
+        p1_artifacts, p1, p2_artifacts, _p2, records = bundle
+        from qta_phase2_plan_manifest import _strict_json
+        candidate = _strict_json(p2_artifacts["nine_branch_plan_manifest"])
+        for mutate in (
+                lambda obj: obj.update(schema_version=True),
+                lambda obj: obj.update(unexpected_extension="ignored")):
+            with self.subTest(mutate=mutate):
+                stage1 = _strict_json(p1_artifacts["stage1_review_and_lineage"])
+                mutate(stage1)
+                altered_stage1_raw = json.dumps(
+                    stage1, sort_keys=True, separators=(",", ":")).encode()
+                with self.assertRaisesRegex(
+                        ValueError, "phase1_stage1_source_pin_artifact_invalid"):
+                    create_qta_phase2_plan_manifest_candidate(
+                        phase1_receipt_raw=p1,
+                        phase1_record_bindings=records,
+                        phase1_preflight_raw=p1_artifacts["atomic_cohort_preflight"],
+                        phase1_stage1_source_pins_raw=altered_stage1_raw,
+                        baseline_pq_manifest_raw=p2_artifacts["baseline_pq_manifest"],
+                        plans=[row["plan"] for row in candidate["records"]])
+
+    def test_phase2_candidate_rejects_stage1_source_row_mismatch(self):
+        bundle = self._phase2_candidate_bundle()
+        p1_artifacts, p1, p2_artifacts, _p2, records = bundle
+        from qta_phase2_plan_manifest import _strict_json
+        candidate = _strict_json(p2_artifacts["nine_branch_plan_manifest"])
+        stage1 = _strict_json(p1_artifacts["stage1_review_and_lineage"])
+        stage1["source_rows"][1]["claim_sha256"] = "b" * 64
+        altered_stage1_raw = json.dumps(
+            stage1, sort_keys=True, separators=(",", ":")).encode()
+        with self.assertRaisesRegex(ValueError, "phase2_plan_stage1_source_pin_mismatch"):
+            create_qta_phase2_plan_manifest_candidate(
+                phase1_receipt_raw=p1, phase1_record_bindings=records,
+                phase1_preflight_raw=p1_artifacts["atomic_cohort_preflight"],
+                phase1_stage1_source_pins_raw=altered_stage1_raw,
+                baseline_pq_manifest_raw=p2_artifacts["baseline_pq_manifest"],
+                plans=[row["plan"] for row in candidate["records"]])
 
     def test_phase2_candidate_rejects_different_freeze_id(self):
         bundle = self._phase2_candidate_bundle()

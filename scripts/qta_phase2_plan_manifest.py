@@ -50,7 +50,10 @@ _BASELINE_ROW_KEYS = {
 }
 _SCORE_BINDING_KEYS = {
     "schema_version", "review_token", "answer_label_order", "answer_token_ids",
-    "choice_token_binding_sha256", "prompt_sha256", "input_ids_sha256",
+    "choice_token_binding_sha256", "question_sha256", "options_sha256",
+    "claim_sha256", "source_video_sha256", "reviewed_intervals_sha256",
+    "video_support_decision",
+    "prompt_sha256", "input_ids_sha256",
     "input_length", "score_position", "score_input_token_id",
     "processor_batch_sha256", "option_log_probabilities", "p_index", "q_index",
     "run_digests",
@@ -58,6 +61,20 @@ _SCORE_BINDING_KEYS = {
 _RUN_DIGEST_KEYS = {
     "protocol_sha256", "model_sha256", "tokenizer_sha256",
     "scorer_sha256", "processor_sha256",
+}
+_STAGE1_SOURCE_PIN_KEYS = {
+    "schema_version", "purpose", "classification", "status",
+    "requested_records", "effective_records", "source_rows",
+    "expected_baseline_source_sha256_by_token",
+    "cohort_review_source_pins_by_token",
+    "expected_baseline_candidate_source_bindings_by_token",
+    "expected_cohort_tokens", "expected_video_claim_review_receipt_sha256",
+    "expected_review_payload_sha256", "stage1_audit_status",
+    "actual_qa_source_status", "stage1_source_bytes_sha256",
+    "private_qa_bundle_sha256", "reviewer_identity_verified",
+    "semantic_review_authenticated", "clock_frame_correspondence_verified",
+    "scoring_authorized", "limitations", "model_load_permitted",
+    "execution_authorization",
 }
 
 
@@ -148,6 +165,54 @@ def _phase1_preflight_row_hashes(raw: bytes) -> list[str]:
     return list(row_hashes)
 
 
+def _phase1_stage1_source_pins(raw: bytes) -> dict[str, Any]:
+    if not isinstance(raw, bytes) or not raw or len(raw) > MAX_UPSTREAM_BYTES:
+        raise ValueError("phase1_stage1_source_pin_bytes_invalid")
+    artifact = _strict_json(raw)
+    if (not isinstance(artifact, dict)
+            or set(artifact) != _STAGE1_SOURCE_PIN_KEYS
+            or type(artifact.get("schema_version")) is not int
+            or artifact["schema_version"] != 1
+            or artifact.get("purpose") !=
+                "qta_stage1_source_pins_structurally_derived_non_authorizing"
+            or artifact.get("status") != "three_row_source_pins_structurally_derived"
+            or type(artifact.get("requested_records")) is not int
+            or artifact["requested_records"] != ROW_COUNT
+            or type(artifact.get("effective_records")) is not int
+            or artifact["effective_records"] != ROW_COUNT
+            or artifact.get("reviewer_identity_verified") is not False
+            or artifact.get("semantic_review_authenticated") is not False
+            or artifact.get("clock_frame_correspondence_verified") is not False
+            or artifact.get("scoring_authorized") is not False
+            or artifact.get("model_load_permitted") is not False
+            or artifact.get("execution_authorization") != "not_granted"):
+        raise ValueError("phase1_stage1_source_pin_artifact_invalid")
+    receipt_sha = artifact.get("expected_video_claim_review_receipt_sha256")
+    tokens = artifact.get("expected_cohort_tokens")
+    rows = artifact.get("source_rows")
+    if (not isinstance(receipt_sha, str) or not _SHA256.fullmatch(receipt_sha)
+            or not isinstance(tokens, list) or len(tokens) != ROW_COUNT
+            or any(not isinstance(token, str) or not _REVIEW_TOKEN.fullmatch(token)
+                   for token in tokens)
+            or len(set(tokens)) != ROW_COUNT
+            or not isinstance(rows, list) or len(rows) != ROW_COUNT):
+        raise ValueError("phase1_stage1_source_pin_rows_invalid")
+    row_keys = {
+        "review_token", "question_sha256", "options_sha256", "claim_sha256",
+        "source_video_sha256", "video_support_decision", "reviewed_intervals_sha256",
+    }
+    for token, row in zip(tokens, rows, strict=True):
+        if (not isinstance(row, dict) or set(row) != row_keys
+                or row.get("review_token") != token
+                or row.get("video_support_decision") != "supports_claim"
+                or any(not isinstance(row.get(field), str)
+                       or not _SHA256.fullmatch(row[field])
+                       for field in row_keys - {"review_token", "video_support_decision"})):
+            raise ValueError("phase1_stage1_source_pin_row_invalid")
+    return {"video_claim_review_receipt_sha256": receipt_sha,
+            "records": rows}
+
+
 def _baseline_rows(raw: bytes) -> list[dict[str, Any]]:
     if not isinstance(raw, bytes) or not raw or len(raw) > MAX_MANIFEST_BYTES:
         raise ValueError("baseline_pq_manifest_bytes_invalid")
@@ -201,6 +266,20 @@ def _baseline_rows(raw: bytes) -> list[dict[str, Any]]:
         for field in ("prompt_sha256", "input_ids_sha256", "processor_batch_sha256"):
             if not isinstance(binding[field], str) or not _SHA256.fullmatch(binding[field]):
                 raise ValueError("baseline_pq_score_binding_digest_invalid")
+        for field in ("question_sha256", "options_sha256", "claim_sha256",
+                      "source_video_sha256", "reviewed_intervals_sha256"):
+            if not isinstance(binding[field], str) or not _SHA256.fullmatch(binding[field]):
+                raise ValueError("baseline_pq_score_binding_source_digest_invalid")
+        actual_source_digests = {
+            "question_sha256": _sha(row["question"].encode("utf-8")),
+            "options_sha256": _sha(_canonical_utf8(row["options"])),
+            "claim_sha256": _sha(row["claim"].encode("utf-8")),
+            "reviewed_intervals_sha256": row["reviewed_intervals_sha256"],
+        }
+        if (any(binding[field] != digest for field, digest
+                in actual_source_digests.items())
+                or binding["source_video_sha256"] == ""):
+            raise ValueError("baseline_pq_score_binding_source_mismatch")
         if (type(binding["input_length"]) is not int or binding["input_length"] < 1
                 or type(binding["score_position"]) is not int
                 or binding["score_position"] != binding["input_length"] - 1
@@ -208,7 +287,8 @@ def _baseline_rows(raw: bytes) -> list[dict[str, Any]]:
                 or binding["score_input_token_id"] < 0
                 or binding["option_log_probabilities"] != scores
                 or type(binding["p_index"]) is not int or binding["p_index"] != p_index
-                or type(binding["q_index"]) is not int or binding["q_index"] != q_index):
+                or type(binding["q_index"]) is not int or binding["q_index"] != q_index
+                or binding["video_support_decision"] != "supports_claim"):
             raise ValueError("baseline_pq_score_binding_content_mismatch")
         binding_sha256 = _sha(_canonical_utf8(binding))
         if row["score_binding_sha256"] != binding_sha256:
@@ -231,6 +311,7 @@ def _baseline_rows(raw: bytes) -> list[dict[str, Any]]:
             "q_index": q_index,
             "score_binding_sha256": binding_sha256,
             "processor_batch_sha256": binding["processor_batch_sha256"],
+            "score_binding": binding,
             "row_sha256": _sha(_canonical_utf8(row)),
         })
     return checked
@@ -240,7 +321,8 @@ def _core_manifest(*, phase1_receipt_sha256: str,
                    phase1_records: Any, phase2_records: Any,
                    rows: Any, phase1_row_hashes: list[str],
                    baseline_pq_manifest_sha256: str,
-                   baseline_rows: list[dict[str, Any]]) -> dict[str, Any]:
+                   baseline_rows: list[dict[str, Any]],
+                   phase1_source_pins: dict[str, Any]) -> dict[str, Any]:
     if not isinstance(phase1_receipt_sha256, str) or not _SHA256.fullmatch(
             phase1_receipt_sha256):
         raise ValueError("phase1_receipt_hash_invalid")
@@ -257,16 +339,23 @@ def _core_manifest(*, phase1_receipt_sha256: str,
     clean = []
     row_hashes = set()
     common_treatment = None
-    for offset, (receipt_row, expected_row_hash, baseline, row) in enumerate(
-            zip(first, phase1_row_hashes, baseline_rows, rows, strict=True), start=1):
+    source_rows = phase1_source_pins["records"]
+    for offset, (receipt_row, expected_row_hash, baseline, source, row) in enumerate(
+            zip(first, phase1_row_hashes, baseline_rows, source_rows, rows, strict=True), start=1):
         if not isinstance(row, Mapping) or set(row) != _ROW_KEYS:
             raise ValueError("phase2_plan_row_schema_invalid")
         if (type(row["record_position"]) is not int
                 or row["record_position"] != offset
                 or row["record_token"] != receipt_row["record_token"]
                 or row["processor_batch_sha256"] != receipt_row["processor_batch_sha256"]
-                or row["record_token"] != baseline["review_token_sha256"]):
+                or row["record_token"] != baseline["review_token_sha256"]
+                or row["record_token"] != _sha(source["review_token"].encode("ascii"))):
             raise ValueError("phase2_plan_record_or_batch_mismatch")
+        if any(baseline["score_binding"][field] != source[field]
+               for field in ("question_sha256", "options_sha256", "claim_sha256",
+                             "source_video_sha256", "reviewed_intervals_sha256",
+                             "video_support_decision")):
+            raise ValueError("phase2_plan_stage1_source_pin_mismatch")
         row_hash = row["row_binding_sha256"]
         if (not isinstance(row_hash, str) or not _SHA256.fullmatch(row_hash)
                 or row_hash in row_hashes or row_hash != expected_row_hash):
@@ -329,6 +418,7 @@ def _core_manifest(*, phase1_receipt_sha256: str,
 def create_qta_phase2_plan_manifest_candidate(*, phase1_receipt_raw: bytes,
                                                phase1_record_bindings: Any,
                                                phase1_preflight_raw: bytes,
+                                               phase1_stage1_source_pins_raw: bytes,
                                                baseline_pq_manifest_raw: bytes,
                                                plans: Any) -> bytes:
     """Serialize plans in the signed phase-2 artifact role; grants no authority."""
@@ -342,7 +432,12 @@ def create_qta_phase2_plan_manifest_candidate(*, phase1_receipt_raw: bytes,
         raise ValueError("baseline_pq_manifest_bytes_invalid")
     phase1_rows = _record_rows(phase1_record_bindings)
     phase1_hashes = _phase1_preflight_row_hashes(phase1_preflight_raw)
+    stage1_pins = _phase1_stage1_source_pins(phase1_stage1_source_pins_raw)
     baseline_rows = _baseline_rows(baseline_pq_manifest_raw)
+    baseline_obj = _strict_json(baseline_pq_manifest_raw)
+    if (stage1_pins["video_claim_review_receipt_sha256"]
+            != baseline_obj["video_claim_review_receipt_sha256"]):
+        raise ValueError("phase1_baseline_video_review_receipt_mismatch")
     if not isinstance(plans, list) or len(plans) != ROW_COUNT:
         raise ValueError("phase2_plan_row_count_invalid")
     rows = []
@@ -365,7 +460,7 @@ def create_qta_phase2_plan_manifest_candidate(*, phase1_receipt_raw: bytes,
         phase1_records=phase1_rows, phase2_records=phase1_rows, rows=rows,
         phase1_row_hashes=phase1_hashes,
         baseline_pq_manifest_sha256=_sha(baseline_pq_manifest_raw),
-        baseline_rows=baseline_rows)
+        baseline_rows=baseline_rows, phase1_source_pins=stage1_pins)
     return _canonical(manifest) + b"\n"
 
 
@@ -374,6 +469,7 @@ def _validate_manifest_bytes(*, manifest_raw: bytes,
                               phase1_records: Any,
                               phase2_records: Any,
                               phase1_preflight_raw: bytes,
+                              phase1_stage1_source_pins_raw: bytes,
                               baseline_pq_manifest_raw: bytes) -> dict[str, Any]:
     if (not isinstance(manifest_raw, bytes) or not manifest_raw
             or len(manifest_raw) > MAX_MANIFEST_BYTES):
@@ -401,13 +497,19 @@ def _validate_manifest_bytes(*, manifest_raw: bytes,
         raise ValueError("phase2_manifest_phase1_receipt_mismatch")
     if manifest["baseline_pq_manifest_sha256"] != _sha(baseline_pq_manifest_raw):
         raise ValueError("phase2_manifest_baseline_pq_manifest_mismatch")
+    stage1_pins = _phase1_stage1_source_pins(phase1_stage1_source_pins_raw)
+    if (stage1_pins["video_claim_review_receipt_sha256"]
+            != _strict_json(baseline_pq_manifest_raw)[
+                "video_claim_review_receipt_sha256"]):
+        raise ValueError("phase1_baseline_video_review_receipt_mismatch")
     _core_manifest(
         phase1_receipt_sha256=phase1_receipt_sha256,
         phase1_records=phase1_records, phase2_records=phase2_records,
         rows=manifest["records"],
         phase1_row_hashes=_phase1_preflight_row_hashes(phase1_preflight_raw),
         baseline_pq_manifest_sha256=_sha(baseline_pq_manifest_raw),
-        baseline_rows=_baseline_rows(baseline_pq_manifest_raw))
+        baseline_rows=_baseline_rows(baseline_pq_manifest_raw),
+        phase1_source_pins=stage1_pins)
     return {
         "status": "phase2_plan_manifest_bound_unvalidated",
         "requested_records": ROW_COUNT,
@@ -455,12 +557,14 @@ def verify_qta_phase2_plan_candidate(*, phase1_receipt_raw: bytes,
     manifest_raw = phase2_artifact_bytes.get("nine_branch_plan_manifest")
     phase1_preflight_raw = phase1_artifact_bytes.get("atomic_cohort_preflight")
     baseline_pq_manifest_raw = phase2_artifact_bytes.get("baseline_pq_manifest")
+    stage1_source_pins_raw = phase1_artifact_bytes.get("stage1_review_and_lineage")
     report = _validate_manifest_bytes(
         manifest_raw=manifest_raw,
         phase1_receipt_sha256=_sha(phase1_receipt_raw),
         phase1_records=phase1_obj.get("record_bindings"),
         phase2_records=phase2_obj.get("record_bindings"),
         phase1_preflight_raw=phase1_preflight_raw,
+        phase1_stage1_source_pins_raw=stage1_source_pins_raw,
         baseline_pq_manifest_raw=baseline_pq_manifest_raw)
     return {
         **report,
