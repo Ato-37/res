@@ -40,3 +40,12 @@ The user clarified that this is only a lightweight check and should not ask revi
 - Updated the private local artifact in place; it remains mode `0600` and must not be published.
 - Builder tests: **9/9 passed**. `git diff --check` passed for the source/test changes.
 - No reviewer response was collected. Direct faithfulness scoring remains **0/3**; this UI wording change adds no efficacy evidence.
+
+## WSL open-command check (2026-10-19)
+
+The current Ubuntu environment does not have `xdg-open`, so the runbook's
+original launch command was not usable here. Opening the same private HTML via
+`powershell.exe` and Windows `Start-Process` succeeded. The Japanese runbook now
+documents that WSL command first and retains `xdg-open` for Linux desktops. The
+HTML stayed local with mode `0600`; this only launches the exploratory quick
+check and does not create a response or formal review evidence.

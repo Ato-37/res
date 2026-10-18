@@ -2,13 +2,24 @@
 
 この文書は、英語版の[正式手順](nextgqa_v6_human_review_runbook.md)を実施者向けに説明したものです。署名・監査の判定は正式手順と実装に従います。動画・レビュー記録・派生データはローカルに置き、公開しません。権利状態は未確認です。
 
-手軽な予備チェックは[日本語ランチャー](nextgqa_human_review_workspace_ja.html)から開けます。実行する場合はニックネームを入力し、動画と説明について3件の大まかな印象を順番に回答します。質問と説明は日本語を主表示にし、元の英語は必要な場合だけ開けます。ファイルを個別に選ぶ必要はありません。Ubuntuターミナルでリポジトリのルートに移動してから、次を実行します。
+手軽な予備チェックは[日本語ランチャー](nextgqa_human_review_workspace_ja.html)から開けます。実行する場合はニックネームを入力し、動画と説明について3件の大まかな印象を順番に回答します。質問と説明は日本語を主表示にし、元の英語は必要な場合だけ開けます。ファイルを個別に選ぶ必要はありません。Ubuntuターミナルでリポジトリのルートに移動してから、Windowsの既定ブラウザーで開くには次を実行します。
 
 ```bash
-xdg-open ./data/private_nextgqa/quick_review_ja_simple_20261019_itemid_v4.html
+powershell.exe -NoProfile -Command "Start-Process -FilePath '$(wslpath -w ./data/private_nextgqa/quick_review_ja_simple_20261019_itemid_v4.html)'"
 ```
 
+Linuxデスクトップ環境で実行する場合は `xdg-open ./data/private_nextgqa/quick_review_ja_simple_20261019_itemid_v4.html` でも開けます。
+
 この簡易artifactは、完全な幻覚判定や正式な人手監査ではありません。ニックネームを入力すると質問に進み、動画ファイル選択や時刻入力なしで大まかな印象を回答できます。署名・担当者の本人性・独立性・動画とdecoder画像の一致・時計校正を確認せず、回答を正式レビュー記録や採点許可として扱いません。簡易artifactは正式レビュー候補と同じ3件を含むため、ここで動画を見た人は同じ項目の盲検正式レビュー担当にはなれません。ニックネーム・回答JSONには個人情報が含まれ得るため、実名を避け、JSONはローカルに保管してください。
+
+回答は3件目まで終えた後、「回答を保存」を押すとブラウザのダウンロード先へJSONで保存されます。保存場所を確認し、必要ならJSONをローカルのprivate folderへ移してください。ニックネームや自由記述を画面に出さず、回答形式と項目ごとの印象だけを確認するには、リポジトリのルートから次を実行します。
+
+```bash
+.venv/bin/python scripts/inspect_nextgqa_quick_review_response.py \
+  /path/to/exploratory_video_review_TIMESTAMP.json
+```
+
+出力は形式確認件数、3つの選択肢の件数、各項目の選択肢です。これは参加者がその場で選んだ簡単な印象の記述で、正しさ・幻覚性・faithfulnessの推定ではありません。生JSONは公開・commitせず、必要な集計だけを扱ってください。
 
 以下の説明レビュー、時計/画像対確認、予測リンク判定は正式な人手監査の計画です。独立したroot・担当者・署名・引渡し確認を満たすまでは、正式レビューpackageを開封しません。artifact内の簡易な印象回答を、これらの判定に代用しません。
 

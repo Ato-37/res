@@ -4,7 +4,9 @@ import copy
 import hashlib
 import json
 import unittest
+from fractions import Fraction
 
+from necessity_choice_margin_utils import uniform_sample_indices
 from qta_prescore_clock_row_adapter import adapt_calibration_to_clock_row
 from qta_prescore_processor_row_adapter import processor_binding_row
 from qta_synthetic_cohort_preflight import preflight_synthetic_qta_cohort
@@ -83,9 +85,21 @@ def _actual_adapter_rows(inputs):
             mapping["control_group_indices"] = groups["control_group_indices"]
             mapping["groups"] = [{"token_positions": positions}
                                   for positions in groups["temporal_group_token_positions"]]
+            sample_indices = uniform_sample_indices(64, 32)
+            sample_pts = [[index, 1] for index in range(32)]
+            mapping["sampled_frame_indices"] = sample_indices
+            mapping["sampled_pts_rational_seconds"] = [
+                str(Fraction(*pair)) for pair in sample_pts]
+            sampler_row = {
+                "source_sha256": video_sha,
+                "decoded_frame_count": 64,
+                "sampled_frame_count": 32,
+                "sampled_indices": sample_indices,
+                "sampled_pts": sample_pts,
+            }
             processor_rows.append(processor_binding_row(
                 review_token=token, source_video_sha256=video_sha,
-                mapping=mapping))
+                mapping=mapping, sampler_row=sampler_row))
     finally:
         clock_fixture.tearDown()
     return clock_rows, processor_rows

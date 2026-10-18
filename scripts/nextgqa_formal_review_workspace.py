@@ -340,6 +340,9 @@ class FormalReviewSession:
                     "status": "stage2_receipt_and_attestation_verified_non_authorizing",
                     "baseline_manifest_sha256": baseline_sha,
                     "stage1_pre_review_receipt_sha256": video_receipt_sha,
+                    # Surface the digest checked against the external pin so
+                    # operators can audit this trust input from the report.
+                    "stage2_context_sha256": _sha(context_raw),
                     "stage2_receipt_sha256": _sha(receipt_raw),
                     "stage2_attestation_sha256": _sha(attestation_raw),
                     "reviewer_key_signature_valid": True,

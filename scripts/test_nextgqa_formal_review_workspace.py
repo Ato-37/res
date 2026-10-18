@@ -136,10 +136,17 @@ class FormalWorkspaceTests(unittest.TestCase):
         self.assertTrue(stage2["stage2_verified"])
         self.assertEqual(stage2["stage2"]["stage1_pre_review_receipt_sha256"],
                          stage1["stage1"]["pre_review_receipt_sha256"])
+        self.assertEqual(stage2["stage2"]["stage2_context_sha256"],
+                         self.session.expected_stage2_context_sha256)
         self.assertTrue(stage2["stage2"]["reviewer_key_signature_valid"])
         self.assertFalse(stage2["stage2"]["reviewer_identity_verified"])
         self.assertFalse(stage2["model_load_permitted"])
         self.assertEqual(stage2["authorized_forwards"], 0)
+        reset = self.session.reset()
+        self.assertIsNone(reset)
+        reset_state = self.session.state()
+        self.assertIsNone(reset_state["stage2"])
+        self.assertFalse(reset_state["stage2_verified"])
 
     def test_source_change_clears_downstream_and_stage1_change_clears_all(self):
         self.session.verify_stage1()
@@ -183,11 +190,14 @@ class FormalWorkspaceTests(unittest.TestCase):
         self.assertEqual(result["authorized_forwards"], 0)
 
     def test_context_requires_exact_external_digest(self):
-        self.session.expected_stage2_context_sha256 = "0" * 64
         self.session.verify_stage1()
+        passed = self.session.verify_stage2()
+        self.assertTrue(passed["stage2_verified"])
+        self.session.expected_stage2_context_sha256 = "0" * 64
         result = self.session.verify_stage2()
         self.assertFalse(result["stage2_verified"])
         self.assertEqual(result["failure_code"], "stage2_context_external_pin_mismatch")
+        self.assertIsNone(result["stage2"])
 
     def test_localhost_policy_page_and_non_authorization(self):
         self.assertEqual(WorkspaceServer.address_family, 2)  # AF_INET, never IPv6 wildcard.

@@ -61,3 +61,35 @@ launcher. None of this advances direct faithfulness evidence.
 ## Launch URL usability follow-up
 
 The controller prints the exact tokenized `http://127.0.0.1:<port>/.../` URL before calling the browser opener. Opener exceptions are reported while the manual URL remains available. A synthetic test verifies URL construction and loopback-only host selection; it does not establish browser launch or HTTP E2E.
+
+## Entry-point separation correction (2026-10-19)
+
+The Japanese quick-check launcher was subsequently simplified at the user's
+request: opening it now redirects directly to the nickname-first, embedded-video
+impression check. It no longer links to this operator workspace, so earlier
+statements in this log that the formal workspace is linked from the launcher are
+historical and no longer describe current navigation. This separation is
+intentional: the lightweight check avoids formal-review setup, and its responses
+do not satisfy any formal review or scoring gate. Operators can still open this
+runbook directly. The localhost workspace remains a synthetic-tested structural
+audit tool, not a reviewer-facing semantic-review application; the missing
+browser E2E and real signed inputs remain unresolved.
+
+## External Stage-2 context pin in the returned report
+
+The Stage-2 verifier already required `context.json` to match the caller's
+out-of-band `--expected-stage2-context-sha256`, but its successful report did
+not expose the observed context digest. The operator therefore could not audit
+the exact context pin from the handoff report returned by the workspace. The
+non-authorizing Stage-2 report now includes `stage2_context_sha256` after the
+byte-for-byte digest check succeeds; a synthetic controller test asserts that
+it equals the externally configured pin. The same tests confirm that a later
+pin mismatch rejects Stage-2 and clears its prior report, and that reset clears
+the report after success. This only makes the verified digest visible and does
+not expose context fields, authenticate human identity, or grant scoring
+authorization.
+
+Verified locally: the focused formal-workspace suite passed 6/6 after this
+change using only synthetic fixtures; py_compile and `git diff --check` also
+passed. No protected bundle, real reviewer key, or GPU was used. Browser E2E and
+real-input validation remain separate gates.
