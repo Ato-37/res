@@ -8,6 +8,9 @@ from unittest import mock
 import qta_actual_candidate_input_bridge as bridge
 from qta_prescore_mapping_binding import interval_list_sha256
 from test_qta_stage1_source_pin_adapter import QtaStage1SourcePinAdapterTests
+from test_qta_actual_processor_row_candidate import (
+    FakeProcessor, FakeTokenizer, _fixtures as processor_fixtures,
+)
 
 
 def sha(value: bytes) -> str:
@@ -292,6 +295,91 @@ class QtaActualCandidateInputBridgeTests(unittest.TestCase):
                     source_inputs=source, stage1_pins=altered_pins)
         binder.assert_called_once()
         self.assertEqual(binder_statuses, ["bound_unvalidated"])
+
+    def test_bridge_output_composes_into_processor_candidate_and_external_verifier(self):
+        import torch
+        from qta_actual_processor_row_candidate import (
+            build_actual_processor_row_candidate,
+            verify_actual_processor_row_candidate,
+        )
+
+        rows, processor_pins, sampler_rows = processor_fixtures()
+        tokens = [row["review_token"] for row in rows]
+        stage1_rows = [{
+            "review_token": expected["review_token"],
+            "source_video_sha256": expected["source_video_sha256"],
+            "question_sha256": expected["question_sha256"],
+            "options_sha256": expected["options_sha256"],
+            "claim_sha256": expected["claim_sha256"],
+            "reviewed_intervals_sha256": expected["reviewed_intervals_sha256"],
+            "video_support_decision": "supports_claim",
+        } for expected in processor_pins]
+        sampler_raw = canon({
+            "purpose": "local_qta_real_video_sampler_eligibility_preflight",
+            "status": "passed", "execution_authorization": "not_granted",
+            "gpu_used": False, "model_loaded": False, "faithfulness_scored": False,
+            "requested_records": 3, "effective_records": 3, "frames_per_video": 32,
+            "rows": sampler_rows,
+        })
+        source_inputs = {
+            "csv_raw": b"same-synthetic-csv", "lineage_manifest_raw": b"same-lineage",
+            "qta_protocol_raw": b"same-protocol", "qta_config_raw": b"same-config",
+        }
+        tokenizer_sha = processor_pins[0]["tokenizer_sha256"]
+        clock_inputs = {token: {"calibration": {}, "capture_raw": b"fixture-capture"}
+                        for token in tokens}
+        processor_by_token = {row["review_token"]: {
+            "processor_revision": row["processor_revision"],
+            "processor_fingerprint_sha256": row["processor_fingerprint_sha256"],
+        } for row in rows}
+        durations = {row["review_token"]: row["video_duration_seconds"] for row in rows}
+        stage1_pins = {
+            "status": "three_row_source_pins_structurally_derived",
+            "effective_records": 3, "source_rows": stage1_rows,
+            "expected_video_claim_review_receipt_sha256": sha(b"synthetic-receipt"),
+            "reviewer_identity_verified": False, "semantic_review_authenticated": False,
+        }
+        review_rows = [{
+            "review_token": row["review_token"], "support_decision": "supports_claim",
+            "evidence_intervals_seconds": row["reviewed_intervals_seconds"],
+        } for row in rows]
+        with mock.patch.object(bridge, "preflight_actual_media_source_join", return_value={
+                    "status": "source_video_hash_joined_unvalidated", "joined_rows": 3,
+                    "human_identity_verified": False, "semantic_review_authenticated": False}), \
+             mock.patch.object(bridge, "derive_stage1_source_pins", return_value=stage1_pins), \
+             mock.patch.object(bridge, "_cross_bind_stage1_to_actual_source"), \
+             mock.patch.object(bridge, "adapt_review_bundle_to_qta_rows", return_value=review_rows), \
+             mock.patch.object(bridge, "adapt_calibration_to_clock_row", return_value={
+                    "guard_pts_seconds": "0",
+                    "clock_correspondence_authenticated": False}):
+            material = bridge.build_qta_actual_candidate_input_material(
+                sampler_receipt_raw=sampler_raw, candidate_inventory_raw=b"synthetic-inventory",
+                media_sha256_by_role={}, actual_source_inputs=source_inputs,
+                stage1_audit_inputs={"worksheet_raw": b"x", "lineage_raw": b"x",
+                                     "review_raw": b"x", "review_index_raw": b"x",
+                                     "expected_lineage_sha256": sha(b"x")},
+                actual_qa_source_inputs=dict(source_inputs),
+                clock_inputs_by_token=clock_inputs,
+                processor_pins_by_token=processor_by_token,
+                tokenizer_sha256=tokenizer_sha,
+                video_duration_seconds_by_token=durations)
+        self.assertEqual(set(material["ordered_review_tokens"]), set(tokens))
+        processor = FakeProcessor(FakeTokenizer())
+        candidate = build_actual_processor_row_candidate(
+            rows=rows, expected_rows=material["expected_rows"],
+            sampler_rows=material["sampler_rows"], processor=processor,
+            tokenizer=processor.tokenizer, tokenizer_sha256=tokenizer_sha,
+            vision_info_fn=lambda _messages, return_video_metadata: (
+                None, [(torch.zeros((32, 3)),
+                        {"frames_indices": list(range(32)), "fps": 1.0})]),
+            torch_module=torch)
+        verify_actual_processor_row_candidate(
+            candidate, expected_rows=material["expected_rows"])
+        self.assertEqual(processor.calls, 3)
+        self.assertFalse(material["scoring_authorized"])
+        self.assertFalse(material["clock_frame_correspondence_verified"])
+        self.assertFalse(candidate["scoring_authorized"])
+        self.assertFalse(candidate["faithfulness_scored"])
 
     def test_interval_splice_is_rejected_after_real_review_row_adapter(self):
         pins = {**self.stage1_pins, "source_rows": [dict(row) for row in self.pins]}

@@ -30,7 +30,7 @@ Rights status also remains unverified.
 ## Verified checks
 
 - Focused command: `../.venv/bin/python -m unittest -v test_qta_actual_candidate_input_bridge`
-  from `scripts/` — 15 tests passed (8 bridge tests plus 7 inherited
+  from `scripts/` — 16 tests passed (9 bridge tests plus 7 inherited
   Stage-1-adapter fixture tests).
 - Coverage includes ordered 3-row candidate pins, source byte mismatch, token
   cohort mismatch, missing clock rows, unsupported review decision, clock
@@ -40,6 +40,11 @@ Rights status also remains unverified.
   and actual QA binder on the repository's synthetic fixture. A separate
   negative mutates only the Stage-1 question digest, observes the real QA binder
   return `bound_unvalidated`, then confirms the bridge rejects the mismatch.
+- End-to-end CPU composition passes the bridge's `expected_rows` and
+  `sampler_rows` directly into `build_actual_processor_row_candidate`, then
+  validates with `verify_actual_processor_row_candidate`. It used three
+  synthetic PIL RGB clips and a fake tokenizer/processor (three processor
+  preparation calls; zero model forwards) and preserved all denial flags.
 - No protected local QA/media files were opened. Tests use synthetic fixtures;
   composition-control tests stub the upstream validators, while the private
   QA/claim cross-bind test uses the existing synthetic Stage-1/QA fixture and
