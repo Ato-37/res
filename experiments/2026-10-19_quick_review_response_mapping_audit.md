@@ -22,6 +22,10 @@ hallucination annotation or a formal faithfulness measure.
   `response_item_mapping_or_judgment_invalid`.
 - Nickname, notes, raw item IDs, question/claim text, and video bytes were not
   included in this log or terminal output. No response was deleted or changed.
+- Follow-up filename-only search covered `/home/ato121` and the Windows user
+  tree under `/mnt/c/Users/taket` for quick-review/NextGQA HTML, JSON, and
+  exploratory response exports. It found no additional matching artifact or
+  export. No file contents were opened by that search.
 
 ## Interpretation and limits
 
