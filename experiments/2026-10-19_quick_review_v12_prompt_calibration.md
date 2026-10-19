@@ -65,7 +65,11 @@ No direct effect estimate, confidence interval, or test exists.
 
 ## Next action
 
-Use the v12 path in the runbook for the next informal review. Preserve the
-current categories unless a new schema version and backwards-compatible
-validation are implemented. Do not use the v12 wording or prior responses to
-authorize direct GPU scoring.
+An independent translation audit confirmed that item 1's Japanese wording
+faithfully follows its local source and found no answer cue. The clarity risk
+appears to come from the source question's broad scene locator; adding an
+item-specific gloss would change the stimulus. Before any handoff, v12 was
+superseded by v13 with a general no-guess instruction for unclear question or
+video scene. Preserve the current categories unless a new schema version and
+backwards-compatible validation are implemented. Do not use these informal
+responses to authorize direct GPU scoring.

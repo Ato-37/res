@@ -129,6 +129,7 @@ try {
   if (-not (Evaluate $pageSocket "document.querySelector('#welcome .notice').textContent.trim().length > 20")) { throw 'INFORMAL_ONLY_NOTICE_MISSING' }
   $step = 'rating_guidance'
   if (-not (Evaluate $pageSocket "document.querySelector('#rating-guide').textContent.includes('②は動画と見比べた答えの正しさ') && document.querySelector('#rating-guide').textContent.includes('③は説明が動画中の出来事を根拠として示しているか') && document.querySelector('#rating-guide').textContent.includes('必要な場合はその順序')")) { throw 'EVIDENCE_RATING_GUIDANCE_MISSING' }
+  if (-not (Evaluate $pageSocket "document.querySelector('#rating-guide').textContent.includes('はっきりしないときは推測せず') && document.querySelector('#rating-guide').textContent.includes('②③は「判断できない」を選べます')")) { throw 'NO_GUESS_GUIDANCE_MISSING' }
   if (-not (Evaluate $pageSocket "document.querySelector('#question').textContent.includes('質問を読んで、何を答えればよいか分かりますか？')")) { throw 'QUESTION_CLARITY_PROMPT_MISSING' }
   if (-not (Evaluate $pageSocket "document.querySelector('#question').textContent.includes('動画を見て、説明に書かれた答えは正しいと思いますか？')")) { throw 'ANSWER_CORRECTNESS_PROMPT_MISSING' }
   $step = 'csp'
@@ -189,7 +190,8 @@ try {
   WaitFor $pageSocket "!document.querySelector('#question').classList.contains('hidden') && document.querySelector('#counter').textContent.trim().startsWith('1') && document.querySelector('#who').textContent.includes('synthetic-reviewer-3')" 'THIRD_REVIEWER_QUESTION_TIMEOUT'
   if (-not (Evaluate $pageSocket "Array.from(document.querySelectorAll('input[type=radio]')).every(x=>!x.checked)")) { throw 'THIRD_REVIEWER_STALE_CHOICES' }
   for ($i = 0; $i -lt 3; $i++) {
-    $selected = Evaluate $pageSocket "(()=>{for(const name of ['question_clarity','answer_question_fit','video_evidence_sufficiency']){const radios=Array.from(document.querySelectorAll('input[name='+name+']')); if(radios.length!==3) return false; radios[$i].checked=true;} return true})()"
+    $choiceIndex = if ($i -eq 0) { "name==='question_clarity'?1:2" } else { '0' }
+    $selected = Evaluate $pageSocket "(()=>{for(const name of ['question_clarity','answer_question_fit','video_evidence_sufficiency']){const radios=Array.from(document.querySelectorAll('input[name='+name+']')); if(radios.length!==3) return false; const choice=$choiceIndex; radios[choice].checked=true;} return true})()"
     if (-not $selected) { throw 'THIRD_REVIEWER_CHOICE_INVALID' }
     $null = Evaluate $pageSocket "document.querySelector('#next').click(); true"
     if ($i -lt 2) { $next = $i + 2; WaitFor $pageSocket "document.querySelector('#counter').textContent.trim().startsWith('$next')" ("THIRD_REVIEWER_QUESTION_" + $next + '_TIMEOUT') }
@@ -223,8 +225,10 @@ try {
     }
     if (($actualIds -join ',') -cne ($expectedIds -join ',')) { throw 'COMBINED_JSON_ITEM_ID_ORDER_INVALID' }
   }
+  $abstentionAnswer = $payload.respondents[2].answers[0]
+  if ($abstentionAnswer.question_clarity -cne 'unclear' -or $abstentionAnswer.answer_question_fit -cne 'cannot_tell' -or $abstentionAnswer.video_evidence_sufficiency -cne 'cannot_tell') { throw 'NO_GUESS_JUDGMENT_NOT_PERSISTED' }
   if (-not (Evaluate $pageSocket "document.querySelector('#saved').textContent.trim().startsWith('3')")) { throw 'COMBINED_SAVE_CONFIRMATION_MISSING' }
-  Write-Output 'E2E_PASS: three sequential reviewers each enter a nickname; one downloaded schema-v5 JSON with 3 respondents and 27 validated rubric judgments'
+  Write-Output 'E2E_PASS: three sequential reviewers; third reviewer used unclear/cannot-tell and abstentions persisted in one combined schema-v5 JSON with 27 validated rubric judgments'
 } catch {
   $code = [string]$_
   if ($code -notmatch '^[A-Z0-9_]+$') {

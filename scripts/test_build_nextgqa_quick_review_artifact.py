@@ -11,10 +11,10 @@ from build_nextgqa_quick_review_artifact import (
 
 
 class QuickReviewArtifactSafetyTests(unittest.TestCase):
-    def test_default_output_targets_current_simple_v12_artifact(self):
+    def test_default_output_targets_current_simple_v13_artifact(self):
         self.assertEqual(
             DEFAULT_OUTPUT.name,
-            "quick_review_ja_simple_20261019_itemid_v12.html",
+            "quick_review_ja_simple_20261019_itemid_v13.html",
         )
         self.assertTrue(DEFAULT_OUTPUT.is_relative_to(
             Path(__file__).resolve().parents[1] / "data/private_nextgqa"
@@ -154,6 +154,8 @@ class QuickReviewArtifactSafetyTests(unittest.TestCase):
             self.assertIn("動画を見て、説明に書かれた答えは正しいと思いますか？", rendered)
             self.assertIn("説明は、答えの根拠となる動画中の出来事（必要なら動きの順序）を十分に示していますか？", rendered)
             self.assertIn("②は動画と見比べた答えの正しさ、③は説明が動画中の出来事を根拠として示しているか", rendered)
+            self.assertIn("質問の意味や動画の場面がはっきりしないときは推測せず", rendered)
+            self.assertIn("①は「わかりにくい」、②③は「判断できない」を選べます", rendered)
             self.assertNotIn("答えが質問に合っていても", rendered)
             self.assertIn('name="question_clarity"', rendered)
             self.assertIn('name="answer_question_fit"', rendered)
