@@ -48,7 +48,7 @@ Linuxデスクトップ環境で実行する場合は `xdg-open ./data/private_n
 | 第2段階レビュー担当 | 固定済み予測と対照への区間の関連を判定 | 第1段階、生成、採点、保管、凍結、立会いから独立 |
 | 独立立会人（release witness） | 開封前の状態と保管引渡しを実際に確認 | 全役割と別人・別鍵 |
 
-さらに、別経路で真正性を確認したroot公開鍵とそのfingerprintが必要です。レビュー担当者の名前・鍵をレビュー素材自身から信頼してはいけません。役割、公開鍵、root fingerprintを[役割割当 intake](nextgqa_human_review_role_assignment_template.md)へ記入します。個人連絡先や秘密鍵は記載しません。
+さらに、別経路で真正性を確認したroot公開鍵とそのfingerprintが必要です。レビュー担当者の名前・鍵をレビュー素材自身から信頼してはいけません。役割、公開鍵、root fingerprintを[日本語の役割割当票](nextgqa_human_review_role_assignment_template_ja.md)へ記入します。個人連絡先や秘密鍵は記載しません。
 
 ## 実施順序
 

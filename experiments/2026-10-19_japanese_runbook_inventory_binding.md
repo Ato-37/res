@@ -47,3 +47,20 @@ any first opening, and complete the required Stage-1 and clock/frame evidence.
 Until those inputs pass, keep the direct GPU baseline at zero forwards. Continue
 independent audits and other non-authorizing implementation checks without
 repeating closed proxy cohorts.
+
+## Japanese intake navigation follow-up (2026-10-19)
+
+The Japanese operational runbook linked its assignment instructions to the
+English template even though a Japanese template exists. The link now points to
+`docs/nextgqa_human_review_role_assignment_template_ja.md`. All three local
+Markdown links in the Japanese runbook resolve. Because the runbook bytes are
+inventory-bound, a fresh candidate superseded the prior one at
+`data/private_nextgqa/inventory-jp-intake-link-20261019-1530/`. It again has
+95 roles, zero missing slots, and an exact hash match for the current Japanese
+runbook; mode is `0700` for the directory and `0600` for the inventory. It
+remains candidate-only and non-authorizing. Its SHA-256 is
+`690db88252d8eb60cc06ddc49e89541cae8f1acd54246cfb19b6ea463568a32f`.
+An independent audit rehashed every registered source and code role with zero
+stale roles, checked the Japanese link target, and confirmed the candidate
+status. This navigation fix does not add any reviewer, trust-root, clock/frame,
+or faithfulness evidence.
