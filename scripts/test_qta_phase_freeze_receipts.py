@@ -194,7 +194,10 @@ class QtaPhaseFreezeReceiptTests(unittest.TestCase):
         stage1 = json.loads(self.p1_artifacts["stage1_review_and_lineage"])
         rows, batches = [], []
         for index, record in enumerate(self.records):
-            batch = {"input_ids": [index, index + 1], "pixel_values": [[float(index + 1)]]}
+            ids = [index, index + 1]
+            grid = [8 + index, 2, 2]
+            batch = {"input_ids": [ids], "video_grid_thw": [grid],
+                     "pixel_values": [[float(index + 1)]]}
             batches.append(batch)
             source_sha = (source_override[index] if source_override and index in source_override
                           else stage1["source_rows"][index]["source_video_sha256"])
@@ -203,12 +206,14 @@ class QtaPhaseFreezeReceiptTests(unittest.TestCase):
                 "base_processor_batch_sha256": batch_sha256(batch),
                 "source_video_sha256": source_sha,
                 "prompt_sha256": hashlib.sha256(f"prompt-{index}".encode()).hexdigest(),
-                "input_ids_sha256": hashlib.sha256(f"ids-{index}".encode()).hexdigest(),
+                "input_ids_sha256": hashlib.sha256(json.dumps(
+                    ids, sort_keys=True, separators=(",", ":"),
+                    ensure_ascii=False, allow_nan=False).encode()).hexdigest(),
                 "processor_sha256": hashlib.sha256(b"processor").hexdigest(),
                 "tokenizer_sha256": hashlib.sha256(b"tokenizer").hexdigest(),
                 "runtime_sha256": hashlib.sha256(b"runtime").hexdigest(),
                 "sampler_metadata_sha256": hashlib.sha256(f"sampler-{index}".encode()).hexdigest(),
-                "video_grid_thw": [8 + index, 2, 2],
+                "video_grid_thw": grid,
             })
         protocol_sha = hashlib.sha256(b"synthetic protocol pin").hexdigest()
         manifest = build_manifest(

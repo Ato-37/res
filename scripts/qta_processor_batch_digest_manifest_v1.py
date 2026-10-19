@@ -6,6 +6,7 @@ authorizes model loading or scoring.
 """
 from __future__ import annotations
 
+import hashlib
 import json
 import re
 from collections.abc import Mapping
@@ -102,11 +103,24 @@ def build_manifest(*, rows: Any, live_batches: Any,
     if not isinstance(live_batches, (list, tuple)) or len(live_batches) != ROW_COUNT:
         _fail("exactly_three_live_batches_required")
     observed = []
-    for batch in live_batches:
+    for index, (row, batch) in enumerate(zip(prepared, live_batches, strict=True), 1):
         try:
             observed.append(batch_sha256(batch))
         except Exception as exc:
             raise ManifestError("live_typed_batch_invalid") from exc
+        if not isinstance(batch, Mapping):
+            _fail(f"row_{index}_live_batch_mapping_required")
+        ids = _single_row_integer_list(batch.get("input_ids"),
+                                      f"row_{index}_live_input_ids_invalid")
+        ids_digest = hashlib.sha256(_canonical(ids)).hexdigest()
+        if ids_digest != row["input_ids_sha256"]:
+            _fail(f"row_{index}_live_input_ids_digest_mismatch")
+        grid = _single_row_integer_list(batch.get("video_grid_thw"),
+                                        f"row_{index}_live_video_grid_invalid")
+        if len(grid) != 3 or any(value <= 0 for value in grid):
+            _fail(f"row_{index}_live_video_grid_invalid")
+        if grid != row["video_grid_thw"]:
+            _fail(f"row_{index}_live_video_grid_mismatch")
     for index, (row, pins, digest) in enumerate(zip(prepared, expected, observed, strict=True), 1):
         if row != pins or digest != pins["base_processor_batch_sha256"]:
             _fail(f"row_{index}_external_pin_mismatch")
@@ -119,6 +133,27 @@ def build_manifest(*, rows: Any, live_batches: Any,
         "rows": prepared,
     }
     return _canonical(payload)
+
+
+def _single_row_integer_list(value: Any, error_code: str) -> list[int]:
+    """Normalize one processor row from a CPU tensor/list without coercion."""
+    tolist = getattr(value, "tolist", None)
+    if callable(tolist):
+        try:
+            if callable(getattr(value, "detach", None)):
+                value = value.detach().cpu()
+            value = value.tolist()
+        except Exception:
+            _fail(error_code)
+    if isinstance(value, tuple):
+        value = list(value)
+    if (isinstance(value, list) and len(value) == 1
+            and isinstance(value[0], (list, tuple))):
+        value = list(value[0])
+    if (not isinstance(value, list) or not value
+            or any(type(item) is not int or item < 0 for item in value)):
+        _fail(error_code)
+    return value
 
 
 def _reject_constant(value: str) -> None:

@@ -4,6 +4,8 @@ import hashlib
 import json
 import unittest
 
+import torch
+
 from nextgqa_atomic_batch_freeze import batch_sha256
 from qta_processor_batch_digest_manifest_v1 import (
     ManifestError, build_manifest, validate_manifest,
@@ -19,19 +21,24 @@ class QtaProcessorBatchDigestManifestV1Tests(unittest.TestCase):
         self.rows = []
         self.batches = []
         for i in range(3):
-            batch = {"input_ids": [i, i + 1], "pixel_values": [[float(i + 1)]]}
+            ids = [i, i + 1]
+            grid = [8 + i, 2, 2]
+            batch = {"input_ids": [ids], "video_grid_thw": [grid],
+                     "pixel_values": [[float(i + 1)]]}
             self.batches.append(batch)
             self.rows.append({
                 "record_token": sha(f"opaque-token-{i}"),
                 "base_processor_batch_sha256": batch_sha256(batch),
                 "source_video_sha256": sha(f"video-{i}"),
                 "prompt_sha256": sha(f"prompt-{i}"),
-                "input_ids_sha256": sha(f"ids-{i}"),
+                "input_ids_sha256": hashlib.sha256(json.dumps(
+                    ids, sort_keys=True, separators=(",", ":"),
+                    ensure_ascii=False, allow_nan=False).encode("utf-8")).hexdigest(),
                 "processor_sha256": sha("processor"),
                 "tokenizer_sha256": sha("tokenizer"),
                 "runtime_sha256": sha("runtime"),
                 "sampler_metadata_sha256": sha(f"sampler-{i}"),
-                "video_grid_thw": [8 + i, 2, 2],
+                "video_grid_thw": grid,
             })
         self.protocol_sha256 = sha("frozen protocol")
         self.raw = build_manifest(rows=self.rows, live_batches=self.batches,
@@ -74,8 +81,9 @@ class QtaProcessorBatchDigestManifestV1Tests(unittest.TestCase):
 
     def test_live_batch_tamper_and_external_pin_mismatch_rejected(self):
         changed = list(self.batches)
-        changed[1] = {"input_ids": [99]}
-        with self.assertRaisesRegex(ManifestError, "external_pin_mismatch"):
+        changed[1] = {"input_ids": [[99]], "video_grid_thw": [[9, 2, 2]],
+                      "pixel_values": [[2.0]]}
+        with self.assertRaisesRegex(ManifestError, "live_input_ids_digest_mismatch"):
             build_manifest(rows=self.rows, live_batches=changed,
                            expected_row_pins=self.rows,
                            protocol_sha256=self.protocol_sha256,
@@ -96,6 +104,53 @@ class QtaProcessorBatchDigestManifestV1Tests(unittest.TestCase):
                            expected_protocol_sha256=self.protocol_sha256)
         with self.assertRaisesRegex(ManifestError, "protocol_pin_mismatch"):
             self.validate(protocol=sha("different protocol"))
+
+    def test_live_input_ids_and_video_grid_must_match_manifest_metadata(self):
+        changed_ids = [dict(batch) for batch in self.batches]
+        changed_ids[0]["input_ids"] = [[777, 778]]
+        with self.assertRaisesRegex(ManifestError, "live_input_ids_digest_mismatch"):
+            build_manifest(rows=self.rows, live_batches=changed_ids,
+                           expected_row_pins=self.rows,
+                           protocol_sha256=self.protocol_sha256,
+                           expected_protocol_sha256=self.protocol_sha256)
+
+        changed_grid = [dict(batch) for batch in self.batches]
+        changed_grid[1]["video_grid_thw"] = [[10, 2, 2]]
+        with self.assertRaisesRegex(ManifestError, "live_video_grid_mismatch"):
+            build_manifest(rows=self.rows, live_batches=changed_grid,
+                           expected_row_pins=self.rows,
+                           protocol_sha256=self.protocol_sha256,
+                           expected_protocol_sha256=self.protocol_sha256)
+
+    def test_live_input_grid_fields_are_required_and_strict_integers(self):
+        for replacement, expected_error in (
+                ({"input_ids": [[1, True]]},
+                 "live_input_ids_invalid"),
+                ({"video_grid_thw": [[8, 2.0, 2]]},
+                 "live_video_grid_invalid"),
+                ({"video_grid_thw": None}, "live_video_grid_invalid")):
+            changed = [dict(batch) for batch in self.batches]
+            changed[0].update(replacement)
+            with self.subTest(expected_error=expected_error), self.assertRaisesRegex(
+                    ManifestError, expected_error):
+                build_manifest(rows=self.rows, live_batches=changed,
+                               expected_row_pins=self.rows,
+                               protocol_sha256=self.protocol_sha256,
+                               expected_protocol_sha256=self.protocol_sha256)
+
+    def test_reads_real_cpu_tensor_rows_without_coercing_metadata(self):
+        batches = [{**batch,
+                    "input_ids": torch.tensor(batch["input_ids"], dtype=torch.long),
+                    "video_grid_thw": torch.tensor(batch["video_grid_thw"], dtype=torch.long)}
+                   for batch in self.batches]
+        rows = [dict(row) for row in self.rows]
+        for index, (row, batch) in enumerate(zip(rows, batches, strict=True)):
+            row["base_processor_batch_sha256"] = batch_sha256(batch)
+        raw = build_manifest(rows=rows, live_batches=batches,
+                             expected_row_pins=rows,
+                             protocol_sha256=self.protocol_sha256,
+                             expected_protocol_sha256=self.protocol_sha256)
+        self.assertEqual(json.loads(raw)["rows"], rows)
 
     def test_source_and_processor_metadata_must_match_external_row_pins(self):
         obj = json.loads(self.raw)
