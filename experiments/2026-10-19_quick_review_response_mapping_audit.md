@@ -59,3 +59,12 @@ claim review, 15 clock/frame correspondences, frozen baseline `p/q`, and
 prediction-link review. GPU availability does not replace these inputs; no new
 direct-score GPU run is justified before they exist. Rights status remains
 unverified and protected files remain local.
+
+## Follow-up recount (2026-10-19)
+
+A primary-side recount of regular JSON files in the private response directory
+observed **9 files and 1 unique SHA-256 content**. This corrects the earlier
+8-file count; it does not change the mapping result or the number of usable
+responses. Filenames and response bytes were not emitted. All nine files still
+fail to provide usable judgments for the current artifact item IDs, so formal
+claim review remains **0/3** and direct scoring remains **0/3**.

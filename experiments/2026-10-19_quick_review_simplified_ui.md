@@ -49,3 +49,15 @@ original launch command was not usable here. Opening the same private HTML via
 documents that WSL command first and retains `xdg-open` for Linux desktops. The
 HTML stayed local with mode `0600`; this only launches the exploratory quick
 check and does not create a response or formal review evidence.
+
+## Browser E2E recheck (2026-10-19)
+
+Re-ran the synthetic Windows Chrome harness against the current production
+builder. The test failed at its final exact-profile cleanup assertion
+(`exact Chrome process/profile cleanup failed`) before surfacing the page-flow
+result, so this invocation is **inconclusive** for the nickname-to-question
+interaction. The run generated only a temporary synthetic artifact/video and
+did not open the protected v4 artifact or save any response. Static builder and
+response-inspector tests remain the verified checks for the current version;
+the earlier recorded browser run is unchanged. Do not treat this failed
+harness invocation as a fresh E2E pass.
