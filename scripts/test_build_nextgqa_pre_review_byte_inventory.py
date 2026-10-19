@@ -120,6 +120,7 @@ class SyntheticPreReviewInventoryTests(unittest.TestCase):
                          "scripts/nextgqa_combined_review_envelope.py")
         self.assertIn("review_runbook", PUBLIC_OR_SOURCE_FILES)
         self.assertIn("review_runbook_ja", PUBLIC_OR_SOURCE_FILES)
+        self.assertIn("role_assignment_template_ja", PUBLIC_OR_SOURCE_FILES)
         self.assertIn("qta_protocol_draft", PUBLIC_OR_SOURCE_FILES)
         self.assertIn("qta_treatment_selection", PUBLIC_OR_SOURCE_FILES)
         output = self.root / PRIVATE_ROOT / "inventory-opening-gate-bound"
@@ -137,8 +138,14 @@ class SyntheticPreReviewInventoryTests(unittest.TestCase):
                          len(expected_japanese_runbook))
         self.assertEqual(role_rows["review_runbook_ja"]["sha256"],
                          hashlib.sha256(expected_japanese_runbook).hexdigest())
+        expected_japanese_assignment = b"synthetic public bytes role_assignment_template_ja"
+        self.assertEqual(role_rows["role_assignment_template_ja"]["size_bytes"],
+                         len(expected_japanese_assignment))
+        self.assertEqual(role_rows["role_assignment_template_ja"]["sha256"],
+                         hashlib.sha256(expected_japanese_assignment).hexdigest())
         self.assertIn("review_runbook", roles)
         self.assertIn("review_runbook_ja", roles)
+        self.assertIn("role_assignment_template_ja", roles)
         self.assertIn("qta_protocol_draft", roles)
         self.assertIn("qta_treatment_selection", roles)
         self.assertNotIn("python_source_import_closure",

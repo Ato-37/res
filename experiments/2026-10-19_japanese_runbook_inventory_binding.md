@@ -64,3 +64,49 @@ An independent audit rehashed every registered source and code role with zero
 stale roles, checked the Japanese link target, and confirmed the candidate
 status. This navigation fix does not add any reviewer, trust-root, clock/frame,
 or faithfulness evidence.
+
+## Role-key creation instructions and safety checks (2026-10-19)
+
+The Japanese assignment sheet now gives each actual role holder a WSL/Linux
+command to create their own Ed25519 key pair, retain the private key in a
+mode-0700 per-user directory, and pass only the mode-0600 public key to the
+trusted root authority. Key IDs are restricted to the CLI's accepted
+characters and length. The base key directory must already have mode `0700`
+or be created that way by the restrictive umask; detected symlink paths are
+refused, and permissions on existing directories are not changed. The new
+per-key directory is created exclusively so an existing key ID cannot be
+overwritten; `set -euo pipefail` and an exit trap stop on signing-key errors
+and remove partial output. The root key is expressly outside this procedure
+and must be held by the independent root authority.
+
+The embedded shell block passed `bash -n`. A temporary-only synthetic run
+verified successful Ed25519 generation and 0700/0600 permissions, produced a
+64-hex-character fingerprint, refused a second run without changing the
+existing key, refused a path-traversal key ID, cleaned a simulated OpenSSL
+failure, and rejected both a symlink key directory and a preexisting
+non-private directory without changing their targets or permissions. No real
+role keys were generated.
+
+The independent auditor rechecked the final instructions and 96-role
+candidate, including exact hashes for both Japanese documents and zero stale
+registered code/source roles. It confirmed the candidate remains
+non-authorizing. The inventory builder, signed-receipt verifier, and
+release-order auditor suites passed **54/54 tests** together after registering
+the Japanese assignment sheet. The command assumes the user's home directory
+is not under hostile same-user concurrent modification; it does not defend
+against a process already controlling the same account.
+
+The Japanese assignment sheet itself is now an inventory-bound source role.
+The fresh candidate at
+`data/private_nextgqa/inventory-jp-keyinstructions-r2-20261019-1533/`
+contains **96 roles**, has **0 missing slots**, matches the current bytes of
+both Japanese handoff documents, and remains `candidate_only` with all review,
+freeze, scoring, and execution flags denied. Its inventory SHA-256 is
+`140c708f23d8ba542c63997be8d074a0b38327619cb33f0bb5798e6f688fd007`.
+
+These commands prepare real reviewers to create keys; they do not establish
+which person controls a key. The root pin, actual role-to-person assignments,
+signed rosters, release witness, 3/3 Stage-1 review, 15/15 clock/frame
+correspondences, and 3/3 Stage-2 review remain absent. Direct faithfulness stays
+at **0/3** scored, with no effect estimate, interval, or test. GPU scoring
+remains gated; the new work is handoff preparation only.

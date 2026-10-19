@@ -44,6 +44,7 @@ PUBLIC_OR_SOURCE_FILES = {
     # The English handoff directs reviewers to this Japanese operational copy;
     # freeze it too so the instructions actually used at review are versioned.
     "review_runbook_ja": Path("docs/nextgqa_v6_human_review_runbook_ja.md"),
+    "role_assignment_template_ja": Path("docs/nextgqa_human_review_role_assignment_template_ja.md"),
     "qta_protocol_draft": Path("docs/qwen_question_attention_faithfulness_protocol_v1_draft.md"),
     "qta_treatment_selection": Path("experiments/2026-10-18_qta_treatment_selection.md"),
     "source_test_csv": Path("NExT-GQA/datasets/nextgqa/test.csv"),
