@@ -5,7 +5,9 @@ import json
 from pathlib import Path
 from tempfile import TemporaryDirectory
 
-from generate_nextgqa_claim_review_pilot import parse_claim_output, read_candidate_pair_filter
+from generate_nextgqa_claim_review_pilot import (
+    candidate_pair_digest_for_sample, parse_claim_output, read_candidate_pair_filter,
+)
 from run_nextgqa_gold_interval_margin_pilot import candidate_pair_sha256, load_candidate_rows
 
 
@@ -16,6 +18,14 @@ class ClaimOutputParserTests(unittest.TestCase):
         self.assertEqual(parsed["claim"], "A person opens the cabinet.")
         self.assertIsNone(parsed["answer_letter"])
         self.assertEqual(parsed["evidence_frame_indices"], [])
+
+    def test_packet_pair_digest_binds_sample_video_and_question(self):
+        self.assertEqual(
+            candidate_pair_digest_for_sample({"video_id": "vid", "qid": "qid"}),
+            candidate_pair_sha256("vid", "qid"))
+        self.assertNotEqual(
+            candidate_pair_digest_for_sample({"video_id": "other", "qid": "qid"}),
+            candidate_pair_sha256("vid", "qid"))
 
 
 class SplitAwareClaimCohortTests(unittest.TestCase):

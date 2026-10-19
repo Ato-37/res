@@ -20,7 +20,8 @@ import subprocess
 import time
 
 from run_nextgqa_gold_interval_margin_pilot import (
-    FRAMES, MODEL_REVISION, freeze_cohort, host_available_bytes, sha256_file,
+    FRAMES, MODEL_REVISION, candidate_pair_sha256, freeze_cohort,
+    host_available_bytes, sha256_file,
 )
 from private_output_paths import validate_private_output
 from claim_text_quality import claim_text_quality_failure
@@ -50,6 +51,11 @@ def parse_claim_output(text: str, frame_count: int) -> dict:
             "answer_letter": None,
             "claim": claim_text or None,
             "evidence_frame_indices": []}
+
+
+def candidate_pair_digest_for_sample(sample: dict) -> str:
+    """Bind a private packet row to the exact dataset video/question pair."""
+    return candidate_pair_sha256(sample["video_id"], sample["qid"])
 
 
 def write_private_json_exclusive(output: Path, payload) -> None:
@@ -225,6 +231,7 @@ def main() -> None:
             "review_index": index,
             "local_video_path": sample["video_path"],
             "video_sha256": sample["decode"]["source_sha256"],
+            "candidate_pair_sha256": candidate_pair_digest_for_sample(sample),
             "dataset_question_id": sample["qid"],
             "question": sample["question"],
             "choices": sample["choices"],
