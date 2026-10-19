@@ -15,11 +15,14 @@ from typing import Any
 
 ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_ARTIFACT = ROOT / (
-    "data/private_nextgqa/quick_review_ja_simple_20261019_itemid_v4.html"
+    "data/private_nextgqa/quick_review_ja_simple_20261019_itemid_v9.html"
 )
 MAX_JSON_BYTES = 1_000_000
 MAX_ARTIFACT_BYTES = 64_000_000
 JUDGMENTS = {"roughly_matches", "partly_differs", "cannot_tell"}
+SUFFICIENCY = {"sufficient", "insufficient", "cannot_tell"}
+CLARITY = {"clear", "unclear", "cannot_tell"}
+ANSWER_FIT = {"fits", "does_not_fit", "cannot_tell"}
 EXPECTED_LIMITATIONS = {
     "簡単な印象確認であり、完全な幻覚判定ではない",
     "item_idはローカルで回答を質問へ対応付けるための匿名化IDで、本人性や視聴を証明しない",
@@ -118,52 +121,125 @@ def summarize_response(response_raw: bytes, item_ids: list[str]) -> dict[str, An
     except (UnicodeError, json.JSONDecodeError) as exc:
         raise ReviewError("response_json_invalid") from exc
 
-    top_keys = {"schema_version", "purpose", "status", "created_at_utc",
-                "nickname", "answers", "limitations"}
-    if (not isinstance(response, dict) or set(response) != top_keys
+    base_keys = {"schema_version", "purpose", "status", "created_at_utc", "limitations"}
+    if not isinstance(response, dict):
+        raise ReviewError("response_schema_or_purpose_invalid")
+    version = response.get("schema_version")
+    if type(version) is not int:
+        raise ReviewError("response_schema_or_purpose_invalid")
+    top_keys = base_keys | ({"nickname", "answers"} if version in {2, 3}
+                            else {"respondents"} if version in {4, 5} else set())
+    if (set(response) != top_keys
             or type(response.get("schema_version")) is not int
-            or response["schema_version"] != 2
+            or version not in {2, 3, 4, 5}
             or response.get("purpose") != "exploratory_human_impression_check"
             or response.get("status") != "informal_observations_only"):
         raise ReviewError("response_schema_or_purpose_invalid")
 
-    nickname = response.get("nickname")
-    if not isinstance(nickname, str) or not nickname.strip() or len(nickname) > 40:
-        raise ReviewError("response_nickname_field_invalid")
+    if version in {2, 3}:
+        nickname = response.get("nickname")
+        if not isinstance(nickname, str) or not nickname.strip() or len(nickname) > 40:
+            raise ReviewError("response_nickname_field_invalid")
     limitations = response.get("limitations")
     if (not isinstance(limitations, list) or len(limitations) != len(EXPECTED_LIMITATIONS)
             or any(not isinstance(value, str) for value in limitations)
             or set(limitations) != EXPECTED_LIMITATIONS):
         raise ReviewError("response_limitations_invalid")
-    answers = response.get("answers")
-    if not isinstance(answers, list) or len(answers) != 3:
-        raise ReviewError("response_must_contain_three_answers")
+    if version in {4, 5}:
+        respondents = response.get("respondents")
+        if not isinstance(respondents, list) or not respondents:
+            raise ReviewError("response_respondents_invalid")
+        answer_groups = []
+        for respondent in respondents:
+            if (not isinstance(respondent, dict) or set(respondent) != {"nickname", "answers"}
+                    or not isinstance(respondent["nickname"], str)
+                    or not respondent["nickname"].strip() or len(respondent["nickname"]) > 40
+                    or not isinstance(respondent["answers"], list)
+                    or len(respondent["answers"]) != 3):
+                raise ReviewError("response_respondent_schema_invalid")
+            answer_groups.append(respondent["answers"])
+    else:
+        answers = response.get("answers")
+        if not isinstance(answers, list) or len(answers) != 3:
+            raise ReviewError("response_must_contain_three_answers")
+        answer_groups = [answers]
 
-    expected_answer_keys = {"item_id", "item_number", "judgment",
-                            "approximate_time", "note"}
+    response_version = 3 if version == 4 else 4 if version == 5 else version
+    expected_answer_keys = ({"item_id", "item_number", "judgment",
+                             "approximate_time", "note"} if response_version == 2 else
+                            {"item_id", "item_number", "question_clarity",
+                             "answer_question_fit", "video_evidence_sufficiency"}
+                            if response_version == 4 else
+                            {"item_id", "item_number", "claim_truth",
+                             "explanation_sufficiency"})
     counts: Counter[str] = Counter()
-    for ordinal, (answer, item_id) in enumerate(zip(answers, item_ids), start=1):
-        if (not isinstance(answer, dict) or set(answer) != expected_answer_keys
-                or answer.get("item_id") != item_id
-                or type(answer.get("item_number")) is not int
-                or answer["item_number"] != ordinal
-                or not isinstance(answer.get("judgment"), str)
-                or answer["judgment"] not in JUDGMENTS):
-            raise ReviewError("response_item_mapping_or_judgment_invalid")
-        for field, limit in (("approximate_time", 80), ("note", 500)):
-            value = answer[field]
-            if value is not None and (not isinstance(value, str) or len(value) > limit):
-                raise ReviewError("response_optional_field_invalid")
-        counts[answer["judgment"]] += 1
+    sufficiency_counts: Counter[str] = Counter()
+    clarity_counts: Counter[str] = Counter()
+    answer_fit_counts: Counter[str] = Counter()
+    item_judgments = []
+    for respondent_index, answers in enumerate(answer_groups, start=1):
+        for ordinal, (answer, item_id) in enumerate(zip(answers, item_ids), start=1):
+            if (not isinstance(answer, dict) or set(answer) != expected_answer_keys
+                    or answer.get("item_id") != item_id
+                    or type(answer.get("item_number")) is not int
+                    or answer["item_number"] != ordinal):
+                raise ReviewError("response_item_mapping_or_judgment_invalid")
+            if response_version == 2:
+                if not isinstance(answer.get("judgment"), str) or answer["judgment"] not in JUDGMENTS:
+                    raise ReviewError("response_item_mapping_or_judgment_invalid")
+                for field, limit in (("approximate_time", 80), ("note", 500)):
+                    value = answer[field]
+                    if value is not None and (not isinstance(value, str) or len(value) > limit):
+                        raise ReviewError("response_optional_field_invalid")
+                counts[answer["judgment"]] += 1
+                item_judgments.append({"respondent": respondent_index, "item": ordinal,
+                                       "judgment": answer["judgment"]})
+            elif response_version == 3:
+                if (not isinstance(answer.get("claim_truth"), str)
+                        or answer["claim_truth"] not in JUDGMENTS
+                        or not isinstance(answer.get("explanation_sufficiency"), str)
+                        or answer["explanation_sufficiency"] not in SUFFICIENCY):
+                    raise ReviewError("response_item_mapping_or_judgment_invalid")
+                counts[answer["claim_truth"]] += 1
+                sufficiency_counts[answer["explanation_sufficiency"]] += 1
+                item_judgments.append({"respondent": respondent_index, "item": ordinal,
+                                       "claim_truth": answer["claim_truth"],
+                                       "explanation_sufficiency": answer["explanation_sufficiency"]})
+            else:
+                if (not isinstance(answer.get("question_clarity"), str)
+                        or answer["question_clarity"] not in CLARITY
+                        or not isinstance(answer.get("answer_question_fit"), str)
+                        or answer["answer_question_fit"] not in ANSWER_FIT
+                        or not isinstance(answer.get("video_evidence_sufficiency"), str)
+                        or answer["video_evidence_sufficiency"] not in SUFFICIENCY):
+                    raise ReviewError("response_item_mapping_or_judgment_invalid")
+                clarity_counts[answer["question_clarity"]] += 1
+                answer_fit_counts[answer["answer_question_fit"]] += 1
+                sufficiency_counts[answer["video_evidence_sufficiency"]] += 1
+                item_judgments.append({"respondent": respondent_index, "item": ordinal,
+                                       "question_clarity": answer["question_clarity"],
+                                       "answer_question_fit": answer["answer_question_fit"],
+                                       "video_evidence_sufficiency": answer["video_evidence_sufficiency"]})
 
     return {
-        "validated_exploratory_responses": len(answers),
-        "judgment_counts": {key: counts[key] for key in (
-            "roughly_matches", "partly_differs", "cannot_tell")},
-        "item_judgments": [
-            {"item": index, "judgment": answer["judgment"]}
-            for index, answer in enumerate(answers, start=1)
-        ],
+        "validated_exploratory_responses": sum(map(len, answer_groups)),
+        "respondent_count": len(answer_groups),
+        "judgment_counts": ({key: counts[key] for key in (
+            "roughly_matches", "partly_differs", "cannot_tell")}
+            if response_version != 4 else None),
+        "sufficiency_counts": ({key: sufficiency_counts[key]
+                                for key in ("sufficient", "insufficient", "cannot_tell")}
+                               if response_version == 3 else None),
+        "question_clarity_counts": ({key: clarity_counts[key]
+                                     for key in ("clear", "unclear", "cannot_tell")}
+                                    if response_version == 4 else None),
+        "answer_question_fit_counts": ({key: answer_fit_counts[key]
+                                        for key in ("fits", "does_not_fit", "cannot_tell")}
+                                       if response_version == 4 else None),
+        "video_evidence_sufficiency_counts": ({key: sufficiency_counts[key]
+                                                for key in ("sufficient", "insufficient", "cannot_tell")}
+                                               if response_version == 4 else None),
+        "item_judgments": item_judgments,
         "nickname_included_in_output": False,
         "free_text_included_in_output": False,
         "faithfulness_inference": "not_performed",
@@ -182,7 +258,9 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("response_json", type=Path,
                         help="artifactから保存した探索的回答JSON（ローカル限定）")
     parser.add_argument("--artifact", type=Path, default=DEFAULT_ARTIFACT,
-                        help="照合対象のitemid-v3 HTML")
+                        help="照合対象のitemid-v9 HTML（旧版HTML / JSONも指定可能）")
+    parser.add_argument("--show-items", action="store_true",
+                        help="既定の集計に加え、参加者/項目別の回答も表示する")
     args = parser.parse_args(argv)
     try:
         report = inspect_response(args.response_json, args.artifact)
@@ -194,9 +272,44 @@ def main(argv: list[str] | None = None) -> int:
         "partly_differs": "一部ちがう",
         "cannot_tell": "動画だけではわからない",
     }
-    print(f"形式確認: 探索的回答 {report['validated_exploratory_responses']}/3 件")
-    for key, label in labels.items():
-        print(f"{label}: {counts[key]}件")
+    print(f"形式確認: {report['respondent_count']}人・探索的回答 "
+          f"{report['validated_exploratory_responses']}件")
+    if counts is not None:
+        for key, label in labels.items():
+            print(f"{label}: {counts[key]}件")
+    for item in report["item_judgments"] if args.show_items else []:
+        if "judgment" in item:
+            print(f"{item['respondent']}人目・第{item['item']}件目: {labels[item['judgment']]}")
+        elif "question_clarity" in item:
+            clarity_labels = {"clear": "わかりやすい", "unclear": "わかりにくい",
+                              "cannot_tell": "判断できない"}
+            fit_labels = {"fits": "合っている", "does_not_fit": "違っている",
+                          "cannot_tell": "判断できない"}
+            evidence_labels = {"sufficient": "十分", "insufficient": "足りない点がある",
+                               "cannot_tell": "判断できない"}
+            print(f"{item['respondent']}人目・第{item['item']}件目: "
+                  f"質問={clarity_labels[item['question_clarity']]}、"
+                  f"答え={fit_labels[item['answer_question_fit']]}、"
+                  f"動画根拠={evidence_labels[item['video_evidence_sufficiency']]}")
+        else:
+            sufficiency_labels = {"sufficient": "十分", "insufficient": "足りない",
+                                  "cannot_tell": "判断できない"}
+            print(f"{item['respondent']}人目・第{item['item']}件目: 主張={labels[item['claim_truth']]}、"
+                  f"根拠={sufficiency_labels[item['explanation_sufficiency']]}")
+    if report["sufficiency_counts"] is not None:
+        suff = report["sufficiency_counts"]
+        print(f"根拠の十分さ: 十分={suff['sufficient']}件、足りない={suff['insufficient']}件、"
+              f"判断できない={suff['cannot_tell']}件")
+    if report["question_clarity_counts"] is not None:
+        clarity = report["question_clarity_counts"]
+        fit = report["answer_question_fit_counts"]
+        evidence = report["video_evidence_sufficiency_counts"]
+        print(f"質問の明瞭さ: わかりやすい={clarity['clear']}件、わかりにくい={clarity['unclear']}件、"
+              f"判断できない={clarity['cannot_tell']}件")
+        print(f"答えの適合: 合っている={fit['fits']}件、違っている={fit['does_not_fit']}件、"
+              f"判断できない={fit['cannot_tell']}件")
+        print(f"動画根拠の十分さ: 十分={evidence['sufficient']}件、足りない={evidence['insufficient']}件、"
+              f"判断できない={evidence['cannot_tell']}件")
     print("ニックネーム・自由記述は表示していません。faithfulnessの推定・採点許可はありません。")
     return 0
 

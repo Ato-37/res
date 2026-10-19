@@ -1,10 +1,13 @@
 import json
+import io
+import sys
 import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 from inspect_nextgqa_quick_review_response import (
-    EXPECTED_LIMITATIONS, ReviewError, expected_item_ids, inspect_response,
+    EXPECTED_LIMITATIONS, ReviewError, expected_item_ids, inspect_response, main,
     summarize_response,
 )
 
@@ -31,6 +34,48 @@ def valid_response():
 
 
 class QuickReviewResponseTests(unittest.TestCase):
+    def test_v5_keeps_clarity_answer_fit_and_video_evidence_separate(self):
+        response = valid_response()
+        response["schema_version"] = 5
+        response.pop("nickname")
+        response.pop("answers")
+        response["respondents"] = [{"nickname": "private", "answers": [
+            {"item_id": item_id, "item_number": index,
+             "question_clarity": ["unclear", "clear", "clear"][index - 1],
+             "answer_question_fit": ["fits", "does_not_fit", "fits"][index - 1],
+             "video_evidence_sufficiency": ["sufficient", "insufficient", "insufficient"][index - 1]}
+            for index, item_id in enumerate(ITEM_IDS, start=1)
+        ]}]
+        report = summarize_response(json.dumps(response).encode(), ITEM_IDS)
+        self.assertIsNone(report["judgment_counts"])
+        self.assertEqual(report["question_clarity_counts"],
+                         {"clear": 2, "unclear": 1, "cannot_tell": 0})
+        self.assertEqual(report["answer_question_fit_counts"],
+                         {"fits": 2, "does_not_fit": 1, "cannot_tell": 0})
+        self.assertEqual(report["video_evidence_sufficiency_counts"],
+                         {"sufficient": 1, "insufficient": 2, "cannot_tell": 0})
+        self.assertEqual(report["item_judgments"][1]["answer_question_fit"], "does_not_fit")
+        self.assertEqual(report["item_judgments"][2]["video_evidence_sufficiency"], "insufficient")
+        self.assertNotIn("private", repr(report))
+        self.assertEqual(report["faithfulness_inference"], "not_performed")
+        self.assertEqual(report["scoring_authorization"], "not_granted")
+
+    def test_v3_separates_claim_truth_from_explanation_sufficiency(self):
+        response = valid_response()
+        response["schema_version"] = 3
+        response["answers"] = [
+            {"item_id": item_id, "item_number": index,
+             "claim_truth": ["cannot_tell", "partly_differs", "roughly_matches"][index - 1],
+             "explanation_sufficiency": ["cannot_tell", "insufficient", "insufficient"][index - 1]}
+            for index, item_id in enumerate(ITEM_IDS, start=1)
+        ]
+        report = summarize_response(json.dumps(response).encode(), ITEM_IDS)
+        self.assertEqual(sum(report["judgment_counts"].values()), 3)
+        self.assertEqual(report["sufficiency_counts"],
+                         {"sufficient": 0, "insufficient": 2, "cannot_tell": 1})
+        self.assertEqual(report["item_judgments"][1]["claim_truth"], "partly_differs")
+        self.assertEqual(report["item_judgments"][1]["explanation_sufficiency"], "insufficient")
+
     def test_extracts_only_the_three_opaque_ids_from_html_script(self):
         items = [{"item_id": item_id, "question": "private", "video_base64": "x"}
                  for item_id in ITEM_IDS]
@@ -69,6 +114,47 @@ class QuickReviewResponseTests(unittest.TestCase):
         self.assertEqual(report["faithfulness_inference"], "not_performed")
         self.assertEqual(report["scoring_authorization"], "not_granted")
 
+    def test_cli_defaults_to_aggregate_only(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            response_path = Path(tmp) / "response.json"
+            artifact_path = Path(tmp) / "artifact.html"
+            response_path.write_text(json.dumps(valid_response()), encoding="utf-8")
+            items = [{"item_id": item_id} for item_id in ITEM_IDS]
+            artifact_path.write_text(
+                "<script>const items=" + json.dumps(items)
+                + ";\nlet nickname='';</script>", encoding="utf-8",
+            )
+            output = io.StringIO()
+            with patch.object(sys, "argv", ["inspect", str(response_path),
+                                             "--artifact", str(artifact_path)]), \
+                    patch.object(sys, "stdout", output):
+                self.assertEqual(main(), 0)
+            rendered = output.getvalue()
+            self.assertIn("だいたい合っている: 1件", rendered)
+            self.assertNotIn("1人目・第", rendered)
+            self.assertNotIn("PRIVATE NICKNAME", rendered)
+            self.assertNotIn("private free text", rendered)
+
+    def test_cli_can_explicitly_show_item_choices_without_names_or_notes(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            response_path = Path(tmp) / "response.json"
+            artifact_path = Path(tmp) / "artifact.html"
+            response_path.write_text(json.dumps(valid_response()), encoding="utf-8")
+            items = [{"item_id": item_id} for item_id in ITEM_IDS]
+            artifact_path.write_text(
+                "<script>const items=" + json.dumps(items)
+                + ";\nlet nickname='';</script>", encoding="utf-8",
+            )
+            output = io.StringIO()
+            with patch.object(sys, "argv", ["inspect", str(response_path),
+                                             "--artifact", str(artifact_path), "--show-items"]), \
+                    patch.object(sys, "stdout", output):
+                self.assertEqual(main(), 0)
+            rendered = output.getvalue()
+            self.assertIn("1人目・第1件目: だいたい合っている", rendered)
+            self.assertNotIn("PRIVATE NICKNAME", rendered)
+            self.assertNotIn("private free text", rendered)
+
     def test_rejects_incomplete_duplicate_or_reordered_items(self):
         for mutate in (
             lambda obj: obj["answers"].pop(),
@@ -100,6 +186,22 @@ class QuickReviewResponseTests(unittest.TestCase):
         with self.assertRaises(ReviewError):
             summarize_response(json.dumps(candidate).encode(), ITEM_IDS)
 
+        for field in ("question_clarity", "answer_question_fit",
+                      "video_evidence_sufficiency"):
+            candidate = valid_response()
+            candidate["schema_version"] = 5
+            candidate.pop("nickname")
+            candidate.pop("answers")
+            candidate["respondents"] = [{"nickname": "private", "answers": [
+                {"item_id": item_id, "item_number": index,
+                 "question_clarity": "clear", "answer_question_fit": "fits",
+                 "video_evidence_sufficiency": "sufficient"}
+                for index, item_id in enumerate(ITEM_IDS, start=1)
+            ]}]
+            candidate["respondents"][0]["answers"][1][field] = []
+            with self.subTest(field=field), self.assertRaises(ReviewError):
+                summarize_response(json.dumps(candidate).encode(), ITEM_IDS)
+
     def test_rejects_duplicate_json_keys_and_forged_purpose(self):
         with self.assertRaises(ReviewError):
             summarize_response(b'{"schema_version":2,"schema_version":2}', ITEM_IDS)
@@ -107,6 +209,26 @@ class QuickReviewResponseTests(unittest.TestCase):
         candidate["purpose"] = "formal_claim_review"
         with self.assertRaises(ReviewError):
             summarize_response(json.dumps(candidate).encode(), ITEM_IDS)
+
+
+    def test_v4_validates_multiple_reviewers_in_one_json(self):
+        one = valid_response()
+        answers = [
+            {"item_id": item_id, "item_number": index,
+             "claim_truth": ["cannot_tell", "partly_differs", "roughly_matches"][index - 1],
+             "explanation_sufficiency": ["cannot_tell", "insufficient", "insufficient"][index - 1]}
+            for index, item_id in enumerate(ITEM_IDS, start=1)
+        ]
+        response = {"schema_version": 4, "purpose": one["purpose"], "status": one["status"],
+                    "created_at_utc": one["created_at_utc"], "respondents": [
+                        {"nickname": "PERSON A", "answers": answers},
+                        {"nickname": "PERSON B", "answers": answers}],
+                    "limitations": one["limitations"]}
+        report = summarize_response(json.dumps(response).encode(), ITEM_IDS)
+        self.assertEqual(report["respondent_count"], 2)
+        self.assertEqual(report["validated_exploratory_responses"], 6)
+        self.assertEqual(sum(report["judgment_counts"].values()), 6)
+        self.assertNotIn("PERSON A", repr(report))
 
 
 if __name__ == "__main__":

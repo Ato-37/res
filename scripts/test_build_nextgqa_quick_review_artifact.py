@@ -11,10 +11,10 @@ from build_nextgqa_quick_review_artifact import (
 
 
 class QuickReviewArtifactSafetyTests(unittest.TestCase):
-    def test_default_output_targets_current_simple_v8_artifact(self):
+    def test_default_output_targets_current_simple_v9_artifact(self):
         self.assertEqual(
             DEFAULT_OUTPUT.name,
-            "quick_review_ja_simple_20261019_itemid_v8.html",
+            "quick_review_ja_simple_20261019_itemid_v9.html",
         )
         self.assertTrue(DEFAULT_OUTPUT.is_relative_to(
             Path(__file__).resolve().parents[1] / "data/private_nextgqa"
@@ -150,10 +150,12 @@ class QuickReviewArtifactSafetyTests(unittest.TestCase):
             self.assertIn("必要なら最後に、この端末へJSONで保存できます", rendered)
             self.assertIn("ファイル選択や時刻入力はありません", rendered)
             self.assertIn("厳密な幻覚判定や研究上の性能評価ではありません", rendered)
-            self.assertIn("説明の主張は、動画の内容と合っていますか？", rendered)
-            self.assertIn("この説明だけで、質問に答える根拠は十分ですか？", rendered)
-            self.assertIn('name="claim_truth"', rendered)
-            self.assertIn('name="explanation_sufficiency"', rendered)
+            self.assertIn("質問の状況や条件はわかりやすいですか？", rendered)
+            self.assertIn("この説明は、質問に対する答えとして合っていますか？", rendered)
+            self.assertIn("説明は動画中の出来事を挙げ、答えの根拠を示していますか？", rendered)
+            self.assertIn('name="question_clarity"', rendered)
+            self.assertIn('name="answer_question_fit"', rendered)
+            self.assertIn('name="video_evidence_sufficiency"', rendered)
             self.assertIn("足りない", rendered)
             self.assertNotIn('type="file"', rendered)
             self.assertNotIn('id="time"', rendered)
@@ -185,7 +187,7 @@ class QuickReviewArtifactSafetyTests(unittest.TestCase):
             self.assertIn("respondents.push({nickname,answers:answers.slice()})", rendered)
             self.assertIn("nickname=`参加者${nextNumber}`;index=0;answers=[]", rendered)
             self.assertIn("$('next-reviewer').addEventListener('click'", rendered)
-            self.assertIn("schema_version:4", rendered)
+            self.assertIn("schema_version:5", rendered)
             self.assertIn("JSONには最初のニックネームが含まれます", rendered)
             self.assertIn("すぐ1問目が始まります", rendered)
             self.assertIn("ファイルを共有・公開しないでください", rendered)

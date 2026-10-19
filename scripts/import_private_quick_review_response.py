@@ -174,6 +174,8 @@ def main(argv: list[str] | None = None) -> int:
                         help="ブラウザーから保存した探索的回答JSON（元ファイルは残します）")
     parser.add_argument("--artifact", type=Path, default=DEFAULT_ARTIFACT,
                         help="item ID照合対象の簡易確認HTML")
+    parser.add_argument("--show-items", action="store_true",
+                        help="既定の集計に加え、参加者/項目別の回答も表示する")
     args = parser.parse_args(argv)
     try:
         destination, report = import_response(args.response_json,
@@ -185,11 +187,50 @@ def main(argv: list[str] | None = None) -> int:
     labels = {"roughly_matches": "だいたい合っている",
               "partly_differs": "一部ちがう",
               "cannot_tell": "動画だけではわからない"}
-    print(f"形式確認: 探索的回答 {report['validated_exploratory_responses']}/3 件")
-    for key, label in labels.items():
-        print(f"{label}: {counts[key]}件")
-    for item in report["item_judgments"]:
-        print(f"第{item['item']}件目: {labels[item['judgment']]}")
+    print(f"形式確認: {report['respondent_count']}人・探索的回答 "
+          f"{report['validated_exploratory_responses']}件")
+    if counts is not None:
+        for key, label in labels.items():
+            print(f"{label}: {counts[key]}件")
+    for item in report["item_judgments"] if args.show_items else []:
+        if "judgment" in item:
+            print(f"{item['respondent']}人目・第{item['item']}件目: "
+                  f"{labels[item['judgment']]}")
+        elif "question_clarity" in item:
+            clarity = {"clear": "わかりやすい", "unclear": "わかりにくい",
+                       "cannot_tell": "判断できない"}
+            fit = {"fits": "合っている", "does_not_fit": "違っている",
+                   "cannot_tell": "判断できない"}
+            evidence = {"sufficient": "十分", "insufficient": "足りない点がある",
+                        "cannot_tell": "判断できない"}
+            print(f"{item['respondent']}人目・第{item['item']}件目: "
+                  f"質問={clarity[item['question_clarity']]}、"
+                  f"答え={fit[item['answer_question_fit']]}、"
+                  f"動画根拠={evidence[item['video_evidence_sufficiency']]}")
+        else:
+            sufficiency_labels = {"sufficient": "十分", "insufficient": "足りない",
+                                  "cannot_tell": "判断できない"}
+            print(f"{item['respondent']}人目・第{item['item']}件目: "
+                  f"主張={labels[item['claim_truth']]}、"
+                  f"根拠={sufficiency_labels[item['explanation_sufficiency']]}")
+    if report["sufficiency_counts"] is not None:
+        sufficiency = report["sufficiency_counts"]
+        print("根拠の十分さ: "
+              f"十分={sufficiency['sufficient']}件、足りない={sufficiency['insufficient']}件、"
+              f"判断できない={sufficiency['cannot_tell']}件")
+    if report["question_clarity_counts"] is not None:
+        clarity = report["question_clarity_counts"]
+        fit = report["answer_question_fit_counts"]
+        evidence = report["video_evidence_sufficiency_counts"]
+        print("質問の明瞭さ: "
+              f"わかりやすい={clarity['clear']}件、わかりにくい={clarity['unclear']}件、"
+              f"判断できない={clarity['cannot_tell']}件")
+        print("答えの適合: "
+              f"合っている={fit['fits']}件、違っている={fit['does_not_fit']}件、"
+              f"判断できない={fit['cannot_tell']}件")
+        print("動画根拠の十分さ: "
+              f"十分={evidence['sufficient']}件、足りない={evidence['insufficient']}件、"
+              f"判断できない={evidence['cannot_tell']}件")
     print(f"private保存先: {destination}")
     print("保存JSONはowner-only (0600) です。元のダウンロードは削除していません。")
     print("これは印象確認でありfaithfulness推定・採点許可ではありません。")

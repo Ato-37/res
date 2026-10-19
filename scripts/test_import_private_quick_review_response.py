@@ -125,15 +125,69 @@ class PrivateQuickReviewImportTests(unittest.TestCase):
         output = io.StringIO()
         with patch.object(importer, "PRIVATE_ROOT", self.private_root), \
                 patch.object(sys, "argv", ["import", str(self.source),
-                                            "--artifact", str(self.artifact)]), \
+                                            "--artifact", str(self.artifact), "--show-items"]), \
                 patch.object(sys, "stdout", output):
             self.assertEqual(main(), 0)
         rendered = output.getvalue()
-        self.assertIn("形式確認: 探索的回答 3/3 件", rendered)
+        self.assertIn("形式確認: 1人・探索的回答 3件", rendered)
         self.assertIn("owner-only (0600)", rendered)
         self.assertNotIn("PRIVATE NICKNAME", rendered)
         self.assertNotIn("download.json", rendered)
         self.assertTrue(self.source.exists())
+
+    def test_cli_reports_multireviewer_v4_without_names(self):
+        answers = [
+            {"item_id": item_id, "item_number": index,
+             "claim_truth": ["cannot_tell", "partly_differs", "roughly_matches"][index - 1],
+             "explanation_sufficiency": ["cannot_tell", "insufficient", "insufficient"][index - 1]}
+            for index, item_id in enumerate(ITEM_IDS, start=1)
+        ]
+        payload = {"schema_version": 4, "purpose": "exploratory_human_impression_check",
+                   "status": "informal_observations_only",
+                   "created_at_utc": "2026-10-19T03:00:00.000Z",
+                   "respondents": [{"nickname": "PRIVATE PERSON A", "answers": answers},
+                                   {"nickname": "PRIVATE PERSON B", "answers": answers}],
+                   "limitations": sorted(EXPECTED_LIMITATIONS)}
+        self.source.write_text(json.dumps(payload), encoding="utf-8")
+        output = io.StringIO()
+        with patch.object(importer, "PRIVATE_ROOT", self.private_root), \
+                patch.object(sys, "argv", ["import", str(self.source),
+                                            "--artifact", str(self.artifact)]), \
+                patch.object(sys, "stdout", output):
+            self.assertEqual(main(), 0)
+        rendered = output.getvalue()
+        self.assertIn("形式確認: 2人・探索的回答 6件", rendered)
+        self.assertNotIn("1人目・第", rendered)
+        self.assertIn("一部ちがう: 2件", rendered)
+        self.assertIn("根拠の十分さ: 十分=0件、足りない=4件、判断できない=2件", rendered)
+        self.assertNotIn("PRIVATE PERSON", rendered)
+
+    def test_cli_reports_multireviewer_v5_dimensions_without_names(self):
+        answers = [
+            {"item_id": item_id, "item_number": index,
+             "question_clarity": ["unclear", "clear", "clear"][index - 1],
+             "answer_question_fit": ["fits", "does_not_fit", "fits"][index - 1],
+             "video_evidence_sufficiency": ["sufficient", "insufficient", "insufficient"][index - 1]}
+            for index, item_id in enumerate(ITEM_IDS, start=1)
+        ]
+        payload = {"schema_version": 5, "purpose": "exploratory_human_impression_check",
+                   "status": "informal_observations_only",
+                   "created_at_utc": "2026-10-19T03:00:00.000Z",
+                   "respondents": [{"nickname": "PRIVATE PERSON", "answers": answers}],
+                   "limitations": sorted(EXPECTED_LIMITATIONS)}
+        self.source.write_text(json.dumps(payload), encoding="utf-8")
+        output = io.StringIO()
+        with patch.object(importer, "PRIVATE_ROOT", self.private_root), \
+                patch.object(sys, "argv", ["import", str(self.source),
+                                            "--artifact", str(self.artifact)]), \
+                patch.object(sys, "stdout", output):
+            self.assertEqual(main(), 0)
+        rendered = output.getvalue()
+        self.assertIn("形式確認: 1人・探索的回答 3件", rendered)
+        self.assertIn("答えの適合: 合っている=2件、違っている=1件、判断できない=0件", rendered)
+        self.assertIn("動画根拠の十分さ: 十分=1件、足りない=2件、判断できない=0件", rendered)
+        self.assertNotIn("1人目・第", rendered)
+        self.assertNotIn("PRIVATE PERSON", rendered)
 
 
 if __name__ == "__main__":

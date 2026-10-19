@@ -146,7 +146,7 @@ try {
     $expected = $i + 1
     $seen = Evaluate $pageSocket "document.querySelector('#counter').textContent.trim().startsWith('$expected') && !document.querySelector('#question').classList.contains('hidden')"
     if (-not $seen) { throw ("QUESTION_SEQUENCE_INVALID_" + $expected) }
-    $selected = Evaluate $pageSocket "(()=>{for(const name of ['claim_truth','explanation_sufficiency']){const radios=Array.from(document.querySelectorAll('input[name='+name+']')); if(radios.length!==3) return false; radios[$i].checked=true; radios[$i].dispatchEvent(new Event('change',{bubbles:true}));} return true})()"
+    $selected = Evaluate $pageSocket "(()=>{for(const name of ['question_clarity','answer_question_fit','video_evidence_sufficiency']){const radios=Array.from(document.querySelectorAll('input[name='+name+']')); if(radios.length!==3) return false; radios[$i].checked=true; radios[$i].dispatchEvent(new Event('change',{bubbles:true}));} return true})()"
     if (-not $selected) { throw 'CHOICE_CONTROL_INVALID' }
     $null = Evaluate $pageSocket "document.querySelector('#next').click(); true"
     if ($i -lt 2) {
@@ -165,7 +165,7 @@ try {
   if (-not (Evaluate $pageSocket "Array.from(document.querySelectorAll('input[type=radio]')).every(x=>!x.checked)")) { throw 'SECOND_REVIEWER_STALE_CHOICES' }
   for ($i = 0; $i -lt 3; $i++) {
     $expected = $i + 1
-    $selected = Evaluate $pageSocket "(()=>{for(const name of ['claim_truth','explanation_sufficiency']){const radios=Array.from(document.querySelectorAll('input[name='+name+']')); if(radios.length!==3) return false; radios[$i].checked=true;} return true})()"
+    $selected = Evaluate $pageSocket "(()=>{for(const name of ['question_clarity','answer_question_fit','video_evidence_sufficiency']){const radios=Array.from(document.querySelectorAll('input[name='+name+']')); if(radios.length!==3) return false; radios[$i].checked=true;} return true})()"
     if (-not $selected) { throw 'SECOND_REVIEWER_CHOICE_INVALID' }
     $null = Evaluate $pageSocket "document.querySelector('#next').click(); true"
     if ($i -lt 2) { $next = $i + 2; WaitFor $pageSocket "document.querySelector('#counter').textContent.trim().startsWith('$next')" ("SECOND_REVIEWER_QUESTION_" + $next + '_TIMEOUT') }
@@ -184,7 +184,7 @@ try {
   $payload = [IO.File]::ReadAllText($download.FullName) | ConvertFrom-Json
   $expectedIds = [string[]](ConvertFrom-Json ([Text.Encoding]::UTF8.GetString([Convert]::FromBase64String('__EXPECTED_IDS_B64__'))))
   $rootKeys = @($payload.PSObject.Properties.Name | Sort-Object) -join ','
-  if ($rootKeys -cne 'created_at_utc,limitations,purpose,respondents,schema_version,status' -or $payload.schema_version -ne 4 -or $payload.purpose -ne 'exploratory_human_impression_check' -or $payload.status -ne 'informal_observations_only' -or $payload.respondents.Count -ne 2) { throw 'COMBINED_JSON_SCHEMA_INVALID' }
+  if ($rootKeys -cne 'created_at_utc,limitations,purpose,respondents,schema_version,status' -or $payload.schema_version -ne 5 -or $payload.purpose -ne 'exploratory_human_impression_check' -or $payload.status -ne 'informal_observations_only' -or $payload.respondents.Count -ne 2) { throw 'COMBINED_JSON_SCHEMA_INVALID' }
   if ($payload.respondents[0].nickname -cne 'synthetic-reviewer' -or $payload.respondents[1].nickname -cne '参加者2') { throw 'COMBINED_JSON_REVIEWER_ORDER_INVALID' }
   foreach ($respondent in $payload.respondents) {
     $respondentKeys = @($respondent.PSObject.Properties.Name | Sort-Object) -join ','
@@ -193,14 +193,14 @@ try {
     $answerIndex = 1
     foreach ($answer in $respondent.answers) {
       $answerKeys = @($answer.PSObject.Properties.Name | Sort-Object) -join ','
-      if ($answerKeys -cne 'claim_truth,explanation_sufficiency,item_id,item_number' -or $answer.item_number -ne $answerIndex -or -not $answer.item_id -or $answer.claim_truth -notin @('roughly_matches','partly_differs','cannot_tell') -or $answer.explanation_sufficiency -notin @('sufficient','insufficient','cannot_tell')) { throw 'COMBINED_JSON_JUDGMENT_INVALID' }
+      if ($answerKeys -cne 'answer_question_fit,item_id,item_number,question_clarity,video_evidence_sufficiency' -or $answer.item_number -ne $answerIndex -or -not $answer.item_id -or $answer.question_clarity -notin @('clear','unclear','cannot_tell') -or $answer.answer_question_fit -notin @('fits','does_not_fit','cannot_tell') -or $answer.video_evidence_sufficiency -notin @('sufficient','insufficient','cannot_tell')) { throw 'COMBINED_JSON_JUDGMENT_INVALID' }
       $actualIds += [string]$answer.item_id
       $answerIndex++
     }
     if (($actualIds -join ',') -cne ($expectedIds -join ',')) { throw 'COMBINED_JSON_ITEM_ID_ORDER_INVALID' }
   }
   if (-not (Evaluate $pageSocket "document.querySelector('#saved').textContent.trim().startsWith('2')")) { throw 'COMBINED_SAVE_CONFIRMATION_MISSING' }
-  Write-Output 'E2E_PASS: two sequential reviewers, one downloaded schema-v4 JSON with 2 respondents and 6 validated item judgments'
+  Write-Output 'E2E_PASS: two sequential reviewers, one downloaded schema-v5 JSON with 2 respondents and 18 validated rubric judgments'
 } catch {
   $code = [string]$_
   if ($code -notmatch '^[A-Z0-9_]+$') {
