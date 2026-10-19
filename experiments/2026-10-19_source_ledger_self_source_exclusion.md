@@ -32,9 +32,12 @@ identifiers, source paths, HMAC values, or row-level content enter the report.
 
 Excluding an exact source prevents a self-match from being mislabeled as
 independent history; it does not authenticate who created the ledger, prove
-that the roster is complete, establish media freshness, or validate every
-source-row count field. Nonmatches remain unknown. The audit remains
+that the roster is complete or establish media freshness. A follow-up closes
+the source-row count checks for fields preserved in the ledger; the builder
+does not retain `rows_without_any_identity`, so that omitted value cannot be
+revalidated downstream. Nonmatches remain unknown. The audit remains
 non-authorizing and contributes no direct faithfulness score or effect
 estimate. Keep data-specific aggregate results in local-only records. Use the
 option only when the exact source bytes are known to be represented by one
-ledger fingerprint; do not infer an exclusion from a filename alone.
+ledger fingerprint; do not infer an exclusion from a filename alone. See the
+[count-metadata validation follow-up](2026-10-19_source_ledger_count_metadata_validation.md).

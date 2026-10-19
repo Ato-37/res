@@ -100,7 +100,9 @@ def audit_split_against_source_ledger(*, split_raw: bytes, ledger_raw: bytes,
     video_ids, _ = _read_split(split_raw)
     candidates = {_token(secret, "dataset-video-id", ("nextgqa", value))
                   for value in video_ids}
-    for row in ledger["sources"]:
+    count_fields = ("rows_with_any_identity", "rows_with_video_id",
+                    "rows_with_media_sha256", "rows_with_video_question_pair")
+    for expected_ordinal, row in enumerate(ledger["sources"], start=1):
         if (not isinstance(row, dict)
                 or set(row) != {"source_ordinal", "source_id_hmac_sha256", "source_class",
                                 "identity_namespace", "status", "rows_total",
@@ -120,13 +122,23 @@ def audit_split_against_source_ledger(*, split_raw: bytes, ledger_raw: bytes,
                 or not HEX64.fullmatch(row["source_id_hmac_sha256"])
                 or row["source_id_hmac_sha256"] in seen_sources):
             raise ValueError("ledger_source_invalid")
-        if (type(row.get("source_ordinal")) is not int or row["source_ordinal"] <= 0
+        if (type(row.get("source_ordinal")) is not int
+                or row["source_ordinal"] != expected_ordinal
                 or row.get("status") not in {"parsed", "parsed_provenance_unverified",
                                               "opaque_unresolved", "unresolved_invalid_source"}
-                or (row.get("rows_with_any_identity") is not None
-                    and (type(row["rows_with_any_identity"]) is not int
-                         or row["rows_with_any_identity"] < 0))):
+                or not isinstance(row.get("unresolved_reason_counts"), dict)
+                or any(not isinstance(reason, str) or not reason or len(reason) > 128
+                       or type(count) is not int or count <= 0
+                       for reason, count in row["unresolved_reason_counts"].items())):
             raise ValueError("ledger_source_metadata_invalid")
+        expected_status = {
+            "opaque-legacy": "opaque_unresolved",
+            "media-set-json": "parsed_provenance_unverified",
+            "review-custody-json": "parsed_provenance_unverified",
+        }.get(row["source_class"], "parsed")
+        if (row["status"] != "unresolved_invalid_source"
+                and row["status"] != expected_status):
+            raise ValueError("ledger_source_status_family_mismatch")
         seen_sources.add(row["source_id_hmac_sha256"])
         if row["source_id_hmac_sha256"] in excluded_fingerprints:
             found_exclusions.add(row["source_id_hmac_sha256"])
@@ -144,6 +156,35 @@ def audit_split_against_source_ledger(*, split_raw: bytes, ledger_raw: bytes,
                            for token in values)
                     or len(values) != len(set(values))):
                 raise ValueError(error)
+        counts = [row.get(name) for name in count_fields]
+        rows_total = row.get("rows_total")
+        known_status = row["status"] in {"parsed", "parsed_provenance_unverified"}
+        if known_status:
+            if (type(rows_total) is not int or rows_total < 0
+                    or any(type(count) is not int or count < 0 for count in counts)):
+                raise ValueError("ledger_source_row_counts_invalid")
+            rows_with_any, rows_with_video, rows_with_media, rows_with_pair = counts
+            if (rows_with_any > rows_total
+                    or any(count > rows_total for count in counts)
+                    or any(count > rows_with_any for count in counts[1:])
+                    or rows_with_any > rows_with_video + rows_with_media + rows_with_pair
+                    or (rows_with_video == 0 and tokens)
+                    or (rows_with_media == 0 and media_tokens)
+                    or (rows_with_pair == 0 and pair_tokens)
+                    or (rows_with_video > 0 and not tokens)
+                    or (rows_with_media > 0 and not media_tokens)
+                    or (rows_with_pair > 0 and not pair_tokens)
+                    or len(tokens) > rows_with_video
+                    or len(media_tokens) > rows_with_media
+                    or len(pair_tokens) > rows_with_pair):
+                raise ValueError("ledger_source_row_count_inconsistent")
+        else:
+            total_is_valid = (rows_total is None
+                              or (row["status"] == "opaque_unresolved"
+                                  and type(rows_total) is int and rows_total >= 0))
+            if (not total_is_valid or any(count is not None for count in counts)
+                    or tokens or media_tokens or pair_tokens):
+                raise ValueError("ledger_source_unresolved_counts_inconsistent")
         source_unions["dataset_video_hmac_sha256"].update(tokens)
         source_unions["media_sha256_hmac_sha256"].update(media_tokens)
         source_unions["video_question_pair_hmac_sha256"].update(pair_tokens)

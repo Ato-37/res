@@ -161,6 +161,96 @@ class AuditSourceLedgerSplitTests(unittest.TestCase):
             audit_split_against_source_ledger(split_raw=self.split,
                                               ledger_raw=raw(bad), secret=KEY)
 
+    def test_authenticated_row_count_metadata_is_checked(self):
+        bad = copy.deepcopy(self.ledger)
+        bad["sources"][0]["rows_with_video_id"] = bad["sources"][0]["rows_total"] + 1
+        bad.pop("ledger_integrity_hmac_sha256")
+        bad["ledger_integrity_hmac_sha256"] = hmac.new(
+            KEY, LEDGER_DOMAIN + _canonical(bad), hashlib.sha256).hexdigest()
+        with self.assertRaisesRegex(ValueError, "ledger_source_row_count_inconsistent"):
+            audit_split_against_source_ledger(split_raw=self.split,
+                                              ledger_raw=raw(bad), secret=KEY)
+
+    def test_authenticated_token_and_count_disagreement_is_rejected(self):
+        bad = copy.deepcopy(self.ledger)
+        bad["sources"][0]["rows_with_video_id"] = 0
+        bad.pop("ledger_integrity_hmac_sha256")
+        bad["ledger_integrity_hmac_sha256"] = hmac.new(
+            KEY, LEDGER_DOMAIN + _canonical(bad), hashlib.sha256).hexdigest()
+        with self.assertRaisesRegex(ValueError, "ledger_source_row_count_inconsistent"):
+            audit_split_against_source_ledger(split_raw=self.split,
+                                              ledger_raw=raw(bad), secret=KEY)
+
+    def test_any_identity_rows_cannot_exceed_identity_type_rows(self):
+        bad = copy.deepcopy(self.ledger)
+        row = bad["sources"][0]
+        row["rows_with_any_identity"] = 1
+        for field in ("rows_with_video_id", "rows_with_media_sha256",
+                      "rows_with_video_question_pair"):
+            row[field] = 0
+        row["video_identity_hmac_sha256"] = []
+        row["media_identity_hmac_sha256"] = []
+        row["video_question_pair_hmac_sha256"] = []
+        for union_name, source_field in (
+                ("dataset_video_hmac_sha256", "video_identity_hmac_sha256"),
+                ("media_sha256_hmac_sha256", "media_identity_hmac_sha256"),
+                ("video_question_pair_hmac_sha256", "video_question_pair_hmac_sha256")):
+            bad["known_identity_unions"][union_name] = sorted({
+                token for source in bad["sources"] for token in source[source_field]
+            })
+        bad.pop("ledger_integrity_hmac_sha256")
+        bad["ledger_integrity_hmac_sha256"] = hmac.new(
+            KEY, LEDGER_DOMAIN + _canonical(bad), hashlib.sha256).hexdigest()
+        with self.assertRaisesRegex(ValueError, "ledger_source_row_count_inconsistent"):
+            audit_split_against_source_ledger(split_raw=self.split,
+                                              ledger_raw=raw(bad), secret=KEY)
+
+    def test_source_ordinals_must_match_roster_order(self):
+        bad = copy.deepcopy(self.ledger)
+        bad["sources"][1]["source_ordinal"] = 1
+        bad.pop("ledger_integrity_hmac_sha256")
+        bad["ledger_integrity_hmac_sha256"] = hmac.new(
+            KEY, LEDGER_DOMAIN + _canonical(bad), hashlib.sha256).hexdigest()
+        with self.assertRaisesRegex(ValueError, "ledger_source_metadata_invalid"):
+            audit_split_against_source_ledger(split_raw=self.split,
+                                              ledger_raw=raw(bad), secret=KEY)
+
+    def test_parseable_and_unparseable_opaque_sources_are_accepted(self):
+        roster = raw({"schema_version": 1, "purpose": ROSTER_PURPOSE,
+                      "inputs": [{"family": "opaque-legacy", "namespace": "legacy",
+                                  "relative_path": "p/opaque.json"}],
+                      "omitted_duplicate_content": []})
+        for source_raw, expected_total in ((b"[{},{}]", 2), (b"not-json", None)):
+            ledger, _ = build_source_ledger(roster_raw=roster,
+                                            source_raws=[source_raw], secret=KEY)
+            report = audit_split_against_source_ledger(
+                split_raw=self.split, ledger_raw=raw(ledger), secret=KEY)
+            source = ledger["sources"][0]
+            self.assertEqual(source["status"], "opaque_unresolved")
+            self.assertEqual(source["rows_total"], expected_total)
+            self.assertEqual(source["rows_with_any_identity"], None)
+            self.assertEqual(report["ledger_integrity_verified"], True)
+
+    def test_family_status_mismatch_is_rejected(self):
+        bad = copy.deepcopy(self.ledger)
+        bad["sources"][0]["source_class"] = "opaque-legacy"
+        bad.pop("ledger_integrity_hmac_sha256")
+        bad["ledger_integrity_hmac_sha256"] = hmac.new(
+            KEY, LEDGER_DOMAIN + _canonical(bad), hashlib.sha256).hexdigest()
+        with self.assertRaisesRegex(ValueError, "ledger_source_status_family_mismatch"):
+            audit_split_against_source_ledger(split_raw=self.split,
+                                              ledger_raw=raw(bad), secret=KEY)
+
+    def test_unique_identity_tokens_cannot_exceed_identity_rows(self):
+        bad = copy.deepcopy(self.ledger)
+        bad["sources"][0]["rows_with_video_id"] = 1
+        bad.pop("ledger_integrity_hmac_sha256")
+        bad["ledger_integrity_hmac_sha256"] = hmac.new(
+            KEY, LEDGER_DOMAIN + _canonical(bad), hashlib.sha256).hexdigest()
+        with self.assertRaisesRegex(ValueError, "ledger_source_row_count_inconsistent"):
+            audit_split_against_source_ledger(split_raw=self.split,
+                                              ledger_raw=raw(bad), secret=KEY)
+
 
 if __name__ == "__main__":
     unittest.main()
