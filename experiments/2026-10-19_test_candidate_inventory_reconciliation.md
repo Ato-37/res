@@ -84,3 +84,32 @@ media cohort under the current CSV snapshot and frozen exposure rules, then
 complete the review and scoring authorization gates. Do not describe the 469
 non-matches as fresh and do not use these test candidates for development
 scoring.
+
+## Validation-media follow-up
+
+To check for a development split without substituting test, I ran the same
+aggregate hashing function against the current `val.csv` and the designated
+local `NExTVideo` root. The current file contains 3,358 rows / 567 distinct
+video IDs; 33 mapped local videos were present, with 33 unique byte hashes.
+All 33 matched the supplied partial exposure index. The separate expanded
+known-history index matched 0/33, which shows the two supplied index snapshots
+are not interchangeable; the conservative union still excludes all 33. The
+full-history completeness flag is false, so these counts do not prove what was
+seen outside the supplied indices. The current validation CSV SHA-256 is
+`ac5a1eb1d6dee9cd84ab7f9c94ab345b2404646f24b79ac182cd2aa9e2d424c1`.
+
+Reproduction uses the function already identified above, with `test_csv` set
+to `NExT-GQA/datasets/nextgqa/val.csv` and `video_root` set to the local
+`nextgqa_sample/NExTVideo` directory. It returns only aggregate counts; no
+video was decoded or displayed. An additional metadata-only scan found 0/567
+validation files in the ZIP candidate root and 0/3,870 train files across both
+roots. Therefore there is no currently available validation cohort after the
+supplied exposure exclusions. The 490 test candidates remain unsuitable for
+development scoring under the frozen split policy.
+
+**Updated next action:** obtain the missing validation media through the
+already permitted local workflow, or use the current low-friction human-review
+artifact to finish the human-dependent gates. Do not run model scoring on the
+test-only inventory to work around the missing validation cohort. Direct
+faithfulness remains 0/3 claims scored; this availability audit adds no effect
+estimate.
