@@ -16,6 +16,10 @@ prepared.
 - Extended the inventory test to require the role and verify it is emitted.
 - The focused inventory-builder suite passed **21/21 tests**. `py_compile` and
   scoped `git diff --check` passed.
+- The integrity-receipt and release-order-auditor suites passed **33/33
+  tests** after the new role was added. The receipt verifier derives its
+  required artifact set from the builder's registered roles, so the Japanese
+  runbook is now required in signed inventory verification too.
 - Built a fresh local candidate at
   `data/private_nextgqa/inventory-jp-runbook-20261019-1525/`.
   It contains **95 roles**, has **0 missing slots**, and includes the Japanese
