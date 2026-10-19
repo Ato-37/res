@@ -151,12 +151,15 @@ try {
     $expected = $i + 1
     $seen = Evaluate $pageSocket "document.querySelector('#counter').textContent.trim().startsWith('$expected') && !document.querySelector('#question').classList.contains('hidden')"
     if (-not $seen) { throw ("QUESTION_SEQUENCE_INVALID_" + $expected) }
+    if (-not (Evaluate $pageSocket "!document.querySelector('#source-language').open")) { throw 'SOURCE_LANGUAGE_NOT_RESET_ON_ENTRY' }
     $selected = Evaluate $pageSocket "(()=>{for(const name of ['question_clarity','answer_question_fit','video_evidence_sufficiency']){const radios=Array.from(document.querySelectorAll('input[name='+name+']')); if(radios.length!==3) return false; radios[$i].checked=true; radios[$i].dispatchEvent(new Event('change',{bubbles:true}));} return true})()"
     if (-not $selected) { throw 'CHOICE_CONTROL_INVALID' }
+    if ($i -lt 2) { $null = Evaluate $pageSocket "document.querySelector('#source-language').open=true; true" }
     $null = Evaluate $pageSocket "document.querySelector('#next').click(); true"
     if ($i -lt 2) {
       $next = $i + 2
       WaitFor $pageSocket "document.querySelector('#counter').textContent.trim().startsWith('$next')" ("QUESTION_" + $next + '_TIMEOUT')
+      if (-not (Evaluate $pageSocket "!document.querySelector('#source-language').open")) { throw 'SOURCE_LANGUAGE_DISCLOSURE_STALE' }
     }
   }
   WaitFor $pageSocket "document.querySelector('#question').classList.contains('hidden') && !document.querySelector('#done').classList.contains('hidden') && !!document.querySelector('#save')" 'DONE_STATE_TIMEOUT'
@@ -229,7 +232,7 @@ try {
   $abstentionAnswer = $payload.respondents[2].answers[0]
   if ($abstentionAnswer.question_clarity -cne 'unclear' -or $abstentionAnswer.answer_question_fit -cne 'cannot_tell' -or $abstentionAnswer.video_evidence_sufficiency -cne 'cannot_tell') { throw 'NO_GUESS_JUDGMENT_NOT_PERSISTED' }
   if (-not (Evaluate $pageSocket "document.querySelector('#saved').textContent.trim().startsWith('3')")) { throw 'COMBINED_SAVE_CONFIRMATION_MISSING' }
-  Write-Output 'E2E_PASS: three sequential reviewers; third reviewer used unclear/cannot-tell and abstentions persisted in one combined schema-v5 JSON with 27 validated rubric judgments'
+  Write-Output 'E2E_PASS: three sequential reviewers; source-language disclosure resets between items; third reviewer used unclear/cannot-tell and abstentions persisted in one combined schema-v6 JSON'
 } catch {
   $code = [string]$_
   if ($code -notmatch '^[A-Z0-9_]+$') {

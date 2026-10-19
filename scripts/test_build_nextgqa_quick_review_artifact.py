@@ -173,6 +173,10 @@ class QuickReviewArtifactSafetyTests(unittest.TestCase):
             self.assertIn('id="claim-source"', rendered)
             self.assertIn("$('prompt-source').textContent=item.question", rendered)
             self.assertIn("$('claim-source').textContent=item.claim", rendered)
+            show_question_start = rendered.index("function showQuestion()")
+            show_question_end = rendered.index("$('welcome-form').addEventListener", show_question_start)
+            show_question_script = rendered[show_question_start:show_question_end]
+            self.assertIn("$('source-language').open=false", show_question_script)
             self.assertIn("__ITEMS__ private source question", rendered)
             self.assertIn('id="summary-count"', rendered)
             self.assertIn('id="summary-items"', rendered)
