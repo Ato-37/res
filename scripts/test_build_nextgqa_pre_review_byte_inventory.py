@@ -102,6 +102,7 @@ class SyntheticPreReviewInventoryTests(unittest.TestCase):
             "qta_stage1_source_pin_adapter",
             "qta_prescore_mapping_binding",
             "qta_prescore_review_row_adapter",
+            "qta_live_batch_binding",
             "annotation_clock_calibration",
             "claim_input_manifest_builder",
             "claim_text_quality",
@@ -110,16 +111,34 @@ class SyntheticPreReviewInventoryTests(unittest.TestCase):
             "private_output_paths",
             "pre_review_inventory_builder",
             "blinded_pair_review_validator",
+            "combined_review_envelope",
         }
         self.assertTrue(required_code_roles.issubset(CODE_FILES))
+        self.assertEqual(CODE_FILES["review_html_renderer"],
+                         "scripts/render_nextgqa_claim_review_html.py")
+        self.assertEqual(CODE_FILES["combined_review_envelope"],
+                         "scripts/nextgqa_combined_review_envelope.py")
         self.assertIn("review_runbook", PUBLIC_OR_SOURCE_FILES)
+        self.assertIn("review_runbook_ja", PUBLIC_OR_SOURCE_FILES)
         self.assertIn("qta_protocol_draft", PUBLIC_OR_SOURCE_FILES)
         self.assertIn("qta_treatment_selection", PUBLIC_OR_SOURCE_FILES)
         output = self.root / PRIVATE_ROOT / "inventory-opening-gate-bound"
         result = build_inventory(self.root, output)
-        roles = {row["role"] for row in result["artifacts"]}
+        role_rows = {row["role"]: row for row in result["artifacts"]}
+        roles = set(role_rows)
         self.assertTrue(required_code_roles.issubset(roles))
+        for role in ("review_html_renderer", "combined_review_envelope"):
+            relative = CODE_FILES[role]
+            expected_source = ("# synthetic source " + relative + "\n").encode()
+            self.assertEqual(role_rows[role]["sha256"],
+                             hashlib.sha256(expected_source).hexdigest())
+        expected_japanese_runbook = b"synthetic public bytes review_runbook_ja"
+        self.assertEqual(role_rows["review_runbook_ja"]["size_bytes"],
+                         len(expected_japanese_runbook))
+        self.assertEqual(role_rows["review_runbook_ja"]["sha256"],
+                         hashlib.sha256(expected_japanese_runbook).hexdigest())
         self.assertIn("review_runbook", roles)
+        self.assertIn("review_runbook_ja", roles)
         self.assertIn("qta_protocol_draft", roles)
         self.assertIn("qta_treatment_selection", roles)
         self.assertNotIn("python_source_import_closure",
@@ -323,6 +342,26 @@ class SyntheticPreReviewInventoryTests(unittest.TestCase):
         roles = {row["role"] for row in result["artifacts"]}
         self.assertIn("qta_actual_qa_source_binding_cli", roles)
         self.assertIn("qta_actual_qa_source_contract", roles)
+        self.assertNotIn("python_source_import_closure", result["missing_required_slots"])
+        self.assertEqual(result["missing_required_slots"], [])
+        self.assertFalse(result["joint_freeze"])
+        self.assertFalse(result["score_ready"])
+        self.assertEqual(result["execution_authorization"], "not_granted")
+
+    def test_qta_phase_plan_transitive_dependencies_are_registered(self):
+        scripts = self.root / "scripts"
+        (scripts / "nextgqa_prediction_link_review.py").write_text(
+            "from qta_phase2_plan_manifest import validate_baseline_pq_manifest\n",
+            encoding="utf-8")
+        (scripts / "qta_phase2_plan_manifest.py").write_text(
+            "from qta_nine_branch_plan import BRANCH_ORDER\n"
+            "from qta_attention_call_receipts import validate_receipt\n",
+            encoding="utf-8")
+        output = self.root / PRIVATE_ROOT / "inventory-qta-phase-dependencies"
+        result = build_inventory(self.root, output)
+        roles = {row["role"] for row in result["artifacts"]}
+        self.assertTrue({"qta_phase2_plan_manifest", "qta_nine_branch_plan",
+                         "qta_attention_call_receipts"}.issubset(roles))
         self.assertNotIn("python_source_import_closure", result["missing_required_slots"])
         self.assertEqual(result["missing_required_slots"], [])
         self.assertFalse(result["joint_freeze"])

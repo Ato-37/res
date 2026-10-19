@@ -41,6 +41,9 @@ PUBLIC_OR_SOURCE_FILES = {
     "review_policy_v6": Path("docs/nextgqa_claim_review_policy_v6.json"),
     "protocol_v2_draft": Path("docs/nextgqa_finite_claim_descriptive_protocol_v2.md"),
     "review_runbook": Path("docs/nextgqa_v6_human_review_runbook.md"),
+    # The English handoff directs reviewers to this Japanese operational copy;
+    # freeze it too so the instructions actually used at review are versioned.
+    "review_runbook_ja": Path("docs/nextgqa_v6_human_review_runbook_ja.md"),
     "qta_protocol_draft": Path("docs/qwen_question_attention_faithfulness_protocol_v1_draft.md"),
     "qta_treatment_selection": Path("experiments/2026-10-18_qta_treatment_selection.md"),
     "source_test_csv": Path("NExT-GQA/datasets/nextgqa/test.csv"),
@@ -51,6 +54,9 @@ CODE_FILES = {
     "review_package_builder": "scripts/package_nextgqa_claim_review_handoff.py",
     "review_media_stager": "scripts/stage_nextgqa_review_media.py",
     "review_export_stager": "scripts/stage_nextgqa_review_exports.py",
+    # The formal renderer emits a combined envelope; bind the exact-byte
+    # validator/splitter that the custodian uses to stage returned sessions.
+    "combined_review_envelope": "scripts/nextgqa_combined_review_envelope.py",
     "review_handoff_audit": "scripts/audit_nextgqa_review_handoff.py",
     "completed_review_attestation": "scripts/nextgqa_completed_review_attestation.py",
     "qta_prediction_link_attestation": "scripts/nextgqa_prediction_link_attestation.py",
@@ -101,6 +107,20 @@ CODE_FILES = {
     "processor_batch_review_mapper": "scripts/qwen_processor_batch_review_mapping.py",
     "review_interval_group_mapper": "scripts/qwen_review_interval_token_groups.py",
     "qta_real_video_sampler_preflight": "scripts/run_qta_real_video_sampler_preflight.py",
+    "qta_actual_media_source_preflight": "scripts/qta_actual_media_source_preflight.py",
+    # Include the local QTA phase-plan modules imported by registered review,
+    # prediction-link, and phase-freeze validators. Without these roles the
+    # static import-closure audit correctly rejects the candidate inventory.
+    "qta_phase2_plan_manifest": "scripts/qta_phase2_plan_manifest.py",
+    "qta_nine_branch_plan": "scripts/qta_nine_branch_plan.py",
+    "qta_attention_call_receipts": "scripts/qta_attention_call_receipts.py",
+    "qta_attention_capture_contract": "scripts/qta_attention_capture_contract.py",
+    "qta_attention_capture_sidecars": "scripts/qta_attention_capture_sidecars.py",
+    "qta_phase_freeze_receipts": "scripts/qta_phase_freeze_receipts.py",
+    "qta_sampler_runtime_descriptor": "scripts/qta_sampler_runtime_descriptor.py",
+    "qta_selection_provenance": "scripts/qta_selection_provenance.py",
+    "qta_three_row_plan_aggregate": "scripts/qta_three_row_plan_aggregate.py",
+    "qta_live_batch_binding": "scripts/qta_prebaseline_live_batch_binding.py",
     "atomic_batch_freezer": "scripts/nextgqa_atomic_batch_freeze.py",
     "batch_digest_freezer": "scripts/nextgqa_batch_digest_freeze.py",
     "scorer": "scripts/nextgqa_claim_mask_scoring.py",
