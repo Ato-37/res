@@ -15,7 +15,7 @@ from typing import Any
 
 ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_ARTIFACT = ROOT / (
-    "data/private_nextgqa/quick_review_ja_simple_20261019_itemid_v10.html"
+    "data/private_nextgqa/quick_review_ja_simple_20261019_itemid_v12.html"
 )
 MAX_JSON_BYTES = 1_000_000
 MAX_ARTIFACT_BYTES = 64_000_000
@@ -258,7 +258,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("response_json", type=Path,
                         help="artifactから保存した探索的回答JSON（ローカル限定）")
     parser.add_argument("--artifact", type=Path, default=DEFAULT_ARTIFACT,
-                        help="照合対象のitemid-v9 HTML（旧版HTML / JSONも指定可能）")
+                        help="照合対象の探索的レビューHTML（旧版HTML / JSONも指定可能）")
     parser.add_argument("--show-items", action="store_true",
                         help="既定の集計に加え、参加者/項目別の回答も表示する")
     args = parser.parse_args(argv)

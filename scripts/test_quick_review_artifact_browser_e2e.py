@@ -1,7 +1,7 @@
 """Windows Chrome E2E for a synthetic quick-review artifact.
 
 The driver uses the production builder with synthetic rows and a tiny synthetic
-video. It enters two synthetic reviewers, downloads the combined JSON, verifies
+video. It enters three synthetic reviewers, downloads the combined JSON, verifies
 the schema and respondent/item counts without printing response data, and emits
 only fixed pass/fail codes. The protected artifact is never opened.
 """
@@ -127,6 +127,10 @@ try {
   if (-not (Evaluate $pageSocket "document.querySelectorAll('input[type=file]').length === 0")) { throw 'FILE_INPUT_PRESENT' }
   $step = 'disclaimer'
   if (-not (Evaluate $pageSocket "document.querySelector('#welcome .notice').textContent.trim().length > 20")) { throw 'INFORMAL_ONLY_NOTICE_MISSING' }
+  $step = 'rating_guidance'
+  if (-not (Evaluate $pageSocket "document.querySelector('#rating-guide').textContent.includes('②は動画と見比べた答えの正しさ') && document.querySelector('#rating-guide').textContent.includes('③は説明が動画中の出来事を根拠として示しているか') && document.querySelector('#rating-guide').textContent.includes('必要な場合はその順序')")) { throw 'EVIDENCE_RATING_GUIDANCE_MISSING' }
+  if (-not (Evaluate $pageSocket "document.querySelector('#question').textContent.includes('質問を読んで、何を答えればよいか分かりますか？')")) { throw 'QUESTION_CLARITY_PROMPT_MISSING' }
+  if (-not (Evaluate $pageSocket "document.querySelector('#question').textContent.includes('動画を見て、説明に書かれた答えは正しいと思いますか？')")) { throw 'ANSWER_CORRECTNESS_PROMPT_MISSING' }
   $step = 'csp'
   if (-not (Evaluate $pageSocket 'document.querySelector("meta[http-equiv=Content-Security-Policy]").content.includes("connect-src " + String.fromCharCode(39) + "none" + String.fromCharCode(39))')) { throw 'CSP_NETWORK_DENIAL_MISSING' }
   $step = 'external_fetch'
@@ -178,6 +182,19 @@ try {
     if ($i -lt 2) { $next = $i + 2; WaitFor $pageSocket "document.querySelector('#counter').textContent.trim().startsWith('$next')" ("SECOND_REVIEWER_QUESTION_" + $next + '_TIMEOUT') }
   }
   if (-not (Evaluate $pageSocket "document.querySelector('#reviewer-count').textContent.startsWith('2') && !!document.querySelector('#save')")) { throw 'MULTI_REVIEWER_COUNT_INVALID' }
+  $step = 'third_reviewer'
+  $null = Evaluate $pageSocket "document.querySelector('#next-reviewer').click(); true"
+  WaitFor $pageSocket "!document.querySelector('#welcome').classList.contains('hidden') && document.querySelector('#welcome-title').textContent.includes('3人目') && document.querySelector('#nickname').value === ''" 'THIRD_REVIEWER_NICKNAME_TIMEOUT'
+  $null = Evaluate $pageSocket "document.querySelector('#nickname').value='synthetic-reviewer-3'; document.querySelector('#start').click(); true"
+  WaitFor $pageSocket "!document.querySelector('#question').classList.contains('hidden') && document.querySelector('#counter').textContent.trim().startsWith('1') && document.querySelector('#who').textContent.includes('synthetic-reviewer-3')" 'THIRD_REVIEWER_QUESTION_TIMEOUT'
+  if (-not (Evaluate $pageSocket "Array.from(document.querySelectorAll('input[type=radio]')).every(x=>!x.checked)")) { throw 'THIRD_REVIEWER_STALE_CHOICES' }
+  for ($i = 0; $i -lt 3; $i++) {
+    $selected = Evaluate $pageSocket "(()=>{for(const name of ['question_clarity','answer_question_fit','video_evidence_sufficiency']){const radios=Array.from(document.querySelectorAll('input[name='+name+']')); if(radios.length!==3) return false; radios[$i].checked=true;} return true})()"
+    if (-not $selected) { throw 'THIRD_REVIEWER_CHOICE_INVALID' }
+    $null = Evaluate $pageSocket "document.querySelector('#next').click(); true"
+    if ($i -lt 2) { $next = $i + 2; WaitFor $pageSocket "document.querySelector('#counter').textContent.trim().startsWith('$next')" ("THIRD_REVIEWER_QUESTION_" + $next + '_TIMEOUT') }
+  }
+  if (-not (Evaluate $pageSocket "document.querySelector('#reviewer-count').textContent.startsWith('3') && !!document.querySelector('#save')")) { throw 'THREE_REVIEWER_COUNT_INVALID' }
   $step = 'combined_save'
   $null = Evaluate $pageSocket "document.querySelector('#save').click(); true"
   $download = $null
@@ -191,8 +208,8 @@ try {
   $payload = [IO.File]::ReadAllText($download.FullName) | ConvertFrom-Json
   $expectedIds = [string[]](ConvertFrom-Json ([Text.Encoding]::UTF8.GetString([Convert]::FromBase64String('__EXPECTED_IDS_B64__'))))
   $rootKeys = @($payload.PSObject.Properties.Name | Sort-Object) -join ','
-  if ($rootKeys -cne 'created_at_utc,limitations,purpose,respondents,schema_version,status' -or $payload.schema_version -ne 5 -or $payload.purpose -ne 'exploratory_human_impression_check' -or $payload.status -ne 'informal_observations_only' -or $payload.respondents.Count -ne 2) { throw 'COMBINED_JSON_SCHEMA_INVALID' }
-  if ($payload.respondents[0].nickname -cne 'synthetic-reviewer' -or $payload.respondents[1].nickname -cne 'synthetic-reviewer-2') { throw 'COMBINED_JSON_REVIEWER_ORDER_INVALID' }
+  if ($rootKeys -cne 'created_at_utc,limitations,purpose,respondents,schema_version,status' -or $payload.schema_version -ne 5 -or $payload.purpose -ne 'exploratory_human_impression_check' -or $payload.status -ne 'informal_observations_only' -or $payload.respondents.Count -ne 3) { throw 'COMBINED_JSON_SCHEMA_INVALID' }
+  if ($payload.respondents[0].nickname -cne 'synthetic-reviewer' -or $payload.respondents[1].nickname -cne 'synthetic-reviewer-2' -or $payload.respondents[2].nickname -cne 'synthetic-reviewer-3') { throw 'COMBINED_JSON_REVIEWER_ORDER_INVALID' }
   foreach ($respondent in $payload.respondents) {
     $respondentKeys = @($respondent.PSObject.Properties.Name | Sort-Object) -join ','
     if ($respondentKeys -cne 'answers,nickname' -or $respondent.answers.Count -ne 3) { throw 'COMBINED_JSON_ANSWER_COUNT_INVALID' }
@@ -206,8 +223,8 @@ try {
     }
     if (($actualIds -join ',') -cne ($expectedIds -join ',')) { throw 'COMBINED_JSON_ITEM_ID_ORDER_INVALID' }
   }
-  if (-not (Evaluate $pageSocket "document.querySelector('#saved').textContent.trim().startsWith('2')")) { throw 'COMBINED_SAVE_CONFIRMATION_MISSING' }
-  Write-Output 'E2E_PASS: two sequential reviewers each enter a nickname; one downloaded schema-v5 JSON with 2 respondents and 18 validated rubric judgments'
+  if (-not (Evaluate $pageSocket "document.querySelector('#saved').textContent.trim().startsWith('3')")) { throw 'COMBINED_SAVE_CONFIRMATION_MISSING' }
+  Write-Output 'E2E_PASS: three sequential reviewers each enter a nickname; one downloaded schema-v5 JSON with 3 respondents and 27 validated rubric judgments'
 } catch {
   $code = [string]$_
   if ($code -notmatch '^[A-Z0-9_]+$') {
@@ -286,7 +303,7 @@ def _cleanup_windows_profile(powershell: str, run_id: str, chrome_path: str) -> 
 
 
 class QuickReviewArtifactBrowserE2ETests(unittest.TestCase):
-    def test_windows_chrome_wsl_unc_two_reviewer_combined_json_download(self):
+    def test_windows_chrome_wsl_unc_three_reviewer_combined_json_download(self):
         chrome_text = os.environ.get("FORMAL_REVIEW_CHROME")
         chrome = Path(chrome_text) if chrome_text else DEFAULT_CHROME
         if not chrome.is_file():

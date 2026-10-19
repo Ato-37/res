@@ -11,10 +11,10 @@ from build_nextgqa_quick_review_artifact import (
 
 
 class QuickReviewArtifactSafetyTests(unittest.TestCase):
-    def test_default_output_targets_current_simple_v10_artifact(self):
+    def test_default_output_targets_current_simple_v12_artifact(self):
         self.assertEqual(
             DEFAULT_OUTPUT.name,
-            "quick_review_ja_simple_20261019_itemid_v10.html",
+            "quick_review_ja_simple_20261019_itemid_v12.html",
         )
         self.assertTrue(DEFAULT_OUTPUT.is_relative_to(
             Path(__file__).resolve().parents[1] / "data/private_nextgqa"
@@ -150,9 +150,11 @@ class QuickReviewArtifactSafetyTests(unittest.TestCase):
             self.assertIn("必要なら最後に、この端末へJSONで保存できます", rendered)
             self.assertIn("ファイル選択や時刻入力はありません", rendered)
             self.assertIn("厳密な幻覚判定や研究上の性能評価ではありません", rendered)
-            self.assertIn("質問の状況や条件はわかりやすいですか？", rendered)
-            self.assertIn("この説明は、質問に対する答えとして合っていますか？", rendered)
-            self.assertIn("説明は動画中の出来事を挙げ、答えの根拠を示していますか？", rendered)
+            self.assertIn("質問を読んで、何を答えればよいか分かりますか？", rendered)
+            self.assertIn("動画を見て、説明に書かれた答えは正しいと思いますか？", rendered)
+            self.assertIn("説明は、答えの根拠となる動画中の出来事（必要なら動きの順序）を十分に示していますか？", rendered)
+            self.assertIn("②は動画と見比べた答えの正しさ、③は説明が動画中の出来事を根拠として示しているか", rendered)
+            self.assertNotIn("答えが質問に合っていても", rendered)
             self.assertIn('name="question_clarity"', rendered)
             self.assertIn('name="answer_question_fit"', rendered)
             self.assertIn('name="video_evidence_sufficiency"', rendered)
