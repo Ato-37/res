@@ -198,9 +198,11 @@ class QuickReviewResponseTests(unittest.TestCase):
                  "video_evidence_sufficiency": "sufficient"}
                 for index, item_id in enumerate(ITEM_IDS, start=1)
             ]}]
-            candidate["respondents"][0]["answers"][1][field] = []
-            with self.subTest(field=field), self.assertRaises(ReviewError):
-                summarize_response(json.dumps(candidate).encode(), ITEM_IDS)
+            for malformed in ([], {}):
+                candidate["respondents"][0]["answers"][1][field] = malformed
+                with self.subTest(field=field, malformed_type=type(malformed).__name__), \
+                        self.assertRaises(ReviewError):
+                    summarize_response(json.dumps(candidate).encode(), ITEM_IDS)
 
     def test_rejects_duplicate_json_keys_and_forged_purpose(self):
         with self.assertRaises(ReviewError):
