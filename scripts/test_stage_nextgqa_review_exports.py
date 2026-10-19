@@ -121,6 +121,46 @@ class StageNextgqaReviewExportsTests(unittest.TestCase):
             self.assertTrue((repo / "data/private_nextgqa/review_only_review_payload.json").exists())
             self.assertFalse((repo / "data/private_nextgqa/review_only_clock_observations.json").exists())
 
+    def test_current_renderer_clock_schema_v3_is_staged_byte_identically(self):
+        with tempfile.TemporaryDirectory() as temp:
+            repo, files, _ = fixture(Path(temp))
+            clock = json.loads(files["clock.json"].read_bytes())
+            clock["schema_version"] = 3
+            raw = encode(clock)
+            files["clock.json"].write_bytes(raw)
+            index = json.loads(files["clock_index.json"].read_bytes())
+            index["payload_sha256"] = hashlib.sha256(raw).hexdigest()
+            files["clock_index.json"].write_bytes(encode(index))
+            result = stage_exports(
+                review_payload_path=str(files["review.json"]),
+                review_index_path=str(files["review_index.json"]),
+                clock_observations_path=str(files["clock.json"]),
+                clock_index_path=str(files["clock_index.json"]),
+                output_prefix="renderer_clock_v3", repo_root=repo)
+            self.assertEqual(result["artifact_count"], 4)
+            staged = repo / "data/private_nextgqa/renderer_clock_v3_clock_observations.json"
+            self.assertEqual(staged.read_bytes(), raw)
+            self.assertEqual(json.loads(staged.read_bytes())["schema_version"], 3)
+
+    def test_unsupported_clock_schema_is_rejected_without_rewrite(self):
+        with tempfile.TemporaryDirectory() as temp:
+            repo, files, _ = fixture(Path(temp))
+            clock = json.loads(files["clock.json"].read_bytes())
+            clock["schema_version"] = 4
+            raw = encode(clock)
+            files["clock.json"].write_bytes(raw)
+            index = json.loads(files["clock_index.json"].read_bytes())
+            index["payload_sha256"] = hashlib.sha256(raw).hexdigest()
+            files["clock_index.json"].write_bytes(encode(index))
+            with self.assertRaisesRegex(StageError, "clock_observations_declaration_invalid"):
+                stage_exports(
+                    review_payload_path=str(files["review.json"]),
+                    review_index_path=str(files["review_index.json"]),
+                    clock_observations_path=str(files["clock.json"]),
+                    clock_index_path=str(files["clock_index.json"]),
+                    output_prefix="renderer_clock_v4", repo_root=repo)
+            self.assertEqual(list((repo / "data/private_nextgqa").iterdir()), [])
+
     def test_optional_clock_pair_is_all_or_none(self):
         with tempfile.TemporaryDirectory() as temp:
             repo, files, _ = fixture(Path(temp))

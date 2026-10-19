@@ -11,10 +11,10 @@ from build_nextgqa_quick_review_artifact import (
 
 
 class QuickReviewArtifactSafetyTests(unittest.TestCase):
-    def test_default_output_targets_current_simple_v4_artifact(self):
+    def test_default_output_targets_current_simple_v5_artifact(self):
         self.assertEqual(
             DEFAULT_OUTPUT.name,
-            "quick_review_ja_simple_20261019_itemid_v4.html",
+            "quick_review_ja_simple_20261019_itemid_v5.html",
         )
         self.assertTrue(DEFAULT_OUTPUT.is_relative_to(
             Path(__file__).resolve().parents[1] / "data/private_nextgqa"
@@ -150,9 +150,11 @@ class QuickReviewArtifactSafetyTests(unittest.TestCase):
             self.assertIn("必要なら最後に、この端末へJSONで保存できます", rendered)
             self.assertIn("ファイル選択や時刻入力はありません", rendered)
             self.assertIn("厳密な幻覚判定や研究上の性能評価ではありません", rendered)
-            self.assertIn("はい、だいたい合っている", rendered)
-            self.assertIn("違うところがある気がする", rendered)
-            self.assertIn(">わからない</label>", rendered)
+            self.assertIn("説明の主張は、動画の内容と合っていますか？", rendered)
+            self.assertIn("この説明だけで、質問に答える根拠は十分ですか？", rendered)
+            self.assertIn('name="claim_truth"', rendered)
+            self.assertIn('name="explanation_sufficiency"', rendered)
+            self.assertIn("足りない", rendered)
             self.assertNotIn('type="file"', rendered)
             self.assertNotIn('id="time"', rendered)
             self.assertNotIn('id="note"', rendered)
@@ -163,11 +165,11 @@ class QuickReviewArtifactSafetyTests(unittest.TestCase):
             self.assertIn('id="summary-count"', rendered)
             self.assertIn('id="summary-items"', rendered)
             self.assertIn("function showSummary()", rendered)
-            self.assertIn("${answers.length} / ${items.length} 件に回答済み", rendered)
+            self.assertIn("${current.answers.length} / ${items.length} 件に回答済み", rendered)
             self.assertIn("$('summary-items').replaceChildren", rendered)
             self.assertIn("$('summary').classList.remove('hidden')", rendered)
             summary_start = rendered.index("function showSummary()")
-            summary_end = rendered.index("$('save').addEventListener", summary_start)
+            summary_end = rendered.index("$('next-reviewer').addEventListener", summary_start)
             summary_script = rendered[summary_start:summary_end]
             self.assertIn("li.textContent=", summary_script)
             self.assertNotIn("innerHTML", summary_script)
@@ -175,9 +177,18 @@ class QuickReviewArtifactSafetyTests(unittest.TestCase):
             self.assertNotIn("answer.note", summary_script)
             self.assertNotIn("item_id", summary_script)
             self.assertIn("正式なレビューやfaithfulness評価ではありません", rendered)
-            self.assertIn("必要なら回答を保存できます", rendered)
+            self.assertIn("全員分を保存", rendered)
+            self.assertIn("次の人へ", rendered)
+            self.assertIn('id="saved-file"', rendered)
+            self.assertIn("JSONをもう一度ダウンロード", rendered)
+            self.assertIn("const respondents=[]", rendered)
+            self.assertIn("respondents.push({nickname,answers:answers.slice()})", rendered)
+            self.assertIn("schema_version:4", rendered)
             self.assertIn("保存ファイルには入力したニックネームが含まれます", rendered)
             self.assertIn("ファイルを共有・公開しないでください", rendered)
+            self.assertIn("ダウンロードを開始しました", rendered)
+            self.assertIn("ブラウザのダウンロード一覧で保存を確認してください", rendered)
+            self.assertIn("if(exportUrl)URL.revokeObjectURL(exportUrl)", rendered)
             self.assertEqual(output.stat().st_mode & 0o777, 0o600)
 
 

@@ -125,7 +125,10 @@ def _validate_exports(review_raw: bytes, review_index_raw: bytes,
         return entries
     clock = _json_object(clock_raw, "clock_observations_json_invalid")
     clock_index = _json_object(clock_index_raw, "clock_index_json_invalid")
-    if (type(clock.get("schema_version")) is not int or clock["schema_version"] != 2
+    # v2 is accepted for already-exported observations; the current claim
+    # renderer emits v3 with the same declared purpose/status and exact-byte
+    # integrity contract. Preserve each version's original bytes unchanged.
+    if (type(clock.get("schema_version")) is not int or clock["schema_version"] not in {2, 3}
             or clock.get("purpose") != "local_unvalidated_html5_player_clock_observations"
             or clock.get("status") != "raw_player_clock_observations_only"
             or clock.get("execution_authorization") != "not_granted"):
