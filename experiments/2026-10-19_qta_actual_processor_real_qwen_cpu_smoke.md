@@ -30,7 +30,7 @@ not a faithfulness experiment.
 ```
 
 The runner defaults to the pinned cache revision and accepts
-\`--model-snapshot\` when it lives elsewhere. An
+--model-snapshot when it lives elsewhere. An
 initial invocation had a mistyped directory name and exited before processor
 loading; it did not access inputs or change state.
 
@@ -41,8 +41,20 @@ loading; it did not access inputs or change state.
 - Processor grids: **[16, 8, 8]** for all three rows; this represents 32 input
   frames with temporal patch size 2 and spatial merge size 2.
 - Candidate external-pin validation: passed for all three rows.
-- Elapsed time reported by the runner: **0.476 s** after import/processor load
-  had started; this is a small CPU smoke, not a throughput estimate.
+- Elapsed time reported by the final primary run: **0.471 s** after processor
+  load began; this is a small CPU smoke, not a throughput estimate.
+- Independent audit rerun elapsed time: **0.446 s**.
+- Pinned processor-input aggregate SHA256 (preprocessor config, tokenizer JSON
+  and config, chat template, merges, vocab):
+  `a1e3e98d2b7bc3f563115a890fe900bacc4927fd14324f887f66eec8fa9a4931`.
+- Runner SHA256:
+  `803c7de724bb2380105c4928c9f90c2d15c1c7b180e77379fe7e3a35f4f35725`.
+- Adapter SHA256:
+  `7bfb346d6e18a50791e03cdd81f4ccfeb89f0adc0af022e9d7132ef9269d8c65`.
+- Candidate unit-test SHA256:
+  `cac279ef63100deb7b919190146146a0f55535b5923ad5c03c9d5e3fe430fafa`.
+- Source commit: `a3e0e3131ec78e202f52bd743a987f49ab72df23`.
+
 - Output asserted `model_weights_loaded=false`, `model_load_permitted=false`,
   `scoring_authorized=false`, and `faithfulness_scored=false`.
 
