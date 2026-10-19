@@ -6,6 +6,7 @@ import os
 from pathlib import Path
 import tempfile
 import unittest
+from unittest.mock import patch
 
 import test_audit_qta_stage1_bundle_cli as stage1_cli_tests
 from nextgqa_prediction_link_attestation import create_attestation
@@ -17,6 +18,7 @@ from nextgqa_formal_review_workspace import (
     FormalReviewSession, WorkspaceServer, local_host_allowed,
     local_post_allowed, workspace_page, workspace_url,
 )
+import nextgqa_formal_review_workspace as workspace_module
 
 
 def _write(path: Path, raw: bytes):
@@ -170,6 +172,34 @@ class FormalWorkspaceTests(unittest.TestCase):
         self.assertFalse(state["stage2_verified"])
         self.assertIsNone(state["stage1"])
         self.assertIsNone(state["stage2"])
+
+    def test_stage1_source_mutation_during_audit_fails_closed(self):
+        self.assertTrue(self.session.verify_stage1()["stage1_verified"])
+        self.assertTrue(self.session.verify_stage2()["stage2_verified"])
+
+        review_path = self.stage1.root / self.stage1.sources["review"]
+        real_audit = workspace_module.audit_qta_stage1_bundle
+
+        def mutate_after_audit(**kwargs):
+            report = real_audit(**kwargs)
+            with review_path.open("ab") as stream:
+                stream.write(b" ")
+            return report
+
+        with patch.object(workspace_module, "audit_qta_stage1_bundle",
+                          side_effect=mutate_after_audit) as audit:
+            state = self.session.verify_stage1()
+
+        audit.assert_called_once()
+        self.assertFalse(state["stage1_verified"])
+        self.assertFalse(state["stage2_verified"])
+        self.assertIsNone(state["stage1"])
+        self.assertIsNone(state["stage2"])
+        self.assertEqual(state["failure_code"], "source_tree_changed_during_audit")
+        self.assertFalse(state["model_load_permitted"])
+        self.assertFalse(state["score_ready"])
+        self.assertEqual(state["execution_authorization"], "not_granted")
+        self.assertEqual(state["authorized_forwards"], 0)
 
     def test_wrong_stage1_upstream_digest_blocks_stage2(self):
         self.session.verify_stage1()
