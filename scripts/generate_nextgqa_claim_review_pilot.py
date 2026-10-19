@@ -72,12 +72,31 @@ def write_private_json_exclusive(output: Path, payload) -> None:
             pass
 
 
+def read_candidate_pair_filter(path: Path):
+    """Read a private SHA256 allowlist; return ids and provenance digests."""
+    import run_nextgqa_gold_interval_margin_pilot as pilot
+    raw = path.read_bytes()
+    try:
+        payload = json.loads(raw.decode("utf-8"))
+        pairs = pilot.validate_candidate_pair_filter(payload)
+    except (UnicodeDecodeError, json.JSONDecodeError, ValueError) as exc:
+        raise ValueError("private_candidate_pair_filter_invalid") from exc
+    digest = pilot._hash(sorted(pairs))
+    return pairs, hashlib.sha256(raw).hexdigest(), digest
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--exclude-media-sha256", required=True,
                         help="private local media-hash exclusion JSON")
     parser.add_argument("--n", type=int, choices=(1, 2, 3), default=3)
     parser.add_argument("--frames", type=int, choices=(16, 32), default=16)
+    parser.add_argument("--dataset-split", choices=("val", "test"), default="test",
+                        help="split used for exploratory claim-generation review; default: test")
+    parser.add_argument("--video-root", type=Path, default=None,
+                        help="explicit local video root (default: ~/nextgqa_sample/NExTVideo)")
+    parser.add_argument("--candidate-pair-filter", type=Path, default=None,
+                        help="optional local JSON allowlist with schema_version and pair_sha256")
     parser.add_argument("--output", required=True,
                         help="new mode-0600 local JSON; overwrite refused")
     parser.add_argument("--user-authorized-local-only", action="store_true")
@@ -99,13 +118,24 @@ def main() -> None:
                    or any(c not in "0123456789abcdef" for c in x) for x in hashes)):
         parser.error("private_media_exclusion_manifest_invalid")
     dataset = repo / "NExT-GQA/datasets/nextgqa"
-    video_root = Path.home() / "nextgqa_sample/NExTVideo"
+    video_root = (args.video_root.expanduser().resolve() if args.video_root else
+                  Path.home() / "nextgqa_sample/NExTVideo")
+    candidate_pair_filter_sha256 = None
+    candidate_pair_filter_digest = None
+    allowed_pair_sha256 = None
+    if args.candidate_pair_filter is not None:
+        try:
+            allowed_pair_sha256, candidate_pair_filter_sha256, candidate_pair_filter_digest = \
+                read_candidate_pair_filter(args.candidate_pair_filter.expanduser().resolve())
+        except (OSError, ValueError):
+            parser.error("private_candidate_pair_filter_invalid")
     # The imported selector's fixed cap is lowered before selection so that
     # only the requested small review set is decoded and retained in memory.
     import run_nextgqa_gold_interval_margin_pilot as pilot
     pilot.MAX_VIDEOS = args.n
     selected, counts, meta, cohort_hash = freeze_cohort(
-        repo, video_root, hashes, args.frames)
+        repo, video_root, hashes, args.frames,
+        allowed_pair_sha256=allowed_pair_sha256, dataset_split=args.dataset_split)
     if len(selected) != args.n:
         parser.error(f"requested_{args.n}_eligible_samples_but_found_{len(selected)}")
 
@@ -224,9 +254,15 @@ def main() -> None:
             ["git", "rev-parse", "HEAD"], cwd=repo, text=True).strip(),
         "runner_sha256": sha256_file(Path(__file__)),
         "pilot_runner_sha256": sha256_file(repo / "scripts/run_nextgqa_gold_interval_margin_pilot.py"),
+        "dataset_split": args.dataset_split,
         "dataset_inputs_sha256": {name: sha256_file(dataset / name) for name in
-            ("test.csv", "gsub_test.json", "map_vid_vidorID.json", "frame2time_test.json")},
+            (f"{args.dataset_split}.csv", f"gsub_{args.dataset_split}.json",
+             "map_vid_vidorID.json", f"frame2time_{args.dataset_split}.json")},
         "private_exclusion_manifest_sha256": sha256_file(exclusion_path),
+        "candidate_pair_filter_sha256": candidate_pair_filter_sha256,
+        "candidate_pair_filter_digest": candidate_pair_filter_digest,
+        "candidate_pair_filter_entries": (len(allowed_pair_sha256)
+                                          if allowed_pair_sha256 is not None else None),
         "cohort_sha256": cohort_hash,
         "requested_videos": args.n,
         "effective_videos": len(records),

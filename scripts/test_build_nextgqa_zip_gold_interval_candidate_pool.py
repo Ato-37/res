@@ -17,13 +17,20 @@ KEY = b"k" * 32
 
 
 class ZipPoolTests(unittest.TestCase):
-    def fixture(self, root, *, bad_zip=None, prior=(), rows=None, key=KEY):
+    def fixture(self, root, *, bad_zip=None, prior=(), rows=None, key=KEY,
+                split="test", videos=None):
         root.mkdir(parents=True, exist_ok=True)
         zp = root / "videos.zip"
+        videos = videos or [{"video_id": "v1", "path": "folder/clip.mp4",
+                             "bytes": b"synthetic media bytes"}]
+        if rows is None:
+            rows = [{"video_id":"v1","qid":"q1","question":"synthetic?","answer":"yes",
+                     "a0":"yes","a1":"no","a2":"maybe","a3":"other","a4":"none"}]
         if bad_zip is None:
             with zipfile.ZipFile(zp, "w") as z:
                 z.writestr("folder/", b"")
-                z.writestr("folder/clip.mp4", b"synthetic media bytes")
+                for video in videos:
+                    z.writestr(video["path"], video["bytes"])
         else:
             with zipfile.ZipFile(zp, "w") as z:
                 if bad_zip == "traversal": z.writestr("../clip.mp4", b"x")
@@ -33,18 +40,20 @@ class ZipPoolTests(unittest.TestCase):
                     info.external_attr = (stat.S_IFLNK | 0o777) << 16
                     z.writestr(info, "target")
                 elif bad_zip == "duplicate-map": z.writestr("folder/clip.mp4", b"x")
-        cp = root / "test.csv"
+        cp = root / f"{split}.csv"
         fields = ["video_id", "qid", "question", "answer", "a0", "a1", "a2", "a3", "a4"]
         with cp.open("w", newline="", encoding="utf-8") as f:
             import csv
             w = csv.DictWriter(f, fieldnames=fields); w.writeheader()
-            for row in rows or [{"video_id":"v1","qid":"q1","question":"synthetic?","answer":"yes",
-                                 "a0":"yes","a1":"no","a2":"maybe","a3":"other","a4":"none"}]:
+            for row in rows:
                 w.writerow(row)
-        qloc = {row["qid"]:[[1,2]] for row in (rows or [{"qid":"q1"}])}
-        gp = root / "gsub.json"; gp.write_text(json.dumps({"v1":{"duration":10,"location":qloc}}))
+        gsub = {}
+        for video in videos:
+            qloc = {row["qid"]: [[1, 2]] for row in rows if row["video_id"] == video["video_id"]}
+            gsub[video["video_id"]] = {"duration": 10, "location": qloc}
+        gp = root / f"gsub_{split}.json"; gp.write_text(json.dumps(gsub))
         mp = root / "map.json"
-        map_obj = {"v1":"folder/clip.mp4"}
+        map_obj = {video["video_id"]: video["path"] for video in videos}
         if bad_zip == "duplicate-map": map_obj["v2"] = "other/folder/clip.mp4"
         mp.write_text(json.dumps(map_obj))
         sd = root / "samples"; sd.mkdir(exist_ok=True)
@@ -165,6 +174,69 @@ class ZipPoolTests(unittest.TestCase):
             self.assertEqual((out/"folder/clip.mp4").read_bytes(),b"synthetic media bytes")
             expected={candidate_pair_sha256("v1","q1"),candidate_pair_sha256("v1","q2")}
             self.assertEqual(set(json.loads((out/"eligible_pairs.json").read_text())["pair_sha256"]),expected)
+
+    def test_validation_split_cap_selects_after_full_scan_and_extracts_only_selected_media(self):
+        videos = [{"video_id": f"v{i}", "path": f"folder/clip{i}.mp4",
+                   "bytes": f"media-{i}".encode()} for i in range(3)]
+        rows = [{"video_id": f"v{i}", "qid": f"q{i}", "question": "synthetic?", "answer": "yes",
+                 "a0": "yes", "a1": "no", "a2": "maybe", "a3": "other", "a4": "none"}
+                for i in range(3)]
+        with tempfile.TemporaryDirectory() as d:
+            root = Path(d); paths = self.fixture(root, split="val", rows=rows, videos=videos)
+            zp, cp, gp, mp, sd, ix, sec = paths
+            result = build(zp, cp, gp, mp, sd, "*.json", ix, sec, root / "out",
+                           expected_secret_sha256=hashlib.sha256(KEY).hexdigest(),
+                           dataset_split="val", max_unique_media=1)
+            self.assertEqual(result["dataset_split"], "val")
+            self.assertEqual(result["counts"]["eligible"], 3)
+            self.assertEqual(result["eligible_unique_media_count"], 3)
+            self.assertEqual(result["selected_unique_media_count"], 1)
+            self.assertEqual(result["selected_eligible_pair_count"], 1)
+            self.assertEqual(result["extracted_media_count"], 1)
+            self.assertIn("after complete exposure scan", result["selection_rule"])
+            selected_pair = json.loads((root / "out/eligible_pairs.json").read_text())["pair_sha256"]
+            expected = min(videos, key=lambda video: hashlib.sha256(json.dumps(
+                ["nextgqa-zip-candidate-selection-v1", "val",
+                 hashlib.sha256(video["bytes"]).hexdigest()],
+                separators=(",", ":")).encode()).digest())
+            self.assertEqual(selected_pair, [candidate_pair_sha256(expected["video_id"], f"q{expected['video_id'][1:]}")])
+            self.assertTrue((root / "out" / expected["path"]).is_file())
+            self.assertEqual(sum(p.name.endswith(".mp4") for p in (root / "out").rglob("*")), 1)
+
+    def test_prior_indexes_union_exclusions_across_inputs(self):
+        videos = [{"video_id": f"v{i}", "path": f"folder/clip{i}.mp4",
+                   "bytes": f"media-{i}".encode()} for i in range(3)]
+        rows = [{"video_id": f"v{i}", "qid": f"q{i}", "question": "synthetic?", "answer": "yes",
+                 "a0": "yes", "a1": "no", "a2": "maybe", "a3": "other", "a4": "none"}
+                for i in range(3)]
+        with tempfile.TemporaryDirectory() as d:
+            root = Path(d); zp, cp, gp, mp, sd, ix1, sec = self.fixture(root, rows=rows, videos=videos)
+            identities = [
+                ("video", _token(KEY, "dataset-video-id", ("nextgqa", "v0"))),
+                ("pair", _token(KEY, "video-question-pair", ("nextgqa", "dataset-video-id", "nextgqa", "v1", "q1"))),
+                ("media", _token(KEY, "media-sha256", (hashlib.sha256(b"media-2").hexdigest(),))),
+            ]
+            index_paths = [ix1]
+            for i, (kind, token) in enumerate(identities):
+                path = ix1 if i == 0 else root / f"index{i}.json"
+                ids = {"dataset_video_hmac_sha256": [], "media_sha256_hmac_sha256": [],
+                       "video_question_pair_hmac_sha256": []}
+                field = {"video": "dataset_video_hmac_sha256", "media": "media_sha256_hmac_sha256",
+                         "pair": "video_question_pair_hmac_sha256"}[kind]
+                ids[field].append(token)
+                path.write_text(json.dumps({"schema_version": 1,
+                    "purpose": "outcome_blind_prior_exposure_index",
+                    "canonicalization_version": "explicit-identifiers-v1-no-path-stems",
+                    "sources": [{"identity_namespace": "nextgqa"}], "identities": ids}))
+                if i:
+                    index_paths.append(path)
+            result = build(zp, cp, gp, mp, sd, "*.json", index_paths, sec, root / "out",
+                           expected_secret_sha256=hashlib.sha256(KEY).hexdigest())
+            self.assertEqual(result["counts"]["prior_video_excluded"], 1)
+            self.assertEqual(result["counts"]["prior_pair_excluded"], 1)
+            self.assertEqual(result["counts"]["prior_media_excluded"], 1)
+            self.assertEqual(result["counts"]["eligible"], 0)
+            self.assertEqual(len(result["input_sha256"]["prior_index_sha256s"]), 3)
 
     def test_ineligible_interval_choices_sample_path_and_exclusive_output(self):
         bad={"video_id":"v1","qid":"q1","question":"q?","answer":"yes",

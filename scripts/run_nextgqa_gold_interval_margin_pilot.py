@@ -304,10 +304,13 @@ def host_available_bytes() -> int:
     raise RuntimeError("host_memavailable_missing")
 
 
-def load_candidate_rows(repo: Path, video_root: Path, allowed_pair_sha256=None):
+def load_candidate_rows(repo: Path, video_root: Path, allowed_pair_sha256=None,
+                        dataset_split="test"):
+    if dataset_split not in {"train", "val", "test"}:
+        raise ValueError("nextgqa_dataset_split_invalid")
     dataset = repo / "NExT-GQA" / "datasets" / "nextgqa"
     video_map = json.loads((dataset / "map_vid_vidorID.json").read_text(encoding="utf-8"))
-    gsub = json.loads((dataset / "gsub_test.json").read_text(encoding="utf-8"))
+    gsub = json.loads((dataset / f"gsub_{dataset_split}.json").read_text(encoding="utf-8"))
     paths = {}
     for path in video_root.rglob("*.mp4"):
         paths.setdefault(video_key(path.relative_to(video_root).as_posix()), []).append(path)
@@ -326,7 +329,7 @@ def load_candidate_rows(repo: Path, video_root: Path, allowed_pair_sha256=None):
                         if isinstance(record, dict) and isinstance(record.get("video"), str))
 
     grouped = {}
-    csv_path = dataset / "test.csv"
+    csv_path = dataset / f"{dataset_split}.csv"
     with csv_path.open(newline="", encoding="utf-8-sig") as stream:
         reader = csv.DictReader(stream)
         required = {"video_id", "qid", "question", "answer", "a0", "a1", "a2", "a3", "a4"}
@@ -360,6 +363,7 @@ def load_candidate_rows(repo: Path, video_root: Path, allowed_pair_sha256=None):
             if not str(row["question"]).strip():
                 continue
             grouped.setdefault(vid, []).append({
+                "video_id": vid,
                 "qid": qid,
                 "question": str(row["question"]).strip(),
                 "choices": choices,
@@ -390,8 +394,9 @@ def load_candidate_rows(repo: Path, video_root: Path, allowed_pair_sha256=None):
 
 def freeze_cohort(repo: Path, video_root: Path, excluded_media_sha256=(),
                   frame_count=FRAMES, locked_assignments=None,
-                  allowed_pair_sha256=None):
-    candidates, meta = load_candidate_rows(repo, video_root, allowed_pair_sha256)
+                  allowed_pair_sha256=None, dataset_split="test"):
+    candidates, meta = load_candidate_rows(repo, video_root, allowed_pair_sha256,
+                                          dataset_split=dataset_split)
     excluded_media_sha256 = set(excluded_media_sha256)
     selected = []
     counts = {"timing_rejected_videos": 0, "timing_pass_videos": 0,

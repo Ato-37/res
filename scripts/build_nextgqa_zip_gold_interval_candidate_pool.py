@@ -202,12 +202,21 @@ def _private_input(path: Path) -> None:
 
 
 def build(zip_path: Path, csv_path: Path, gsub_path: Path, map_path: Path,
-          sample_dir: Path, sample_pattern: str, index_path: Path, secret_path: Path,
+          sample_dir: Path, sample_pattern: str, index_path: Path | list[Path], secret_path: Path,
           output_dir: Path, *, max_member_bytes=MAX_MEMBER_BYTES,
-          max_total_bytes=MAX_TOTAL_BYTES, expected_secret_sha256: str | None = None) -> dict:
+          max_total_bytes=MAX_TOTAL_BYTES, expected_secret_sha256: str | None = None,
+          dataset_split: str = "test", max_unique_media: int | None = None) -> dict:
+    if dataset_split not in {"train", "val", "test"}:
+        raise ValueError("dataset_split_invalid")
+    if (max_unique_media is not None
+            and (type(max_unique_media) is not int or max_unique_media < 1)):
+        raise ValueError("max_unique_media_invalid")
+    index_paths = [index_path] if isinstance(index_path, Path) else list(index_path)
+    if not index_paths:
+        raise ValueError("prior_index_required")
     # Preflight every explicit source path before consuming any source bytes.
     _preflight_file(secret_path, secret=True)
-    for source in (zip_path, csv_path, gsub_path, map_path, index_path):
+    for source in (zip_path, csv_path, gsub_path, map_path, *index_paths):
         _preflight_file(source)
     sample_root_info = sample_dir.lstat()
     if not stat.S_ISDIR(sample_root_info.st_mode) or stat.S_ISLNK(sample_root_info.st_mode):
@@ -223,9 +232,12 @@ def build(zip_path: Path, csv_path: Path, gsub_path: Path, map_path: Path,
         raise ValueError("expected_secret_sha256_required")
     if not hmac.compare_digest(key_sha, expected_secret_sha256):
         raise ValueError("secret_sha256_mismatch")
-    input_bytes = {"test_csv": _secure_read(csv_path), "gsub": _secure_read(gsub_path),
-                   "video_map": _secure_read(map_path), "prior_index": _secure_read(index_path)}
-    prior = _load_index(input_bytes["prior_index"])
+    index_bytes = [_secure_read(path) for path in index_paths]
+    input_bytes = {"split_csv": _secure_read(csv_path), "gsub": _secure_read(gsub_path),
+                   "video_map": _secure_read(map_path)}
+    prior_indexes = [_load_index(raw) for raw in index_bytes]
+    prior = {kind: set().union(*(index[kind] for index in prior_indexes))
+             for kind in ("video", "media", "pair")}
     excluded_paths, excluded_keys, sample_digests = _sample_paths(sample_dir, sample_pattern)
     gsub, vidmap = _json(input_bytes["gsub"]), _json(input_bytes["video_map"])
     if not isinstance(gsub, dict) or not isinstance(vidmap, dict):
@@ -270,16 +282,18 @@ def build(zip_path: Path, csv_path: Path, gsub_path: Path, map_path: Path,
                 raise ValueError("duplicate_mapped_video_key")
             mapped[k] = vid
         # Input digests bind exact local inputs without disclosing names or content.
-        digests = {"zip_sha256": zip_sha, "test_csv_sha256": hashlib.sha256(input_bytes["test_csv"]).hexdigest(),
+        digests = {"zip_sha256": zip_sha, f"{dataset_split}_csv_sha256": hashlib.sha256(input_bytes["split_csv"]).hexdigest(),
                    "gsub_sha256": hashlib.sha256(input_bytes["gsub"]).hexdigest(), "video_map_sha256": hashlib.sha256(input_bytes["video_map"]).hexdigest(),
-                   "prior_index_sha256": hashlib.sha256(input_bytes["prior_index"]).hexdigest(), "secret_sha256": key_sha,
+                   "prior_index_sha256": hashlib.sha256(index_bytes[0]).hexdigest(), "secret_sha256": key_sha,
                    "sample_manifest_set_sha256": hashlib.sha256("".join(sorted(sample_digests)).encode()).hexdigest()}
+        digests["prior_index_sha256s"] = [hashlib.sha256(raw).hexdigest()
+                                             for raw in index_bytes]
         candidates = []; exclusion_raw_sha = []; media_cache = {}; hashed_total = 0
         counts = {"csv_rows": 0, "mapped_rows": 0,
             "sample_path_excluded": 0, "ambiguous_or_missing_zip_media": 0,
             "prior_video_excluded": 0, "prior_pair_excluded": 0, "prior_media_excluded": 0,
             "invalid_interval": 0, "choice_ineligible": 0, "eligible": 0}
-        with io.StringIO(input_bytes["test_csv"].decode("utf-8-sig"), newline="") as f:
+        with io.StringIO(input_bytes["split_csv"].decode("utf-8-sig"), newline="") as f:
             reader = csv.DictReader(f)
             required = {"video_id", "qid", "answer", "a0", "a1", "a2", "a3", "a4"}
             if not required.issubset(set(reader.fieldnames or [])):
@@ -330,6 +344,24 @@ def build(zip_path: Path, csv_path: Path, gsub_path: Path, map_path: Path,
                     counts["prior_media_excluded"] += 1; exclusion_raw_sha.append(media_sha); continue
                 pairsha = candidate_pair_sha256(vid, qid)
                 candidates.append((zi, pairsha, media_sha)); counts["eligible"] += 1
+        # Rank only after every mapped candidate has been scanned and its media
+        # bytes hashed for exposure. The cap affects extraction, never exposure
+        # checking, and is independent of answer/model outcomes.
+        unique_media = {}
+        for zi, _pairsha, media_sha in candidates:
+            unique_media.setdefault(zi.header_offset, (zi, media_sha))
+        ranked_media = sorted(
+            unique_media.values(),
+            key=lambda item: hashlib.sha256(json.dumps(
+                ["nextgqa-zip-candidate-selection-v1", dataset_split, item[1]],
+                separators=(",", ":")).encode("utf-8")).digest())
+        if max_unique_media is not None:
+            selected_offsets = {zi.header_offset for zi, _ in ranked_media[:max_unique_media]}
+        else:
+            selected_offsets = set(unique_media)
+        selected_candidates = [row for row in candidates if row[0].header_offset in selected_offsets]
+        selected_unique_media = {offset: value for offset, value in unique_media.items()
+                                 if offset in selected_offsets}
         # Create all outputs exclusively after validation. Roll back only this new directory on failure.
         parent_info = output_dir.parent.lstat()
         if (not stat.S_ISDIR(parent_info.st_mode) or stat.S_ISLNK(parent_info.st_mode)
@@ -340,12 +372,9 @@ def build(zip_path: Path, csv_path: Path, gsub_path: Path, map_path: Path,
         output_dir.mkdir(mode=0o700, parents=False)
         try:
             os.chmod(output_dir, 0o700)
-            pair_hashes = [pairsha for _zi, pairsha, _sha in candidates]
-            unique_media = {}
-            for zi, _pairsha, expected_sha in candidates:
-                unique_media.setdefault(zi.header_offset, (zi, expected_sha))
+            pair_hashes = [pairsha for _zi, pairsha, _sha in selected_candidates]
             extracted_total = 0
-            for zi, expected_sha in unique_media.values():
+            for zi, expected_sha in selected_unique_media.values():
                 # Preserve the archive-relative media key expected by the downstream runner.
                 dest = output_dir.joinpath(*PurePosixPath(zi.filename).parts)
                 dest.parent.mkdir(mode=0o700, parents=True, exist_ok=True)
@@ -358,11 +387,17 @@ def build(zip_path: Path, csv_path: Path, gsub_path: Path, map_path: Path,
             _write_exclusive(output_dir / "prior_media_sha256_exclusions.json",
                 (json.dumps({"schema_version": 1, "media_sha256": sorted(set(exclusion_raw_sha))}, indent=2)+"\n").encode())
             summary = {"schema_version": 1, "purpose": "outcome_blind_local_candidate_pool",
+                       "dataset_split": dataset_split,
                        "counts": counts, "input_sha256": digests,
                        "eligible_pair_count": len(candidates),
-                       "extracted_media_count": len(unique_media),
-                       "extracted_unique_media_count": len(unique_media),
+                       "selected_eligible_pair_count": len(selected_candidates),
+                       "eligible_unique_media_count": len(unique_media),
+                       "selected_unique_media_count": len(selected_unique_media),
+                       "extracted_media_count": len(selected_unique_media),
+                       "extracted_unique_media_count": len(selected_unique_media),
                        "extracted_bytes": extracted_total,
+                       "selection_rule": "lowest SHA-256 rank of [nextgqa-zip-candidate-selection-v1, dataset_split, media_sha256], after complete exposure scan; all eligible pairs for selected media are retained",
+                       "max_unique_media": max_unique_media,
                        "private_outputs": ["eligible_pairs.json", "prior_media_sha256_exclusions.json"],
                        "max_member_bytes": max_member_bytes, "max_total_bytes": max_total_bytes}
             _write_exclusive(output_dir / "summary.json",
@@ -395,16 +430,24 @@ def _sha_file(path):
 
 def main(argv=None):
     p=argparse.ArgumentParser(description=__doc__)
-    for flag in ("zip", "test-csv", "gsub-test", "video-map", "sample-manifest-dir", "prior-exposure-index", "secret-file", "output-dir"):
+    for flag in ("zip", "video-map", "sample-manifest-dir", "secret-file", "output-dir"):
         p.add_argument("--"+flag, required=True, type=Path)
+    p.add_argument("--test-csv", "--split-csv", dest="split_csv", required=True, type=Path)
+    p.add_argument("--gsub-test", "--gsub-json", dest="gsub_json", required=True, type=Path)
+    p.add_argument("--dataset-split", choices=("train", "val", "test"), default="test")
+    p.add_argument("--max-unique-media", type=int, default=None,
+                   help="extract at most this many uniquely ranked eligible media files")
+    p.add_argument("--prior-exposure-index", required=True, action="append", type=Path,
+                   help="validated HMAC prior index; may be repeated and is conservatively unioned")
     p.add_argument("--sample-manifest-pattern", required=True)
     p.add_argument("--expected-secret-sha256", required=True,
                    help="out-of-band SHA-256 pin for the local mode-0600 HMAC key")
     a=p.parse_args(argv)
     try:
-        result=build(a.zip,a.test_csv,a.gsub_test,a.video_map,a.sample_manifest_dir,a.sample_manifest_pattern,
+        result=build(a.zip,a.split_csv,a.gsub_json,a.video_map,a.sample_manifest_dir,a.sample_manifest_pattern,
                      a.prior_exposure_index,a.secret_file,a.output_dir,
-                     expected_secret_sha256=a.expected_secret_sha256)
+                     expected_secret_sha256=a.expected_secret_sha256,
+                     dataset_split=a.dataset_split, max_unique_media=a.max_unique_media)
     except (OSError, ValueError, zipfile.BadZipFile) as exc:
         p.error(str(exc).split(":",1)[0])
     print(json.dumps({"counts":result["counts"],"extracted_media_count":result["extracted_media_count"]},sort_keys=True))
