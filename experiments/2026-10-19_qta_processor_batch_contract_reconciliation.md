@@ -32,12 +32,13 @@ legacy 3×3 claim-mask path.
 ## Verification and limits
 
 Ran the same-source Phase-1/Phase-2 synthetic composition and phase-receipt
-regression suites: **42/42 passed**. A separate structural assertion verified
-three receipt rows and, for each row, exactly nine branch descriptors all
-referencing that row's single processor digest. These fixtures use synthetic
-batch digests; they do not test the corrected proposed schema. No protected
-video, human review, model, or GPU was used. No real batch manifest, trusted
-caller pin, or production scorer was created.
+regression suites: the existing **42/42 passed**. Added a focused regression
+test that asserts for all three synthetic rows that the receipt, baseline,
+Phase-2 plan, and each of nine branch descriptors carry the same single
+processor digest; the expanded composition suite passes **3/3**. These fixtures
+use synthetic batch digests; they do not test the corrected proposed schema. No
+protected video, human review, model, or GPU was used. No real batch manifest,
+trusted caller pin, or production scorer was created.
 
 Direct faithfulness remains **0/3** formal claim reviews, **0/15** verified
 clock/frame correspondences, **0/3** prediction-link judgments, and **0/3**
@@ -45,9 +46,8 @@ direct scores. No direct effect estimate, confidence interval, or test exists.
 
 ## Next action
 
-Before implementing the v2 receipt path, trace one synthetic row's base-batch
-digest from processor construction through the existing phase-1 receipt,
-phase-2 plan, and all nine branch descriptors. Add tests that assert one digest
-per row is reused across all branches and cannot be silently replaced by the
-3×3 claim-mask batch list. Keep the production caller non-authorizing until
-independent review/root/clock/prediction-link gates are genuinely present.
+The next implementation can add the versioned digest-manifest role to a new
+pre-baseline receipt domain/schema while preserving v1 verification exactly.
+Keep it non-authorizing and require a separately supplied expected artifact
+hash. The production caller must remain blocked until independent
+review/root/clock/prediction-link gates are genuinely present.

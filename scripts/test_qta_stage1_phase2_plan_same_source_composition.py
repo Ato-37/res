@@ -8,7 +8,7 @@ from fractions import Fraction
 from annotation_clock_calibration import map_annotation_intervals_to_pts
 from qta_phase_freeze_receipts import build_external_cohort_pin_candidate
 from qta_phase2_plan_manifest import create_qta_phase2_plan_manifest_candidate
-from qta_nine_branch_plan import build_qta_nine_branch_plan
+from qta_nine_branch_plan import BRANCH_ORDER, build_qta_nine_branch_plan
 from qta_selection_provenance import (
     FROZEN_SELECTOR_SOURCE_SHA256,
     build_qta_selection_provenance,
@@ -317,6 +317,24 @@ class Stage1Phase2PlanSameSourceCompositionTests(unittest.TestCase):
         self.assertIs(manifest["model_load_permitted"], False)
         self.assertIs(manifest["scoring_authorized"], False)
         self.assertEqual(manifest["authorized_forwards"], 0)
+
+    def test_one_processor_batch_digest_is_reused_across_nine_branches(self):
+        manifest = json.loads(self._create_candidate())
+        baseline_rows = self.baseline_manifest["records"]
+        self.assertEqual(len(self.records), 3)
+        self.assertEqual(len(manifest["records"]), 3)
+        for receipt_row, manifest_row, baseline_row in zip(
+                self.records, manifest["records"], baseline_rows, strict=True):
+            digest = receipt_row["processor_batch_sha256"]
+            plan = manifest_row["plan"]
+            self.assertEqual(manifest_row["processor_batch_sha256"], digest)
+            self.assertEqual(baseline_row["score_binding"][
+                "processor_batch_sha256"], digest)
+            self.assertEqual(plan["typed_batch_sha256"], digest)
+            self.assertEqual(plan["branch_order"], list(BRANCH_ORDER))
+            self.assertEqual(len(plan["branches"]), 9)
+            self.assertEqual({branch["typed_batch_sha256"]
+                              for branch in plan["branches"]}, {digest})
 
     def test_stage1_source_mutations_and_baseline_or_order_tamper_are_rejected(self):
         for field in ("reviewed_intervals_sha256", "source_video_sha256", "claim_sha256"):
