@@ -10,6 +10,7 @@ import re
 from typing import Any, Mapping
 
 from qta_actual_qa_source_contract import bind_qta_actual_qa_source
+from qta_prebaseline_live_batch_binding import validate_live_processor_batches
 from qta_prescore_review_row_adapter import adapt_review_bundle_to_qta_rows
 
 ROW_COUNT = 3
@@ -32,7 +33,7 @@ REVIEW_KEYS = {
 MAX_RAW_INPUT_BYTES = 24_000_000
 NOT_SUPPLIED = (
     "stage1_release_custody", "clock_frame_evidence", "clock_calibration",
-    "processor_batch_binding", "prescore_mapping", "baseline_full_video_pq_freeze",
+    "prescore_mapping", "baseline_full_video_pq_freeze",
     "stage2_prediction_link_semantic_review", "human_identity_and_semantic_review_proof",
 )
 
@@ -55,7 +56,9 @@ def _safe_error(exc: Exception) -> str:
 
 
 def diagnose_qta_prebaseline(*, actual_source_inputs: Mapping[str, Any] | None,
-                             review_bundle_inputs: Mapping[str, Any] | None) -> dict[str, Any]:
+                             review_bundle_inputs: Mapping[str, Any] | None,
+                             expected_processor_rows: Any = None,
+                             live_processor_rows: Any = None) -> dict[str, Any]:
     """Rerun source and review-byte validators; never grant downstream authority.
 
     `actual_source_inputs` must be the exact keyword inputs to
@@ -67,6 +70,7 @@ def diagnose_qta_prebaseline(*, actual_source_inputs: Mapping[str, Any] | None,
     gates: dict[str, dict[str, Any]] = {}
     private_binding = None
     private_review_rows = None
+    private_crosswalk = None
 
     if actual_source_inputs is None:
         gates["actual_qa_source_binding"] = _component("not_supplied")
@@ -123,6 +127,7 @@ def diagnose_qta_prebaseline(*, actual_source_inputs: Mapping[str, Any] | None,
         try:
             private = json.loads(private_binding.decode("utf-8"))
             crosswalk = private["review_source_crosswalk"]
+            live_source_crosswalk = []
             lineage = json.loads(actual_source_inputs["lineage_manifest_raw"].decode("utf-8"))
             claims = json.loads(actual_source_inputs["claim_manifest_raw"].decode("utf-8"))
             worksheet = json.loads(review_bundle_inputs["worksheet_raw"].decode("utf-8"))
@@ -145,11 +150,32 @@ def diagnose_qta_prebaseline(*, actual_source_inputs: Mapping[str, Any] | None,
                         != worksheet_row.get("claim_text_sha256")
                         or line.get("video_sha256") != review.get("source_video_sha256")):
                     raise ValueError("ordered_source_review_claim_video_mismatch")
+                live_source_crosswalk.append({
+                    "review_token": cross["review_token"],
+                    "video_sha256": line["video_sha256"],
+                })
+            private_crosswalk = live_source_crosswalk
             gates["source_to_review_ordered_join"] = _component(
                 "passed", rows=3)
         except Exception as exc:
             gates["source_to_review_ordered_join"] = _component(
                 "blocked", failure_code=_safe_error(exc))
+
+    if expected_processor_rows is None and live_processor_rows is None:
+        gates["processor_batch_binding"] = _component("not_supplied")
+    elif gates["source_to_review_ordered_join"]["status"] != "passed":
+        gates["processor_batch_binding"] = _component(
+            "blocked", failure_code="upstream_source_review_join_blocked")
+    else:
+        result = validate_live_processor_batches(
+            expected_rows=expected_processor_rows,
+            live_rows=live_processor_rows,
+            source_crosswalk=private_crosswalk,
+        )
+        gates["processor_batch_binding"] = _component(
+            result["status"], failure_code=result["failure_code"],
+            rows=result["validated_rows"],
+        )
 
     for name in NOT_SUPPLIED:
         gates[name] = _component("not_supplied")
