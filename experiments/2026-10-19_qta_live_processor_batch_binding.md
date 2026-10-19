@@ -64,8 +64,44 @@ these counts. The signed trust/release and human semantic-review gates are
 still absent, so a real-video score run is not justified. Rights status remains
 unverified and all protected material must remain local.
 
-Next, design a typed, independently pinned processor-batch receipt and a
-single-use immutable handoff that makes preflight and scoring consume the same
-three batch snapshots. Keep it non-authorizing until trust, release, review,
-clock/frame, target, and baseline `p/q` gates independently pass. Do not repeat
-closed proxy runs or launch GPU work to exercise this CPU-only validation seam.
+## Signed phase-receipt composition follow-up
+
+Source inspection found that phase-1 receipts already sign ordered
+`(sha256(review_token), processor_batch_sha256)` rows, while their exact
+`full_video_processor_batches.bin` artifact remains opaque. Added
+`scripts/qta_signed_prebaseline_live_batches.py` to verify the actual phase-1
+signature and artifact-byte bindings, derive the source crosswalk from the
+signed Stage-1 artifact, join the receipt's hashed row tokens in order, and
+compare signed row hashes to the live CPU `FrozenBatch` objects. It does not
+accept a caller-created receipt success report or caller-supplied crosswalk.
+The typed batches are recomputed in memory; no pickle or new tensor serializer
+was introduced.
+
+The extended focused suite passed **42/42 tests**, including synthetic signed
+receipt success, stale signed batch digest rejection, live-row reorder
+rejection, and altered artifact rejection. Existing source/review diagnostic,
+processor adapter, and baseline scorer suites also passed. The helper always
+reports the external trust-root origin as unauthenticated and denies model
+loading, scoring, and all forwards.
+
+This joins a signed freeze-owner assertion to exact live tensor bytes, assuming
+the caller's root pin and roster are trusted through an independent channel.
+It still does not prove the opaque `.bin` artifact itself contains tensors that
+produce those signed hashes, and it does not make the checked objects immutable
+or invoke the scorer in the same transaction. A production pre-load wrapper
+must validate real external trust, release/custody, human semantics,
+clock/frame, targets, `p/q`, then pass these same objects and signed digest pins
+to the scorer, which rehashes before forward. Do not equate this helper with
+that wrapper or with real-data evidence.
+
+Direct faithfulness remains **0/3** reviewed claims, **0/15** player-clock /
+decoder correspondences, **0/3** prediction-link judgments, and **0/3** direct
+scores; no direct `ΔF`, interval, or test exists. No model was loaded and no GPU
+work was run in this cycle. Do not repeat closed proxy runs or launch GPU work
+to exercise this CPU-only validation seam.
+
+Next, implement and test the production orchestration boundary around the
+existing receipt/source/review/clock/target/baseline validators and scorer,
+with a single-use reference to the exact batches. Keep it fail-closed and
+non-authorizing when any trust or human gate is missing; do not claim that a
+synthetic receipt fixture authorizes real inference.
