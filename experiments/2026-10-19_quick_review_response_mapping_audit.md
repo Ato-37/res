@@ -68,3 +68,41 @@ observed **9 files and 1 unique SHA-256 content**. This corrects the earlier
 responses. Filenames and response bytes were not emitted. All nine files still
 fail to provide usable judgments for the current artifact item IDs, so formal
 claim review remains **0/3** and direct scoring remains **0/3**.
+
+## Follow-up payload classification (2026-10-19)
+
+The primary agent independently inspected only the sanitized structure of one
+payload and hashed all nine files. The nine files are byte-identical. The
+payload has schema 2 and the exploratory purpose string, but its three item
+IDs are fixed sequential hexadecimal fixture values rather than IDs emitted by
+the private v4 artifact. Its judgments are also the fixture sequence
+`roughly_matches`, `partly_differs`, `cannot_tell`. The v4 inspector rejects it
+with `response_item_mapping_or_judgment_invalid`. These are synthetic test
+payloads, not usable human-review responses; no reviewer impression can be
+inferred from them. No nickname, source question, claim, or video was printed.
+
+The Japanese runbook was corrected to match the actual interface: Japanese
+question/claim text is displayed directly and there is no English-toggle
+control. The reviewer still enters a nickname and proceeds directly to the
+three embedded-video questions. This copy fix and fixture classification do
+not change the evidence counts: direct claim review **0/3**, verified
+clock/frame correspondences **0/15**, prediction-link judgments **0/3**, and
+direct scores **0/3**, with no `ΔF`, interval, or test.
+
+## Current-directory recount (2026-10-19)
+
+A fresh primary-side check found **11** regular JSON files and **1** unique
+content hash in the private quick-review response directory. Each file was
+validated against the current v4 artifact by the response inspector; all 11
+were rejected with `response_item_mapping_or_judgment_invalid`. The repeated
+payload is therefore not a usable human response for the current items. No
+response contents, nickname, or source text were printed. This supersedes the
+earlier nine-file recount, while leaving usable informal responses at **0**.
+
+The current builder and response-inspector suites passed **17/17** tests,
+compilation and scoped whitespace checks passed, and the artifact remains a
+local-only 0600 HTML file. Direct faithfulness remains **0/3** claims scored;
+there is no direct effect estimate, interval, or test. No GPU model run was
+started: the currently runnable GPU branches are already closed exploratory
+proxies, and the direct study still lacks the independent claim/frame review
+and frozen scoring inputs required by its protocol.
