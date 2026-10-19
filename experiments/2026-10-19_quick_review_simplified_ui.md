@@ -41,6 +41,22 @@ The user clarified that this is only a lightweight check and should not ask revi
 - Builder tests: **9/9 passed**. `git diff --check` passed for the source/test changes.
 - No reviewer response was collected. Direct faithfulness scoring remains **0/3**; this UI wording change adds no efficacy evidence.
 
+## Current builder browser E2E retest (2026-10-19)
+
+The first E2E attempt in the normal sandbox could not invoke Windows
+PowerShell/Chrome because WSL interop returned a vsock error; this was an
+environment denial, not a page-flow result. Re-running the same bounded test
+with one-command elevated execution passed **1/1**. It built a synthetic
+three-video fixture, opened it in an isolated temporary Chrome profile, entered
+a synthetic nickname, traversed all three questions, verified there was no
+file picker and the informal-only notice was present, and confirmed the Save
+button was not activated. The exact temporary browser profile was cleaned up.
+The protected v4 artifact, videos, and human responses were not opened by this
+test, so it verifies the production builder's flow rather than playback of the
+protected media. Builder/inspector/importer tests passed **25/25** in the same
+work period. Direct faithfulness remains **0/3** scored; this usability and
+engineering check adds no human or model evidence.
+
 ## WSL open-command check (2026-10-19)
 
 The current Ubuntu environment does not have `xdg-open`, so the runbook's
@@ -61,3 +77,23 @@ did not open the protected v4 artifact or save any response. Static builder and
 response-inspector tests remain the verified checks for the current version;
 the earlier recorded browser run is unchanged. Do not treat this failed
 harness invocation as a fresh E2E pass.
+
+## Latest current-builder verification (2026-10-19)
+
+Re-ran `scripts/test_quick_review_artifact_browser_e2e.py` against the current
+builder. The normal sandbox again failed only at its exact Windows Chrome
+profile cleanup check because WSL interop is unavailable there. The same
+synthetic-only test with individually elevated Windows interop passed **1/1**
+in 1.98 seconds. It verified the nickname-first transition, all three
+questions, and completion state without opening protected media or clicking
+Save. This verifies the builder flow, not playback of the private v4 artifact
+or human review.
+
+The builder, response inspector, and private importer suites passed **25/25**.
+A local, redacted scan found **10** response files, **1** unique byte content,
+and **0** files valid for the current v4 artifact; all ten were rejected for
+item-ID/judgment mapping. These are synthetic fixtures, not reviewer
+observations. No response was changed or removed. Current formal evidence
+remains **0/3** claim reviews, **0/15** clock/frame correspondences, **0/3**
+prediction-link reviews, and **0/3** direct scores. No GPU model workload or
+faithfulness estimate was run in this checkpoint.
