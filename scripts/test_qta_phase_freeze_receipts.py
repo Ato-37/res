@@ -15,13 +15,15 @@ from nextgqa_pre_review_integrity_receipt import (
 )
 from audit_nextgqa_review_release_order import RELEASE_ROLES, _ROSTER_DOMAIN as _RELEASE_DOMAIN
 from qta_phase_freeze_receipts import (
-    _PHASE_DOMAINS,
+    _PHASE_DOMAINS, PRE_BASELINE_V2_ARTIFACT_ROLES,
     PHASE_ARTIFACT_ROLES, PHASE_BRANCHES, create_phase_freeze_receipt,
     build_external_cohort_pin_candidate, verify_phase_freeze_receipt,
 )
 from qta_nine_branch_plan import BRANCH_ORDER, _plan_digest
 from qta_phase2_plan_manifest import (
     create_qta_phase2_plan_manifest_candidate,
+    validate_baseline_pq_manifest,
+    _phase1_stage1_source_pins,
     verify_qta_phase2_plan_candidate,
 )
 from qta_attention_capture_sidecars import build_qta_capture_sidecar_index
@@ -37,6 +39,8 @@ from qta_selection_provenance import (
     FROZEN_SELECTOR_SOURCE_SHA256, build_qta_selection_provenance,
 )
 from qta_synthetic_cohort_preflight import preflight_synthetic_qta_cohort
+from qta_processor_batch_digest_manifest_v1 import build_manifest
+from nextgqa_atomic_batch_freeze import batch_sha256
 import test_qta_synthetic_adapter_composition as synthetic_composition
 
 SYNTHETIC_PHASE1_EXTERNAL_COHORT_PIN_SHA256 = (
@@ -167,7 +171,7 @@ class QtaPhaseFreezeReceiptTests(unittest.TestCase):
                            base64.b64encode(signature).decode()}) + b"\n"
 
     def _create(self, phase, records, artifacts, *, prior_phase1_receipt_raw=None,
-                owner_key="owner"):
+                owner_key="owner", **kwargs):
         return create_phase_freeze_receipt(
             phase=phase, freeze_id="synthetic-freeze-01", record_rows=records,
             artifact_bytes=artifacts, integrity_roster_raw=self.integrity,
@@ -175,7 +179,7 @@ class QtaPhaseFreezeReceiptTests(unittest.TestCase):
             root_public_key_pem=self.keys["root"][1],
             expected_root_public_der_sha256=self.root_pin,
             freeze_owner_private_key_pem=self.keys[owner_key][0],
-            prior_phase1_receipt_raw=prior_phase1_receipt_raw)
+            prior_phase1_receipt_raw=prior_phase1_receipt_raw, **kwargs)
 
     def _verify(self, receipt, phase, artifacts, **kwargs):
         kwargs.setdefault("expected_external_cohort_pin_sha256",
@@ -185,6 +189,109 @@ class QtaPhaseFreezeReceiptTests(unittest.TestCase):
             integrity_roster_raw=self.integrity, release_roster_raw=self.release,
             root_public_key_pem=self.keys["root"][1],
             expected_root_public_der_sha256=self.root_pin, **kwargs)
+
+    def _v2_manifest_inputs(self, *, source_override=None):
+        stage1 = json.loads(self.p1_artifacts["stage1_review_and_lineage"])
+        rows, batches = [], []
+        for index, record in enumerate(self.records):
+            batch = {"input_ids": [index, index + 1], "pixel_values": [[float(index + 1)]]}
+            batches.append(batch)
+            source_sha = (source_override[index] if source_override and index in source_override
+                          else stage1["source_rows"][index]["source_video_sha256"])
+            rows.append({
+                "record_token": record["record_token"],
+                "base_processor_batch_sha256": batch_sha256(batch),
+                "source_video_sha256": source_sha,
+                "prompt_sha256": hashlib.sha256(f"prompt-{index}".encode()).hexdigest(),
+                "input_ids_sha256": hashlib.sha256(f"ids-{index}".encode()).hexdigest(),
+                "processor_sha256": hashlib.sha256(b"processor").hexdigest(),
+                "tokenizer_sha256": hashlib.sha256(b"tokenizer").hexdigest(),
+                "runtime_sha256": hashlib.sha256(b"runtime").hexdigest(),
+                "sampler_metadata_sha256": hashlib.sha256(f"sampler-{index}".encode()).hexdigest(),
+                "video_grid_thw": [8 + index, 2, 2],
+            })
+        protocol_sha = hashlib.sha256(b"synthetic protocol pin").hexdigest()
+        manifest = build_manifest(
+            rows=rows, live_batches=batches, expected_row_pins=rows,
+            protocol_sha256=protocol_sha,
+            expected_protocol_sha256=protocol_sha)
+        artifacts = dict(self.p1_artifacts)
+        artifacts.pop("full_video_processor_batches")
+        artifacts["processor_batch_digest_manifest"] = manifest
+        v2_records = [{"record_token": row["record_token"],
+                       "processor_batch_sha256": row["base_processor_batch_sha256"]}
+                      for row in rows]
+        return artifacts, rows, protocol_sha, v2_records
+
+    def _create_v2(self, records=None, *, artifacts=None, rows=None, protocol_sha=None):
+        if artifacts is None:
+            artifacts, default_rows, default_protocol, default_records = self._v2_manifest_inputs()
+            rows = default_rows if rows is None else rows
+            protocol_sha = default_protocol if protocol_sha is None else protocol_sha
+        else:
+            default_records = self.records
+        return self._create(
+            "pre_baseline", default_records if records is None else records, artifacts,
+            expected_processor_batch_row_pins=rows,
+            expected_processor_batch_protocol_sha256=protocol_sha)
+
+    def _verify_v2(self, receipt, artifacts, rows, protocol_sha, **kwargs):
+        return self._verify(
+            receipt, "pre_baseline", artifacts,
+            expected_processor_batch_row_pins=rows,
+            expected_processor_batch_protocol_sha256=protocol_sha, **kwargs)
+
+    def _upgrade_phase2_bundle_to_v2(self, bundle):
+        p1_artifacts, _p1, p2_artifacts, _p2, records = bundle
+        stage1 = json.loads(p1_artifacts["stage1_review_and_lineage"])
+        baseline = json.loads(p2_artifacts["baseline_pq_manifest"])
+        rows = []
+        for index, (record, baseline_row, source_row) in enumerate(
+                zip(records, baseline["records"], stage1["source_rows"], strict=True)):
+            score = baseline_row["score_binding"]
+            run = score["run_digests"]
+            rows.append({
+                "record_token": record["record_token"],
+                "base_processor_batch_sha256": record["processor_batch_sha256"],
+                "source_video_sha256": source_row["source_video_sha256"],
+                "prompt_sha256": score["prompt_sha256"],
+                "input_ids_sha256": score["input_ids_sha256"],
+                "processor_sha256": run["processor_sha256"],
+                "tokenizer_sha256": run["tokenizer_sha256"],
+                "runtime_sha256": run["runtime_sha256"],
+                "sampler_metadata_sha256": hashlib.sha256(
+                    f"synthetic-sampler-{index}".encode()).hexdigest(),
+                "video_grid_thw": [8 + index, 2, 2],
+            })
+        protocol_sha = baseline["records"][0]["score_binding"]["run_digests"]["protocol_sha256"]
+        manifest_raw = _canonical({
+            "schema_version": 1,
+            "purpose": "qta_processor_batch_digest_manifest_v1",
+            "status": "candidate_only",
+            "execution_authorization": "not_granted",
+            "protocol_sha256": protocol_sha,
+            "rows": rows,
+        })
+        v2_artifacts = dict(p1_artifacts)
+        v2_artifacts.pop("full_video_processor_batches")
+        v2_artifacts["processor_batch_digest_manifest"] = manifest_raw
+        v2_p1 = self._create_v2(records=records, artifacts=v2_artifacts,
+                                rows=rows, protocol_sha=protocol_sha)
+        plans = [row["plan"] for row in json.loads(
+            p2_artifacts["nine_branch_plan_manifest"])["records"]]
+        plan_raw = create_qta_phase2_plan_manifest_candidate(
+            phase1_receipt_raw=v2_p1, phase1_record_bindings=records,
+            phase1_preflight_raw=v2_artifacts["atomic_cohort_preflight"],
+            phase1_stage1_source_pins_raw=v2_artifacts["stage1_review_and_lineage"],
+            baseline_pq_manifest_raw=p2_artifacts["baseline_pq_manifest"],
+            plans=plans)
+        v2_p2_artifacts = dict(p2_artifacts)
+        v2_p2_artifacts.update({"phase1_receipt": v2_p1,
+                                "nine_branch_plan_manifest": plan_raw})
+        v2_p2 = self._create("post_baseline", records, v2_p2_artifacts,
+                             prior_phase1_receipt_raw=v2_p1)
+        return ((v2_artifacts, v2_p1, v2_p2_artifacts, v2_p2, records),
+                rows, protocol_sha)
 
     def test_phase1_signs_exact_synthetic_artifacts_and_denies_execution(self):
         self.assertEqual(PHASE_BRANCHES["pre_baseline"], BRANCH_ORDER[:1])
@@ -656,7 +763,9 @@ class QtaPhaseFreezeReceiptTests(unittest.TestCase):
                           prior_phase1_receipt_raw=p1)
         return p1_artifacts, p1, p2_artifacts, p2, records
 
-    def _verify_phase2_candidate(self, bundle, *, expected_external_cohort_pin_sha256=None):
+    def _verify_phase2_candidate(self, bundle, *, expected_external_cohort_pin_sha256=None,
+                                 expected_processor_batch_row_pins=None,
+                                 expected_processor_batch_protocol_sha256=None):
         p1_artifacts, p1, p2_artifacts, p2, _records = bundle
         if expected_external_cohort_pin_sha256 is None:
             expected_external_cohort_pin_sha256 = self.expected_external_cohort_pin_sha256
@@ -667,7 +776,9 @@ class QtaPhaseFreezeReceiptTests(unittest.TestCase):
             integrity_roster_raw=self.integrity, release_roster_raw=self.release,
             root_public_key_pem=self.keys["root"][1],
             expected_root_public_der_sha256=self.root_pin,
-            expected_external_cohort_pin_sha256=expected_external_cohort_pin_sha256)
+            expected_external_cohort_pin_sha256=expected_external_cohort_pin_sha256,
+            expected_processor_batch_row_pins=expected_processor_batch_row_pins,
+            expected_processor_batch_protocol_sha256=expected_processor_batch_protocol_sha256)
 
     def test_phase2_plan_manifest_binds_exact_receipts_preflight_and_baseline_rows(self):
         report = self._verify_phase2_candidate(self._phase2_candidate_bundle())
@@ -691,6 +802,34 @@ class QtaPhaseFreezeReceiptTests(unittest.TestCase):
         self.assertTrue(report["same_freeze_id"])
         self.assertFalse(report["plan_semantics_authenticated"])
         self.assertEqual(report["authorized_forwards"], 0)
+
+    def test_phase1_source_pins_reject_duplicate_video_bytes(self):
+        p1_artifacts, _p1, _p2_artifacts, _p2, _records = (
+            self._phase2_candidate_bundle())
+        stage1 = json.loads(p1_artifacts["stage1_review_and_lineage"])
+        stage1["source_rows"][1]["source_video_sha256"] = (
+            stage1["source_rows"][0]["source_video_sha256"])
+        raw = json.dumps(stage1, sort_keys=True, separators=(",", ":")).encode()
+        with self.assertRaisesRegex(
+                ValueError, "phase1_stage1_source_pin_video_duplicate"):
+            _phase1_stage1_source_pins(raw)
+
+    def test_baseline_manifest_rejects_duplicate_video_bytes(self):
+        _p1_artifacts, _p1, p2_artifacts, _p2, _records = (
+            self._phase2_candidate_bundle())
+        baseline = json.loads(p2_artifacts["baseline_pq_manifest"])
+        first_binding = baseline["records"][0]["score_binding"]
+        second_row = baseline["records"][1]
+        second_binding = second_row["score_binding"]
+        second_binding["source_video_sha256"] = first_binding["source_video_sha256"]
+        second_row["score_binding_sha256"] = hashlib.sha256(json.dumps(
+            second_binding, ensure_ascii=False, sort_keys=True,
+            separators=(",", ":")).encode()).hexdigest()
+        raw = json.dumps(baseline, ensure_ascii=False, sort_keys=True,
+                         separators=(",", ":")).encode()
+        with self.assertRaisesRegex(
+                ValueError, "baseline_pq_duplicate_source_video_sha256"):
+            validate_baseline_pq_manifest(raw)
 
     def test_phase2_rejects_stale_external_cohort_pin(self):
         bundle = self._phase2_candidate_bundle()
@@ -988,6 +1127,92 @@ class QtaPhaseFreezeReceiptTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "phase2_freeze_id_differs_from_phase1"):
             self._verify_phase2_candidate((p1_artifacts, p1, p2_artifacts,
                                            changed_p2, records))
+
+    def test_v2_prebaseline_create_verify_uses_manifest_and_reports_non_authorizing_pin(self):
+        artifacts, rows, protocol_sha, records = self._v2_manifest_inputs()
+        receipt = self._create_v2(artifacts=artifacts, rows=rows,
+                                  protocol_sha=protocol_sha, records=records)
+        obj = json.loads(receipt)
+        self.assertEqual(obj["schema_version"], 2)
+        self.assertEqual(obj["purpose"], "qta_two_phase_score_freeze_candidate_v2")
+        self.assertEqual([x["role"] for x in obj["artifact_bindings"]],
+                         list(PRE_BASELINE_V2_ARTIFACT_ROLES))
+        report = self._verify_v2(receipt, artifacts, rows, protocol_sha)
+        self.assertTrue(report["processor_batch_manifest_valid"])
+        self.assertFalse(report["processor_batch_protocol_pin_origin_authenticated"])
+        self.assertEqual(report["execution_authorization"], "not_granted")
+        self.assertFalse(report["model_load_permitted"])
+        self.assertFalse(report["scoring_authorized"])
+
+    def test_v2_rejects_manifest_source_video_join_mismatch(self):
+        artifacts, rows, protocol_sha, records = self._v2_manifest_inputs(
+            source_override={1: "f" * 64})
+        with self.assertRaisesRegex(ReceiptError,
+                                    "processor_batch_manifest_source_video_mismatch"):
+            self._create_v2(records=records, artifacts=artifacts, rows=rows,
+                            protocol_sha=protocol_sha)
+
+    def test_v2_rejects_record_binding_mismatch(self):
+        artifacts, rows, protocol_sha, v2_records = self._v2_manifest_inputs()
+        changed = [dict(record) for record in v2_records]
+        changed[0]["processor_batch_sha256"] = "f" * 64
+        with self.assertRaisesRegex(ReceiptError,
+                                    "processor_batch_digest_manifest_invalid"):
+            self._create_v2(records=changed, artifacts=artifacts, rows=rows,
+                            protocol_sha=protocol_sha)
+
+    def test_v2_rejects_wrong_schema_version_and_wrong_signature_domain(self):
+        artifacts, rows, protocol_sha, records = self._v2_manifest_inputs()
+        receipt = self._create_v2(artifacts=artifacts, rows=rows,
+                                  protocol_sha=protocol_sha, records=records)
+        changed = json.loads(receipt)
+        changed["schema_version"] = 1
+        with self.assertRaisesRegex(ReceiptError, "phase_receipt_schema_version_invalid"):
+            self._verify_v2(_canonical(changed) + b"\n", artifacts, rows, protocol_sha)
+
+        changed = json.loads(receipt)
+        body = {key: value for key, value in changed.items()
+                if key != "signature_ed25519_base64"}
+        changed["signature_ed25519_base64"] = base64.b64encode(_sign(
+            self.keys["owner"][0], self.keys["owner"][1],
+            _PHASE_DOMAINS["pre_baseline"] + _canonical(body))).decode("ascii")
+        with self.assertRaisesRegex(ReceiptError, "phase_receipt_signature_invalid"):
+            self._verify_v2(_canonical(changed) + b"\n", artifacts, rows, protocol_sha)
+
+    def test_postbaseline_recursively_verifies_v2_phase1(self):
+        artifacts, rows, protocol_sha, records = self._v2_manifest_inputs()
+        phase1 = self._create_v2(artifacts=artifacts, rows=rows,
+                                 protocol_sha=protocol_sha, records=records)
+        phase2_artifacts = dict(self.p2_artifacts)
+        phase2_artifacts["phase1_receipt"] = phase1
+        phase2 = self._create("post_baseline", records, phase2_artifacts,
+                              prior_phase1_receipt_raw=phase1)
+        report = self._verify(
+            phase2, "post_baseline", phase2_artifacts,
+            prior_phase1_receipt_raw=phase1,
+            prior_phase1_artifact_bytes=artifacts,
+            expected_processor_batch_row_pins=rows,
+            expected_processor_batch_protocol_sha256=protocol_sha)
+        self.assertTrue(report["prior_phase1_receipt_valid"])
+        self.assertFalse(report["scoring_authorized"])
+
+    def test_phase2_plan_verifier_forwards_v2_processor_pins(self):
+        v2_bundle, rows, protocol_sha = self._upgrade_phase2_bundle_to_v2(
+            self._phase2_candidate_bundle())
+        report = self._verify_phase2_candidate(
+            v2_bundle, expected_processor_batch_row_pins=rows,
+            expected_processor_batch_protocol_sha256=protocol_sha)
+        self.assertTrue(report["phase1_receipt_recursively_verified"])
+        self.assertTrue(report["phase1_receipt_signature_valid"])
+        self.assertEqual(report["execution_authorization"], "not_granted")
+        with self.assertRaisesRegex(ReceiptError,
+                                    "processor_batch_manifest_external_pins_required"):
+            self._verify_phase2_candidate(v2_bundle)
+        with self.assertRaisesRegex(ReceiptError,
+                                    "processor_batch_digest_manifest_invalid"):
+            self._verify_phase2_candidate(
+                v2_bundle, expected_processor_batch_row_pins=rows,
+                expected_processor_batch_protocol_sha256="f" * 64)
 
 
 if __name__ == "__main__":

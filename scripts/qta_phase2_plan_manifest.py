@@ -211,6 +211,7 @@ def _phase1_stage1_source_pins(raw: bytes) -> dict[str, Any]:
         "review_token", "question_sha256", "options_sha256", "claim_sha256",
         "source_video_sha256", "video_support_decision", "reviewed_intervals_sha256",
     }
+    seen_video_digests = set()
     for token, row in zip(tokens, rows, strict=True):
         if (not isinstance(row, dict) or set(row) != row_keys
                 or row.get("review_token") != token
@@ -219,6 +220,10 @@ def _phase1_stage1_source_pins(raw: bytes) -> dict[str, Any]:
                        or not _SHA256.fullmatch(row[field])
                        for field in row_keys - {"review_token", "video_support_decision"})):
             raise ValueError("phase1_stage1_source_pin_row_invalid")
+        video_digest = row["source_video_sha256"]
+        if video_digest in seen_video_digests:
+            raise ValueError("phase1_stage1_source_pin_video_duplicate")
+        seen_video_digests.add(video_digest)
     return {"video_claim_review_receipt_sha256": receipt_sha,
             "records": rows}
 
@@ -240,6 +245,7 @@ def _baseline_rows(raw: bytes) -> list[dict[str, Any]]:
         raise ValueError("baseline_pq_record_count_invalid")
     checked = []
     seen = set()
+    seen_video_digests = set()
     for row in rows:
         if not isinstance(row, dict) or set(row) != _BASELINE_ROW_KEYS:
             raise ValueError("baseline_pq_record_schema_invalid")
@@ -280,6 +286,10 @@ def _baseline_rows(raw: bytes) -> list[dict[str, Any]]:
                       "source_video_sha256", "reviewed_intervals_sha256"):
             if not isinstance(binding[field], str) or not _SHA256.fullmatch(binding[field]):
                 raise ValueError("baseline_pq_score_binding_source_digest_invalid")
+        video_digest = binding["source_video_sha256"]
+        if video_digest in seen_video_digests:
+            raise ValueError("baseline_pq_duplicate_source_video_sha256")
+        seen_video_digests.add(video_digest)
         actual_source_digests = {
             "question_sha256": _sha(row["question"].encode("utf-8")),
             "options_sha256": _sha(_canonical_utf8(row["options"])),
@@ -338,6 +348,15 @@ def _baseline_rows(raw: bytes) -> list[dict[str, Any]]:
             "row_sha256": _sha(_canonical_utf8(row)),
         })
     return checked
+
+
+def validate_baseline_pq_manifest(raw: bytes) -> list[dict[str, Any]]:
+    """Validate the exact current v3 baseline/score-binding schema.
+
+    This verifies bytes and internal row bindings only. It does not authenticate
+    the caller's expected digest, run provenance, model output, or review.
+    """
+    return _baseline_rows(raw)
 
 
 def _validate_baseline_runtime_binding(*, baseline_pq_manifest_raw: bytes,
@@ -622,7 +641,9 @@ def verify_qta_phase2_plan_candidate(*, phase1_receipt_raw: bytes,
                                      release_roster_raw: bytes,
                                      root_public_key_pem: bytes,
                                      expected_root_public_der_sha256: str,
-                                     expected_external_cohort_pin_sha256: str) -> dict[str, Any]:
+                                     expected_external_cohort_pin_sha256: str,
+                                     expected_processor_batch_row_pins: Any = None,
+                                     expected_processor_batch_protocol_sha256: str | None = None) -> dict[str, Any]:
     """Verify both signed byte envelopes, then validate their plan-row join.
 
     The report confirms signatures and structure only. It never authorizes
@@ -637,7 +658,9 @@ def verify_qta_phase2_plan_candidate(*, phase1_receipt_raw: bytes,
         expected_root_public_der_sha256=expected_root_public_der_sha256,
         expected_external_cohort_pin_sha256=expected_external_cohort_pin_sha256,
         prior_phase1_receipt_raw=phase1_receipt_raw,
-        prior_phase1_artifact_bytes=phase1_artifact_bytes)
+        prior_phase1_artifact_bytes=phase1_artifact_bytes,
+        expected_processor_batch_row_pins=expected_processor_batch_row_pins,
+        expected_processor_batch_protocol_sha256=expected_processor_batch_protocol_sha256)
     phase1_obj = _strict_json(phase1_receipt_raw)
     phase2_obj = _strict_json(phase2_receipt_raw)
     if phase1_obj.get("freeze_id") != phase2_obj.get("freeze_id"):

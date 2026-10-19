@@ -8,7 +8,7 @@ QTA直接faithfulness採点では、署名やmanifestに書かれたbatch hash�
 
 ## QTA用digest manifestの提案
 
-将来の署名対象 `qta_processor_batch_digest_manifest_v1` は、canonical UTF-8 JSONとし、duplicate key・NaN・未知fieldを拒否する。
+実装済みの候補形式 `qta_processor_batch_digest_manifest_v1` は、canonical UTF-8 JSONとし、duplicate key・NaN・未知fieldを拒否する。manifestには明示的な `protocol_sha256` を含め、builderとvalidatorの両方が外部固定の期待hashとの一致を要求する。
 
 - `schema_version`, `purpose`, `status`, `execution_authorization`。
 - 3つの不透明な `record_token` を固定順で保持し、各行につき**1つの** `base_processor_batch_sha256` を記録する。動画、質問、回答、ニックネーム、絶対パスは含めない。
@@ -17,7 +17,9 @@ QTA直接faithfulness採点では、署名やmanifestに書かれたbatch hash�
 - 9枝それぞれのtarget/sham/evidence/control位置・介入設定はprocessor batch digestに含めず、別のphase-2 plan descriptorとそのhashで束縛する。全9枝は同じrowの同じbase batch digestを参照する。
 - manifest全体はphase receiptの正確なartifact bytesとして署名・外部pinする。候補生成器自身のhashを同じcallerがpinとして再利用するだけでは、外部認証と扱わない。
 
-現行phase receiptの `record_bindings` は既に3行各1件の `processor_batch_sha256` を保持する。pre-baselineは各行の `baseline_full` を含む3 forwards、post-baselineは残り8 intervention branchesを予定する。role `full_video_processor_batches` はopaque bytesであり、中のschemaやper-row digestを検査しないため、新role `processor_batch_digest_manifest` と新しいpre-baseline receipt domain/schema v2が必要になる。旧role/verifierと混在させず、既存receiptの再解釈や遡及適用はしない。manifestに生tensorは含めず、固定source動画・質問・sampler・processorから各rowの同一base batchを再生成できることが前提となる。
+この候補manifestはsource動画のSHA-256を含むため、cross-artifact linkabilityのあるprivate dataとして扱う。現時点ではowner-onlyのローカル保存に限定し、GitHubへmanifestそのものをpublishしない。
+
+現行phase receiptの `record_bindings` は既に3行各1件の `processor_batch_sha256` を保持する。pre-baselineは各行の `baseline_full` を含む3 forwards、post-baselineは残り8 intervention branchesを予定する。legacy role `full_video_processor_batches` はopaque bytesのままv1 verifierで扱う。追加されたpre-baseline v2だけがrole `processor_batch_digest_manifest` を受け付け、新しいsignature domain/schema v2で署名する。v2 verifierはmanifestの行順・token・batch digestをreceipt `record_bindings` と照合し、各 `source_video_sha256` をStage-1 source rowに照合する。manifestのrow pinsとprotocol hashには呼び出し側の期待値が必要だが、その期待値の信頼起点はこのreceiptで認証されない。既存receiptの再解釈や遡及適用はしない。manifestに生tensorは含めず、固定source動画・質問・sampler・processorから各rowの同一base batchを再生成できることが前提となる。
 
 `nextgqa_atomic_batch_freeze` の3×3入力条件はこのmanifestに入れない。両経路を将来統合する場合は、processor入力条件軸と9介入枝軸の交差およびforward数を明記した別protocol・別receiptが必要である。
 
@@ -31,6 +33,8 @@ QTA直接faithfulness採点では、署名やmanifestに書かれたbatch hash�
 
 `nextgqa_atomic_batch_freeze.py` と `nextgqa_claim_mask_scoring.py` は別の3×3 scorer用構成要素である。いずれも上記のtrust root・人手・時計・Stage-2を束ねたproduction callerではない。成功fixtureや構造診断からmodel-load permissionを導かない。
 
-## 次の検証
+## 実装・次の検証
 
-schemaをコード化する前に、manifestと既存phase receipt/planを結ぶ実callerのrow/batch対応を独立確認する。採用時は合成tensorで同値round-trip、key/row順置換、dtype/shape/byte tamper、nonfinite、未知tensor型、署名hash不一致、pre-forward failureをテストする。9枝が同じ3 base batchを使うことと、別の3×3 claim-mask scorerとの境界を回帰テストで固定する。実レビュー・外部root・15/15時計対応がない状態で実動画をscoreしない。
+`scripts/qta_processor_batch_digest_manifest_v1.py` は3行の候補manifestを構築・検証し、構築時のtyped batch hash、source/metadata pins、protocol hash、receipt形式の3つのrecord bindingとの一致を検査する。固定サイズ上限、canonical byte形式、重複token/source・行順・非有限/未対応値の拒否をunit testする。`scripts/qta_phase_freeze_receipts.py` のpre-baseline v2はこのmanifestを新roleとして署名し、v1は保持する。phase-2 plan verifierはv2 phase1 receiptを再帰検証する際、期待row/protocol pinを同じ形で渡す。
+
+合成テストはmanifest、receipt、phase-2 wrapperを通して成功し、source-video join不一致、record binding不一致、protocol pin欠落/改変を拒否する。これはcandidate artifactの構造・byte bindingのみを検証する。期待pinのroot origin、metadataと実tensorの対応、ロード後から各forwardまで同じbatchが維持されたことは証明しない。次はこれらのpinを独立に取得・検証し、model loadより前のrunnerが同一snapshotを保持・再hashする境界を実装する。正式人手reviewとclock/prediction-link gateが揃わない限り実動画scoreへ進まない。

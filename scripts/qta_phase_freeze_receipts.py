@@ -14,6 +14,7 @@ from typing import Any
 
 from audit_nextgqa_review_release_order import _validate_release_roster
 from qta_nine_branch_plan import BRANCH_ORDER
+from qta_processor_batch_digest_manifest_v1 import validate_manifest
 from nextgqa_pre_review_integrity_receipt import (
     _MAX_JSON, _canonical, _decode_signature, _parse, _sha, _sign,
     _verify_signature, ReceiptError,
@@ -37,6 +38,9 @@ PHASE_ARTIFACT_ROLES = {
         "attention_call_receipts",
     ),
 }
+PRE_BASELINE_V2_ARTIFACT_ROLES = tuple(
+    "processor_batch_digest_manifest" if role == "full_video_processor_batches" else role
+    for role in PHASE_ARTIFACT_ROLES["pre_baseline"])
 PHASE_BRANCHES = {
     "pre_baseline": BRANCH_ORDER[:1],
     "post_baseline": BRANCH_ORDER[1:],
@@ -56,6 +60,7 @@ _EXTERNAL_COHORT_PIN_KEYS = {
 }
 _PHASE_DOMAINS = {
     "pre_baseline": b"qta_two_phase_score_freeze_v1\0",
+    "pre_baseline_v2": b"qta_two_phase_score_freeze_v2\0",
     "post_baseline": b"qta_two_phase_score_freeze_v3\0",
 }
 
@@ -131,14 +136,24 @@ def _verify_external_cohort_pin(*, stage1_review_and_lineage_raw: bytes,
     return expected_external_cohort_pin_sha256
 
 
-def _bindings(phase: str, artifact_bytes: Mapping[str, bytes]) -> list[dict[str, Any]]:
+def _artifact_roles(phase: str, artifact_bytes: Mapping[str, bytes]) -> tuple[str, ...]:
     if phase not in PHASE_ARTIFACT_ROLES:
         raise ReceiptError("phase_invalid")
-    if not isinstance(artifact_bytes, Mapping) or set(artifact_bytes) != set(PHASE_ARTIFACT_ROLES[phase]):
+    if not isinstance(artifact_bytes, Mapping):
         raise ReceiptError("phase_artifact_role_set_invalid")
+    actual = set(artifact_bytes)
+    if phase == "pre_baseline" and actual == set(PRE_BASELINE_V2_ARTIFACT_ROLES):
+        return PRE_BASELINE_V2_ARTIFACT_ROLES
+    if actual != set(PHASE_ARTIFACT_ROLES[phase]):
+        raise ReceiptError("phase_artifact_role_set_invalid")
+    return PHASE_ARTIFACT_ROLES[phase]
+
+
+def _bindings(phase: str, artifact_bytes: Mapping[str, bytes]) -> list[dict[str, Any]]:
+    roles = _artifact_roles(phase, artifact_bytes)
     total = 0
     rows = []
-    for role in PHASE_ARTIFACT_ROLES[phase]:
+    for role in roles:
         raw = artifact_bytes[role]
         if not isinstance(raw, bytes) or not raw:
             raise ReceiptError("phase_artifact_bytes_required")
@@ -184,6 +199,31 @@ def _verify_stage1_record_bindings(stage1_review_and_lineage_raw: bytes,
         raise ReceiptError("phase_record_tokens_do_not_match_stage1_cohort")
 
 
+def _verify_v2_manifest(*, manifest_raw: bytes, records: list[dict[str, str]],
+                        stage1_review_and_lineage_raw: bytes,
+                        expected_processor_batch_row_pins: Any,
+                        expected_processor_batch_protocol_sha256: str) -> dict[str, Any]:
+    try:
+        report = validate_manifest(
+            manifest_raw, records,
+            expected_row_pins=expected_processor_batch_row_pins,
+            expected_protocol_sha256=expected_processor_batch_protocol_sha256)
+    except Exception as exc:
+        raise ReceiptError("processor_batch_digest_manifest_invalid") from exc
+    stage1 = _parse(stage1_review_and_lineage_raw,
+                    "external_cohort_source_json_invalid")
+    manifest = _parse(manifest_raw, "processor_batch_digest_manifest_invalid")
+    source_rows = stage1["source_rows"]
+    manifest_rows = manifest["rows"]
+    if ([row["record_token"] for row in manifest_rows]
+            != [row["record_token"] for row in records]):
+        raise ReceiptError("processor_batch_manifest_record_order_mismatch")
+    if any(batch_row["source_video_sha256"] != source_row["source_video_sha256"]
+           for batch_row, source_row in zip(manifest_rows, source_rows, strict=True)):
+        raise ReceiptError("processor_batch_manifest_source_video_mismatch")
+    return report
+
+
 def _roster_keys(*, integrity_roster_raw: bytes, release_roster_raw: bytes,
                  root_public_key_pem: bytes,
                  expected_root_public_der_sha256: str) -> tuple[dict, dict[str, bytes]]:
@@ -196,10 +236,11 @@ def _roster_keys(*, integrity_roster_raw: bytes, release_roster_raw: bytes,
 
 def _body(*, phase: str, freeze_id: str, records: list[dict[str, str]],
           artifact_bindings: list[dict[str, Any]], signer_key_id: str,
-          prior_phase1_receipt_sha256: str | None = None) -> dict[str, Any]:
+          prior_phase1_receipt_sha256: str | None = None,
+          schema_version: int | None = None) -> dict[str, Any]:
     if phase not in PHASE_ARTIFACT_ROLES:
         raise ReceiptError("phase_invalid")
-    version = 1 if phase == "pre_baseline" else 3
+    version = schema_version if schema_version is not None else (1 if phase == "pre_baseline" else 3)
     if not isinstance(freeze_id, str) or not _FREEZE_ID.fullmatch(freeze_id):
         raise ReceiptError("freeze_id_invalid")
     result = {
@@ -237,14 +278,16 @@ def create_phase_freeze_receipt(*, phase: str, freeze_id: str,
                                 root_public_key_pem: bytes,
                                 expected_root_public_der_sha256: str,
                                 freeze_owner_private_key_pem: bytes,
-                                prior_phase1_receipt_raw: bytes | None = None) -> bytes:
+                                prior_phase1_receipt_raw: bytes | None = None,
+                                expected_processor_batch_row_pins: Any = None,
+                                expected_processor_batch_protocol_sha256: str | None = None) -> bytes:
     """Sign an exact artifact-hash envelope with the rostered freeze-owner key."""
     _, role_keys = _roster_keys(
         integrity_roster_raw=integrity_roster_raw,
         release_roster_raw=release_roster_raw,
         root_public_key_pem=root_public_key_pem,
         expected_root_public_der_sha256=expected_root_public_der_sha256)
-    roles = set(PHASE_ARTIFACT_ROLES.get(phase, ()))
+    roles = set(_artifact_roles(phase, artifact_bytes)) if phase in PHASE_ARTIFACT_ROLES else set()
     if phase == "post_baseline":
         if not isinstance(prior_phase1_receipt_raw, bytes):
             raise ReceiptError("phase1_receipt_required")
@@ -269,18 +312,33 @@ def create_phase_freeze_receipt(*, phase: str, freeze_id: str,
     if phase == "pre_baseline":
         _verify_stage1_record_bindings(
             artifact_bytes["stage1_review_and_lineage"], records)
+        if "processor_batch_digest_manifest" in roles:
+            if (expected_processor_batch_protocol_sha256 is None
+                    or expected_processor_batch_row_pins is None):
+                raise ReceiptError("processor_batch_manifest_external_pins_required")
+            _verify_v2_manifest(
+                manifest_raw=artifact_bytes["processor_batch_digest_manifest"],
+                records=records,
+                stage1_review_and_lineage_raw=artifact_bytes["stage1_review_and_lineage"],
+                expected_processor_batch_row_pins=expected_processor_batch_row_pins,
+                expected_processor_batch_protocol_sha256=expected_processor_batch_protocol_sha256)
+        elif (expected_processor_batch_protocol_sha256 is not None
+              or expected_processor_batch_row_pins is not None):
+            raise ReceiptError("processor_batch_manifest_pins_not_allowed_for_v1")
     release, _ = _roster_keys(
         integrity_roster_raw=integrity_roster_raw,
         release_roster_raw=release_roster_raw,
         root_public_key_pem=root_public_key_pem,
         expected_root_public_der_sha256=expected_root_public_der_sha256)
+    v2 = phase == "pre_baseline" and "processor_batch_digest_manifest" in roles
     body = _body(phase=phase, freeze_id=freeze_id, records=records,
                  artifact_bindings=bindings,
                  signer_key_id=release["freeze_owner"],
-                 prior_phase1_receipt_sha256=prior_hash)
+                 prior_phase1_receipt_sha256=prior_hash,
+                 schema_version=2 if v2 else None)
     signature = _sign(freeze_owner_private_key_pem,
                       role_keys["freeze_owner"],
-                      _PHASE_DOMAINS[phase] + _canonical(body))
+                      _PHASE_DOMAINS["pre_baseline_v2" if v2 else phase] + _canonical(body))
     return _canonical({**body, "signature_ed25519_base64":
                        base64.b64encode(signature).decode("ascii")}) + b"\n"
 
@@ -293,17 +351,27 @@ def verify_phase_freeze_receipt(*, receipt_raw: bytes, phase: str,
                                 expected_root_public_der_sha256: str,
                                 expected_external_cohort_pin_sha256: str,
                                 prior_phase1_receipt_raw: bytes | None = None,
-                                prior_phase1_artifact_bytes: Mapping[str, bytes] | None = None) -> dict[str, Any]:
+                                prior_phase1_artifact_bytes: Mapping[str, bytes] | None = None,
+                                expected_processor_batch_row_pins: Any = None,
+                                expected_processor_batch_protocol_sha256: str | None = None) -> dict[str, Any]:
     """Verify signatures and exact bytes; return a non-authorizing report only."""
     if not isinstance(receipt_raw, bytes) or not receipt_raw or len(receipt_raw) > _MAX_JSON:
         raise ReceiptError("phase_receipt_bytes_invalid")
     bindings = _bindings(phase, artifact_bytes)
+    v2 = phase == "pre_baseline" and "processor_batch_digest_manifest" in _artifact_roles(phase, artifact_bytes)
+    phase1_report = None
     records_from_call = None
     if phase == "pre_baseline":
         pin_sha256 = _verify_external_cohort_pin(
             stage1_review_and_lineage_raw=artifact_bytes["stage1_review_and_lineage"],
             external_cohort_pin_raw=artifact_bytes["external_cohort_pin"],
             expected_external_cohort_pin_sha256=expected_external_cohort_pin_sha256)
+        if v2 and (expected_processor_batch_protocol_sha256 is None
+                   or expected_processor_batch_row_pins is None):
+            raise ReceiptError("processor_batch_manifest_external_pins_required")
+        if not v2 and (expected_processor_batch_protocol_sha256 is not None
+                       or expected_processor_batch_row_pins is not None):
+            raise ReceiptError("processor_batch_manifest_pins_not_allowed_for_v1")
     if phase == "post_baseline":
         if (not isinstance(prior_phase1_receipt_raw, bytes)
                 or not isinstance(prior_phase1_artifact_bytes, Mapping)
@@ -316,7 +384,11 @@ def verify_phase_freeze_receipt(*, receipt_raw: bytes, phase: str,
             release_roster_raw=release_roster_raw,
             root_public_key_pem=root_public_key_pem,
             expected_root_public_der_sha256=expected_root_public_der_sha256,
-            expected_external_cohort_pin_sha256=expected_external_cohort_pin_sha256)
+            expected_external_cohort_pin_sha256=expected_external_cohort_pin_sha256,
+            expected_processor_batch_row_pins=expected_processor_batch_row_pins,
+            expected_processor_batch_protocol_sha256=expected_processor_batch_protocol_sha256)
+        if prior_report.get("processor_batch_manifest_valid"):
+            phase1_report = prior_report
         prior_obj = _parse(prior_phase1_receipt_raw, "phase_receipt_json_invalid")
         records_from_call = _record_bindings(prior_obj.get("record_bindings"))
     elif phase != "pre_baseline":
@@ -339,7 +411,7 @@ def verify_phase_freeze_receipt(*, receipt_raw: bytes, phase: str,
         expected_keys.add("phase1_receipt_sha256")
     if not isinstance(obj, dict) or set(obj) != expected_keys:
         raise ReceiptError("phase_receipt_schema_invalid")
-    version = 1 if phase == "pre_baseline" else 3
+    version = 2 if v2 else (1 if phase == "pre_baseline" else 3)
     if (type(obj.get("schema_version")) is not int
             or obj.get("schema_version") != version
             or obj.get("purpose") != f"qta_two_phase_score_freeze_candidate_v{version}"):
@@ -348,21 +420,30 @@ def verify_phase_freeze_receipt(*, receipt_raw: bytes, phase: str,
     if phase == "pre_baseline":
         _verify_stage1_record_bindings(
             artifact_bytes["stage1_review_and_lineage"], record_rows)
+        if v2:
+            phase1_report = _verify_v2_manifest(
+                manifest_raw=artifact_bytes["processor_batch_digest_manifest"],
+                records=record_rows,
+                stage1_review_and_lineage_raw=artifact_bytes["stage1_review_and_lineage"],
+                expected_processor_batch_row_pins=expected_processor_batch_row_pins,
+                expected_processor_batch_protocol_sha256=expected_processor_batch_protocol_sha256)
     if records_from_call is not None and record_rows != records_from_call:
         raise ReceiptError("phase2_record_binding_differs_from_phase1")
     prior_hash = _sha(prior_phase1_receipt_raw) if phase == "post_baseline" else None
     body = _body(phase=phase, freeze_id=obj["freeze_id"], records=record_rows,
                  artifact_bindings=bindings,
                  signer_key_id=release["freeze_owner"],
-                 prior_phase1_receipt_sha256=prior_hash)
+                 prior_phase1_receipt_sha256=prior_hash,
+                 schema_version=version)
     if any(obj.get(key) != value for key, value in body.items()):
         raise ReceiptError("phase_receipt_binding_mismatch")
     signature = _decode_signature(obj["signature_ed25519_base64"],
                                   "phase_receipt_signature_invalid")
     signed_body = {key: value for key, value in obj.items()
                    if key != "signature_ed25519_base64"}
+    domain = _PHASE_DOMAINS["pre_baseline_v2" if v2 else phase]
     if not _verify_signature(role_keys["freeze_owner"], signature,
-                             _PHASE_DOMAINS[phase] + _canonical(signed_body)):
+                             domain + _canonical(signed_body)):
         raise ReceiptError("phase_receipt_signature_invalid")
     if phase == "post_baseline":
         prior_role = next(row for row in bindings if row["role"] == "phase1_receipt")
@@ -380,6 +461,8 @@ def verify_phase_freeze_receipt(*, receipt_raw: bytes, phase: str,
                                         else expected_external_cohort_pin_sha256),
         "external_cohort_pin_matches_caller_pin": True,
         "external_cohort_pin_origin_authenticated": False,
+        "processor_batch_manifest_valid": bool(phase1_report is not None),
+        "processor_batch_protocol_pin_origin_authenticated": False,
         "prior_phase1_receipt_valid": phase == "post_baseline",
         "human_identity_verified": False,
         "semantic_review_authenticated": False,
