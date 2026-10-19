@@ -2,13 +2,13 @@
 
 この文書は、英語版の[正式手順](nextgqa_v6_human_review_runbook.md)を実施者向けに説明したものです。署名・監査の判定は正式手順と実装に従います。動画・レビュー記録・派生データはローカルに置き、公開しません。権利状態は未確認です。
 
-手軽な予備チェックは[日本語ランチャー](nextgqa_human_review_workspace_ja.html)から開けます。ニックネームを入力して「質問へ」を押すと、埋め込み動画つきの質問が表示されます。各動画について「説明の主張が合っているか」と「質問に答える根拠として十分か」を分けて選びます。回答後、次の担当者がいれば「次の人へ」を押し、ニックネームを入力してEnterを押すだけでその人の質問が始まります。最後に「全員分を保存」を押すと、一つのJSONにまとめて保存します。動画ファイルや時刻を選ぶ必要はありません。Ubuntuターミナルでリポジトリのルートに移動してから、Windowsの既定ブラウザーで開くには次を実行します。
+手軽な予備チェックは[日本語ランチャー](nextgqa_human_review_workspace_ja.html)から開けます。最初の人はニックネームを入力して「質問へ」を押すと、埋め込み動画つきの質問が表示されます。各動画について「説明の主張が合っているか」と「質問に答える根拠として十分か」を分けて選びます。回答後、次の人は「次の人へ」を一度押すだけで1問目に進みます。二人目以降は参加者2、参加者3のように順番で記録します。最後に「全員分を保存」を押すと、一つのJSONにまとめて保存します。動画ファイルや時刻を選ぶ必要はありません。Ubuntuターミナルでリポジトリのルートに移動してから、Windowsの既定ブラウザーで開くには次を実行します。
 
 ```bash
-powershell.exe -NoProfile -Command "Start-Process -FilePath '$(wslpath -w ./data/private_nextgqa/quick_review_ja_simple_20261019_itemid_v7.html)'"
+powershell.exe -NoProfile -Command "Start-Process -FilePath '$(wslpath -w ./data/private_nextgqa/quick_review_ja_simple_20261019_itemid_v8.html)'"
 ```
 
-Linuxデスクトップ環境で実行する場合は `xdg-open ./data/private_nextgqa/quick_review_ja_simple_20261019_itemid_v7.html` でも開けます。
+Linuxデスクトップ環境で実行する場合は `xdg-open ./data/private_nextgqa/quick_review_ja_simple_20261019_itemid_v8.html` でも開けます。
 
 この簡易artifactは、完全な幻覚判定や正式な人手監査ではありません。ニックネームを入力すると質問に進み、動画ファイル選択や時刻入力なしで大まかな印象を回答できます。署名・担当者の本人性・独立性・動画とdecoder画像の一致・時計校正を確認せず、回答を正式レビュー記録や採点許可として扱いません。簡易artifactは正式レビュー候補と同じ3件を含むため、ここで動画を見た人は同じ項目の盲検正式レビュー担当にはなれません。ニックネーム・回答JSONには個人情報が含まれ得るため、実名を避け、JSONはローカルに保管してください。
 

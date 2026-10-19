@@ -11,10 +11,10 @@ from build_nextgqa_quick_review_artifact import (
 
 
 class QuickReviewArtifactSafetyTests(unittest.TestCase):
-    def test_default_output_targets_current_simple_v5_artifact(self):
+    def test_default_output_targets_current_simple_v8_artifact(self):
         self.assertEqual(
             DEFAULT_OUTPUT.name,
-            "quick_review_ja_simple_20261019_itemid_v5.html",
+            "quick_review_ja_simple_20261019_itemid_v8.html",
         )
         self.assertTrue(DEFAULT_OUTPUT.is_relative_to(
             Path(__file__).resolve().parents[1] / "data/private_nextgqa"
@@ -183,8 +183,11 @@ class QuickReviewArtifactSafetyTests(unittest.TestCase):
             self.assertIn("JSONをもう一度ダウンロード", rendered)
             self.assertIn("const respondents=[]", rendered)
             self.assertIn("respondents.push({nickname,answers:answers.slice()})", rendered)
+            self.assertIn("nickname=`参加者${nextNumber}`;index=0;answers=[]", rendered)
+            self.assertIn("$('next-reviewer').addEventListener('click'", rendered)
             self.assertIn("schema_version:4", rendered)
-            self.assertIn("保存ファイルには入力したニックネームが含まれます", rendered)
+            self.assertIn("JSONには最初のニックネームが含まれます", rendered)
+            self.assertIn("すぐ1問目が始まります", rendered)
             self.assertIn("ファイルを共有・公開しないでください", rendered)
             self.assertIn("ダウンロードを開始しました", rendered)
             self.assertIn("ブラウザのダウンロード一覧で保存を確認してください", rendered)
