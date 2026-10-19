@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 from datetime import datetime, timezone
+import fnmatch
 import hashlib
 import json
 import os
@@ -94,12 +95,54 @@ def _response_filename(raw: bytes) -> str:
     return f"response_{stamp}_{digest[:12]}_{secrets.token_hex(3)}.json"
 
 
+def _find_exact_duplicate(raw: bytes, response_fd: int) -> str | None:
+    """Return an existing owner-only response with identical bytes, if present."""
+    digest = hashlib.sha256(raw).hexdigest()
+    prefix = f"response_*_{digest[:12]}_*.json"
+    for name in os.listdir(response_fd):
+        if not fnmatch.fnmatchcase(name, prefix):
+            continue
+        try:
+            fd = os.open(name, os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0)
+                         | getattr(os, "O_NONBLOCK", 0), dir_fd=response_fd)
+        except OSError as exc:
+            raise ReviewError("private_response_duplicate_open_failed") from exc
+        try:
+            before = os.fstat(fd)
+            if (not stat.S_ISREG(before.st_mode) or before.st_uid != os.geteuid()
+                    or stat.S_IMODE(before.st_mode) != 0o600
+                    or before.st_size < 1 or before.st_size > MAX_JSON_BYTES):
+                raise ReviewError("private_response_duplicate_invalid")
+            hasher = hashlib.sha256()
+            size = 0
+            while True:
+                chunk = os.read(fd, min(64 * 1024, MAX_JSON_BYTES + 1 - size))
+                if not chunk:
+                    break
+                size += len(chunk)
+                if size > MAX_JSON_BYTES:
+                    raise ReviewError("private_response_duplicate_invalid")
+                hasher.update(chunk)
+            after = os.fstat(fd)
+            signature = lambda value: (value.st_dev, value.st_ino, value.st_size,
+                                      value.st_mtime_ns, value.st_ctime_ns)
+            if signature(before) != signature(after) or size != before.st_size:
+                raise ReviewError("private_response_duplicate_changed_during_read")
+            if hasher.hexdigest() == digest:
+                return name
+        finally:
+            os.close(fd)
+    return None
+
+
 def import_response(source_path: Path, *, artifact_path: Path = DEFAULT_ARTIFACT,
-                    private_root: Path = PRIVATE_ROOT) -> tuple[Path, dict]:
+                    private_root: Path | None = None) -> tuple[Path, dict]:
     """Validate exact artifact mapping, then create a new mode-0600 private copy.
 
     The source is retained. No response text or nickname is returned or printed.
     """
+    if private_root is None:
+        private_root = PRIVATE_ROOT
     raw = _read_source(Path(source_path))
     # Validate the bytes before copying. The inspection result intentionally
     # contains only broad judgments and opaque item ordinals.
@@ -107,6 +150,17 @@ def import_response(source_path: Path, *, artifact_path: Path = DEFAULT_ARTIFACT
     summary = summarize_response(raw, expected_item_ids(Path(artifact_path)))
 
     response_fd = _private_directory_fd(Path(private_root))
+    try:
+        duplicate_name = _find_exact_duplicate(raw, response_fd)
+    except Exception:
+        os.close(response_fd)
+        raise
+    if duplicate_name is not None:
+        os.close(response_fd)
+        destination = Path(private_root) / RESPONSE_DIRNAME / duplicate_name
+        summary = inspect_response(destination, Path(artifact_path))
+        summary["_already_present"] = True
+        return destination, summary
     name = _response_filename(raw)
     temp_name = f".{name}.partial"
     fd = None
@@ -149,6 +203,7 @@ def import_response(source_path: Path, *, artifact_path: Path = DEFAULT_ARTIFACT
         destination = Path(private_root) / RESPONSE_DIRNAME / name
         # Read back through the normal inspector to verify the saved copy too.
         summary = inspect_response(destination, Path(artifact_path))
+        summary["_already_present"] = False
         return destination, summary
     except Exception:
         if fd is not None:
@@ -232,6 +287,8 @@ def main(argv: list[str] | None = None) -> int:
               f"十分={evidence['sufficient']}件、足りない={evidence['insufficient']}件、"
               f"判断できない={evidence['cannot_tell']}件")
     print(f"private保存先: {destination}")
+    if report.get("_already_present"):
+        print("同一内容は既にprivate保存済みのため、既存ファイルを再利用しました。")
     print("保存JSONはowner-only (0600) です。元のダウンロードは削除していません。")
     print("これは印象確認でありfaithfulness推定・採点許可ではありません。")
     return 0

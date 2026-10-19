@@ -68,6 +68,16 @@ class PrivateQuickReviewImportTests(unittest.TestCase):
         self.assertTrue(self.source.exists())
         self.assertNotIn("PRIVATE NICKNAME", repr(report))
 
+    def test_identical_response_reuses_private_copy_without_adding_duplicate(self):
+        first, first_report = import_response(
+            self.source, artifact_path=self.artifact, private_root=self.private_root)
+        second, second_report = import_response(
+            self.source, artifact_path=self.artifact, private_root=self.private_root)
+        self.assertEqual(second, first)
+        self.assertFalse(first_report["_already_present"])
+        self.assertTrue(second_report["_already_present"])
+        self.assertEqual(list(first.parent.glob("*.json")), [first])
+
     def test_invalid_response_is_not_copied(self):
         self.source.write_text('{"schema_version":2}', encoding="utf-8")
         with self.assertRaises(ReviewError):
@@ -111,6 +121,9 @@ class PrivateQuickReviewImportTests(unittest.TestCase):
             original, _ = import_response(
                 self.source, artifact_path=self.artifact,
                 private_root=self.private_root)
+            changed = _response()
+            changed["created_at_utc"] = "2026-10-19T03:00:01.000Z"
+            self.source.write_text(json.dumps(changed), encoding="utf-8")
             with self.assertRaisesRegex(ReviewError,
                                         "private_response_destination_exists"):
                 import_response(self.source, artifact_path=self.artifact,
@@ -134,6 +147,15 @@ class PrivateQuickReviewImportTests(unittest.TestCase):
         self.assertNotIn("PRIVATE NICKNAME", rendered)
         self.assertNotIn("download.json", rendered)
         self.assertTrue(self.source.exists())
+        output.seek(0)
+        output.truncate(0)
+        with patch.object(importer, "PRIVATE_ROOT", self.private_root), \
+                patch.object(sys, "argv", ["import", str(self.source),
+                                            "--artifact", str(self.artifact)]), \
+                patch.object(sys, "stdout", output):
+            self.assertEqual(main(), 0)
+        self.assertIn("同一内容は既にprivate保存済み", output.getvalue())
+        self.assertEqual(len(list((self.private_root / importer.RESPONSE_DIRNAME).glob("*.json"))), 1)
 
     def test_cli_reports_multireviewer_v4_without_names(self):
         answers = [
