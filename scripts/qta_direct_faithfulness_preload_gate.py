@@ -34,8 +34,9 @@ def evaluate_qta_direct_faithfulness_preload(*, sampler_receipt_raw: bytes,
     A structurally valid result still cannot satisfy any execution gate.
     """
     result = {
-        "schema_version": 1,
-        "purpose": "qta_direct_faithfulness_preload_readiness_diagnostic",
+        "schema_version": 2,
+        "purpose": "qta_direct_faithfulness_prebaseline_structure_diagnostic",
+        "phase": "pre_baseline_candidate",
         "status": "blocked",
         "requested_rows": ROW_COUNT,
         "validated_rows": 0,
@@ -46,7 +47,10 @@ def evaluate_qta_direct_faithfulness_preload(*, sampler_receipt_raw: bytes,
         "trusted_human_review": "blocked",
         "semantic_review": "blocked",
         "clock_frame_correspondence": "blocked",
-        "frozen_baseline_prediction_link": "blocked",
+        # These are intentionally not pre-baseline gates. Prediction-link
+        # review depends on the exact frozen baseline predictions and p/q.
+        "baseline_prediction_manifest": "not_applicable_pre_baseline",
+        "prediction_link_review": "not_yet_applicable_baseline_required",
         "processor_batch_provenance": "blocked",
         "direct_faithfulness_ready": False,
         "model_load_permitted": False,

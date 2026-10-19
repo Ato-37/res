@@ -59,7 +59,10 @@ class QtaDirectFaithfulnessPreloadGateTests(unittest.TestCase):
         self.assertEqual(result["trusted_human_review"], "blocked")
         self.assertEqual(result["semantic_review"], "blocked")
         self.assertEqual(result["clock_frame_correspondence"], "blocked")
-        self.assertEqual(result["frozen_baseline_prediction_link"], "blocked")
+        self.assertEqual(result["phase"], "pre_baseline_candidate")
+        self.assertEqual(result["baseline_prediction_manifest"], "not_applicable_pre_baseline")
+        self.assertEqual(result["prediction_link_review"],
+                         "not_yet_applicable_baseline_required")
         self.assertEqual(result["processor_batch_provenance"], "blocked")
         self.assertFalse(result["direct_faithfulness_ready"])
         self.assertFalse(result["model_load_permitted"])
@@ -70,11 +73,12 @@ class QtaDirectFaithfulnessPreloadGateTests(unittest.TestCase):
         self.assertFalse(result["faithfulness_scored"])
         self.assertEqual(result["execution_authorization"], "not_granted")
         self.assertEqual(set(result), {
-            "schema_version", "purpose", "status", "requested_rows", "validated_rows",
+            "schema_version", "purpose", "phase", "status", "requested_rows", "validated_rows",
             "structurally_composed_rows",
             "requested_clock_frame_anchors", "validated_clock_frame_anchors",
             "structural_source_composition", "trusted_human_review", "semantic_review",
-            "clock_frame_correspondence", "frozen_baseline_prediction_link",
+            "clock_frame_correspondence", "baseline_prediction_manifest",
+            "prediction_link_review",
             "processor_batch_provenance", "direct_faithfulness_ready",
             "model_load_permitted", "cuda_used", "model_loaded", "forward_calls",
             "score_calls", "faithfulness_scored", "execution_authorization",
