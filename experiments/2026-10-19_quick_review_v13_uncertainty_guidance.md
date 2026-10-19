@@ -51,6 +51,10 @@ Source SHA-256:
   reviewer 3's items to be abstentions; the fixture intentionally set only the
   first item that way. After narrowing the assertion to that item, the Chrome
   E2E passed as reported above.
+- An earlier intermediate run also found that the new Q1 text assertion
+  searched only the choice labels, although the wording is in the question
+  section. The selector was corrected to inspect the section, and the later
+  final E2E run passed.
 - The independent source audit found the v13 item wording/defaults/docs aligned
   and the uncertainty guide non-item-specific. The E2E-source audit found the
   three-reviewer export checks present and confirmed that the final test sets
