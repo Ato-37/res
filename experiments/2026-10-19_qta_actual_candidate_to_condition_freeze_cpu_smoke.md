@@ -25,6 +25,21 @@ existing atomic freezer. It is an engineering check, not a faithfulness test.
   not verify source, review, custody, clock, or authorization.
 - Runner: `scripts/smoke_qta_candidate_to_frozen_conditions_qwen_cpu.py`.
 
+## Independent verification and research status
+
+- An independent source audit confirmed all four recorded SHA-256 values and
+  independently reran the smoke successfully. The primary reran it as well.
+- Focused bridge, candidate adapter, condition builder, atomic freezer, and
+  synthetic adapter-composition suites passed **61/61** tests; the runner also
+  passed `py_compile` and scoped `git diff --check`.
+- Direct faithfulness remains **0/3** scored; formal claim review **0/3**,
+  clock/frame correspondence **0/15**, and prediction-link review **0/3**.
+  There is no direct effect estimate, confidence interval, or statistical test.
+- The quick nickname-based impression artifact does not count toward these
+  formal totals. No completed response JSON was found in the private review
+  directory during the preceding inventory; this engineering smoke collected
+  no human response.
+
 ## Command and observed result
 
 ```bash
