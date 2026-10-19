@@ -42,6 +42,9 @@ private file/directory permissions, the complete unique 784-head inventory,
 and exact recomputation of elbow and sink-filter counts. The result itself
 therefore identifies a design-domain limit of the existing heuristic at two
 bins; it does not support retuning the threshold after observing this run.
+The exact runner SHA-256 stored in the artifact was independently reproduced
+from the committed source at `9c0208b`; the runner was later extended with a
+6-frame option without changing this run's recorded code identity.
 
 ## Faithfulness progress and next action
 

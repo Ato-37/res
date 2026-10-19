@@ -1,4 +1,4 @@
-"""Single-resolution, label-free four-frame head ranking diagnostic.
+"""Single-resolution, label-free low-resolution head ranking diagnostic.
 
 Exploratory attention-shape stability only; not a faithfulness experiment.
 """
@@ -30,8 +30,10 @@ def sha256(path):
 def main():
     p = argparse.ArgumentParser()
     p.add_argument("--samples-file", required=True)
+    p.add_argument("--protocol-file", required=True)
     p.add_argument("--output", required=True)
     p.add_argument("--limit", type=int, default=3, help="3 for smoke; 0 for all rows")
+    p.add_argument("--frames", type=int, choices=(4, 6), default=4)
     p.add_argument("--max-pixels", type=int, default=200704)
     p.add_argument("--exploratory", action="store_true", required=True)
     args = p.parse_args()
@@ -60,7 +62,8 @@ def main():
     observed_bins = set()
     for index, sample in enumerate(rows):
         try:
-            mass, entropy, peaks, bins = scan_one(sample, 4, model, processor, token_id, device)
+            mass, entropy, peaks, bins = scan_one(
+                sample, args.frames, model, processor, token_id, device)
             if mass.shape != (n_layers, n_heads):
                 raise RuntimeError("unexpected_attention_shape")
             records.append((mass, entropy, peaks))
@@ -84,11 +87,12 @@ def main():
         "research_status": "exploratory_only",
         "scope": "attention-shape ranking stability only; not faithfulness",
         "data_manifest_sha256": sha256(manifest),
+        "protocol_sha256": sha256(Path(args.protocol_file)),
         "requested_samples": len(rows), "effective_samples": len(records),
         "failures": len(failed_indices), "failed_manifest_indices": failed_indices,
         "sanitized_error_types": error_types,
         "sanitized_error_messages": error_messages,
-        "frames_requested": 4, "temporal_bins_observed": next(iter(observed_bins)),
+        "frames_requested": args.frames, "temporal_bins_observed": next(iter(observed_bins)),
         "ranking": "mass elbow min_keep=10; sink fraction <0.5; entropy ascending; top20",
         "runner_sha256": sha256(Path(__file__)),
         "head_helper_sha256": sha256(Path(legacy.__file__)),
