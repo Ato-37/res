@@ -161,7 +161,14 @@ try {
   if (-not (Evaluate $pageSocket "document.querySelector('#saved').textContent === '' && !document.querySelector('#summary').classList.contains('hidden')")) { throw 'FIRST_REVIEWER_SUMMARY_INVALID' }
   $step = 'second_reviewer'
   $null = Evaluate $pageSocket "document.querySelector('#next-reviewer').click(); true"
-  WaitFor $pageSocket "!document.querySelector('#question').classList.contains('hidden') && document.querySelector('#counter').textContent.trim().startsWith('1') && document.querySelector('#who').textContent.includes('参加者2')" 'SECOND_REVIEWER_QUESTION_TIMEOUT'
+  WaitFor $pageSocket "!document.querySelector('#welcome').classList.contains('hidden') && document.querySelector('#welcome-title').textContent.includes('2人目') && document.querySelector('#nickname').value === ''" 'SECOND_REVIEWER_NICKNAME_TIMEOUT'
+  if (-not (Evaluate $pageSocket "!document.querySelector('#cancel-next').classList.contains('hidden')")) { throw 'CANCEL_NEXT_CONTROL_MISSING' }
+  $null = Evaluate $pageSocket "document.querySelector('#cancel-next').click(); true"
+  WaitFor $pageSocket "!document.querySelector('#done').classList.contains('hidden') && document.querySelector('#reviewer-count').textContent.startsWith('1')" 'RETURN_TO_COMPLETION_TIMEOUT'
+  $null = Evaluate $pageSocket "document.querySelector('#next-reviewer').click(); true"
+  WaitFor $pageSocket "!document.querySelector('#welcome').classList.contains('hidden') && document.querySelector('#welcome-title').textContent.includes('2人目') && document.querySelector('#nickname').value === ''" 'SECOND_REVIEWER_NICKNAME_RETRY_TIMEOUT'
+  $null = Evaluate $pageSocket "document.querySelector('#nickname').value='synthetic-reviewer-2'; document.querySelector('#start').click(); true"
+  WaitFor $pageSocket "!document.querySelector('#question').classList.contains('hidden') && document.querySelector('#counter').textContent.trim().startsWith('1') && document.querySelector('#who').textContent.includes('synthetic-reviewer-2')" 'SECOND_REVIEWER_QUESTION_TIMEOUT'
   if (-not (Evaluate $pageSocket "Array.from(document.querySelectorAll('input[type=radio]')).every(x=>!x.checked)")) { throw 'SECOND_REVIEWER_STALE_CHOICES' }
   for ($i = 0; $i -lt 3; $i++) {
     $expected = $i + 1
@@ -185,7 +192,7 @@ try {
   $expectedIds = [string[]](ConvertFrom-Json ([Text.Encoding]::UTF8.GetString([Convert]::FromBase64String('__EXPECTED_IDS_B64__'))))
   $rootKeys = @($payload.PSObject.Properties.Name | Sort-Object) -join ','
   if ($rootKeys -cne 'created_at_utc,limitations,purpose,respondents,schema_version,status' -or $payload.schema_version -ne 5 -or $payload.purpose -ne 'exploratory_human_impression_check' -or $payload.status -ne 'informal_observations_only' -or $payload.respondents.Count -ne 2) { throw 'COMBINED_JSON_SCHEMA_INVALID' }
-  if ($payload.respondents[0].nickname -cne 'synthetic-reviewer' -or $payload.respondents[1].nickname -cne '参加者2') { throw 'COMBINED_JSON_REVIEWER_ORDER_INVALID' }
+  if ($payload.respondents[0].nickname -cne 'synthetic-reviewer' -or $payload.respondents[1].nickname -cne 'synthetic-reviewer-2') { throw 'COMBINED_JSON_REVIEWER_ORDER_INVALID' }
   foreach ($respondent in $payload.respondents) {
     $respondentKeys = @($respondent.PSObject.Properties.Name | Sort-Object) -join ','
     if ($respondentKeys -cne 'answers,nickname' -or $respondent.answers.Count -ne 3) { throw 'COMBINED_JSON_ANSWER_COUNT_INVALID' }
@@ -200,7 +207,7 @@ try {
     if (($actualIds -join ',') -cne ($expectedIds -join ',')) { throw 'COMBINED_JSON_ITEM_ID_ORDER_INVALID' }
   }
   if (-not (Evaluate $pageSocket "document.querySelector('#saved').textContent.trim().startsWith('2')")) { throw 'COMBINED_SAVE_CONFIRMATION_MISSING' }
-  Write-Output 'E2E_PASS: two sequential reviewers, one downloaded schema-v5 JSON with 2 respondents and 18 validated rubric judgments'
+  Write-Output 'E2E_PASS: two sequential reviewers each enter a nickname; one downloaded schema-v5 JSON with 2 respondents and 18 validated rubric judgments'
 } catch {
   $code = [string]$_
   if ($code -notmatch '^[A-Z0-9_]+$') {

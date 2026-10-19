@@ -11,10 +11,10 @@ from build_nextgqa_quick_review_artifact import (
 
 
 class QuickReviewArtifactSafetyTests(unittest.TestCase):
-    def test_default_output_targets_current_simple_v9_artifact(self):
+    def test_default_output_targets_current_simple_v10_artifact(self):
         self.assertEqual(
             DEFAULT_OUTPUT.name,
-            "quick_review_ja_simple_20261019_itemid_v9.html",
+            "quick_review_ja_simple_20261019_itemid_v10.html",
         )
         self.assertTrue(DEFAULT_OUTPUT.is_relative_to(
             Path(__file__).resolve().parents[1] / "data/private_nextgqa"
@@ -171,7 +171,7 @@ class QuickReviewArtifactSafetyTests(unittest.TestCase):
             self.assertIn("$('summary-items').replaceChildren", rendered)
             self.assertIn("$('summary').classList.remove('hidden')", rendered)
             summary_start = rendered.index("function showSummary()")
-            summary_end = rendered.index("$('next-reviewer').addEventListener", summary_start)
+            summary_end = rendered.index("function prepareNextReviewer()", summary_start)
             summary_script = rendered[summary_start:summary_end]
             self.assertIn("li.textContent=", summary_script)
             self.assertNotIn("innerHTML", summary_script)
@@ -185,11 +185,15 @@ class QuickReviewArtifactSafetyTests(unittest.TestCase):
             self.assertIn("JSONをもう一度ダウンロード", rendered)
             self.assertIn("const respondents=[]", rendered)
             self.assertIn("respondents.push({nickname,answers:answers.slice()})", rendered)
-            self.assertIn("nickname=`参加者${nextNumber}`;index=0;answers=[]", rendered)
+            self.assertIn("function prepareNextReviewer()", rendered)
+            self.assertIn("${nextNumber}人目のニックネームを入力", rendered)
+            self.assertIn("$('cancel-next').classList.remove('hidden')", rendered)
+            self.assertIn("$('next-reviewer').addEventListener('click',prepareNextReviewer)", rendered)
+            self.assertIn("$('cancel-next').addEventListener('click'", rendered)
             self.assertIn("$('next-reviewer').addEventListener('click'", rendered)
             self.assertIn("schema_version:5", rendered)
-            self.assertIn("JSONには最初のニックネームが含まれます", rendered)
-            self.assertIn("すぐ1問目が始まります", rendered)
+            self.assertIn("JSONには各人のニックネームが含まれます", rendered)
+            self.assertIn("自分のニックネームを入力してから質問に進んでください", rendered)
             self.assertIn("ファイルを共有・公開しないでください", rendered)
             self.assertIn("ダウンロードを開始しました", rendered)
             self.assertIn("ブラウザのダウンロード一覧で保存を確認してください", rendered)

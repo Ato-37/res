@@ -15,7 +15,7 @@ from typing import Any
 
 ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_ARTIFACT = ROOT / (
-    "data/private_nextgqa/quick_review_ja_simple_20261019_itemid_v9.html"
+    "data/private_nextgqa/quick_review_ja_simple_20261019_itemid_v10.html"
 )
 MAX_JSON_BYTES = 1_000_000
 MAX_ARTIFACT_BYTES = 64_000_000
