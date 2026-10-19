@@ -3,6 +3,7 @@ from __future__ import annotations
 import hashlib
 import json
 import unittest
+from collections import defaultdict
 from unittest import mock
 
 import torch
@@ -171,6 +172,31 @@ class QtaPrebaselineTransactionPreflightTests(unittest.TestCase):
         report = transaction.preflight_qta_phase1_batch_transaction(**kwargs)
         self.assertEqual(report["failure_code"], "stage1_review_byte_maps_differ")
         self.assertFalse(report["scoring_authorized"])
+
+    def test_live_row_mapping_values_are_read_once(self):
+        class SingleReadDict(dict):
+            def __init__(self, *args, **kwargs):
+                super().__init__(*args, **kwargs)
+                self.reads = defaultdict(int)
+
+            def __getitem__(self, key):
+                self.reads[key] += 1
+                if self.reads[key] > 1:
+                    raise AssertionError("live row field read more than once")
+                return super().__getitem__(key)
+
+        kwargs = dict(self.kwargs)
+        wrapped = [SingleReadDict(row) for row in self.live_rows]
+        kwargs["live_processor_rows"] = wrapped
+        report = transaction.preflight_qta_phase1_batch_transaction(**kwargs)
+        self.assertEqual(report["status"], "structural_bindings_consistent_unvalidated")
+        for row in wrapped:
+            self.assertEqual(dict(row.reads), {
+                "review_token": 1,
+                "source_video_sha256": 1,
+                "batch_sha256": 1,
+                "batch": 1,
+            })
 
 
 if __name__ == "__main__":

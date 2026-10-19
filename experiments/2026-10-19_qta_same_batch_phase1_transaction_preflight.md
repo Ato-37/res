@@ -27,7 +27,7 @@ model load, forward pass, or faithfulness score.
 
 ## Verified results
 
-- Targeted CPU test invocation completed **82 tests, all passed** in 38.464 s:
+- Targeted CPU test invocation completed **83 tests, all passed** in 39.499 s:
 
   ```bash
   PYTHONPATH=scripts .venv/bin/python -m unittest \
@@ -39,7 +39,9 @@ model load, forward pass, or faithfulness score.
 - `py_compile` passed for both new Python files.
 - `git diff --check` passed.
 - Implementation SHA-256: `90e23c08de35acfd56b2529c49260218df1c17bd11bdc977e9d48c3dfa82b6f0`.
-- Test SHA-256: `dfd25f7eaee8cca98d8982647ba078f532804324201a1b8ccdbebf2aff92c8f9`.
+- Test SHA-256: `f987acd22f220d47509afdd30c2f8ea7891652a19de90b838fbaf2d2d0ec9e19`.
+- A dedicated regression test confirms custom live-row mappings expose each
+  metadata value exactly once to the snapshot operation.
 - Successful synthetic preflight reports three structural bindings only;
   trust-root origin, identity, semantic review, and clock/frame correspondence
   remain unauthenticated. `model_load_permitted=false`,
