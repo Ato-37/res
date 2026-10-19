@@ -113,3 +113,51 @@ artifact to finish the human-dependent gates. Do not run model scoring on the
 test-only inventory to work around the missing validation cohort. Direct
 faithfulness remains 0/3 claims scored; this availability audit adds no effect
 estimate.
+
+## Validation archive reconciliation
+
+The original local NExTVideo archive was also present. A new aggregate-only
+auditor, `scripts/audit_nextgqa_zip_split_exposure.py`, streams mapped members
+directly from the ZIP without extraction or frame decoding. The current
+validation split resolved to **567/567** unique map paths in the 5,440-member
+archive; **2,486,424,860** bytes were hashed and all 567 byte hashes were
+distinct. The partial exposure index matched 33 distinct media hashes; the
+separate expanded index matched 0; their union matched 33, leaving 534
+validation candidates unmatched by those two supplied indexes. This does not
+make those candidates fresh: history coverage is unauthenticated, and the
+indices are not nested snapshots. Rights status remains unverified; members
+were read locally and not extracted, decoded, displayed, or published.
+
+The current archive size is 24,253,160,380 bytes and its verified full-file
+SHA-256 is
+`1ffa32292d4313b0858686dd67bde10fb3ccd10066f0f597323ed82c3f4f72e8`, matching
+the previously recorded archive digest. The final auditor SHA-256 is
+`d3459a3e706a92d541e360b0858a40dccaa5b06603b0721e08032fc82206e524`; the
+synthetic test SHA-256 is
+`7409f88fa0fb476f188d7e874d3e9908b0a5df6fb243a27c3edece46ea40b97b`. The
+validation CSV and map hashes are recorded above. A re-run of the full
+archive audit with the final implementation reproduced the counts, and the
+helper's **12/12 synthetic tests** passed for ordinary matching,
+unsafe/noncanonical paths, member aliasing, duplicate names, CRC failure,
+archive file/central-directory/member-count caps, ZIP and member symlinks,
+and distinct-index union accounting. Python compilation and `git diff --check`
+passed. Independent code review found no blocking defects; it confirmed that
+the result supports only availability and matches to the supplied partial
+indexes, not freshness.
+
+Reproduction command:
+
+```bash
+PYTHONPATH=scripts ./.venv/bin/python scripts/audit_nextgqa_zip_split_exposure.py \
+  --split-csv NExT-GQA/datasets/nextgqa/val.csv \
+  --video-map-json NExT-GQA/datasets/nextgqa/map_vid_vidorID.json \
+  --zip-path "$HOME/NExTVideo.zip" \
+  --prior-index data/private_nextgqa/prior_exposure_partial_20261016_03.json \
+  --prior-index data/private_nextgqa/prior_exposure_expanded_known_history_20261018_01.json \
+  --hmac-key data/private_nextgqa/prior_exposure_hmac_key_20261016_01.bin
+```
+
+This archive restores a locally available validation media pool, but it does
+not remove the remaining human-review, timing, and scoring-authorization gates.
+The 534 unmatched candidates support only a local availability/exposure-index
+statement. No GPU model run or direct-faithfulness score was performed.
