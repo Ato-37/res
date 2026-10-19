@@ -97,3 +97,14 @@ observations. No response was changed or removed. Current formal evidence
 remains **0/3** claim reviews, **0/15** clock/frame correspondences, **0/3**
 prediction-link reviews, and **0/3** direct scores. No GPU model workload or
 faithfulness estimate was run in this checkpoint.
+
+## Embedded media verification on current private v4 artifact (2026-10-19)
+
+Read the current owner-only HTML and checked its three embedded video payloads
+locally with `ffprobe`, using temporary owner-only files that were removed on
+exit. All **3/3** streams were positive-duration, video-only H.264. The HTML
+remains mode `0600`. No question/claim text or media details were emitted, and
+no video was opened in a player or displayed as part of this check. This
+confirms container/codec readability for the current artifact, not playback in
+the reviewer's browser/device or human viewing. No review response or
+faithfulness score was created; formal direct evidence remains unchanged.
