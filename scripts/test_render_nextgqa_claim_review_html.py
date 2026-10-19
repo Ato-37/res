@@ -158,20 +158,63 @@ class RenderNextgqaClaimReviewHtmlTests(unittest.TestCase):
         self.assertIn("別の根拠出現は重なる場合も個別に記録してください", page)
         self.assertIn("s.intervals.sort((x,y)=>x.start-y.start)", page)
         self.assertIn("custodian照合値", page)
-        self.assertIn("window.pendingReviewIndex", page)
-        self.assertIn("1/2 レビューJSONを保存", page)
-        self.assertIn("2/2 完全性indexを保存（必須）", page)
-        self.assertIn("レビューJSONを再ダウンロード", page)
-        self.assertIn("完全性indexを再ダウンロード", page)
-        self.assertIn("ダウンロード開始は保存完了を保証しません", page)
-        self.assertIn("非公開のcustodianへ一緒に渡してください", page)
-        self.assertIn("画面を閉じるとindexを再生成できない", page)
-        self.assertIn("window.pendingReviewPayload=raw", page)
-        self.assertIn("downloadReviewIndex()", page)
+        self.assertIn("combined_nextgqa_formal_review_handoff_envelope", page)
+        self.assertIn("次の担当者へ", page)
+        self.assertIn("全員分を1つのJSONで保存", page)
+        self.assertIn("同じ画面を引き継ぐ操作は、レビュアー間の独立性や会話を防げません", page)
+        self.assertIn("completedSessions.push", page)
+        self.assertIn("rowResetters", page)
+        self.assertIn("execution_authorization:'not_granted'", page)
+        self.assertIn("chars.length<=256", page)
+        self.assertIn("reviewer_id_casefold_exceptions", page)
+        self.assertIn("exceptions[ch]||ch", page)
+        page_data = json.loads(re.search(
+            r'<script id="data" type="application/json">(.*?)</script>', page,
+            re.DOTALL).group(1))
+        fold = page_data["reviewer_id_casefold_exceptions"]
+        self.assertEqual(fold["ß"], "ss")
+        self.assertEqual(fold["ς"], "σ")
+        self.assertEqual(fold["ꭰ"], "Ꭰ")
+        self.assertEqual(fold["ǰ"], "j\u030c")
+        self.assertIn("completedSessions.length<16", page)
+        self.assertIn("candidateEnvelope=JSON.stringify(envelope,null,2)+'\\n'", page)
+        self.assertIn("new TextEncoder().encode(candidateEnvelope).length>MAX_ENVELOPE_BYTES", page)
+        self.assertIn("snapshot-download", page)
+        self.assertIn("前の担当者までの回答を一時保存できます", page)
         self.assertIn("if(exportButton.disabled||exportInProgress)return;exportInProgress=true;exportButton.disabled=true", page)
         self.assertIn("||exportInProgress", page)
         self.assertIn("catch(_error){exportInProgress=false;checkReady()", page)
-        self.assertIn("document.getElementById('retry-review').onclick", page)
+        self.assertIn("document.getElementById('retry-envelope').onclick", page)
+        self.assertNotIn("export-clock", page)
+        self.assertNotIn("export-index", page)
+
+    def test_embedded_media_mode_omits_file_inputs_and_keeps_custody_hashes(self):
+        payload, _, lineage, _ = self.payload()
+        media = {row["review_token"]: f"synthetic valid-size fixture {i}".encode()
+                 for i, row in enumerate(payload["records"])}
+        for row, lineage_row in zip(payload["records"], lineage["records"], strict=True):
+            digest = hashlib.sha256(media[row["review_token"]]).hexdigest()
+            row["video_sha256"] = lineage_row["video_sha256"] = digest
+            row["video_id"] = lineage_row["video_id"] = "video-" + digest
+            claim = hashlib.sha256((digest + "\0" + lineage_row["dataset_question_id"] + "\0"
+                                   + row["claim_text_sha256"]).encode()).hexdigest()
+            row["claim_id"] = lineage_row["claim_id"] = "claim-" + claim
+        raw, lineage_raw = encode(payload), encode(lineage)
+        custody = self.custody(payload, raw, lineage_raw)
+        for row, entry in zip(payload["records"], custody["records"], strict=True):
+            video = media[row["review_token"]]
+            entry["source_media_sha256"] = entry["staged_media_sha256"] = row["video_sha256"]
+            entry["size_bytes"] = len(video)
+            entry["media_check_sha256"] = hashlib.sha256(
+                bytes.fromhex(entry["media_check_salt"]) + video).hexdigest()
+        custody_raw = encode(custody)
+        page = render(payload, raw, lineage, lineage_raw, hashlib.sha256(lineage_raw).hexdigest(),
+                      custody, custody_raw, hashlib.sha256(custody_raw).hexdigest(),
+                      media_files=media).decode()
+        self.assertIn('"embedded_media":true', page)
+        self.assertIn('"video_base64"', page)
+        self.assertIn("base.embedded_media?null:el('input',{type:'file'", page)
+        self.assertIn("custody_media_digest_mismatch", page)
         self.assertNotIn("localStorage", page)
         self.assertIn("焼き付いた字幕", page)
         self.assertIn("1 ms精度の測定を意味しません", page)
@@ -204,7 +247,7 @@ class RenderNextgqaClaimReviewHtmlTests(unittest.TestCase):
         self.assertIn("muted:video.muted", page)
         self.assertIn("volume:video.volume", page)
         self.assertIn("text_tracks_disabled:Array.from(video.textTracks||[]).every", page)
-        self.assertIn("input:not(.clock-control),select,textarea,button:not(.clock-control)", page)
+        self.assertIn("for(const id of ['reviewer','role','attest','export-disclosure'])", page)
         self.assertIn("current_src_is_staged_media:video.currentSrc===objectUrl", page)
         self.assertIn("fit_heldout_split:'not_assigned'", page)
         self.assertIn("decoder_pts_pairing:'not_provided'", page)
@@ -226,6 +269,11 @@ class RenderNextgqaClaimReviewHtmlTests(unittest.TestCase):
         self.assertIn("id=\"export-disclosure\"", page)
         self.assertIn("&&document.getElementById('export-disclosure').checked", page)
         self.assertIn("export_disclosure_acknowledged:document.getElementById('export-disclosure').checked", page)
+        review_json_disclosure = page.split(
+            '<p class="notice">レビューJSONには、', 1)[1].split("</p>", 1)[0]
+        top_level_disclosed_fields = set(re.findall(
+            r"[A-Za-z][A-Za-z0-9_]*",
+            review_json_disclosure.split("各record wrapper", 1)[0]))
         disclosure = page.split('<div id="rows">', 1)[0]
         self.assertLess(page.index('export_disclosure_acknowledgedは'),
                         page.index('<div id="rows">'))
@@ -266,6 +314,11 @@ class RenderNextgqaClaimReviewHtmlTests(unittest.TestCase):
         policy_path = (Path(__file__).resolve().parents[1] / "docs" /
                        "nextgqa_claim_review_policy_v6.json")
         export_contract = json.loads(policy_path.read_text(encoding="utf-8"))["export_contract"]
+        self.assertTrue(
+            set(export_contract["review_json_top_level_fields"]).issubset(
+                top_level_disclosed_fields),
+            "v6 reviewer-facing top-level disclosure omits an exported field",
+        )
         self.assertEqual(
             set(export_contract["review_json_top_level_fields"]),
             {
