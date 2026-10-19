@@ -146,6 +146,10 @@ try {
   $step = 'enter_nickname'
   $null = Evaluate $pageSocket "document.querySelector('#nickname').value='synthetic-reviewer'; document.querySelector('#start').click(); true"
   WaitFor $pageSocket "!document.querySelector('#welcome').classList.contains('hidden') === false && !document.querySelector('#question').classList.contains('hidden')" 'QUESTION_ONE_TIMEOUT'
+  $step = 'video_metadata'
+  WaitFor $pageSocket "document.querySelector('#video').readyState >= 1 && document.querySelector('#video').videoWidth > 0 && Number.isFinite(document.querySelector('#video').duration)" 'VIDEO_METADATA_TIMEOUT'
+  $step = 'video_frame_decode'
+  if (-not (Evaluate $pageSocket "(async()=>{const v=document.querySelector('#video');if(v.readyState<2){v.preload='auto';v.load();await Promise.race([new Promise(resolve=>v.addEventListener('loadeddata',()=>resolve(true),{once:true})),new Promise(resolve=>setTimeout(()=>resolve(false),5000))])}return v.readyState>=2&&v.videoWidth>0})()")) { throw 'VIDEO_FRAME_DECODE_FAILED' }
   for ($i = 0; $i -lt 3; $i++) {
     $step = 'choice_' + ($i + 1)
     $expected = $i + 1
@@ -323,55 +327,68 @@ class QuickReviewArtifactBrowserE2ETests(unittest.TestCase):
         if not powershell or not wslpath:
             self.skipTest("Windows PowerShell or wslpath unavailable")
         ffmpeg = shutil.which("ffmpeg")
-        if not ffmpeg:
+        artifact_override = os.environ.get("QUICK_REVIEW_ACTUAL_ARTIFACT")
+        if not ffmpeg and not artifact_override:
             self.skipTest("ffmpeg unavailable for synthetic video fixture")
         with tempfile.TemporaryDirectory(prefix="quick_review_e2e_synthetic_",
                                          dir=PRIVATE_ROOT) as temp_name:
             temp_root = Path(temp_name)
-            package = temp_root / "synthetic_package"
-            package.mkdir(mode=0o700)
-            records = []
-            for index in range(3):
-                records.append({
-                    "review_token": f"synthetic-token-{index + 1}",
-                    "question": f"Synthetic source question {index + 1}?",
-                    "claim_text": f"Synthetic source claim {index + 1}.",
-                })
-            (package / "index.html").write_text(
-                '<script id="data" type="application/json">'
-                + json.dumps({"records": records}) + "</script>", encoding="utf-8")
-            os.chmod(package / "index.html", 0o600)
-            video_path = package / "synthetic.mp4"
-            try:
-                subprocess.run(
-                    [ffmpeg, "-v", "error", "-f", "lavfi", "-i",
-                     "color=c=red:s=16x16:d=0.2", "-frames:v", "1", "-an",
-                     "-c:v", "libx264", "-pix_fmt", "yuv420p", "-movflags",
-                     "+faststart", str(video_path)],
-                    capture_output=True, timeout=15, check=True)
-            except (OSError, subprocess.SubprocessError):
-                self.skipTest("could not create synthetic video fixture")
-            for index in range(3):
-                destination = package / f"synthetic-token-{index + 1}.mp4"
-                destination.write_bytes(video_path.read_bytes())
-                os.chmod(destination, 0o600)
-            video_path.unlink()
-            translations = {
-                translation_key(row["question"], row["claim_text"]):
-                    (f"Synthetic question {i + 1}?", f"Synthetic claim {i + 1}.")
-                for i, row in enumerate(records)
-            }
-            artifact = temp_root / "synthetic_quick_review.html"
-            with redirect_stdout(io.StringIO()):
-                build(package, artifact, translations=translations)
+            if artifact_override:
+                artifact_input = Path(artifact_override)
+                if artifact_input.is_symlink():
+                    self.fail("actual review artifact symlinks are not accepted")
+                artifact = artifact_input.resolve(strict=True)
+                try:
+                    artifact.relative_to(PRIVATE_ROOT.resolve())
+                except ValueError:
+                    self.fail("actual review artifact must stay under the private data directory")
+                if artifact.is_symlink() or not artifact.is_file():
+                    self.fail("actual review artifact must be a regular local file")
+            else:
+                package = temp_root / "synthetic_package"
+                package.mkdir(mode=0o700)
+                records = []
+                for index in range(3):
+                    records.append({
+                        "review_token": f"synthetic-token-{index + 1}",
+                        "question": f"Synthetic source question {index + 1}?",
+                        "claim_text": f"Synthetic source claim {index + 1}.",
+                    })
+                (package / "index.html").write_text(
+                    '<script id="data" type="application/json">'
+                    + json.dumps({"records": records}) + "</script>", encoding="utf-8")
+                os.chmod(package / "index.html", 0o600)
+                video_path = package / "synthetic.mp4"
+                try:
+                    subprocess.run(
+                        [ffmpeg, "-v", "error", "-f", "lavfi", "-i",
+                         "color=c=red:s=16x16:d=0.2", "-frames:v", "1", "-an",
+                         "-c:v", "libx264", "-pix_fmt", "yuv420p", "-movflags",
+                         "+faststart", str(video_path)],
+                        capture_output=True, timeout=15, check=True)
+                except (OSError, subprocess.SubprocessError):
+                    self.skipTest("could not create synthetic video fixture")
+                for index in range(3):
+                    destination = package / f"synthetic-token-{index + 1}.mp4"
+                    destination.write_bytes(video_path.read_bytes())
+                    os.chmod(destination, 0o600)
+                video_path.unlink()
+                translations = {
+                    translation_key(row["question"], row["claim_text"]):
+                        (f"Synthetic question {i + 1}?", f"Synthetic claim {i + 1}.")
+                    for i, row in enumerate(records)
+                }
+                artifact = temp_root / "synthetic_quick_review.html"
+                with redirect_stdout(io.StringIO()):
+                    build(package, artifact, translations=translations)
             expected_ids = expected_item_ids(artifact)
             expected_fingerprint = expected_artifact_fingerprint(artifact)
             if not expected_fingerprint:
-                self.fail("synthetic artifact fingerprint missing")
+                self.fail("review artifact fingerprint missing")
             artifact_stat = artifact.stat()
             if (not stat.S_ISREG(artifact_stat.st_mode)
                     or stat.S_IMODE(artifact_stat.st_mode) != 0o600):
-                self.fail("synthetic artifact must be owner-only")
+                self.fail("review artifact must be owner-only")
             try:
                 translated = subprocess.run(
                     [wslpath, "-w", str(artifact)], capture_output=True,
