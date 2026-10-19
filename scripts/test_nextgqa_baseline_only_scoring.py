@@ -55,10 +55,15 @@ class _FakeOuter(torch.nn.Module):
 
 class _FakeModel(torch.nn.Module):
     def __init__(self, *, fail_at=None, nan_at=None, attention_peak_index=None,
-                 skip_attention_layer=None):
+                 skip_attention_layer=None, nested_vocab_size=False):
         super().__init__()
-        self.config = type("Config", (), {
-            "vocab_size": 16, "_attn_implementation": "eager"})()
+        if nested_vocab_size:
+            self.config = type("Config", (), {
+                "text_config": type("TextConfig", (), {"vocab_size": 16})(),
+                "_attn_implementation": "eager"})()
+        else:
+            self.config = type("Config", (), {
+                "vocab_size": 16, "_attn_implementation": "eager"})()
         self.model = _FakeOuter()
         self.calls = 0
         self.fail_at = fail_at
@@ -174,6 +179,13 @@ class BaselineOnlyScoringTests(unittest.TestCase):
         self.assertEqual(report["execution_authorization"], "not_granted")
         self.assertNotIn("treatment", report)
         self.assertNotIn("branches", report)
+
+    def test_nested_text_config_vocab_size_is_supported(self):
+        rows, pins, digests = _fixture()
+        model = _FakeModel(nested_vocab_size=True).eval()
+        report = self.score(model, rows, pins, digests)
+        self.assertEqual(report["status"], "completed_non_authorizing")
+        self.assertEqual(report["completed_forwards"], 3)
 
     def test_bad_row_count_rejects_before_any_forward(self):
         rows, pins, _ = _fixture()

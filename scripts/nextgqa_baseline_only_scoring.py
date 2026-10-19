@@ -134,7 +134,12 @@ def _validate_inputs(*, model: Any, rows: Any,
     if getattr(model, "training", None) is not False:
         _fail("baseline_model_must_be_in_eval_mode")
     config = getattr(model, "config", None)
+    # Qwen2.5-VL keeps the language vocabulary under ``text_config`` while
+    # smaller test doubles and some compatible wrappers expose it at the root.
     vocab_size = getattr(config, "vocab_size", None)
+    if vocab_size is None:
+        vocab_size = getattr(getattr(config, "text_config", None),
+                             "vocab_size", None)
     if type(vocab_size) is not int or vocab_size < 5:
         _fail("baseline_model_vocab_size_invalid")
     if getattr(config, "_attn_implementation", None) != "eager":
