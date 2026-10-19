@@ -102,6 +102,16 @@ class PrivateQuickReviewImportTests(unittest.TestCase):
                             private_root=self.private_root)
         self.assertFalse((self.private_root / importer.RESPONSE_DIRNAME).exists())
 
+    def test_import_cli_rejects_legacy_by_default_without_storage_side_effect(self):
+        with patch.object(importer, "PRIVATE_ROOT", self.private_root), \
+                patch.object(sys, "argv", ["import", str(self.source),
+                                            "--artifact", str(self.artifact)]), \
+                patch.object(sys, "stderr", io.StringIO()):
+            with self.assertRaises(SystemExit) as raised:
+                main()
+        self.assertEqual(raised.exception.code, 2)
+        self.assertFalse((self.private_root / importer.RESPONSE_DIRNAME).exists())
+
     def test_fingerprint_mismatch_is_rejected_before_private_copy(self):
         fingerprint = _bound_artifact(self.artifact)
         payload = _response()

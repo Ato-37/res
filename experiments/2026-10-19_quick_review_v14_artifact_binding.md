@@ -31,9 +31,9 @@ unbound imports an explicit opt-in.
   self-fingerprint check. The artifact is 30,656,433 bytes; its fingerprint is
   intentionally omitted from this public-safe log because it identifies the
   private instrument version.
-- Builder, inspector, and importer CPU suites: **37/37 passed**. Coverage
+- Builder, inspector, and importer CPU suites: **39/39 passed**. Coverage
   includes exact schema-v6 match, HTML tamper rejection, response mismatch
-  rejection before private storage, legacy-import opt-in, and sentinel text
+  rejection before private storage, legacy-import opt-in, both CLI default-refusal paths, and sentinel text
   preservation.
 - Synthetic Windows Chrome E2E: **1/1 passed** in 2.15 seconds after the final
   builder revision. It exercised three sequential synthetic reviewers, one

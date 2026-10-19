@@ -148,6 +148,21 @@ class QuickReviewResponseTests(unittest.TestCase):
             with self.assertRaisesRegex(ReviewError, "legacy_artifact_binding_requires_explicit_opt_in"):
                 inspect_response(response_path, artifact)
 
+    def test_cli_rejects_legacy_by_default(self):
+        items = [{"item_id": item_id} for item_id in ITEM_IDS]
+        with tempfile.TemporaryDirectory() as tmp:
+            artifact = Path(tmp) / "artifact.html"
+            response_path = Path(tmp) / "response.json"
+            artifact.write_text("<script>const items=" + json.dumps(items)
+                                + ";\nlet nickname='';</script>", encoding="utf-8")
+            response_path.write_text(json.dumps(valid_response()), encoding="utf-8")
+            with patch.object(sys, "argv", ["inspect", str(response_path),
+                                              "--artifact", str(artifact)]), \
+                    patch.object(sys, "stderr", io.StringIO()):
+                with self.assertRaises(SystemExit) as raised:
+                    main()
+            self.assertEqual(raised.exception.code, 2)
+
     def test_valid_response_summary_excludes_nickname_and_free_text(self):
         report = summarize_response(json.dumps(valid_response(), ensure_ascii=False).encode(), ITEM_IDS)
         self.assertEqual(report["validated_exploratory_responses"], 3)
