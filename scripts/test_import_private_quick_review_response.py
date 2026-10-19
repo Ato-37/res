@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import io
+import hashlib
 import json
 from pathlib import Path
 import stat
@@ -42,6 +43,16 @@ def _response(item_ids=ITEM_IDS):
     }
 
 
+def _bound_artifact(path: Path, item_ids=ITEM_IDS) -> str:
+    items = [{"item_id": item_id} for item_id in item_ids]
+    html = ('<meta name="review-artifact-sha256" content="__ARTIFACT_FINGERPRINT__">'
+            + "<script>const items=" + json.dumps(items)
+            + ";\nlet nickname='';</script>")
+    digest = hashlib.sha256(html.encode()).hexdigest()
+    path.write_text(html.replace("__ARTIFACT_FINGERPRINT__", digest), encoding="utf-8")
+    return digest
+
+
 class PrivateQuickReviewImportTests(unittest.TestCase):
     def setUp(self):
         self.tmp = tempfile.TemporaryDirectory()
@@ -59,7 +70,7 @@ class PrivateQuickReviewImportTests(unittest.TestCase):
     def test_valid_response_is_revalidated_and_copied_owner_only(self):
         destination, report = import_response(
             self.source, artifact_path=self.artifact,
-            private_root=self.private_root)
+            private_root=self.private_root, allow_unbound_legacy=True)
         self.assertEqual(destination.read_bytes(), self.raw)
         self.assertEqual(stat.S_IMODE(destination.stat().st_mode), 0o600)
         self.assertEqual(stat.S_IMODE(destination.parent.stat().st_mode), 0o700)
@@ -70,9 +81,9 @@ class PrivateQuickReviewImportTests(unittest.TestCase):
 
     def test_identical_response_reuses_private_copy_without_adding_duplicate(self):
         first, first_report = import_response(
-            self.source, artifact_path=self.artifact, private_root=self.private_root)
+            self.source, artifact_path=self.artifact, private_root=self.private_root, allow_unbound_legacy=True)
         second, second_report = import_response(
-            self.source, artifact_path=self.artifact, private_root=self.private_root)
+            self.source, artifact_path=self.artifact, private_root=self.private_root, allow_unbound_legacy=True)
         self.assertEqual(second, first)
         self.assertFalse(first_report["_already_present"])
         self.assertTrue(second_report["_already_present"])
@@ -82,15 +93,45 @@ class PrivateQuickReviewImportTests(unittest.TestCase):
         self.source.write_text('{"schema_version":2}', encoding="utf-8")
         with self.assertRaises(ReviewError):
             import_response(self.source, artifact_path=self.artifact,
+                            private_root=self.private_root, allow_unbound_legacy=True)
+        self.assertFalse((self.private_root / importer.RESPONSE_DIRNAME).exists())
+
+    def test_legacy_response_requires_explicit_import_opt_in(self):
+        with self.assertRaisesRegex(ReviewError, "legacy_artifact_binding_requires_explicit_opt_in"):
+            import_response(self.source, artifact_path=self.artifact,
                             private_root=self.private_root)
         self.assertFalse((self.private_root / importer.RESPONSE_DIRNAME).exists())
+
+    def test_fingerprint_mismatch_is_rejected_before_private_copy(self):
+        fingerprint = _bound_artifact(self.artifact)
+        payload = _response()
+        payload.pop("nickname")
+        payload.pop("answers")
+        payload.update({"schema_version": 6, "artifact_fingerprint": "0" * 64,
+                        "respondents": [{"nickname": "private", "answers": [
+                            {"item_id": item_id, "item_number": index,
+                             "question_clarity": "clear", "answer_question_fit": "fits",
+                             "video_evidence_sufficiency": "sufficient"}
+                            for index, item_id in enumerate(ITEM_IDS, start=1)
+                        ]}]})
+        self.source.write_text(json.dumps(payload), encoding="utf-8")
+        with self.assertRaisesRegex(ReviewError, "response_artifact_fingerprint_mismatch"):
+            import_response(self.source, artifact_path=self.artifact,
+                            private_root=self.private_root, allow_unbound_legacy=True)
+        self.assertFalse((self.private_root / importer.RESPONSE_DIRNAME).exists())
+        payload["artifact_fingerprint"] = fingerprint
+        self.source.write_text(json.dumps(payload), encoding="utf-8")
+        destination, report = import_response(
+            self.source, artifact_path=self.artifact, private_root=self.private_root)
+        self.assertTrue(destination.exists())
+        self.assertEqual(report["artifact_binding"], "verified")
 
     def test_symlink_source_is_rejected(self):
         link = self.root / "response-link.json"
         link.symlink_to(self.source)
         with self.assertRaises(ReviewError):
             import_response(link, artifact_path=self.artifact,
-                            private_root=self.private_root)
+                            private_root=self.private_root, allow_unbound_legacy=True)
 
     def test_response_directory_symlink_is_rejected(self):
         outside = self.root / "outside"
@@ -98,14 +139,14 @@ class PrivateQuickReviewImportTests(unittest.TestCase):
         (self.private_root / importer.RESPONSE_DIRNAME).symlink_to(outside)
         with self.assertRaises(ReviewError):
             import_response(self.source, artifact_path=self.artifact,
-                            private_root=self.private_root)
+                            private_root=self.private_root, allow_unbound_legacy=True)
         self.assertEqual(list(outside.iterdir()), [])
 
     def test_write_failure_cleans_partial_private_file(self):
         with patch.object(importer.os, "write", side_effect=OSError("disk full")):
             with self.assertRaisesRegex(OSError, "disk full"):
                 import_response(self.source, artifact_path=self.artifact,
-                                private_root=self.private_root)
+                                private_root=self.private_root, allow_unbound_legacy=True)
         response_dir = self.private_root / importer.RESPONSE_DIRNAME
         self.assertEqual(list(response_dir.iterdir()), [])
 
@@ -113,21 +154,21 @@ class PrivateQuickReviewImportTests(unittest.TestCase):
         self.private_root.chmod(0o750)
         with self.assertRaisesRegex(ReviewError, "private_root_permissions_invalid"):
             import_response(self.source, artifact_path=self.artifact,
-                            private_root=self.private_root)
+                            private_root=self.private_root, allow_unbound_legacy=True)
 
     def test_filename_collision_preserves_existing_response(self):
         with patch.object(importer, "_response_filename",
                           return_value="response_fixed.json"):
             original, _ = import_response(
                 self.source, artifact_path=self.artifact,
-                private_root=self.private_root)
+                private_root=self.private_root, allow_unbound_legacy=True)
             changed = _response()
             changed["created_at_utc"] = "2026-10-19T03:00:01.000Z"
             self.source.write_text(json.dumps(changed), encoding="utf-8")
             with self.assertRaisesRegex(ReviewError,
                                         "private_response_destination_exists"):
                 import_response(self.source, artifact_path=self.artifact,
-                                private_root=self.private_root)
+                                private_root=self.private_root, allow_unbound_legacy=True)
         self.assertEqual(original.read_bytes(), self.raw)
         self.assertEqual(
             sorted(path.name for path in original.parent.iterdir()),
@@ -138,7 +179,7 @@ class PrivateQuickReviewImportTests(unittest.TestCase):
         output = io.StringIO()
         with patch.object(importer, "PRIVATE_ROOT", self.private_root), \
                 patch.object(sys, "argv", ["import", str(self.source),
-                                            "--artifact", str(self.artifact), "--show-items"]), \
+                                            "--artifact", str(self.artifact), "--show-items", "--allow-unbound-legacy"]), \
                 patch.object(sys, "stdout", output):
             self.assertEqual(main(), 0)
         rendered = output.getvalue()
@@ -151,7 +192,7 @@ class PrivateQuickReviewImportTests(unittest.TestCase):
         output.truncate(0)
         with patch.object(importer, "PRIVATE_ROOT", self.private_root), \
                 patch.object(sys, "argv", ["import", str(self.source),
-                                            "--artifact", str(self.artifact)]), \
+                                            "--artifact", str(self.artifact), "--allow-unbound-legacy"]), \
                 patch.object(sys, "stdout", output):
             self.assertEqual(main(), 0)
         self.assertIn("同一内容は既にprivate保存済み", output.getvalue())
@@ -174,7 +215,7 @@ class PrivateQuickReviewImportTests(unittest.TestCase):
         output = io.StringIO()
         with patch.object(importer, "PRIVATE_ROOT", self.private_root), \
                 patch.object(sys, "argv", ["import", str(self.source),
-                                            "--artifact", str(self.artifact)]), \
+                                            "--artifact", str(self.artifact), "--allow-unbound-legacy"]), \
                 patch.object(sys, "stdout", output):
             self.assertEqual(main(), 0)
         rendered = output.getvalue()
@@ -201,7 +242,7 @@ class PrivateQuickReviewImportTests(unittest.TestCase):
         output = io.StringIO()
         with patch.object(importer, "PRIVATE_ROOT", self.private_root), \
                 patch.object(sys, "argv", ["import", str(self.source),
-                                            "--artifact", str(self.artifact)]), \
+                                            "--artifact", str(self.artifact), "--allow-unbound-legacy"]), \
                 patch.object(sys, "stdout", output):
             self.assertEqual(main(), 0)
         rendered = output.getvalue()

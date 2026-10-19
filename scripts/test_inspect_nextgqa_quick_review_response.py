@@ -1,5 +1,6 @@
 import json
 import io
+import hashlib
 import sys
 import tempfile
 import unittest
@@ -7,7 +8,7 @@ from pathlib import Path
 from unittest.mock import patch
 
 from inspect_nextgqa_quick_review_response import (
-    EXPECTED_LIMITATIONS, ReviewError, expected_item_ids, inspect_response, main,
+    EXPECTED_LIMITATIONS, ReviewError, expected_artifact_fingerprint, expected_item_ids, inspect_response, main,
     summarize_response,
 )
 
@@ -87,6 +88,40 @@ class QuickReviewResponseTests(unittest.TestCase):
             )
             self.assertEqual(expected_item_ids(path), ITEM_IDS)
 
+    def test_v6_is_bound_to_exact_artifact_and_modified_bytes_fail(self):
+        items = [{"item_id": item_id} for item_id in ITEM_IDS]
+        with tempfile.TemporaryDirectory() as tmp:
+            artifact = Path(tmp) / "artifact.html"
+            response_path = Path(tmp) / "response.json"
+            html = ('<meta name="review-artifact-sha256" content="__ARTIFACT_FINGERPRINT__">'
+                    + "<script>const items=" + json.dumps(items)
+                    + ";\nlet nickname='';</script>")
+            digest = hashlib.sha256(html.encode()).hexdigest()
+            html = html.replace("__ARTIFACT_FINGERPRINT__", digest)
+            artifact.write_text(html, encoding="utf-8")
+            self.assertEqual(expected_artifact_fingerprint(artifact), digest)
+            response = valid_response()
+            response.pop("nickname")
+            response.pop("answers")
+            response["schema_version"] = 6
+            response["artifact_fingerprint"] = digest
+            response["respondents"] = [{"nickname": "private", "answers": [
+                {"item_id": item_id, "item_number": index,
+                 "question_clarity": "clear", "answer_question_fit": "fits",
+                 "video_evidence_sufficiency": "sufficient"}
+                for index, item_id in enumerate(ITEM_IDS, start=1)
+            ]}]
+            response_path.write_text(json.dumps(response), encoding="utf-8")
+            report = inspect_response(response_path, artifact)
+            self.assertEqual(report["artifact_binding"], "verified")
+            artifact.write_text(html.replace("<script>", "<script> "), encoding="utf-8")
+            with self.assertRaisesRegex(ReviewError, "artifact_fingerprint_mismatch"):
+                expected_artifact_fingerprint(artifact)
+
+    def test_legacy_responses_are_explicitly_unbound(self):
+        report = summarize_response(json.dumps(valid_response()).encode(), ITEM_IDS)
+        self.assertEqual(report["artifact_binding"], "legacy_unbound")
+
     def test_inspect_response_uses_artifact_ids_and_emits_only_summary(self):
         items = [{"item_id": item_id} for item_id in ITEM_IDS]
         with tempfile.TemporaryDirectory() as tmp:
@@ -97,10 +132,21 @@ class QuickReviewResponseTests(unittest.TestCase):
                 + ";\nlet nickname='';</script>", encoding="utf-8",
             )
             response_path.write_text(json.dumps(valid_response()), encoding="utf-8")
-            report = inspect_response(response_path, artifact)
+            report = inspect_response(response_path, artifact, allow_unbound_legacy=True)
             self.assertEqual(report["validated_exploratory_responses"], 3)
             self.assertNotIn("nickname", report)
             self.assertNotIn("answers", report)
+
+    def test_inspector_requires_opt_in_before_summarizing_legacy_response(self):
+        items = [{"item_id": item_id} for item_id in ITEM_IDS]
+        with tempfile.TemporaryDirectory() as tmp:
+            artifact = Path(tmp) / "artifact.html"
+            response_path = Path(tmp) / "response.json"
+            artifact.write_text("<script>const items=" + json.dumps(items)
+                                + ";\nlet nickname='';</script>", encoding="utf-8")
+            response_path.write_text(json.dumps(valid_response()), encoding="utf-8")
+            with self.assertRaisesRegex(ReviewError, "legacy_artifact_binding_requires_explicit_opt_in"):
+                inspect_response(response_path, artifact)
 
     def test_valid_response_summary_excludes_nickname_and_free_text(self):
         report = summarize_response(json.dumps(valid_response(), ensure_ascii=False).encode(), ITEM_IDS)
@@ -126,11 +172,13 @@ class QuickReviewResponseTests(unittest.TestCase):
             )
             output = io.StringIO()
             with patch.object(sys, "argv", ["inspect", str(response_path),
-                                             "--artifact", str(artifact_path)]), \
+                                             "--artifact", str(artifact_path),
+                                             "--allow-unbound-legacy"]), \
                     patch.object(sys, "stdout", output):
                 self.assertEqual(main(), 0)
             rendered = output.getvalue()
             self.assertIn("だいたい合っている: 1件", rendered)
+            self.assertIn("未検証（旧形式JSON）", rendered)
             self.assertNotIn("1人目・第", rendered)
             self.assertNotIn("PRIVATE NICKNAME", rendered)
             self.assertNotIn("private free text", rendered)
@@ -147,7 +195,8 @@ class QuickReviewResponseTests(unittest.TestCase):
             )
             output = io.StringIO()
             with patch.object(sys, "argv", ["inspect", str(response_path),
-                                             "--artifact", str(artifact_path), "--show-items"]), \
+                                             "--artifact", str(artifact_path), "--show-items",
+                                             "--allow-unbound-legacy"]), \
                     patch.object(sys, "stdout", output):
                 self.assertEqual(main(), 0)
             rendered = output.getvalue()

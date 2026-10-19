@@ -22,7 +22,7 @@ import unittest
 import uuid
 
 from build_nextgqa_quick_review_artifact import build, translation_key
-from inspect_nextgqa_quick_review_response import expected_item_ids
+from inspect_nextgqa_quick_review_response import expected_artifact_fingerprint, expected_item_ids
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -210,7 +210,8 @@ try {
   $payload = [IO.File]::ReadAllText($download.FullName) | ConvertFrom-Json
   $expectedIds = [string[]](ConvertFrom-Json ([Text.Encoding]::UTF8.GetString([Convert]::FromBase64String('__EXPECTED_IDS_B64__'))))
   $rootKeys = @($payload.PSObject.Properties.Name | Sort-Object) -join ','
-  if ($rootKeys -cne 'created_at_utc,limitations,purpose,respondents,schema_version,status' -or $payload.schema_version -ne 5 -or $payload.purpose -ne 'exploratory_human_impression_check' -or $payload.status -ne 'informal_observations_only' -or $payload.respondents.Count -ne 3) { throw 'COMBINED_JSON_SCHEMA_INVALID' }
+  if ($rootKeys -cne 'artifact_fingerprint,created_at_utc,limitations,purpose,respondents,schema_version,status' -or $payload.schema_version -ne 6 -or $payload.purpose -ne 'exploratory_human_impression_check' -or $payload.status -ne 'informal_observations_only' -or $payload.respondents.Count -ne 3) { throw 'COMBINED_JSON_SCHEMA_INVALID' }
+  if ($payload.artifact_fingerprint -cne '__EXPECTED_FINGERPRINT__') { throw 'ARTIFACT_FINGERPRINT_EXPORT_MISMATCH' }
   if ($payload.respondents[0].nickname -cne 'synthetic-reviewer' -or $payload.respondents[1].nickname -cne 'synthetic-reviewer-2' -or $payload.respondents[2].nickname -cne 'synthetic-reviewer-3') { throw 'COMBINED_JSON_REVIEWER_ORDER_INVALID' }
   foreach ($respondent in $payload.respondents) {
     $respondentKeys = @($respondent.PSObject.Properties.Name | Sort-Object) -join ','
@@ -361,6 +362,9 @@ class QuickReviewArtifactBrowserE2ETests(unittest.TestCase):
             with redirect_stdout(io.StringIO()):
                 build(package, artifact, translations=translations)
             expected_ids = expected_item_ids(artifact)
+            expected_fingerprint = expected_artifact_fingerprint(artifact)
+            if not expected_fingerprint:
+                self.fail("synthetic artifact fingerprint missing")
             artifact_stat = artifact.stat()
             if (not stat.S_ISREG(artifact_stat.st_mode)
                     or stat.S_IMODE(artifact_stat.st_mode) != 0o600):
@@ -398,6 +402,8 @@ class QuickReviewArtifactBrowserE2ETests(unittest.TestCase):
             ).replace(
                 "__EXPECTED_IDS_B64__",
                 base64.b64encode(json.dumps(expected_ids).encode("utf-8")).decode("ascii"),
+            ).replace(
+                "__EXPECTED_FINGERPRINT__", expected_fingerprint,
             )
             run_id = uuid.uuid4().hex
             ps_source = ps_source.replace("__RUN_ID__", run_id)

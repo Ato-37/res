@@ -136,7 +136,8 @@ def _find_exact_duplicate(raw: bytes, response_fd: int) -> str | None:
 
 
 def import_response(source_path: Path, *, artifact_path: Path = DEFAULT_ARTIFACT,
-                    private_root: Path | None = None) -> tuple[Path, dict]:
+                    private_root: Path | None = None,
+                    allow_unbound_legacy: bool = False) -> tuple[Path, dict]:
     """Validate exact artifact mapping, then create a new mode-0600 private copy.
 
     The source is retained. No response text or nickname is returned or printed.
@@ -146,8 +147,15 @@ def import_response(source_path: Path, *, artifact_path: Path = DEFAULT_ARTIFACT
     raw = _read_source(Path(source_path))
     # Validate the bytes before copying. The inspection result intentionally
     # contains only broad judgments and opaque item ordinals.
-    from inspect_nextgqa_quick_review_response import expected_item_ids, summarize_response
-    summary = summarize_response(raw, expected_item_ids(Path(artifact_path)))
+    from inspect_nextgqa_quick_review_response import (
+        expected_artifact_fingerprint, expected_item_ids, summarize_response,
+    )
+    summary = summarize_response(
+        raw, expected_item_ids(Path(artifact_path)),
+        expected_artifact_fingerprint(Path(artifact_path)),
+    )
+    if summary["artifact_binding"] != "verified" and not allow_unbound_legacy:
+        raise ReviewError("legacy_artifact_binding_requires_explicit_opt_in")
 
     response_fd = _private_directory_fd(Path(private_root))
     try:
@@ -158,7 +166,8 @@ def import_response(source_path: Path, *, artifact_path: Path = DEFAULT_ARTIFACT
     if duplicate_name is not None:
         os.close(response_fd)
         destination = Path(private_root) / RESPONSE_DIRNAME / duplicate_name
-        summary = inspect_response(destination, Path(artifact_path))
+        summary = inspect_response(destination, Path(artifact_path),
+                                   allow_unbound_legacy=allow_unbound_legacy)
         summary["_already_present"] = True
         return destination, summary
     name = _response_filename(raw)
@@ -202,7 +211,8 @@ def import_response(source_path: Path, *, artifact_path: Path = DEFAULT_ARTIFACT
         os.fsync(response_fd)
         destination = Path(private_root) / RESPONSE_DIRNAME / name
         # Read back through the normal inspector to verify the saved copy too.
-        summary = inspect_response(destination, Path(artifact_path))
+        summary = inspect_response(destination, Path(artifact_path),
+                                   allow_unbound_legacy=allow_unbound_legacy)
         summary["_already_present"] = False
         return destination, summary
     except Exception:
@@ -231,10 +241,13 @@ def main(argv: list[str] | None = None) -> int:
                         help="item ID照合対象の簡易確認HTML")
     parser.add_argument("--show-items", action="store_true",
                         help="既定の集計に加え、参加者/項目別の回答も表示する")
+    parser.add_argument("--allow-unbound-legacy", action="store_true",
+                        help="旧schema v2〜v5をartifact版未検証の履歴としてprivate保管する")
     args = parser.parse_args(argv)
     try:
-        destination, report = import_response(args.response_json,
-                                              artifact_path=args.artifact)
+        destination, report = import_response(
+            args.response_json, artifact_path=args.artifact,
+            allow_unbound_legacy=args.allow_unbound_legacy)
     except (OSError, ReviewError) as exc:
         code = str(exc) if str(exc).isascii() else "private_import_failed"
         parser.error(code)
@@ -244,6 +257,9 @@ def main(argv: list[str] | None = None) -> int:
               "cannot_tell": "動画だけではわからない"}
     print(f"形式確認: {report['respondent_count']}人・探索的回答 "
           f"{report['validated_exploratory_responses']}件")
+    print("artifact HTML/JSON fingerprint一致: "
+          + ("確認済み" if report["artifact_binding"] == "verified"
+             else "未検証（明示許可された旧形式JSON）"))
     if counts is not None:
         for key, label in labels.items():
             print(f"{label}: {counts[key]}件")

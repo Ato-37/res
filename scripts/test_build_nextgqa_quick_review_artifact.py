@@ -1,4 +1,6 @@
 import json
+import hashlib
+import re
 import tempfile
 import unittest
 from pathlib import Path
@@ -11,10 +13,10 @@ from build_nextgqa_quick_review_artifact import (
 
 
 class QuickReviewArtifactSafetyTests(unittest.TestCase):
-    def test_default_output_targets_current_simple_v13_artifact(self):
+    def test_default_output_targets_current_simple_v14_artifact(self):
         self.assertEqual(
             DEFAULT_OUTPUT.name,
-            "quick_review_ja_simple_20261019_itemid_v13.html",
+            "quick_review_ja_simple_20261019_itemid_v14.html",
         )
         self.assertTrue(DEFAULT_OUTPUT.is_relative_to(
             Path(__file__).resolve().parents[1] / "data/private_nextgqa"
@@ -127,7 +129,7 @@ class QuickReviewArtifactSafetyTests(unittest.TestCase):
             output = Path(tmp) / "review.html"
             records = [{"review_token": f"tok{i}", "question": f"private question {i}", "claim_text": f"private claim {i}"}
                        for i in range(3)]
-            records[0] = {"review_token": "tok0", "question": question, "claim_text": claim}
+            records[0] = {"review_token": "tok0", "question": "__ITEMS__ " + question, "claim_text": claim}
             (package / "index.html").write_text(
                 '<script id="data" type="application/json">'
                 + json.dumps({"records": records}) + "</script>", encoding="utf-8"
@@ -136,7 +138,7 @@ class QuickReviewArtifactSafetyTests(unittest.TestCase):
                 (package / f"tok{i}.mp4").write_bytes(b"mock")
             with patch("build_nextgqa_quick_review_artifact.browser_compatible_bytes", return_value=b"mp4"):
                 build(package, output, translations={
-                    translation_key(question, claim): (question_ja, claim_ja),
+                    translation_key("__ITEMS__ " + question, claim): (question_ja, claim_ja),
                     translation_key("private question 1", "private claim 1"): ("質問1", "説明1"),
                     translation_key("private question 2", "private claim 2"): ("質問2", "説明2"),
                 })
@@ -168,6 +170,7 @@ class QuickReviewArtifactSafetyTests(unittest.TestCase):
             self.assertIn("item.claim_ja", rendered)
             self.assertNotIn("item.question;", rendered)
             self.assertNotIn("item.claim;", rendered)
+            self.assertIn("__ITEMS__ private source question", rendered)
             self.assertIn('id="summary-count"', rendered)
             self.assertIn('id="summary-items"', rendered)
             self.assertIn("function showSummary()", rendered)
@@ -195,7 +198,15 @@ class QuickReviewArtifactSafetyTests(unittest.TestCase):
             self.assertIn("$('next-reviewer').addEventListener('click',prepareNextReviewer)", rendered)
             self.assertIn("$('cancel-next').addEventListener('click'", rendered)
             self.assertIn("$('next-reviewer').addEventListener('click'", rendered)
-            self.assertIn("schema_version:5", rendered)
+            self.assertIn("schema_version:6", rendered)
+            self.assertIn("artifact_fingerprint:document.querySelector", rendered)
+            self.assertRegex(rendered, r'name="review-artifact-sha256" content="[0-9a-f]{64}"')
+            self.assertNotIn("__ARTIFACT_FINGERPRINT__", rendered)
+            fingerprint = re.search(
+                r'<meta name="review-artifact-sha256" content="([0-9a-f]{64})">', rendered
+            ).group(1)
+            canonical = rendered.replace(fingerprint, "__ARTIFACT_FINGERPRINT__", 1)
+            self.assertEqual(fingerprint, hashlib.sha256(canonical.encode()).hexdigest())
             self.assertIn("JSONには各人のニックネームが含まれます", rendered)
             self.assertIn("自分のニックネームを入力してから質問に進んでください", rendered)
             self.assertIn("ファイルを共有・公開しないでください", rendered)

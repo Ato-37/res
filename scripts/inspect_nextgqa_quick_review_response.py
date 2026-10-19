@@ -15,7 +15,7 @@ from typing import Any
 
 ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_ARTIFACT = ROOT / (
-    "data/private_nextgqa/quick_review_ja_simple_20261019_itemid_v13.html"
+    "data/private_nextgqa/quick_review_ja_simple_20261019_itemid_v14.html"
 )
 MAX_JSON_BYTES = 1_000_000
 MAX_ARTIFACT_BYTES = 64_000_000
@@ -101,6 +101,31 @@ def expected_item_ids(artifact_path: Path) -> list[str]:
     raise ReviewError("artifact_item_manifest_missing")
 
 
+_FINGERPRINT_META = re.compile(
+    r'<meta name="review-artifact-sha256" content="([0-9a-f]{64})">'
+)
+
+
+def expected_artifact_fingerprint(artifact_path: Path) -> str | None:
+    """Verify the self-bound full HTML fingerprint; None means legacy unbound HTML."""
+    raw = _read_bounded(artifact_path, MAX_ARTIFACT_BYTES, "artifact_file_invalid")
+    try:
+        html = raw.decode("utf-8", errors="strict")
+    except UnicodeError as exc:
+        raise ReviewError("artifact_html_invalid") from exc
+    matches = list(_FINGERPRINT_META.finditer(html))
+    if not matches:
+        return None
+    if len(matches) != 1:
+        raise ReviewError("artifact_fingerprint_invalid")
+    match = matches[0]
+    canonical = html[:match.start(1)] + "__ARTIFACT_FINGERPRINT__" + html[match.end(1):]
+    actual = __import__("hashlib").sha256(canonical.encode("utf-8")).hexdigest()
+    if actual != match.group(1):
+        raise ReviewError("artifact_fingerprint_mismatch")
+    return actual
+
+
 def _unique_object(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
     result: dict[str, Any] = {}
     for key, value in pairs:
@@ -110,7 +135,8 @@ def _unique_object(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
     return result
 
 
-def summarize_response(response_raw: bytes, item_ids: list[str]) -> dict[str, Any]:
+def summarize_response(response_raw: bytes, item_ids: list[str],
+                       artifact_fingerprint: str | None = None) -> dict[str, Any]:
     try:
         response = json.loads(
             response_raw.decode("utf-8", errors="strict"),
@@ -128,13 +154,22 @@ def summarize_response(response_raw: bytes, item_ids: list[str]) -> dict[str, An
     if type(version) is not int:
         raise ReviewError("response_schema_or_purpose_invalid")
     top_keys = base_keys | ({"nickname", "answers"} if version in {2, 3}
-                            else {"respondents"} if version in {4, 5} else set())
+                            else {"respondents"} if version in {4, 5} else
+                            {"respondents", "artifact_fingerprint"} if version == 6 else set())
     if (set(response) != top_keys
             or type(response.get("schema_version")) is not int
-            or version not in {2, 3, 4, 5}
+            or version not in {2, 3, 4, 5, 6}
             or response.get("purpose") != "exploratory_human_impression_check"
             or response.get("status") != "informal_observations_only"):
         raise ReviewError("response_schema_or_purpose_invalid")
+
+    if version == 6:
+        response_fingerprint = response.get("artifact_fingerprint")
+        if (artifact_fingerprint is None
+                or not isinstance(response_fingerprint, str)
+                or not re.fullmatch(r"[0-9a-f]{64}", response_fingerprint)
+                or response_fingerprint != artifact_fingerprint):
+            raise ReviewError("response_artifact_fingerprint_mismatch")
 
     if version in {2, 3}:
         nickname = response.get("nickname")
@@ -145,7 +180,7 @@ def summarize_response(response_raw: bytes, item_ids: list[str]) -> dict[str, An
             or any(not isinstance(value, str) for value in limitations)
             or set(limitations) != EXPECTED_LIMITATIONS):
         raise ReviewError("response_limitations_invalid")
-    if version in {4, 5}:
+    if version in {4, 5, 6}:
         respondents = response.get("respondents")
         if not isinstance(respondents, list) or not respondents:
             raise ReviewError("response_respondents_invalid")
@@ -164,7 +199,7 @@ def summarize_response(response_raw: bytes, item_ids: list[str]) -> dict[str, An
             raise ReviewError("response_must_contain_three_answers")
         answer_groups = [answers]
 
-    response_version = 3 if version == 4 else 4 if version == 5 else version
+    response_version = 3 if version == 4 else 4 if version in {5, 6} else version
     expected_answer_keys = ({"item_id", "item_number", "judgment",
                              "approximate_time", "note"} if response_version == 2 else
                             {"item_id", "item_number", "question_clarity",
@@ -244,13 +279,19 @@ def summarize_response(response_raw: bytes, item_ids: list[str]) -> dict[str, An
         "free_text_included_in_output": False,
         "faithfulness_inference": "not_performed",
         "scoring_authorization": "not_granted",
+        "artifact_binding": "verified" if version == 6 else "legacy_unbound",
     }
 
 
-def inspect_response(response_path: Path, artifact_path: Path = DEFAULT_ARTIFACT) -> dict[str, Any]:
+def inspect_response(response_path: Path, artifact_path: Path = DEFAULT_ARTIFACT, *,
+                     allow_unbound_legacy: bool = False) -> dict[str, Any]:
     response_raw = _read_bounded(response_path, MAX_JSON_BYTES, "response_file_invalid")
     ids = expected_item_ids(artifact_path)
-    return summarize_response(response_raw, ids)
+    fingerprint = expected_artifact_fingerprint(artifact_path)
+    report = summarize_response(response_raw, ids, fingerprint)
+    if report["artifact_binding"] != "verified" and not allow_unbound_legacy:
+        raise ReviewError("legacy_artifact_binding_requires_explicit_opt_in")
+    return report
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -261,9 +302,12 @@ def main(argv: list[str] | None = None) -> int:
                         help="照合対象の探索的レビューHTML（旧版HTML / JSONも指定可能）")
     parser.add_argument("--show-items", action="store_true",
                         help="既定の集計に加え、参加者/項目別の回答も表示する")
+    parser.add_argument("--allow-unbound-legacy", action="store_true",
+                        help="旧schema v2〜v5をartifact版未検証の履歴として検査する")
     args = parser.parse_args(argv)
     try:
-        report = inspect_response(args.response_json, args.artifact)
+        report = inspect_response(args.response_json, args.artifact,
+                                  allow_unbound_legacy=args.allow_unbound_legacy)
     except ReviewError as exc:
         parser.error(str(exc))
     counts = report["judgment_counts"]
@@ -274,6 +318,9 @@ def main(argv: list[str] | None = None) -> int:
     }
     print(f"形式確認: {report['respondent_count']}人・探索的回答 "
           f"{report['validated_exploratory_responses']}件")
+    print("artifact HTML/JSON fingerprint一致: "
+          + ("確認済み" if report["artifact_binding"] == "verified"
+             else "未検証（旧形式JSON）"))
     if counts is not None:
         for key, label in labels.items():
             print(f"{label}: {counts[key]}件")

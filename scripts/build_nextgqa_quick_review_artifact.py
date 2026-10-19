@@ -17,7 +17,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_PACKAGE = ROOT / "data/private_nextgqa/reviewer_package_v6_20261018_0243"
-DEFAULT_OUTPUT = ROOT / "data/private_nextgqa/quick_review_ja_simple_20261019_itemid_v13.html"
+DEFAULT_OUTPUT = ROOT / "data/private_nextgqa/quick_review_ja_simple_20261019_itemid_v14.html"
 DEFAULT_TRANSLATIONS = ROOT / "data/private_nextgqa/quick_review_ja_translations_20261019.json"
 PRIVATE_ROOT = (ROOT / "data/private_nextgqa").resolve()
 
@@ -148,6 +148,7 @@ def build(package_dir: Path, output: Path, *, overwrite: bool = False,
     data = serialize_inline_json(items)
     document = r'''<!doctype html>
 <html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="review-artifact-sha256" content="__ARTIFACT_FINGERPRINT__">
 <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; media-src blob:; connect-src 'none'; img-src data:; object-src 'none'; base-uri 'none'; form-action 'none'">
 <title>動画のかんたん確認</title>
 <style>
@@ -170,9 +171,15 @@ function showSummary(){const clarityLabels={clear:'質問：わかりやすい',
 function prepareNextReviewer(){const nextNumber=respondents.length+1;nickname='';index=0;answers=[];$('nickname').value='';$('welcome-title').textContent=`${nextNumber}人目のニックネームを入力`;$('welcome-instruction').textContent='ニックネームを入力して「質問へ」を押すと、この人の1問目が始まります。';$('cancel-next').classList.remove('hidden');$('done').classList.add('hidden');$('summary').classList.add('hidden');$('welcome').classList.remove('hidden');$('nickname').focus()}
 $('next-reviewer').addEventListener('click',prepareNextReviewer);
 $('cancel-next').addEventListener('click',()=>{$('welcome').classList.add('hidden');$('cancel-next').classList.add('hidden');$('done').classList.remove('hidden');$('nickname').value=''});
-$('save').addEventListener('click',()=>{const result={schema_version:5,purpose:'exploratory_human_impression_check',status:'informal_observations_only',created_at_utc:new Date().toISOString(),respondents,limitations:['簡単な印象確認であり、完全な幻覚判定ではない','item_idはローカルで回答を質問へ対応付けるための匿名化IDで、本人性や視聴を証明しない','本人確認・独立性・動画の視聴完了は検証していない','この結果だけからfaithfulnessの効果やモデル性能を結論づけない']};const blob=new Blob([JSON.stringify(result,null,2)+'\n'],{type:'application/json'});if(exportUrl)URL.revokeObjectURL(exportUrl);exportUrl=URL.createObjectURL(blob);const a=$('saved-file');const stamp=new Date().toISOString().replace(/[:.]/g,'-');a.href=exportUrl;a.download='exploratory_video_review_'+stamp+'.json';a.classList.remove('hidden');a.click();$('saved').textContent=`${respondents.length}人分のJSONのダウンロードを開始しました。完了したとは限らないため、ブラウザのダウンロード一覧で保存を確認してください。できていない場合は下のリンクを押してください。`});
-</script></body></html>'''.replace("__ITEMS__", data)
-    output.write_text(document, encoding="utf-8")
+ $('save').addEventListener('click',()=>{const result={schema_version:6,artifact_fingerprint:document.querySelector('meta[name="review-artifact-sha256"]').content,purpose:'exploratory_human_impression_check',status:'informal_observations_only',created_at_utc:new Date().toISOString(),respondents,limitations:['簡単な印象確認であり、完全な幻覚判定ではない','item_idはローカルで回答を質問へ対応付けるための匿名化IDで、本人性や視聴を証明しない','本人確認・独立性・動画の視聴完了は検証していない','この結果だけからfaithfulnessの効果やモデル性能を結論づけない']};const blob=new Blob([JSON.stringify(result,null,2)+'\n'],{type:'application/json'});if(exportUrl)URL.revokeObjectURL(exportUrl);exportUrl=URL.createObjectURL(blob);const a=$('saved-file');const stamp=new Date().toISOString().replace(/[:.]/g,'-');a.href=exportUrl;a.download='exploratory_video_review_'+stamp+'.json';a.classList.remove('hidden');a.click();$('saved').textContent=`${respondents.length}人分のJSONのダウンロードを開始しました。完了したとは限らないため、ブラウザのダウンロード一覧で保存を確認してください。できていない場合は下のリンクを押してください。`});
+</script></body></html>'''
+    document = document.replace("__ITEMS__", data)
+    fingerprint_placeholder = "__ARTIFACT_FINGERPRINT__"
+    if document.count(fingerprint_placeholder) != 1:
+        raise ValueError("artifact fingerprint placeholder must occur exactly once")
+    fingerprint = hashlib.sha256(document.encode("utf-8")).hexdigest()
+    document = document.replace(fingerprint_placeholder, fingerprint)
+    output.write_bytes(document.encode("utf-8"))
     output.chmod(0o600)
     print(f"Wrote local-only artifact: {output} ({output.stat().st_size} bytes)")
 
