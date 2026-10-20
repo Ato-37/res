@@ -7,7 +7,7 @@
 
 ## 1. 事前登録したhead-faithfulness独立確認
 
-NExT-GQAの独立動画79件で、gradient×activation attribution上位4 head（全28層から選択）を
+NExT-GQAのheld-out動画79件で、gradient×activation attribution上位4 head（全28層から選択）を
 最終prompt位置で`alpha=0.5`に減衰させ、head数・層分布・活性値規模を対応させた5個のcontrolと比較した。
 測定値は介入前top choiceを固定したgold-vs-foil log-probability marginであり、動画ごとの
 `d_i = target margin drop - mean(control margin drop)`の平均を主estimandとした。
@@ -15,7 +15,8 @@ NExT-GQAの独立動画79件で、gradient×activation attribution上位4 head�
 - 完了79/79、失敗0。全79件を解析し、介入前の正誤で除外していない。
 - target平均margin drop `−0.0601 nat`、control `+0.0155 nat`、selective差`−0.0756 nat`（SD `0.3667`）。
 - 95% t区間`[−0.1578,+0.0065] nat`。事前成功基準はCI下限`>+0.25 nat`だったが、上端も`+0.25`を下回った。
-- これは指定したQwen2.5-VL-7B、4-bit、top-4、半減衰、5-control、16-frame、選択肢marginでの負の独立確認である。一般的なfaithfulnessの不存在は示さない。
+- これは事前登録した確認セットにおける、指定したQwen2.5-VL-7B、4-bit、top-4、半減衰、5-control、16-frame、選択肢marginでの負の結果である。一般的なfaithfulnessの不存在は示さない。
+- cohort identity監査は同じsample-manifest hashについて79個の一意ID・path・完全一致file、重複0を記録している。ただしresultとrun manifestのcrosshash binding、および共有scene/campaignを含む統計的独立性は未確立である。厳密な来歴制約は[確認結果と監査メモ](head_faithfulness_confirmation_results.md)を参照。
 
 したがって、このhead選択法の同一primary仮説は閉じる。head/layer/alphaや後付け部分群を変えた追加探索で救済しない。定義・統計の詳細は
 [`head_faithfulness_confirmation_results.md`](head_faithfulness_confirmation_results.md)、元データとmanifestは
