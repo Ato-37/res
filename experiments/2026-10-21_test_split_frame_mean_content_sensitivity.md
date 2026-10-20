@@ -97,16 +97,26 @@ the row range and out-of-distribution control limit interpretation. Human
 review was waived as a run prerequisite but was not performed; direct
 faithfulness remains **0/3**.
 
-Focused CPU tests passed **9/9**; `py_compile` and `git diff --check` passed.
-The packet reader now accepts explicit packet paths under the private root and
-an expected split while retaining owner/file-type/mode checks.
+Focused CPU tests passed **34/34** across four suites; `py_compile` and
+`git diff --check` passed. An independent result auditor rejoined all lock
+assignments, generation packets, batch/selected filters, video bytes, receipt
+row tokens, claim hashes, and 15 recorded scorer-source hashes. It reproduced
+the same per-row values and aggregate. It noted the original analyzer checked
+arithmetic but did not itself bind receipts to packets/lock; the analyzer now
+has an opt-in provenance mode that verifies those links and rejects wrong
+filter/lock bindings. Re-running that mode verified **3/3 receipts**, **3/3
+locked rows**, **2/2 batch filters**, and **15/15 source hashes**. A unit test
+covers successful linkage and deliberate selected-filter hash tampering. The
+packet reader accepts explicit packet paths under the private root and an
+expected split while retaining owner/file-type/mode checks.
 
 ## Next action
 
-Do not repeat these three perturbation measurements or tune the contrast. The
-next useful step is an independent audit of this proxy against alternative
-nonsemantic controls and claim-length/tokenization effects, using already
-available private receipts only. Then decide whether a separately frozen
-cohort would materially discriminate the content-sensitivity hypothesis.
-Any further experiment remains exploratory until a direct, reviewed
-prediction-evidence-link endpoint exists.
+Do not repeat these three perturbation measurements or tune the contrast. This
+proxy branch is complete; the related same-row gray/frame-mean comparisons and
+the existing QA-interval margin expansion are closed. Choose a new primary
+that tests whether an explanation-selected video intervention changes the
+answer prediction, while explicitly keeping automated claim/frame alignment
+unreviewed and exploratory. Do not call that direct semantic faithfulness
+until the intervention's evidence anchor and prediction link have independent
+validation.
