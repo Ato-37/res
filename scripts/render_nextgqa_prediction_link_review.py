@@ -16,12 +16,12 @@ from typing import Any
 
 from nextgqa_prediction_link_review import (
     BASELINE_MANIFEST_KEYS,
-    BASELINE_RECORD_KEYS,
     BASELINE_SCORE_BINDING_RECORD_KEYS,
     MAX_BASELINE_MANIFEST_BYTES,
     _unique_object,
     displayed_fields_sha256,
 )
+from qta_phase2_plan_manifest import validate_baseline_pq_manifest
 
 
 def _open_private_child(root: Path, name: str, *, create: bool) -> tuple[int, int]:
@@ -81,11 +81,14 @@ def render_prediction_link_review_page(
         raise ValueError("baseline_manifest_json_invalid") from None
     if (not isinstance(manifest, dict) or set(manifest) != BASELINE_MANIFEST_KEYS
             or type(manifest.get("schema_version")) is not int
-            or (manifest.get("schema_version"), manifest.get("purpose")) not in (
-                (1, "qta_baseline_prediction_link_manifest"),
-                (2, "qta_baseline_prediction_link_manifest_v2"),
-                (3, "qta_baseline_prediction_link_manifest_v3"))):
+            or (manifest.get("schema_version"), manifest.get("purpose")) !=
+                (3, "qta_baseline_prediction_link_manifest_v3")):
         raise ValueError("baseline_manifest_schema_invalid")
+    try:
+        validate_baseline_pq_manifest(baseline_manifest_raw)
+    except (TypeError, ValueError, KeyError, UnicodeError,
+            OverflowError, RecursionError):
+        raise ValueError("baseline_manifest_score_binding_invalid") from None
     if manifest.get("video_claim_review_receipt_sha256") != video_claim_review_receipt_sha256:
         raise ValueError("baseline_video_review_receipt_binding_mismatch")
     rows = manifest.get("records")
@@ -95,8 +98,7 @@ def render_prediction_link_review_page(
     rendered = []
     for index, row in enumerate(rows):
         if (not isinstance(row, dict)
-                or set(row) not in (BASELINE_RECORD_KEYS,
-                                    BASELINE_SCORE_BINDING_RECORD_KEYS)):
+                or set(row) != BASELINE_SCORE_BINDING_RECORD_KEYS):
             raise ValueError("baseline_manifest_record_schema_invalid")
         token = row.get("review_token")
         if not isinstance(token, str) or token in seen:

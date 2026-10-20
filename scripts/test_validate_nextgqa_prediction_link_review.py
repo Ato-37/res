@@ -8,6 +8,7 @@ import tempfile
 import unittest
 
 from nextgqa_prediction_link_review import displayed_fields_sha256
+from qta_test_baseline_v3_fixture import build_synthetic_baseline_v3
 from validate_nextgqa_prediction_link_review import validate_private_files
 
 
@@ -15,22 +16,9 @@ class PrivatePredictionLinkCliTests(unittest.TestCase):
     def setUp(self):
         self.protocol_hash = "b" * 64
         self.video_review_hash = "c" * 64
-        self.interval_hash = "d" * 64
-        self.row = {
-            "review_token": "opaque-1", "question": "Synthetic question?",
-            "options": ["A", "B", "C", "D", "E"],
-            "claim": "Synthetic claim.",
-            "option_log_probabilities": [-0.1, -0.2, -1, -2, -3],
-            "p_index": 0, "q_index": 1,
-            "video_support_decision": "supports_claim",
-            "reviewed_intervals_sha256": self.interval_hash,
-        }
-        self.baseline_raw = json.dumps(
-            {"schema_version": 1,
-             "purpose": "qta_baseline_prediction_link_manifest",
-             "video_claim_review_receipt_sha256": self.video_review_hash,
-             "records": [self.row]}, sort_keys=True,
-            separators=(",", ":")).encode()
+        self.baseline_raw, self.rows, self.source_hashes = build_synthetic_baseline_v3(
+            self.video_review_hash)
+        self.row = self.rows[0]
         self.baseline_hash = hashlib.sha256(self.baseline_raw).hexdigest()
         self.cohort_raw = json.dumps(
             {"schema_version": 1,
@@ -40,15 +28,11 @@ class PrivatePredictionLinkCliTests(unittest.TestCase):
              "baseline_manifest_sha256": self.baseline_hash,
              "video_claim_review_receipt_sha256": self.video_review_hash,
              "records": [{
-                 "review_token": self.row["review_token"],
-                 "question_sha256": hashlib.sha256(self.row["question"].encode()).hexdigest(),
-                 "options_sha256": hashlib.sha256(json.dumps(
-                     self.row["options"], ensure_ascii=False, sort_keys=True,
-                     separators=(",", ":")).encode()).hexdigest(),
-                 "claim_sha256": hashlib.sha256(self.row["claim"].encode()).hexdigest(),
+                 "review_token": row["review_token"],
+                 **{key: value for key, value in self.source_hashes[row["review_token"]].items()
+                    if key != "video_support_decision"},
                  "video_support_decision": "supports_claim",
-                 "reviewed_intervals_sha256": self.interval_hash,
-             }], "execution_authorization": "not_granted"}, sort_keys=True,
+             } for row in self.rows], "execution_authorization": "not_granted"}, sort_keys=True,
             separators=(",", ":")).encode()
         self.cohort_hash = hashlib.sha256(self.cohort_raw).hexdigest()
         self.receipt_raw = json.dumps({
@@ -63,11 +47,11 @@ class PrivatePredictionLinkCliTests(unittest.TestCase):
             "gold_and_branch_outcomes_hidden": True,
             "reviewed_at_utc": "2026-10-18T10:00:00Z",
             "records": [{
-                "review_token": self.row["review_token"],
+                "review_token": row["review_token"],
                 "displayed_fields_sha256": displayed_fields_sha256(
-                    self.row, video_claim_review_receipt_sha256=self.video_review_hash),
+                    row, video_claim_review_receipt_sha256=self.video_review_hash),
                 "judgment": "supports_p_over_q", "rationale": "Synthetic rationale.",
-            }], "execution_authorization": "not_granted",
+            } for row in self.rows], "execution_authorization": "not_granted",
         }, sort_keys=True, separators=(",", ":")).encode()
 
     def _run(self, **overrides):
@@ -100,7 +84,7 @@ class PrivatePredictionLinkCliTests(unittest.TestCase):
         report, root, temp = self._run()
         try:
             self.assertEqual(report["status"], "prediction_link_review_structurally_valid_unvalidated")
-            self.assertEqual(report["support_judgment_count"], 1)
+            self.assertEqual(report["support_judgment_count"], 3)
             self.assertFalse(report["other_score_gates_verified"])
             self.assertEqual(report["execution_authorization"], "not_granted")
             output = root / "validation.json"

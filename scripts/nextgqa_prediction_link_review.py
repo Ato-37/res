@@ -14,6 +14,8 @@ from numbers import Real
 import re
 from typing import Any, Sequence
 
+from qta_phase2_plan_manifest import validate_baseline_pq_manifest
+
 
 SHA256_RE = re.compile(r"^[0-9a-f]{64}$")
 JUDGMENTS = {
@@ -150,11 +152,14 @@ def validate_prediction_link_receipt(
         _fail("baseline_manifest_json_invalid")
     if (not isinstance(manifest, dict) or set(manifest) != BASELINE_MANIFEST_KEYS
             or type(manifest.get("schema_version")) is not int
-            or (manifest.get("schema_version"), manifest.get("purpose")) not in (
-                (1, "qta_baseline_prediction_link_manifest"),
-                (2, "qta_baseline_prediction_link_manifest_v2"),
-                (3, "qta_baseline_prediction_link_manifest_v3"))):
+            or (manifest.get("schema_version"), manifest.get("purpose")) !=
+                (3, "qta_baseline_prediction_link_manifest_v3")):
         _fail("baseline_manifest_schema_invalid")
+    try:
+        validate_baseline_pq_manifest(baseline_manifest_raw)
+    except (TypeError, ValueError, KeyError, UnicodeError,
+            OverflowError, RecursionError):
+        _fail("baseline_manifest_score_binding_invalid")
     expected_protocol = _sha(expected_protocol_sha256,
                              "expected_protocol_hash_invalid")
     expected_video_review = _sha(expected_video_review_receipt_sha256,
@@ -202,8 +207,7 @@ def validate_prediction_link_receipt(
     expected_digests = {}
     for row in baseline_rows:
         if (not isinstance(row, dict)
-                or set(row) not in (BASELINE_RECORD_KEYS,
-                                    BASELINE_SCORE_BINDING_RECORD_KEYS)):
+                or set(row) != BASELINE_SCORE_BINDING_RECORD_KEYS):
             _fail("baseline_manifest_record_schema_invalid")
         digest = displayed_fields_sha256(
             row, video_claim_review_receipt_sha256=expected_video_review)
