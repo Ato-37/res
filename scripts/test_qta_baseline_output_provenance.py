@@ -18,7 +18,7 @@ class BaselineOutputFixtureTests(unittest.TestCase):
     def setUp(self):
         self.run_digests = {key: sha(key) for key in (
             "protocol_sha256", "model_sha256", "tokenizer_sha256",
-            "scorer_sha256", "processor_sha256")}
+            "scorer_sha256", "processor_sha256", "runtime_sha256")}
         self.rows = [{
             "record_id": f"row-{i}",
             "prompt": f"synthetic prompt {i}",

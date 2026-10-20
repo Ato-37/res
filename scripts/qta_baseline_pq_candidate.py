@@ -28,7 +28,7 @@ MAX_CANDIDATE_MANIFEST_BYTES = 8 * 1024 * 1024
 TOKENS = ("A", "B", "C", "D", "E")
 RUN_DIGEST_FIELDS = (
     "protocol_sha256", "model_sha256", "tokenizer_sha256",
-    "scorer_sha256", "processor_sha256",
+    "scorer_sha256", "processor_sha256", "runtime_sha256",
 )
 INPUT_KEYS = {"schema_version", "purpose", "video_claim_review_receipt_sha256",
               "run_digests", "records"}
@@ -293,6 +293,10 @@ def build_baseline_pq_candidate(*, input_raw: bytes,
                       tokenizer=tokenizer)
         for token, row in zip(expected_cohort_tokens, rows, strict=True)
     ]
+    source_video_digests = [row["score_binding"]["source_video_sha256"]
+                            for row in manifest_rows]
+    if len(set(source_video_digests)) != len(source_video_digests):
+        _fail("baseline_duplicate_source_video_sha256")
     manifest = {
         "schema_version": 3,
         "purpose": "qta_baseline_prediction_link_manifest_v3",

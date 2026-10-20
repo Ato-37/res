@@ -24,7 +24,8 @@ class CeremonySigningCliTests(unittest.TestCase):
         self.private_dir.mkdir(mode=0o700)
         self.private_dir.chmod(0o700)
         self.keys = {}
-        for name in ("root", "owner", "claim", "frame", "witness"):
+        for name in ("root", "owner", "claim", "frame", "prediction",
+                     "capture", "witness"):
             private, public = self.root / f"{name}.pem", self.root / f"{name}.pub"
             subprocess.run(["openssl", "genpkey", "-algorithm", "ED25519", "-out", str(private)], check=True, capture_output=True)
             subprocess.run(["openssl", "pkey", "-in", str(private), "-pubout", "-out", str(public)], check=True, capture_output=True)
@@ -41,7 +42,9 @@ class CeremonySigningCliTests(unittest.TestCase):
         self._run(["sign-release-roster", *self.base, "--roster-id", "rel-roster",
                    "--integrity-roster", str(self.private_dir / "integrity.json"),
                    *self._role_args(("freeze_owner", "owner"), ("custodian", "owner"),
+                                    ("capture_operator", "capture"),
                                     ("claim_reviewer", "claim"), ("frame_reviewer", "frame"),
+                                    ("prediction_link_reviewer", "prediction"),
                                     ("release_witness", "witness")),
                    "--output", str(self.private_dir / "release.json")])
         self.artifacts = {role: ("synthetic:" + role).encode() for role in REQUIRED_ARTIFACT_ROLES}
@@ -129,6 +132,20 @@ class CeremonySigningCliTests(unittest.TestCase):
         with contextlib.redirect_stdout(io.StringIO()):
             self.assertEqual(main(args), 2)
         self.assertEqual(output.read_bytes(), b"keep")
+
+    def test_release_roster_rejects_capture_operator_key_reuse(self):
+        args = ["sign-release-roster", *self.base, "--roster-id", "rel-bad",
+                "--integrity-roster", str(self.private_dir / "integrity.json"),
+                *self._role_args(("freeze_owner", "owner"), ("custodian", "owner"),
+                                 ("claim_reviewer", "claim"),
+                                 ("frame_reviewer", "frame"),
+                                 ("prediction_link_reviewer", "prediction"),
+                                 ("release_witness", "witness")),
+                "--role-key", f"capture_operator=capture-key={self.keys['claim'][1]}",
+                "--output", str(self.private_dir / "bad-release.json")]
+        with contextlib.redirect_stdout(io.StringIO()):
+            self.assertEqual(main(args), 2)
+        self.assertFalse((self.private_dir / "bad-release.json").exists())
 
 
 if __name__ == "__main__":

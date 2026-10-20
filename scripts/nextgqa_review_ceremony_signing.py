@@ -2,7 +2,8 @@
 """Locally sign review-only rosters and a witnessed package handoff.
 
 This utility never creates keys, authenticates key holders, or grants model or
-scoring permission. A witness signature records the rostered key's statement;
+scoring permission. The release roster binds a distinct capture-operator key.
+A witness signature records the rostered key's statement;
 it cannot prove identity, chronology, or that an actual ceremony occurred.
 """
 from __future__ import annotations

@@ -24,11 +24,11 @@ def sha(text: str) -> str:
 
 class BaselinePqCandidateTests(unittest.TestCase):
     def setUp(self):
-        self.tokens = ["opaque-1", "opaque-2", "opaque-3"]
+        self.tokens = [f"opaque-{index:017d}" for index in range(1, 4)]
         self.run_digests = {
             key: sha(key) for key in (
                 "protocol_sha256", "model_sha256", "tokenizer_sha256",
-                "scorer_sha256", "processor_sha256")
+                "scorer_sha256", "processor_sha256", "runtime_sha256")
         }
         self.answer_ids = list(map(ord, "ABCDE"))
         class FakeTokenizer:
@@ -194,6 +194,20 @@ class BaselinePqCandidateTests(unittest.TestCase):
         with self.assertRaisesRegex(CandidateError,
                                     "baseline_input_fixed_three_rows_required"):
             self._build()
+
+    def test_rejects_duplicate_source_video_bytes_across_distinct_tokens(self):
+        rows = [dict(row) for row in self.rows]
+        duplicate_video_sha = rows[0]["source_video_sha256"]
+        rows[1]["source_video_sha256"] = duplicate_video_sha
+        pins = {token: dict(value) for token, value in self.source_pins.items()}
+        pins[self.tokens[1]]["source_video_sha256"] = duplicate_video_sha
+        input_obj = {**self.input_obj, "records": rows}
+        input_raw = json.dumps(input_obj, ensure_ascii=False, sort_keys=True,
+                               separators=(",", ":")).encode()
+        with self.assertRaisesRegex(CandidateError,
+                                    "baseline_duplicate_source_video_sha256"):
+            self._build(input_raw=input_raw,
+                        expected_source_bindings_by_token=pins)
 
     def test_candidate_manifest_output_size_is_capped(self):
         with patch.object(baseline_candidate, "MAX_CANDIDATE_MANIFEST_BYTES", 1):

@@ -32,7 +32,7 @@ class ReviewReleaseOrderTests(unittest.TestCase):
         self.root_dir = Path(self.temp.name)
         self.keys: dict[str, tuple[bytes, bytes]] = {}
         for name in ("root", "owner", "claim", "frame", "prediction",
-                     "custodian", "witness"):
+                     "capture", "custodian", "witness"):
             private = self.root_dir / f"{name}.private.pem"
             public = self.root_dir / f"{name}.public.pem"
             subprocess.run(["openssl", "genpkey", "-algorithm", "ED25519",
@@ -102,6 +102,7 @@ class ReviewReleaseOrderTests(unittest.TestCase):
     def _release_roster(self, *, aliases=None, names=None):
         aliases = aliases or {}
         defaults = {"freeze_owner": "owner", "custodian": "custodian",
+                    "capture_operator": "capture",
                     "claim_reviewer": "claim", "frame_reviewer": "frame",
                     "prediction_link_reviewer": "prediction",
                     "release_witness": "witness"}
@@ -109,6 +110,7 @@ class ReviewReleaseOrderTests(unittest.TestCase):
         names = defaults
         entries = []
         key_ids = {"freeze_owner": "owner-key", "custodian": "custodian-key",
+                   "capture_operator": "capture-key",
                    "claim_reviewer": "claim-key", "frame_reviewer": "frame-key",
                    "prediction_link_reviewer": "prediction-key",
                    "release_witness": "witness-key"}
@@ -263,6 +265,31 @@ class ReviewReleaseOrderTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError,
                                     "release_roster_role_keys_must_be_distinct"):
             self._verify(release_roster_raw=roster)
+
+    def test_capture_operator_key_must_be_distinct_from_every_other_role(self):
+        for role, key_name in (
+                ("freeze_owner", "owner"),
+                ("custodian", "custodian"),
+                ("claim_reviewer", "claim"),
+                ("frame_reviewer", "frame"),
+                ("prediction_link_reviewer", "prediction"),
+                ("release_witness", "witness")):
+            with self.subTest(role=role):
+                roster = self._release_roster(
+                    names={"capture_operator": key_name},
+                    aliases={"capture_operator": "capture-test-key"})
+                with self.assertRaisesRegex(
+                        ValueError,
+                        "release_roster_role_set_invalid|release_roster_role_keys_must_be_distinct|custodian_capture_operator_collision"):
+                    self._verify(release_roster_raw=roster)
+
+    def test_owner_custodian_alias_still_allows_capture_operator_separate(self):
+        roster = self._release_roster(
+            names={"freeze_owner": "owner", "custodian": "owner"},
+            aliases={"custodian": "owner-key"})
+        attest = self._attestation(self.ceremony, release_roster_raw=roster)
+        report = self._verify(release_roster_raw=roster, attestation_raw=attest)
+        self.assertTrue(report["package_opening_permitted"])
 
     def test_inventory_receipt_and_artifact_bytes_are_bound(self):
         altered_inventory = self.inventory_raw.rstrip(b"\n") + b" \n"

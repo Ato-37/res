@@ -18,7 +18,7 @@ from nextgqa_atomic_batch_freeze import FrozenBatch, batch_sha256
 
 RUN_DIGEST_FIELDS = (
     "protocol_sha256", "model_sha256", "tokenizer_sha256",
-    "scorer_sha256", "processor_sha256",
+    "scorer_sha256", "processor_sha256", "runtime_sha256",
 )
 _SHA = re.compile(r"^[0-9a-f]{64}$")
 _ROW_COUNT = 3
