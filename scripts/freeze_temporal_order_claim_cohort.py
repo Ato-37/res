@@ -38,16 +38,33 @@ def _write_exclusive(path: Path, payload: dict) -> None:
 
 
 def _scored_video_digests(private_root: Path) -> set[str]:
-    """Read only explicit video digests from model-output artifact families."""
+    """Conservatively find explicit video digests in local scoring outputs."""
     prefixes = ("claim_generation_", "claim_review_", "saved_claim_",
                 "benchmark_interval_claim_cohort_gpu_", "gold_interval_cohort_")
     output = set()
+
+    def carries_score_marker(value) -> bool:
+        if isinstance(value, dict):
+            for key, item in value.items():
+                if (key == "completed_forwards" and type(item) is int and item > 0):
+                    return True
+                if key in {"scoring_performed", "target_scoring_performed",
+                           "faithfulness_scored"} and item is True:
+                    return True
+                if isinstance(item, (dict, list)) and carries_score_marker(item):
+                    return True
+        elif isinstance(value, list):
+            return any(carries_score_marker(item) for item in value)
+        return False
+
     for path in private_root.rglob("*.json"):
-        if not path.name.startswith(prefixes):
-            continue
         try:
             payload = json.loads(path.read_text(encoding="utf-8"))
         except (OSError, UnicodeDecodeError, json.JSONDecodeError):
+            continue
+        marker = carries_score_marker(payload)
+        scan_output_family = path.name.startswith(prefixes)
+        if not marker and not scan_output_family:
             continue
         stack = [payload]
         while stack:
@@ -68,13 +85,24 @@ def _selection_exclusions(source_exclusions, scored_digests: set[str]) -> set[st
     return set(source_exclusions) | set(scored_digests)
 
 
+def _private_json_sha256(payload: dict) -> str:
+    raw = (json.dumps(payload, sort_keys=True, separators=(",", ":"),
+                      allow_nan=False) + "\n").encode("utf-8")
+    return hashlib.sha256(raw).hexdigest()
+
+
 def freeze(*, repo: Path, pool_rel: Path | None, video_root: Path,
            lock_rel: Path, pair_filter_rel: Path, n: int = 3,
-           dataset_split: str = "test") -> dict:
+           dataset_split: str = "test",
+           purpose: str = "exploratory_saved_claim_temporal_order_bias_interaction") -> dict:
     if n != 3:
         raise ValueError("frozen_cohort_requires_three_rows")
     if dataset_split not in ("val", "test"):
         raise ValueError("candidate_pool_split_invalid")
+    if purpose not in {
+            "exploratory_saved_claim_temporal_order_bias_interaction",
+            "exploratory_saved_claim_video_content_frame_mean_split_check"}:
+        raise ValueError("cohort_purpose_invalid")
     private_root = (repo / "data" / "private_nextgqa").resolve(strict=True)
     pool_summary_hash = pair_filter_hash = prior_media_exclusion_hash = None
     exclusions: set[str] = set()
@@ -123,16 +151,18 @@ def freeze(*, repo: Path, pool_rel: Path | None, video_root: Path,
     assignments = pilot.build_cohort_lock_assignments(selected)
     selected_pairs = [pilot.candidate_pair_sha256(x["video_id"], x["qid"])
                       for x in selected]
+    pair_filter = {"schema_version": 1, "pair_sha256": selected_pairs}
     lock = {
         "schema_version": 1,
         "status": "frozen_before_claim_generation_and_scoring",
-        "purpose": "exploratory_saved_claim_temporal_order_bias_interaction",
+        "purpose": purpose,
         "dataset_split": dataset_split,
         "requested_videos": n,
         "effective_videos": len(selected),
         "selection_rule": "first three eligible unique media in frozen candidate loader order after unioning source exclusions with all locally scored claim media; no new-cohort outcomes used",
         "candidate_pool_summary_sha256": pool_summary_hash,
         "candidate_pair_filter_sha256": pair_filter_hash,
+        "selected_pair_filter_sha256": _private_json_sha256(pair_filter),
         "prior_media_exclusion_sha256": prior_media_exclusion_hash,
         "candidate_pairs_available": len(pair_hashes) if pair_hashes is not None else None,
         "full_split_candidate_video_count": meta.get("candidate_video_count"),
@@ -158,7 +188,6 @@ def freeze(*, repo: Path, pool_rel: Path | None, video_root: Path,
             "selection is exploratory and does not certify a fresh confirmatory cohort",
         ],
     }
-    pair_filter = {"schema_version": 1, "pair_sha256": selected_pairs}
     lock_path = validate_private_output(str(lock_rel), repo)
     filter_path = validate_private_output(str(pair_filter_rel), repo)
     if lock_path == filter_path:
@@ -171,7 +200,8 @@ def freeze(*, repo: Path, pool_rel: Path | None, video_root: Path,
         raise
     return {"effective_videos": len(selected), "cohort_sha256": cohort_hash,
             "local_scored_claim_overlap_count": 0,
-            "candidate_pairs_available": len(pair_hashes),
+            "selected_pair_filter_sha256": lock["selected_pair_filter_sha256"],
+            "candidate_pairs_available": len(pair_hashes) if pair_hashes is not None else None,
             "candidate_videos_scanned": counts["candidate_scan_count"],
             "lock_name": lock_path.name, "pair_filter_name": filter_path.name}
 
@@ -184,12 +214,16 @@ def main() -> int:
     parser.add_argument("--lock-output", required=True)
     parser.add_argument("--pair-filter-output", required=True)
     parser.add_argument("--dataset-split", choices=("val", "test"), default="test")
+    parser.add_argument("--purpose", choices=(
+        "exploratory_saved_claim_temporal_order_bias_interaction",
+        "exploratory_saved_claim_video_content_frame_mean_split_check"),
+        default="exploratory_saved_claim_temporal_order_bias_interaction")
     args = parser.parse_args()
     repo = Path(__file__).resolve().parents[1]
     pool_rel = Path("data/private_nextgqa") / args.pool if args.pool is not None else None
     result = freeze(repo=repo, pool_rel=pool_rel, video_root=args.video_root,
         lock_rel=Path(args.lock_output), pair_filter_rel=Path(args.pair_filter_output),
-        dataset_split=args.dataset_split)
+        dataset_split=args.dataset_split, purpose=args.purpose)
     print(json.dumps(result, sort_keys=True))
     return 0
 

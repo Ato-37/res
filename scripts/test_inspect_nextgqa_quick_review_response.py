@@ -41,7 +41,7 @@ def valid_response():
 class QuickReviewResponseTests(unittest.TestCase):
     def test_default_artifact_is_current_gpu_generated_claim_review(self):
         self.assertEqual(DEFAULT_ARTIFACT.name,
-                         "quick_review_val_generated_claims_local_20261019_04.html")
+                         "quick_review_temporal_order_val_20261021_01.html")
 
     def test_inspect_artifact_uses_one_snapshot_for_ids_and_fingerprint(self):
         items = [{"item_id": item_id} for item_id in ITEM_IDS]

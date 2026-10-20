@@ -16,7 +16,7 @@ from typing import Any
 
 ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_ARTIFACT = ROOT / (
-    "data/private_nextgqa/quick_review_val_generated_claims_local_20261019_04.html"
+    "data/private_nextgqa/quick_review_temporal_order_val_20261021_01.html"
 )
 LEGACY_SIMPLE_ARTIFACT = ROOT / (
     "data/private_nextgqa/quick_review_ja_simple_20261019_itemid_v14.html"
