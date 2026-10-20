@@ -8,9 +8,11 @@ from pathlib import Path
 from unittest.mock import patch
 
 from inspect_nextgqa_quick_review_response import (
-    EXPECTED_LIMITATIONS, ReviewError, expected_artifact_fingerprint, expected_item_ids, inspect_response, main,
+    DEFAULT_ARTIFACT, EXPECTED_LIMITATIONS, ReviewError, expected_artifact_fingerprint,
+    expected_item_ids, inspect_response, main,
     summarize_response,
 )
+import inspect_nextgqa_quick_review_response as inspector
 
 
 ITEM_IDS = ["0123456789abcdef0123", "123456789abcdef01234",
@@ -35,6 +37,10 @@ def valid_response():
 
 
 class QuickReviewResponseTests(unittest.TestCase):
+    def test_default_artifact_is_current_gpu_generated_claim_review(self):
+        self.assertEqual(DEFAULT_ARTIFACT.name,
+                         "quick_review_val_generated_claims_local_20261019_04.html")
+
     def test_v5_keeps_clarity_answer_fit_and_video_evidence_separate(self):
         response = valid_response()
         response["schema_version"] = 5
@@ -119,6 +125,35 @@ class QuickReviewResponseTests(unittest.TestCase):
             artifact.write_text(html.replace("<script>", "<script> "), encoding="utf-8")
             with self.assertRaisesRegex(ReviewError, "artifact_fingerprint_mismatch"):
                 expected_artifact_fingerprint(artifact)
+
+    def test_cli_uses_current_artifact_default_for_v6_response(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            artifact = Path(tmp) / "current.html"
+            response_path = Path(tmp) / "response.json"
+            items = [{"item_id": item_id} for item_id in ITEM_IDS]
+            html = ('<meta name="review-artifact-sha256" content="__ARTIFACT_FINGERPRINT__">'
+                    + "<script>const items=" + json.dumps(items)
+                    + ";\nlet nickname='';</script>")
+            digest = hashlib.sha256(html.encode()).hexdigest()
+            artifact.write_text(html.replace("__ARTIFACT_FINGERPRINT__", digest), encoding="utf-8")
+            response = valid_response()
+            response.pop("nickname")
+            response.pop("answers")
+            response.update({"schema_version": 6, "artifact_fingerprint": digest,
+                             "respondents": [{"nickname": "private", "answers": [
+                                 {"item_id": item_id, "item_number": index,
+                                  "question_clarity": "clear", "answer_question_fit": "fits",
+                                  "video_evidence_sufficiency": "sufficient"}
+                                 for index, item_id in enumerate(ITEM_IDS, start=1)
+                             ]}]})
+            response_path.write_text(json.dumps(response), encoding="utf-8")
+            output = io.StringIO()
+            with patch.object(inspector, "DEFAULT_ARTIFACT", artifact), \
+                    patch.object(sys, "argv", ["inspect", str(response_path)]), \
+                    patch.object(sys, "stdout", output):
+                self.assertEqual(main(), 0)
+            self.assertIn("確認済み", output.getvalue())
+            self.assertNotIn("private", output.getvalue())
 
     def test_legacy_responses_are_explicitly_unbound(self):
         report = summarize_response(json.dumps(valid_response()).encode(), ITEM_IDS)

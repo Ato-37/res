@@ -1,14 +1,16 @@
 # NExT-GQA 人手レビュー手順（日本語要約）
 
+GPU生成claimの現在の予備確認は[claim確認ランチャー](nextgqa_generated_claim_review_ja.html)から開きます。回答JSONの取り込みCLIもこの現行artifactを既定で照合します。以前のページで保存した回答を扱う場合は、対応する旧artifactを `--artifact` で明示してください。schema v2〜v5の未バインドJSONなら `--allow-unbound-legacy` も明示します。別ページの回答は混ぜられません。
+
 この文書は、英語版の[正式手順](nextgqa_v6_human_review_runbook.md)を実施者向けに説明したものです。署名・監査の判定は正式手順と実装に従います。動画・レビュー記録・派生データはローカルに置き、公開しません。権利状態は未確認です。
 
-手軽な予備チェックは[日本語ランチャー](nextgqa_human_review_workspace_ja.html)から開けます。各人がニックネームを入力して「質問へ」を押すと、埋め込み動画つきの質問が表示されます。各項目で、①質問を読んで何を答えるか分かるか、②動画を見て説明中の答えが正しいか、③答えの根拠となる動画中の出来事（必要なら動きの順序）が説明に示されているか、を別々に選びます。②は答え自体の正しさ、③は説明に根拠が示されているかを見ます。質問の意味や動画の場面が曖昧なら推測せず、①は「わかりにくい」、②③は「判断できない」を選べます。回答後、次の人は「次の人へ」を押し、自分のニックネームを入力してから質問に進みます。最後に「全員分を保存」を押すと、artifact全体のSHA-256 fingerprintを含むschema v6のJSON一つにまとめて保存します。取り込み時にJSONとHTMLのfingerprintが一致しない場合は拒否します。schema v2〜v5の旧JSONを履歴確認する場合は、検査・private保管のどちらにも `--allow-unbound-legacy` の明示が必要です。artifact版は未検証と表示され、版照合済みにはなりません。動画ファイルや時刻を選ぶ必要はありません。Ubuntuターミナルでリポジトリのルートに移動してから、Windowsの既定ブラウザーで開くには次を実行します。
+手軽な予備チェックは[GPU生成claim用ランチャー](nextgqa_generated_claim_review_ja.html)から開けます。各人がニックネームを入力して「質問へ」を押すと、埋め込み動画つきの質問が表示されます。各項目で、①質問を読んで何を答えるか分かるか、②動画を見て説明中の答えが正しいか、③答えの根拠となる動画中の出来事（必要なら動きの順序）が説明に示されているか、を別々に選びます。②は答え自体の正しさ、③は説明に根拠が示されているかを見ます。質問の意味や動画の場面が曖昧なら推測せず、①は「わかりにくい」、②③は「判断できない」を選べます。回答後、次の人は「次の人へ」を押し、自分のニックネームを入力してから質問に進みます。最後に「全員分を保存」を押すと、artifact全体のSHA-256 fingerprintを含むschema v6のJSON一つにまとめて保存します。取り込み時にJSONとHTMLのfingerprintが一致しない場合は拒否します。schema v2〜v5の旧JSONを履歴確認する場合は、検査・private保管のどちらにも `--allow-unbound-legacy` の明示が必要です。artifact版は未検証と表示され、版照合済みにはなりません。動画ファイルや時刻を選ぶ必要はありません。Ubuntuターミナルでリポジトリのルートに移動してから、Windowsの既定ブラウザーで開くには次を実行します。
 
 ```bash
-powershell.exe -NoProfile -Command "Start-Process -FilePath '$(wslpath -w ./data/private_nextgqa/quick_review_ja_simple_20261019_itemid_v14.html)'"
+powershell.exe -NoProfile -Command "Start-Process -FilePath '$(wslpath -w ./data/private_nextgqa/quick_review_val_generated_claims_local_20261019_04.html)'"
 ```
 
-Linuxデスクトップ環境で実行する場合は `xdg-open ./data/private_nextgqa/quick_review_ja_simple_20261019_itemid_v14.html` でも開けます。
+Linuxデスクトップ環境で実行する場合は `xdg-open ./data/private_nextgqa/quick_review_val_generated_claims_local_20261019_04.html` でも開けます。
 
 この簡易artifactは、完全な幻覚判定や正式な人手監査ではありません。ニックネームを入力すると質問に進み、動画ファイル選択や時刻入力なしで大まかな印象を回答できます。署名・担当者の本人性・独立性・動画とdecoder画像の一致・時計校正を確認せず、回答を正式レビュー記録や採点許可として扱いません。簡易artifactは正式レビュー候補と同じ3件を含むため、ここで動画を見た人は同じ項目の盲検正式レビュー担当にはなれません。ニックネーム・回答JSONには個人情報が含まれ得るため、実名を避け、JSONはローカルに保管してください。
 
