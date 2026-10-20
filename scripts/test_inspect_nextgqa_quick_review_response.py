@@ -244,6 +244,38 @@ class QuickReviewResponseTests(unittest.TestCase):
                          {"sufficient": 1, "insufficient": 2, "cannot_tell": 0})
         self.assertNotIn("private", repr(report))
 
+    def test_item_summary_cli_prints_counts_but_no_reviewer_rows(self):
+        response = valid_response()
+        response["schema_version"] = 5
+        response.pop("nickname")
+        response.pop("answers")
+        response["respondents"] = [{"nickname": "PRIVATE NAME", "answers": [
+            {"item_id": item_id, "item_number": index,
+             "question_clarity": "unclear", "answer_question_fit": "does_not_fit",
+             "video_evidence_sufficiency": "insufficient"}
+            for index, item_id in enumerate(ITEM_IDS, start=1)
+        ]}]
+        with tempfile.TemporaryDirectory() as tmp:
+            response_path = Path(tmp) / "response.json"
+            artifact_path = Path(tmp) / "artifact.html"
+            response_path.write_text(json.dumps(response), encoding="utf-8")
+            items = [{"item_id": item_id} for item_id in ITEM_IDS]
+            artifact_path.write_text(
+                "<script>const items=" + json.dumps(items)
+                + ";\nlet nickname='';</script>", encoding="utf-8",
+            )
+            output = io.StringIO()
+            with patch.object(sys, "argv", ["inspect", str(response_path),
+                                             "--artifact", str(artifact_path),
+                                             "--show-item-summary", "--allow-unbound-legacy"]), \
+                    patch.object(sys, "stdout", output):
+                self.assertEqual(main(), 0)
+            rendered = output.getvalue()
+            self.assertIn("第2問（n=1）", rendered)
+            self.assertIn("回答適合 適合=0, 不適合=1, 判断不能=0", rendered)
+            self.assertNotIn("PRIVATE NAME", rendered)
+            self.assertNotIn("人目・第", rendered)
+
     def test_rejects_incomplete_duplicate_or_reordered_items(self):
         for mutate in (
             lambda obj: obj["answers"].pop(),
