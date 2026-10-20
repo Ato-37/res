@@ -22,6 +22,7 @@
 
 - 公開commit: independent confirmation `a80ec61`、smoke `ec08f4f`。
 - independent test: 要求79、完了79、失敗0、sample key 79種類。run manifestの設定・件数は結果JSONと一致し、sample manifest SHA-256は`2fa141ee9a9c00e86db380b2ee2dbb3161080224c6b0eaf86ddc401cd1341e10`。
+- 2026-10-21の再計算では、現在保存されているheld-out sample候補のいずれもこのSHA-256と一致しなかった。そのため、この再計算ではsample keyの一意性までは確認したが、動画IDの一意性は`unverified`である。下記の79件解析は結果JSON上の79レコードを単位とした値として読める。独立した79動画という記述は、当時のサンプル一覧が復元されるまで再検証済みとは扱わない。
 - 設定: Qwen2.5-VL-7B-Instruct、4-bit、全28層からtop-4、`alpha=0.5`、5 matched controls、16 frames、`cap_pixels_per_frame=true`、`max_pixels=200704`、seed `20261010`、RTX 5070 Ti。
 - 選択headの平均margin低下: `−0.0601 nat`。
 - controlの平均margin低下: `+0.0155 nat`。
