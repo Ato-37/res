@@ -41,6 +41,28 @@ class QuickReviewResponseTests(unittest.TestCase):
         self.assertEqual(DEFAULT_ARTIFACT.name,
                          "quick_review_val_generated_claims_local_20261019_04.html")
 
+    def test_inspect_artifact_uses_one_snapshot_for_ids_and_fingerprint(self):
+        items = [{"item_id": item_id} for item_id in ITEM_IDS]
+        html = ('<meta name="review-artifact-sha256" content="__ARTIFACT_FINGERPRINT__">'
+                + "<script>const items=" + json.dumps(items)
+                + ";\nlet nickname='';</script>")
+        digest = hashlib.sha256(html.encode()).hexdigest()
+        raw = html.replace("__ARTIFACT_FINGERPRINT__", digest).encode()
+        with patch.object(inspector, "_read_artifact_snapshot", return_value=raw) as read:
+            ids, fingerprint = inspector.inspect_artifact(Path("unused.html"))
+        self.assertEqual(ids, ITEM_IDS)
+        self.assertEqual(fingerprint, digest)
+        read.assert_called_once_with(Path("unused.html"))
+
+    def test_artifact_symlink_is_rejected(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            target = Path(tmp) / "target.html"
+            link = Path(tmp) / "linked.html"
+            target.write_text("<html></html>", encoding="utf-8")
+            link.symlink_to(target)
+            with self.assertRaisesRegex(ReviewError, "artifact_file_invalid"):
+                expected_item_ids(link)
+
     def test_v5_keeps_clarity_answer_fit_and_video_evidence_separate(self):
         response = valid_response()
         response["schema_version"] = 5

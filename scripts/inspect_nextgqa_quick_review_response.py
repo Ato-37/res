@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import re
 import stat
 import sys
@@ -71,8 +72,36 @@ def _read_bounded(path: Path, limit: int, code: str) -> bytes:
     return raw
 
 
-def expected_item_ids(artifact_path: Path) -> list[str]:
-    raw = _read_bounded(artifact_path, MAX_ARTIFACT_BYTES, "artifact_file_invalid")
+def _read_artifact_snapshot(artifact_path: Path) -> bytes:
+    nofollow = getattr(os, "O_NOFOLLOW", None)
+    if nofollow is None:
+        raise ReviewError("artifact_nofollow_unavailable")
+    fd = None
+    try:
+        fd = os.open(artifact_path, os.O_RDONLY | nofollow)
+        info = os.fstat(fd)
+        if not stat.S_ISREG(info.st_mode) or info.st_size > MAX_ARTIFACT_BYTES:
+            raise ReviewError("artifact_file_invalid")
+        chunks = []
+        remaining = MAX_ARTIFACT_BYTES + 1
+        while remaining:
+            chunk = os.read(fd, min(1024 * 1024, remaining))
+            if not chunk:
+                break
+            chunks.append(chunk)
+            remaining -= len(chunk)
+        raw = b"".join(chunks)
+        if len(raw) > MAX_ARTIFACT_BYTES:
+            raise ReviewError("artifact_file_invalid")
+        return raw
+    except OSError as exc:
+        raise ReviewError("artifact_file_invalid") from exc
+    finally:
+        if fd is not None:
+            os.close(fd)
+
+
+def _item_ids_from_artifact(raw: bytes) -> list[str]:
     try:
         html = raw.decode("utf-8", errors="strict")
         parser = _Scripts()
@@ -109,9 +138,8 @@ _FINGERPRINT_META = re.compile(
 )
 
 
-def expected_artifact_fingerprint(artifact_path: Path) -> str | None:
+def _fingerprint_from_artifact(raw: bytes) -> str | None:
     """Verify the self-bound full HTML fingerprint; None means legacy unbound HTML."""
-    raw = _read_bounded(artifact_path, MAX_ARTIFACT_BYTES, "artifact_file_invalid")
     try:
         html = raw.decode("utf-8", errors="strict")
     except UnicodeError as exc:
@@ -127,6 +155,20 @@ def expected_artifact_fingerprint(artifact_path: Path) -> str | None:
     if actual != match.group(1):
         raise ReviewError("artifact_fingerprint_mismatch")
     return actual
+
+
+def expected_item_ids(artifact_path: Path) -> list[str]:
+    return _item_ids_from_artifact(_read_artifact_snapshot(artifact_path))
+
+
+def expected_artifact_fingerprint(artifact_path: Path) -> str | None:
+    return _fingerprint_from_artifact(_read_artifact_snapshot(artifact_path))
+
+
+def inspect_artifact(artifact_path: Path) -> tuple[list[str], str | None]:
+    """Parse IDs and verify fingerprint from one no-follow file snapshot."""
+    raw = _read_artifact_snapshot(artifact_path)
+    return _item_ids_from_artifact(raw), _fingerprint_from_artifact(raw)
 
 
 def _unique_object(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
@@ -307,8 +349,7 @@ def summarize_response(response_raw: bytes, item_ids: list[str],
 def inspect_response(response_path: Path, artifact_path: Path = DEFAULT_ARTIFACT, *,
                      allow_unbound_legacy: bool = False) -> dict[str, Any]:
     response_raw = _read_bounded(response_path, MAX_JSON_BYTES, "response_file_invalid")
-    ids = expected_item_ids(artifact_path)
-    fingerprint = expected_artifact_fingerprint(artifact_path)
+    ids, fingerprint = inspect_artifact(artifact_path)
     report = summarize_response(response_raw, ids, fingerprint)
     if report["artifact_binding"] != "verified" and not allow_unbound_legacy:
         raise ReviewError("legacy_artifact_binding_requires_explicit_opt_in")

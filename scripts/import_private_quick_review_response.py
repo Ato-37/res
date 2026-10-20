@@ -148,11 +148,11 @@ def import_response(source_path: Path, *, artifact_path: Path = DEFAULT_ARTIFACT
     # Validate the bytes before copying. The inspection result intentionally
     # contains only broad judgments and opaque item ordinals.
     from inspect_nextgqa_quick_review_response import (
-        expected_artifact_fingerprint, expected_item_ids, summarize_response,
+        inspect_artifact, summarize_response,
     )
+    item_ids, artifact_fingerprint = inspect_artifact(Path(artifact_path))
     summary = summarize_response(
-        raw, expected_item_ids(Path(artifact_path)),
-        expected_artifact_fingerprint(Path(artifact_path)),
+        raw, item_ids, artifact_fingerprint,
     )
     if summary["artifact_binding"] != "verified" and not allow_unbound_legacy:
         raise ReviewError("legacy_artifact_binding_requires_explicit_opt_in")
