@@ -146,16 +146,16 @@ try {
   $step = 'enter_nickname'
   $null = Evaluate $pageSocket "document.querySelector('#nickname').value='synthetic-reviewer'; document.querySelector('#start').click(); true"
   WaitFor $pageSocket "!document.querySelector('#welcome').classList.contains('hidden') === false && !document.querySelector('#question').classList.contains('hidden')" 'QUESTION_ONE_TIMEOUT'
-  $step = 'video_metadata'
-  WaitFor $pageSocket "document.querySelector('#video').readyState >= 1 && document.querySelector('#video').videoWidth > 0 && Number.isFinite(document.querySelector('#video').duration)" 'VIDEO_METADATA_TIMEOUT'
-  $step = 'video_frame_decode'
-  if (-not (Evaluate $pageSocket "(async()=>{const v=document.querySelector('#video');if(v.readyState<2){v.preload='auto';v.load();await Promise.race([new Promise(resolve=>v.addEventListener('loadeddata',()=>resolve(true),{once:true})),new Promise(resolve=>setTimeout(()=>resolve(false),5000))])}return v.readyState>=2&&v.videoWidth>0})()")) { throw 'VIDEO_FRAME_DECODE_FAILED' }
   for ($i = 0; $i -lt 3; $i++) {
     $step = 'choice_' + ($i + 1)
     $expected = $i + 1
     $seen = Evaluate $pageSocket "document.querySelector('#counter').textContent.trim().startsWith('$expected') && !document.querySelector('#question').classList.contains('hidden')"
     if (-not $seen) { throw ("QUESTION_SEQUENCE_INVALID_" + $expected) }
     if (-not (Evaluate $pageSocket "!document.querySelector('#source-language').open")) { throw 'SOURCE_LANGUAGE_NOT_RESET_ON_ENTRY' }
+    $step = 'video_metadata_' + $expected
+    WaitFor $pageSocket "document.querySelector('#video').readyState >= 1 && document.querySelector('#video').videoWidth > 0 && Number.isFinite(document.querySelector('#video').duration) && !!document.querySelector('#video').currentSrc" ("VIDEO_METADATA_TIMEOUT_" + $expected)
+    $step = 'video_frame_decode_' + $expected
+    if (-not (Evaluate $pageSocket "(async()=>{const v=document.querySelector('#video');if(v.readyState<2){v.preload='auto';v.load();await Promise.race([new Promise(resolve=>v.addEventListener('loadeddata',()=>resolve(true),{once:true})),new Promise(resolve=>setTimeout(()=>resolve(false),5000))])}return v.readyState>=2&&v.videoWidth>0})()")) { throw ('VIDEO_FRAME_DECODE_FAILED_' + $expected) }
     $selected = Evaluate $pageSocket "(()=>{for(const name of ['question_clarity','answer_question_fit','video_evidence_sufficiency']){const radios=Array.from(document.querySelectorAll('input[name='+name+']')); if(radios.length!==3) return false; radios[$i].checked=true; radios[$i].dispatchEvent(new Event('change',{bubbles:true}));} return true})()"
     if (-not $selected) { throw 'CHOICE_CONTROL_INVALID' }
     if ($i -lt 2) { $null = Evaluate $pageSocket "document.querySelector('#source-language').open=true; true" }
