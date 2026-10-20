@@ -124,6 +124,7 @@ CODE_FILES = {
     "qta_live_batch_binding": "scripts/qta_prebaseline_live_batch_binding.py",
     "atomic_batch_freezer": "scripts/nextgqa_atomic_batch_freeze.py",
     "batch_digest_freezer": "scripts/nextgqa_batch_digest_freeze.py",
+    "processor_batch_digest_manifest": "scripts/qta_processor_batch_digest_manifest_v1.py",
     "scorer": "scripts/nextgqa_claim_mask_scoring.py",
     "production_prompt_builder": "scripts/run_nextgqa_gold_interval_margin_pilot.py",
     "pre_review_inventory_builder": "scripts/build_nextgqa_pre_review_byte_inventory.py",

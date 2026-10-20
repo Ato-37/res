@@ -103,6 +103,7 @@ class SyntheticPreReviewInventoryTests(unittest.TestCase):
             "qta_prescore_mapping_binding",
             "qta_prescore_review_row_adapter",
             "qta_live_batch_binding",
+            "processor_batch_digest_manifest",
             "annotation_clock_calibration",
             "claim_input_manifest_builder",
             "claim_text_quality",
