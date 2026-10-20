@@ -21,6 +21,7 @@ from build_blinded_frame_pair_review import _html
 from test_audit_nextgqa_clock_frame_evidence import ClockFrameEvidenceAuditTests, enc, sha
 from test_nextgqa_capture_operator_attestation import CaptureAttestationTests
 from nextgqa_capture_operator_attestation import create_attestation
+import qta_direct_faithfulness_preload_gate as preload_gate
 from build_nextgqa_clock_evidence_manifest import (
     EVIDENCE_DOMAIN_V3, _artifact_directory, _canonical as evidence_canonical,
     _load_public_der, _sign, verify_manifest_signature,
@@ -806,6 +807,51 @@ class BuilderAuditIntegrationTests(unittest.TestCase):
                 result["reviewer_key_trust_status"],
                 "root_signed_frame_reviewer_role_key_match_root_pin_externality_unverified")
             self.assertFalse(result["capture_operator_human_identity_verified"])
+            clock_audit_inputs = {
+                "plan_raw": fixture.plan_raw,
+                "provenance_raw": fixture.provenance_raw,
+                "observations_raw": fixture.observations_raw,
+                "observation_index_raw": fixture.index_raw,
+                "capture_receipt_raw": fixture.capture_receipt_raw,
+                "evidence_raw": evidence_raw,
+                "public_key_raw": fixture.public_key_raw,
+                "media_dir": fixture.media_dir,
+                "screenshot_dir": fixture.screenshot_dir,
+                "expected_plan_sha256": plan_sha,
+                "expected_plan_provenance_sha256": provenance_sha,
+                "expected_capture_helper_sha256": fixture.capture_helper_sha256,
+                "expected_reviewer_public_key_sha256": sha(fixture.public_key_raw),
+                **audit_kwargs,
+            }
+            non_authorizing_bridge_material = {
+                "status": "three_row_candidate_inputs_derived_unvalidated",
+                "requested_records": 3, "effective_records": 3,
+                "expected_rows": [{"row": index} for index in range(3)],
+                "sampler_rows": [{"row": index} for index in range(3)],
+                "human_identity_verified": False,
+                "semantic_review_authenticated": False,
+                "clock_frame_correspondence_verified": False,
+                "model_load_permitted": False, "scoring_authorized": False,
+                "faithfulness_scored": False, "execution_authorization": "not_granted",
+            }
+            with patch.object(preload_gate,
+                              "build_qta_actual_candidate_input_material",
+                              return_value=non_authorizing_bridge_material):
+                gate_report = preload_gate.evaluate_qta_direct_faithfulness_preload(
+                    sampler_receipt_raw=b"synthetic sampler bytes",
+                    candidate_inventory_raw=b"synthetic inventory bytes",
+                    media_sha256_by_role={}, actual_source_inputs={},
+                    stage1_audit_inputs={}, actual_qa_source_inputs={},
+                    clock_inputs_by_token={}, processor_pins_by_token={},
+                    tokenizer_sha256="a" * 64, video_duration_seconds_by_token={},
+                    clock_frame_audit_inputs=clock_audit_inputs)
+            self.assertEqual(gate_report["signature_bound_frame_pair_decisions"], 15)
+            self.assertEqual(gate_report["clock_frame_audit_status"],
+                             "signed_pairs_consistent_untrusted_root")
+            self.assertEqual(gate_report["validated_clock_frame_anchors"], 0)
+            self.assertFalse(gate_report["clock_frame_trust_root_origin_authenticated"])
+            self.assertFalse(gate_report["model_load_permitted"])
+            self.assertEqual(gate_report["forward_calls"], 0)
             for artifact_name, audit_name in (
                     ("pair_package", "pair_package_raw"),
                     ("identity_map", "pair_identity_map_raw"),

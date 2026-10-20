@@ -13,6 +13,7 @@ from __future__ import annotations
 from collections.abc import Mapping
 from typing import Any
 
+from audit_nextgqa_clock_frame_evidence import audit_evidence as audit_clock_frame_evidence
 from qta_actual_candidate_input_bridge import build_qta_actual_candidate_input_material
 
 ROW_COUNT = 3
@@ -26,6 +27,7 @@ def evaluate_qta_direct_faithfulness_preload(*, sampler_receipt_raw: bytes,
         clock_inputs_by_token: Mapping[str, Mapping[str, Any]],
         processor_pins_by_token: Mapping[str, Mapping[str, Any]],
         tokenizer_sha256: str, video_duration_seconds_by_token: Mapping[str, Any],
+        clock_frame_audit_inputs: Mapping[str, Any] | None = None,
         repo_root=None, code_files=None) -> dict[str, Any]:
     """Revalidate exact inputs and return sanitized aggregate gate statuses.
 
@@ -43,6 +45,9 @@ def evaluate_qta_direct_faithfulness_preload(*, sampler_receipt_raw: bytes,
         "structurally_composed_rows": 0,
         "requested_clock_frame_anchors": ANCHOR_COUNT,
         "validated_clock_frame_anchors": 0,
+        "signature_bound_frame_pair_decisions": 0,
+        "clock_frame_audit_status": "not_supplied",
+        "clock_frame_trust_root_origin_authenticated": False,
         "structural_source_composition": "blocked",
         "trusted_human_review": "blocked",
         "semantic_review": "blocked",
@@ -61,6 +66,37 @@ def evaluate_qta_direct_faithfulness_preload(*, sampler_receipt_raw: bytes,
         "faithfulness_scored": False,
         "execution_authorization": "not_granted",
     }
+    if clock_frame_audit_inputs is not None:
+        # Rerun the evidence audit from raw bytes; never accept a caller's
+        # summary. A passing v3 artifact proves only signature and byte
+        # consistency against the supplied root. The root's external origin
+        # and the signer's real-world identity remain unverified here.
+        try:
+            if not isinstance(clock_frame_audit_inputs, Mapping):
+                raise ValueError("clock_frame_audit_inputs_invalid")
+            clock_report = audit_clock_frame_evidence(**dict(clock_frame_audit_inputs))
+            if (isinstance(clock_report, dict)
+                    and clock_report.get("status") == "candidate_signed_evidence_bytes_consistent"
+                    and clock_report.get("requested_records") == ROW_COUNT
+                    and clock_report.get("requested_anchors") == ANCHOR_COUNT
+                    and clock_report.get("verified_anchors") == ANCHOR_COUNT
+                    and clock_report.get("match_decisions") == ANCHOR_COUNT
+                    and clock_report.get("ambiguous_decisions") == 0
+                    and clock_report.get("mismatch_decisions") == 0
+                    and clock_report.get("screenshot_and_decoder_bytes_checked") is True
+                    and clock_report.get("reviewer_signature_verified") is True
+                    and clock_report.get("frame_reviewer_role_key_verified") is True
+                    and clock_report.get("capture_operator_signature_verified") is True
+                    and clock_report.get("capture_operator_human_identity_verified") is False
+                    and clock_report.get("execution_authorization") == "not_granted"):
+                result.update({
+                    "signature_bound_frame_pair_decisions": ANCHOR_COUNT,
+                    "clock_frame_audit_status": "signed_pairs_consistent_untrusted_root",
+                })
+            else:
+                result["clock_frame_audit_status"] = "blocked_or_incomplete"
+        except Exception:
+            result["clock_frame_audit_status"] = "blocked_or_incomplete"
     try:
         material = build_qta_actual_candidate_input_material(
             sampler_receipt_raw=sampler_receipt_raw,
