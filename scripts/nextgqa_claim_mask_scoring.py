@@ -19,7 +19,7 @@ REQUESTED_RECORDS = 3
 LABEL_COUNT = 5
 
 
-def validate_scoring_inputs(triplets: Any, token_ids: Any) -> None:
+def validate_scoring_inputs(triplets: Any, token_ids: Any, requested_records: int = REQUESTED_RECORDS) -> None:
     """Validate the fixed cohort's already-frozen CPU inputs before forwarding.
 
     Do not call ``FrozenBatch.to('cpu')`` here: the freezer has already made
@@ -30,7 +30,8 @@ def validate_scoring_inputs(triplets: Any, token_ids: Any) -> None:
             or any(type(token) is not int or token < 0 for token in token_ids)
             or len(set(token_ids)) != LABEL_COUNT):
         raise ValueError("answer_label_token_contract_invalid")
-    if not isinstance(triplets, (list, tuple)) or len(triplets) != REQUESTED_RECORDS:
+    if (type(requested_records) is not int or requested_records not in (1, REQUESTED_RECORDS)
+            or not isinstance(triplets, (list, tuple)) or len(triplets) != requested_records):
         raise ValueError("requested_record_count_mismatch")
     for row_index, row in enumerate(triplets):
         if not isinstance(row, Mapping) or set(row) != {"gold_index", "batches"}:
@@ -74,10 +75,10 @@ def _margin(log_probabilities: list[float], gold_index: int) -> float:
 
 
 def _validate_frozen_hashes(*, triplets: Any, record_ids: Any,
-                            expected_batch_hashes: Any) -> None:
-    if (not isinstance(record_ids, (list, tuple)) or len(record_ids) != REQUESTED_RECORDS
+                            expected_batch_hashes: Any, requested_records: int = REQUESTED_RECORDS) -> None:
+    if (not isinstance(record_ids, (list, tuple)) or len(record_ids) != requested_records
             or any(not isinstance(value, str) or not value for value in record_ids)
-            or len(set(record_ids)) != REQUESTED_RECORDS
+            or len(set(record_ids)) != requested_records
             or not isinstance(expected_batch_hashes, Mapping)
             or set(expected_batch_hashes) != set(record_ids)):
         raise ValueError("frozen_batch_hash_binding_invalid")
@@ -104,6 +105,7 @@ def score_preflighted_triplets(*, model: Any, triplets: Any, token_ids: Any,
                                torch_module: Any, device: str = "cuda",
                                before_forward: Callable[[int, int, str], None] | None = None,
                                model_call: Callable[..., Any] | None = None,
+                               requested_records: int = REQUESTED_RECORDS,
                                ) -> dict:
     """Run the fixed nine forwards and return a finite-cohort descriptive result.
 
@@ -114,16 +116,16 @@ def score_preflighted_triplets(*, model: Any, triplets: Any, token_ids: Any,
     """
     # Gate the exact freezer-produced type before generic validation calls
     # `.to()`. This excludes subclasses that could override transfer behavior.
-    if isinstance(triplets, (list, tuple)) and len(triplets) == REQUESTED_RECORDS:
+    if isinstance(triplets, (list, tuple)) and len(triplets) == requested_records:
         for row in triplets:
             if isinstance(row, Mapping) and isinstance(row.get("batches"), Mapping):
                 if any(type(batch) is not FrozenBatch for batch in row["batches"].values()):
                     raise ValueError("frozen_batch_snapshot_required")
-    validate_scoring_inputs(triplets, token_ids)
+    validate_scoring_inputs(triplets, token_ids, requested_records)
     # Recheck all nine snapshots before the first forward, then hash each
     # device batch after transfer to catch later edits and transfer changes.
     _validate_frozen_hashes(triplets=triplets, record_ids=record_ids,
-                            expected_batch_hashes=expected_batch_hashes)
+                            expected_batch_hashes=expected_batch_hashes,requested_records=requested_records)
     if model is None or torch_module is None or not isinstance(device, str) or not device:
         raise ValueError("scoring_runtime_invalid")
 
@@ -132,10 +134,10 @@ def score_preflighted_triplets(*, model: Any, triplets: Any, token_ids: Any,
     except Exception as exc:
         return {
             "status": "failed",
-            "scope": "finite_three_record_descriptive_only",
-            "requested_records": REQUESTED_RECORDS,
-            "cohort_denominator": REQUESTED_RECORDS,
-            "requested_forwards": REQUESTED_RECORDS * len(CONDITIONS),
+            "scope": "finite_three_record_descriptive_only" if requested_records==3 else "single_record_smoke_only",
+            "requested_records": requested_records,
+            "cohort_denominator": requested_records,
+            "requested_forwards": requested_records * len(CONDITIONS),
             "attempted_forwards": 0,
             "completed_forwards": 0,
             "completed_triplets": 0,
@@ -186,6 +188,12 @@ def score_preflighted_triplets(*, model: Any, triplets: Any, token_ids: Any,
                     break
                 row_scores[condition] = [float(value) for value in scores]
                 completed += 1
+                # Release the prior condition's device tensors before the next
+                # batch transfer/forward. Retaining `output` keeps its logits
+                # live and can leave too little VRAM for the following video.
+                del output, logits, log_probs, scores, batch, call_kwargs
+                if device.startswith("cuda"):
+                    torch_module.cuda.empty_cache()
             except Exception as exc:
                 # Do not serialize exception text; it may contain paths or input data.
                 failure = "forward_or_score_failed_" + type(exc).__name__
@@ -212,26 +220,26 @@ def score_preflighted_triplets(*, model: Any, triplets: Any, token_ids: Any,
         if failure is not None:
             break
 
-    complete = (failure is None and completed == REQUESTED_RECORDS * len(CONDITIONS)
-                and len(records) == REQUESTED_RECORDS
+    complete = (failure is None and completed == requested_records * len(CONDITIONS)
+                and len(records) == requested_records
                 and all(row["d_control_minus_claim_mask_nats"] is not None
                         for row in records))
     complete_triplets = sum(row["d_control_minus_claim_mask_nats"] is not None
                             for row in records)
     return {
         "status": "completed" if complete else "failed",
-        "scope": "finite_three_record_descriptive_only",
-        "requested_records": REQUESTED_RECORDS,
-        "cohort_denominator": REQUESTED_RECORDS,
+        "scope": "finite_three_record_descriptive_only" if requested_records==3 else "single_record_smoke_only",
+        "requested_records": requested_records,
+        "cohort_denominator": requested_records,
         "completed_triplets": complete_triplets,
-        "requested_forwards": REQUESTED_RECORDS * len(CONDITIONS),
+        "requested_forwards": requested_records * len(CONDITIONS),
         "attempted_forwards": attempted,
         "completed_forwards": completed,
         "failure_code": failure,
         "records": records,
         "D3_control_minus_claim_mask_nats": (
             sum(row["d_control_minus_claim_mask_nats"] for row in records) / REQUESTED_RECORDS
-            if complete else None),
+            if complete and requested_records==REQUESTED_RECORDS else None),
         "confidence_interval": None,
         "p_value": None,
         "execution_authorization": "not_granted",

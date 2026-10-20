@@ -121,6 +121,19 @@ def hash_binding(rows):
 
 @unittest.skipIf(torch is None, "torch unavailable")
 class NextgqaClaimMaskScoringTests(unittest.TestCase):
+    def test_single_record_smoke_never_returns_three_record_aggregate(self):
+        rows=triplets()[:1]; ids=["smoke-row"]
+        hashes={ids[0]:{condition:batch_sha256(rows[0]["batches"][condition])
+                         for condition in CONDITIONS}}
+        model=HookableFakeModel()
+        result=score_preflighted_triplets(model=model,triplets=rows,token_ids=[0,1,2,3,4],
+            record_ids=ids,expected_batch_hashes=hashes,torch_module=torch,device="cpu",
+            requested_records=1)
+        self.assertEqual(result["status"],"completed")
+        self.assertEqual(result["scope"],"single_record_smoke_only")
+        self.assertEqual(result["completed_forwards"],3)
+        self.assertIsNone(result["D3_control_minus_claim_mask_nats"])
+
     def test_exact_final_kwargs_are_verified_at_root_entry_for_all_nine_calls(self):
         model = HookableFakeModel()
         boundary = ModelCallBoundary()
