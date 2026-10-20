@@ -15,7 +15,7 @@ The Japanese launcher opened the current GPU-generated-claim quick-review artifa
 
 - `PYTHONPATH=scripts .venv/bin/python -m unittest test_inspect_nextgqa_quick_review_response -v`: 20/20 passed.
 - `PYTHONPATH=scripts .venv/bin/python -m unittest test_import_private_quick_review_response -v`: 14/14 passed.
-- After the initial snapshot hardening, both focused suites passed **36/36**, including symlink rejection and a one-read snapshot regression test. Following independent audit, FIFO nonblocking and concurrent-mutation guards were added; the same suites now pass **38/38**.
+- After the initial snapshot hardening, both focused suites passed **36/36**, including symlink rejection and a one-read snapshot regression test. Following independent audit, FIFO nonblocking and concurrent-mutation guards were added. A further CLI-level v6 import/default regression was added; both focused suites now pass **39/39**.
 - `git diff --check`: passed.
 - Tests use synthetic response fixtures. No real reviewer response was imported or analyzed in this change; no model or GPU inference ran.
 

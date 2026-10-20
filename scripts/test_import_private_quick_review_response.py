@@ -136,6 +136,31 @@ class PrivateQuickReviewImportTests(unittest.TestCase):
         self.assertTrue(destination.exists())
         self.assertEqual(report["artifact_binding"], "verified")
 
+    def test_import_cli_defaults_to_current_fingerprint_bound_artifact(self):
+        fingerprint = _bound_artifact(self.artifact)
+        payload = _response()
+        payload.pop("nickname")
+        payload.pop("answers")
+        payload.update({"schema_version": 6, "artifact_fingerprint": fingerprint,
+                        "respondents": [{"nickname": "private", "answers": [
+                            {"item_id": item_id, "item_number": index,
+                             "question_clarity": "clear", "answer_question_fit": "fits",
+                             "video_evidence_sufficiency": "sufficient"}
+                            for index, item_id in enumerate(ITEM_IDS, start=1)
+                        ]}]})
+        self.source.write_text(json.dumps(payload), encoding="utf-8")
+        output = io.StringIO()
+        with patch.object(importer, "DEFAULT_ARTIFACT", self.artifact), \
+                patch.object(importer, "PRIVATE_ROOT", self.private_root), \
+                patch.object(sys, "argv", ["import", str(self.source)]), \
+                patch.object(sys, "stdout", output):
+            self.assertEqual(main(), 0)
+        self.assertIn("fingerprint一致: 確認済み", output.getvalue())
+        self.assertNotIn("PRIVATE NICKNAME SHOULD NOT LEAK", output.getvalue())
+        imported = list((self.private_root / importer.RESPONSE_DIRNAME).glob("*.json"))
+        self.assertEqual(len(imported), 1)
+        self.assertEqual(stat.S_IMODE(imported[0].stat().st_mode), 0o600)
+
     def test_symlink_source_is_rejected(self):
         link = self.root / "response-link.json"
         link.symlink_to(self.source)
