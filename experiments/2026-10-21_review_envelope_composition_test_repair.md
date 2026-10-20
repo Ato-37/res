@@ -12,6 +12,7 @@ Only `scripts/test_audit_qta_stage1_bundle_cli.py` changed. The Node VM harness 
 
 - Independent full focused suite before the final assertion-only hardening: `PYTHONPATH=scripts .venv/bin/python -m unittest test_qta_stage1_phase1_composition -v` — 56/56 passed.
 - After final assertion hardening, the specifically changed integration test passed 1/1 with the same module import path.
+- After publication, the full owning helper module passed: `PYTHONPATH=scripts .venv/bin/python -m unittest test_audit_qta_stage1_bundle_cli -v` — 12/12 passed.
 - `git diff --check -- scripts/test_audit_qta_stage1_bundle_cli.py` passed.
 
 ## Scope and limitations
