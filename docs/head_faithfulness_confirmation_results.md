@@ -22,7 +22,7 @@
 
 - 公開commit: independent confirmation `a80ec61`、smoke `ec08f4f`。
 - independent test: 要求79、完了79、失敗0、sample key 79種類。run manifestの設定・件数は結果JSONと一致し、sample manifest SHA-256は`2fa141ee9a9c00e86db380b2ee2dbb3161080224c6b0eaf86ddc401cd1341e10`。
-- 2026-10-21の再計算では、現在保存されているheld-out sample候補のいずれもこのSHA-256と一致しなかった。そのため、この再計算ではsample keyの一意性までは確認したが、動画IDの一意性は`unverified`である。下記の79件解析は結果JSON上の79レコードを単位とした値として読める。独立した79動画という記述は、当時のサンプル一覧が復元されるまで再検証済みとは扱わない。
+- 元sample list自体は現行候補から復元できないが、別保存の`results/head_confirmation_video_identity_20261012_01.json`は同じmanifest SHA-256を記録している。さらに`results/head_confirmation_identity_reconciliation_20261014_05.json`をreconciliation scriptで再生成したところ、既存artifactとbyte-identical（SHA-256 `a6ee6dae985678a51b2e6bcc52eceef12be80293ae90b54087e66829992f6067`）で、79/79 unique normalized video IDs、paths、hashed files、重複ID/path/content各0を確認した。よってコホート内のID・パス・完全一致ファイルの重複がないことは監査artifact経由で支持される。ただし`result_run_manifest_crosshash_binding=false`、`independence_established=false`であり、resultとrun manifestの完全な来歴結合、共有scene/campaign等を含む統計的独立性までは示さない。
 - 設定: Qwen2.5-VL-7B-Instruct、4-bit、全28層からtop-4、`alpha=0.5`、5 matched controls、16 frames、`cap_pixels_per_frame=true`、`max_pixels=200704`、seed `20261010`、RTX 5070 Ti。
 - 選択headの平均margin低下: `−0.0601 nat`。
 - controlの平均margin低下: `+0.0155 nat`。

@@ -110,43 +110,79 @@ class Stage1BundleCliTests(unittest.TestCase):
                 throw new Error('rendered_script_missing');
               const base = JSON.parse(source.slice(dataStart, dataEnd));
               const script = source.slice(scriptStart + '<script>'.length, scriptEnd);
-              const marker = "document.getElementById('export').onclick=async()=>{";
-              const begin = script.indexOf(marker);
-              const finish = script.indexOf("\n};\nfunction downloadReviewIndex()", begin);
-              if (begin < 0 || finish < 0) throw new Error('export_handler_missing');
-              const handler = script.slice(begin, finish + 3);
-              const indexStart = script.indexOf('function downloadReviewIndex(){', finish);
-              const clockStart = script.indexOf(
-                "document.getElementById('export-clock').onclick", indexStart);
-              if (indexStart < 0 || clockStart < 0) throw new Error('index_handler_missing');
-              const indexHandler = script.slice(indexStart, clockStart);
+              const readinessStart = script.indexOf('function reviewerKey(value)');
+              const renderStart = script.indexOf('base.records.forEach((r,i)=>{', readinessStart);
+              const supportMarker = 'function download(text,name,type=';
+              const begin = script.indexOf(supportMarker);
+              const finish = script.indexOf('\ncheckReady();', begin);
+              if (readinessStart < 0 || renderStart < 0 || begin < 0 || finish < 0)
+                throw new Error('export_handlers_missing');
+              const readiness = script.slice(readinessStart, renderStart);
+              const handlers = script.slice(begin, finish);
               const downloads = [];
               const controls = new Map();
               const firstPlayedAt = new Date(Date.now() - 120000).toISOString();
               const reviewedAt = new Date(Date.now() - 60000).toISOString();
               for (const id of ['export','reviewer','role','attest','export-disclosure',
-                'retry-review','retry-index','export-index','handoff-status'])
+                'global','reviewer-count','handoff-status','session-handoff',
+                'reviewer-controls','rows','retry-envelope','snapshot-notice',
+                'next-reviewer','download-envelope','snapshot-download'])
                 controls.set(id, {disabled:false, value:'synthetic-reviewer', checked:true, textContent:''});
+              controls.get('rows').hidden = false;
+              controls.get('reviewer-controls').hidden = false;
+              controls.get('session-handoff').hidden = true;
+              const makeState = () => Array.from({length:3}, () => ({tokenOK:true, duration:3.0,
+                firstPlayedAt, full:true, context:true,
+                seedHidden:true, outcomeHidden:true, decision:'supports_claim',
+                intervals:[{start:1.001,end:2.002,rationale:'synthetic rationale'}],
+                clockEvents:[], reviewedAt}));
+              let state = makeState();
+              const rowResetters = state.map((_, i) => () => { state[i] = {
+                tokenOK:false, duration:null, firstPlayedAt:null, full:false, context:false,
+                seedHidden:false, outcomeHidden:false, decision:'', intervals:[],
+                clockEvents:[], reviewedAt:null}; });
               controls.get('role').value = 'independent_human';
+              controls.get('attest').checked = true;
+              controls.get('export-disclosure').checked = true;
+              controls.get('reviewer').value = 'synthetic-reviewer-1';
+              state[1].outcomeHidden = false;
+              const completedSessions = [];
               const context = {
-                base,
-                state: Array.from({length:3}, () => ({tokenOK:true, duration:3.0,
-                  firstPlayedAt, full:true, context:true,
-                  seedHidden:true, outcomeHidden:true, decision:'supports_claim',
-                  intervals:[{start:1.001,end:2.002,rationale:'synthetic rationale'}],
-                  reviewedAt})),
+                base, state, rowResetters, completedSessions, pendingEnvelope:null,
+                MAX_ENVELOPE_MEMBER_BYTES:2097152, MAX_ENVELOPE_BYTES:67108864,
                 exportInProgress:false,
-                rows:{querySelectorAll:() => []},
                 document:{getElementById:id => controls.get(id)},
-                window:{}, crypto, TextEncoder, Date, navigator:{userAgent:'Synthetic'},
-                setTimeout:() => 0, alert:() => {}, checkReady:() => {},
-                download:(content,name) => downloads.push({content,name}),
+                rows:controls.get('rows'),
+                window:{}, crypto, TextEncoder, btoa, Date, navigator:{userAgent:'Synthetic'},
+                setTimeout:() => 0, alert:() => {},
               };
-              vm.runInNewContext(handler, context);
+              vm.runInNewContext(`
+                const MAX_ENVELOPE_MEMBER_BYTES=2097152,MAX_ENVELOPE_BYTES=67108864;
+                ${readiness}
+                ${handlers}
+              `, context);
+              context.download=(content,name)=>downloads.push({content,name});
+              context.checkReady();
+              if (!controls.get('export').disabled) throw new Error('incomplete_review_export_not_disabled');
               await controls.get('export').onclick();
-              vm.runInNewContext(indexHandler, context);
-              controls.get('export-index').onclick();
-              process.stdout.write(JSON.stringify({downloads, index:context.window.pendingReviewIndex,
+              if (completedSessions.length !== 0) throw new Error('disabled_export_was_not_inert');
+              state[1].outcomeHidden = true;
+              context.checkReady();
+              if (controls.get('export').disabled) throw new Error('complete_review_export_still_disabled');
+              await controls.get('export').onclick();
+              controls.get('next-reviewer').onclick();
+              state = makeState();
+              context.state = state;
+              controls.get('reviewer').value = 'synthetic-reviewer-2';
+              controls.get('role').value = 'independent_human';
+              controls.get('attest').checked = true;
+              controls.get('export-disclosure').checked = true;
+              context.checkReady();
+              if (controls.get('export').disabled) throw new Error('second_reviewer_export_disabled');
+              await controls.get('export').onclick();
+              controls.get('download-envelope').onclick();
+              process.stdout.write(JSON.stringify({downloads, sessionCount:completedSessions.length,
+                error:controls.get('global').textContent,
                 status:controls.get('handoff-status').textContent}));
             });
         ''')
@@ -157,14 +193,44 @@ class Stage1BundleCliTests(unittest.TestCase):
         if completed.returncode != 0:
             raise AssertionError("synthetic export harness failed: " + completed.stderr[:500])
         result = json.loads(completed.stdout)
-        if len(result["downloads"]) != 2:
-            raise AssertionError("browser export did not generate both downloads: " +
-                                 result.get("status", "unknown"))
-        review_download, index_download = result["downloads"]
-        self.assertTrue(review_download["name"].endswith(".json"))
-        self.assertEqual(index_download["name"], "nextgqa_human_review_index.json")
-        self.assertEqual(index_download["content"], result["index"])
-        return review_download["content"].encode("utf-8"), index_download["content"].encode("utf-8")
+        if len(result["downloads"]) != 1:
+            raise AssertionError("browser export did not generate one combined envelope: " +
+                                 result.get("status", "unknown") + "; " +
+                                 result.get("error", "") +
+                                 f"; sessions={result.get('sessionCount')}")
+        envelope_download = result["downloads"][0]
+        self.assertEqual(envelope_download["name"], "nextgqa_combined_review_handoff.json")
+        envelope = json.loads(envelope_download["content"])
+        self.assertEqual(envelope["purpose"], "combined_nextgqa_formal_review_handoff_envelope")
+        self.assertEqual(envelope["status"], "unvalidated_combined_review_handoff")
+        self.assertEqual(envelope["execution_authorization"], "not_granted")
+        self.assertEqual([session["sequence"] for session in envelope["sessions"]], [1, 2])
+        self.assertEqual(len(envelope["sessions"]), 2)
+        decoded_sessions = []
+        for session in envelope["sessions"]:
+            self.assertEqual(len(session["members"]), 2)
+            members = {member["role"]: member for member in session["members"]}
+            self.assertEqual(set(members), {"review_payload", "review_index"})
+            decoded = {}
+            for role, member in members.items():
+                raw = __import__("base64").b64decode(member["content_base64"], validate=True)
+                self.assertEqual(member["size_bytes"], len(raw))
+                self.assertEqual(member["sha256"], hashlib.sha256(raw).hexdigest())
+                decoded[role] = raw
+            index_doc = json.loads(decoded["review_index"])
+            self.assertEqual(index_doc["review_payload_sha256"],
+                             hashlib.sha256(decoded["review_payload"]).hexdigest())
+            review_doc = json.loads(decoded["review_payload"])
+            self.assertEqual(review_doc["status"], "human_review_recorded_unvalidated")
+            self.assertTrue(review_doc["review_completed"])
+            self.assertEqual(review_doc["execution_authorization"], "not_granted")
+            decoded_sessions.append(decoded)
+        review_docs = [json.loads(session["review_payload"]) for session in decoded_sessions]
+        reviewer_ids = [doc["human_reviewer_private_id"] for doc in review_docs]
+        self.assertEqual(reviewer_ids, ["synthetic-reviewer-1", "synthetic-reviewer-2"])
+        review_raw = decoded_sessions[0]["review_payload"]
+        review_index_raw = decoded_sessions[0]["review_index"]
+        return review_raw, review_index_raw
 
     def test_bundle_directory_matches_existing_audit_and_never_authorizes(self):
         report = self._verify()
