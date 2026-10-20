@@ -101,6 +101,9 @@ class BlindedFramePairReviewTests(unittest.TestCase):
         html = (viewer / "index.html").read_text()
         package_raw = (viewer / "package_manifest.json").read_bytes()
         identity_raw = (identity_dir / "identity_map.json").read_bytes()
+        self.assertIn("default-src 'none'", html)
+        self.assertIn("img-src data:", html)
+        self.assertIn("connect-src 'none'", html)
         self.assertEqual(result["execution_authorization"], "not_granted")
         self.assertEqual(stat.S_IMODE(viewer.stat().st_mode), 0o700)
         self.assertEqual(stat.S_IMODE(identity_dir.stat().st_mode), 0o700)
@@ -270,7 +273,7 @@ class BlindedFramePairReviewTests(unittest.TestCase):
         os.chmod(export_path, 0o600)
         html_path = viewer / "index.html"
         original = html_path.read_bytes()
-        html_path.write_bytes(original.replace(b"Blinded frame-pair review", b"Changed review page", 1))
+        html_path.write_bytes(original.replace("フレーム画像の対応を確認する".encode(), b"Changed review page", 1))
         os.chmod(html_path, 0o600)
         with self.assertRaisesRegex(ValueError, "reviewer_html_hash_mismatch"):
             audit_export(export_path, viewer / "package_manifest.json", html_path)
