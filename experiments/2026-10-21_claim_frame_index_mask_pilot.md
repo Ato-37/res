@@ -214,3 +214,18 @@ Jaccard is zero its inclusive upper-tail fraction is 1 because all scores are
 nonnegative; this must not be interpreted as strong alignment. QA timing is
 question-level and does not establish claim-specific evidence. Direct
 faithfulness remains 0/3; no human review was performed.
+
+## Training-split feasibility and current blocker
+
+Both test and validation splits lack three locally available videos disjoint
+from known prior runs (test had 1 eligible after 125 exclusions; validation
+had 0/33 after the broader 1,032-hash known-history exclusion). The frozen
+training-split check could not start because
+`NExT-GQA/datasets/nextgqa/gsub_train.json` is absent; the local tree contains
+`train.csv` but no training temporal-interval annotation file. No GPU inference
+or replacement cohort was attempted. Do not infer intervals from the QA CSV.
+Thus this interval-mask branch has no further justified local GPU run under its
+current annotation/data requirements. A new local, disjoint video cohort with
+the matching temporal annotations would unblock a separately frozen study.
+Review collection remains waived as a prerequisite; actual human review was
+not performed.
