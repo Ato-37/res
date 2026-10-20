@@ -212,6 +212,11 @@ def summarize_response(response_raw: bytes, item_ids: list[str],
     clarity_counts: Counter[str] = Counter()
     answer_fit_counts: Counter[str] = Counter()
     item_judgments = []
+    item_summary = [
+        {"item": index, "question_clarity": Counter(),
+         "answer_question_fit": Counter(), "video_evidence_sufficiency": Counter()}
+        for index in range(1, 4)
+    ]
     for respondent_index, answers in enumerate(answer_groups, start=1):
         for ordinal, (answer, item_id) in enumerate(zip(answers, item_ids), start=1):
             if (not isinstance(answer, dict) or set(answer) != expected_answer_keys
@@ -251,6 +256,9 @@ def summarize_response(response_raw: bytes, item_ids: list[str],
                 clarity_counts[answer["question_clarity"]] += 1
                 answer_fit_counts[answer["answer_question_fit"]] += 1
                 sufficiency_counts[answer["video_evidence_sufficiency"]] += 1
+                item_summary[ordinal - 1]["question_clarity"][answer["question_clarity"]] += 1
+                item_summary[ordinal - 1]["answer_question_fit"][answer["answer_question_fit"]] += 1
+                item_summary[ordinal - 1]["video_evidence_sufficiency"][answer["video_evidence_sufficiency"]] += 1
                 item_judgments.append({"respondent": respondent_index, "item": ordinal,
                                        "question_clarity": answer["question_clarity"],
                                        "answer_question_fit": answer["answer_question_fit"],
@@ -275,6 +283,16 @@ def summarize_response(response_raw: bytes, item_ids: list[str],
                                                 for key in ("sufficient", "insufficient", "cannot_tell")}
                                                if response_version == 4 else None),
         "item_judgments": item_judgments,
+        "item_summary": ([
+            {"item": row["item"],
+             "question_clarity_counts": {key: row["question_clarity"][key]
+                                         for key in ("clear", "unclear", "cannot_tell")},
+             "answer_question_fit_counts": {key: row["answer_question_fit"][key]
+                                            for key in ("fits", "does_not_fit", "cannot_tell")},
+             "video_evidence_sufficiency_counts": {key: row["video_evidence_sufficiency"][key]
+                                                   for key in ("sufficient", "insufficient", "cannot_tell")}}
+            for row in item_summary
+        ] if response_version == 4 else None),
         "nickname_included_in_output": False,
         "free_text_included_in_output": False,
         "faithfulness_inference": "not_performed",
@@ -302,6 +320,8 @@ def main(argv: list[str] | None = None) -> int:
                         help="照合対象の探索的レビューHTML（旧版HTML / JSONも指定可能）")
     parser.add_argument("--show-items", action="store_true",
                         help="既定の集計に加え、参加者/項目別の回答も表示する")
+    parser.add_argument("--show-item-summary", action="store_true",
+                        help="回答者を分けず、各項目の3観点の件数を表示する")
     parser.add_argument("--allow-unbound-legacy", action="store_true",
                         help="旧schema v2〜v5をartifact版未検証の履歴として検査する")
     args = parser.parse_args(argv)
@@ -357,6 +377,17 @@ def main(argv: list[str] | None = None) -> int:
               f"判断できない={fit['cannot_tell']}件")
         print(f"動画根拠の十分さ: 十分={evidence['sufficient']}件、足りない={evidence['insufficient']}件、"
               f"判断できない={evidence['cannot_tell']}件")
+    if args.show_item_summary and report["item_summary"] is not None:
+        clarity_labels = {"clear": "明瞭", "unclear": "不明瞭", "cannot_tell": "判断不能"}
+        fit_labels = {"fits": "適合", "does_not_fit": "不適合", "cannot_tell": "判断不能"}
+        evidence_labels = {"sufficient": "十分", "insufficient": "不足", "cannot_tell": "判断不能"}
+        for row in report["item_summary"]:
+            c, f, e = (row["question_clarity_counts"], row["answer_question_fit_counts"],
+                       row["video_evidence_sufficiency_counts"])
+            print(f"第{row['item']}問（n={sum(c.values())}）: "
+                  f"明瞭性 {', '.join(f'{clarity_labels[k]}={v}' for k,v in c.items())}; "
+                  f"回答適合 {', '.join(f'{fit_labels[k]}={v}' for k,v in f.items())}; "
+                  f"根拠十分性 {', '.join(f'{evidence_labels[k]}={v}' for k,v in e.items())}")
     print("ニックネーム・自由記述は表示していません。faithfulnessの推定・採点許可はありません。")
     return 0
 

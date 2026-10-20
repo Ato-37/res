@@ -57,6 +57,8 @@ class QuickReviewResponseTests(unittest.TestCase):
                          {"sufficient": 1, "insufficient": 2, "cannot_tell": 0})
         self.assertEqual(report["item_judgments"][1]["answer_question_fit"], "does_not_fit")
         self.assertEqual(report["item_judgments"][2]["video_evidence_sufficiency"], "insufficient")
+        self.assertEqual(report["item_summary"][1]["answer_question_fit_counts"],
+                         {"fits": 0, "does_not_fit": 1, "cannot_tell": 0})
         self.assertNotIn("private", repr(report))
         self.assertEqual(report["faithfulness_inference"], "not_performed")
         self.assertEqual(report["scoring_authorization"], "not_granted")
@@ -218,6 +220,29 @@ class QuickReviewResponseTests(unittest.TestCase):
             self.assertIn("1人目・第1件目: だいたい合っている", rendered)
             self.assertNotIn("PRIVATE NICKNAME", rendered)
             self.assertNotIn("private free text", rendered)
+
+    def test_item_summary_aggregates_without_exposing_respondent_rows(self):
+        response = valid_response()
+        response["schema_version"] = 5
+        response.pop("nickname")
+        response.pop("answers")
+        response["respondents"] = []
+        for judgments in (("unclear", "does_not_fit", "insufficient"),
+                          ("clear", "fits", "sufficient"),
+                          ("unclear", "does_not_fit", "insufficient")):
+            response["respondents"].append({"nickname": "private", "answers": [
+                {"item_id": item_id, "item_number": index,
+                 "question_clarity": judgments[0],
+                 "answer_question_fit": judgments[1],
+                 "video_evidence_sufficiency": judgments[2]}
+                for index, item_id in enumerate(ITEM_IDS, start=1)
+            ]})
+        report = summarize_response(json.dumps(response).encode(), ITEM_IDS)
+        self.assertEqual(report["item_summary"][0]["question_clarity_counts"],
+                         {"clear": 1, "unclear": 2, "cannot_tell": 0})
+        self.assertEqual(report["item_summary"][2]["video_evidence_sufficiency_counts"],
+                         {"sufficient": 1, "insufficient": 2, "cannot_tell": 0})
+        self.assertNotIn("private", repr(report))
 
     def test_rejects_incomplete_duplicate_or_reordered_items(self):
         for mutate in (
