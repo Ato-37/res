@@ -7,6 +7,7 @@ import hashlib
 import json
 import math
 from pathlib import Path
+from statistics import median
 
 LAYER_KEYS = {str(i): i for i in range(5, 17)}
 BRANCHES = {"original_baseline", "permuted_baseline",
@@ -16,6 +17,11 @@ BRANCHES = {"original_baseline", "permuted_baseline",
 def _read(path: Path) -> tuple[dict, str]:
     raw = path.read_bytes()
     return json.loads(raw.decode("utf-8")), hashlib.sha256(raw).hexdigest()
+
+
+def _source_hash(relative_path: str) -> str:
+    source = Path(__file__).resolve().parents[1] / relative_path
+    return hashlib.sha256(source.read_bytes()).hexdigest()
 
 
 def _finite(value) -> bool:
@@ -36,6 +42,21 @@ def _expected_interaction(branches: dict) -> float:
                - float(values["permuted_baseline"])))
 
 
+def _expected_packet_status(valid_rows: int, requested_rows: int) -> str:
+    if not 0 <= valid_rows <= requested_rows:
+        raise ValueError("claim_packet_valid_count_out_of_range")
+    return "passed" if valid_rows == requested_rows else "partial"
+
+
+def _finite_cohort_descriptives(values: list[float], *, complete: bool) -> dict:
+    if not complete:
+        return {"mean": None, "median": None, "range": None}
+    if len(values) != 3 or not all(_finite(value) for value in values):
+        raise ValueError("complete_cohort_descriptives_require_three_finite_rows")
+    return {"mean": sum(values) / 3, "median": float(median(values)),
+            "range": [min(values), max(values)]}
+
+
 def analyze(*, lock_path: Path, smoke_packet_path: Path,
             remaining_packet_path: Path, smoke_pair_filter_path: Path,
             remaining_pair_filter_path: Path,
@@ -48,8 +69,10 @@ def analyze(*, lock_path: Path, smoke_packet_path: Path,
         packets.append((name, payload, path))
         packet_hashes[path.name] = digest
     assignments = lock.get("assignments")
+    expected_split = lock.get("dataset_split")
     if (lock.get("status") != "frozen_before_claim_generation_and_scoring"
             or lock.get("effective_videos") != 3
+            or expected_split not in ("val", "test")
             or not isinstance(assignments, list) or len(assignments) != 3):
         raise ValueError("cohort_lock_invalid")
     by_media = {row.get("media_sha256"): (i, row.get("qid_sha256"))
@@ -59,11 +82,14 @@ def analyze(*, lock_path: Path, smoke_packet_path: Path,
     valid_rows: dict[int, tuple[str, dict, Path]] = {}
     invalid_rows = []
     seen_rows = set()
+    generation_runner = "scripts/generate_nextgqa_claim_review_pilot.py"
+    pilot_runner = "scripts/run_nextgqa_gold_interval_margin_pilot.py"
+    generation_runner_actual = _source_hash(generation_runner)
+    pilot_runner_actual = _source_hash(pilot_runner)
     for label, packet, path, filter_path in (
             ("smoke", packets[0][1], packets[0][2], smoke_pair_filter_path),
             ("remaining", packets[1][1], packets[1][2], remaining_pair_filter_path)):
         expected_count = 1 if label == "smoke" else 2
-        expected_status = "passed" if label == "smoke" else "partial"
         pair_filter, filter_hash = _read(filter_path)
         pair_values = pair_filter.get("pair_sha256")
         if (pair_filter.get("schema_version") != 1
@@ -72,13 +98,17 @@ def analyze(*, lock_path: Path, smoke_packet_path: Path,
                 or len(set(pair_values)) != expected_count
                 or packet.get("candidate_pair_filter_sha256") != filter_hash):
             raise ValueError("candidate_pair_filter_binding_invalid")
+        if (packet.get("runner_sha256") != generation_runner_actual
+                or packet.get("pilot_runner_sha256") != pilot_runner_actual):
+            raise ValueError("claim_generation_source_hash_mismatch")
         pair_filter_digest = hashlib.sha256(json.dumps(sorted(pair_values),
             ensure_ascii=False, separators=(",", ":")).encode("utf-8")).hexdigest()
         # The generator's helper hashes a canonical JSON list identically.
         if packet.get("candidate_pair_filter_digest") != pair_filter_digest:
             raise ValueError("candidate_pair_filter_digest_mismatch")
         records = packet.get("records")
-        if (packet.get("dataset_split") != "test" or packet.get("status") != expected_status
+        if (packet.get("dataset_split") != expected_split
+                or packet.get("status") not in ("passed", "partial")
                 or packet.get("requested_videos") != expected_count
                 or packet.get("effective_videos") != expected_count
                 or not isinstance(records, list) or len(records) != expected_count):
@@ -112,6 +142,8 @@ def analyze(*, lock_path: Path, smoke_packet_path: Path,
                                      "failure_code": parsed.get("claim_text_quality_failure")})
         if packet.get("fully_structured_claim_records") != packet_valid:
             raise ValueError("generation_packet_valid_count_mismatch")
+        if packet.get("status") != _expected_packet_status(packet_valid, expected_count):
+            raise ValueError("generation_packet_status_count_mismatch")
     if seen_rows != {0, 1, 2}:
         raise ValueError("claim_packets_do_not_cover_frozen_lock")
     receipts_by_row = {}
@@ -181,6 +213,9 @@ def analyze(*, lock_path: Path, smoke_packet_path: Path,
     scored = len(receipts_by_row)
     verified_rows = [row for row in row_outputs if row["runner_source_verified"]]
     unverified_rows = [row for row in row_outputs if not row["runner_source_verified"]]
+    complete = scored == 3 and not invalid_rows and not provenance_failed_rows
+    descriptives = _finite_cohort_descriptives(
+        [row["interaction_nats_per_token"] for row in verified_rows], complete=complete)
     return {
         "status": "incomplete_cohort_no_effect_estimate" if scored != 3 or invalid_rows or provenance_failed_rows else "complete_exploratory_finite_cohort",
         "requested_locked_rows": 3,
@@ -193,12 +228,16 @@ def analyze(*, lock_path: Path, smoke_packet_path: Path,
         "provenance_unverified_rows": provenance_failed_rows,
         "verified_scored_rows_individual_descriptives_only": sorted(verified_rows, key=lambda row: row["locked_row"]),
         "provenance_unverified_receipt_diagnostics": sorted(unverified_rows, key=lambda row: row["locked_row"]),
-        "cohort_mean": None if scored != 3 or invalid_rows else sum(row["interaction_nats_per_token"] for row in row_outputs) / 3,
+        "cohort_mean": descriptives["mean"],
+        "cohort_median": descriptives["median"],
+        "cohort_range": descriptives["range"],
         "confidence_interval": None,
         "hypothesis_test": None,
         "direct_faithfulness": False,
         "human_review_performed": False,
         "private_generation_packet_sha256": packet_hashes,
+        "generation_runner_sha256_verified": generation_runner_actual,
+        "pilot_runner_sha256_verified": pilot_runner_actual,
     }
 
 

@@ -68,31 +68,42 @@ def _selection_exclusions(source_exclusions, scored_digests: set[str]) -> set[st
     return set(source_exclusions) | set(scored_digests)
 
 
-def freeze(*, repo: Path, pool_rel: Path, video_root: Path,
-           lock_rel: Path, pair_filter_rel: Path, n: int = 3) -> dict:
+def freeze(*, repo: Path, pool_rel: Path | None, video_root: Path,
+           lock_rel: Path, pair_filter_rel: Path, n: int = 3,
+           dataset_split: str = "test") -> dict:
     if n != 3:
         raise ValueError("frozen_cohort_requires_three_rows")
+    if dataset_split not in ("val", "test"):
+        raise ValueError("candidate_pool_split_invalid")
     private_root = (repo / "data" / "private_nextgqa").resolve(strict=True)
-    pool = (repo / pool_rel).resolve(strict=True)
-    if not pool.is_relative_to(private_root):
-        raise ValueError("candidate_pool_outside_private_root")
-    summary_path = pool / "summary.json"
-    pairs_path = pool / "eligible_pairs.json"
-    exclusion_path = pool / "prior_media_sha256_exclusions.json"
-    for path in (summary_path, pairs_path, exclusion_path):
-        info = path.lstat()
-        if (not stat.S_ISREG(info.st_mode) or stat.S_ISLNK(info.st_mode)
-                or info.st_uid != os.getuid() or stat.S_IMODE(info.st_mode) != 0o600):
-            raise ValueError("candidate_pool_private_file_permissions_invalid")
-    summary = json.loads(summary_path.read_text(encoding="utf-8"))
-    pair_payload = json.loads(pairs_path.read_text(encoding="utf-8"))
-    exclusion_payload = json.loads(exclusion_path.read_text(encoding="utf-8"))
-    if (summary.get("purpose") != "outcome_blind_local_candidate_pool"
-            or summary.get("dataset_split") != "test"
-            or summary.get("extracted_unique_media_count") != 20):
-        raise ValueError("candidate_pool_contract_invalid")
-    pair_hashes = pilot.validate_candidate_pair_filter(pair_payload)
-    exclusions = pilot.validate_private_media_exclusion(exclusion_payload)
+    pool_summary_hash = pair_filter_hash = prior_media_exclusion_hash = None
+    exclusions: set[str] = set()
+    pair_hashes = None
+    if pool_rel is not None:
+        pool = (repo / pool_rel).resolve(strict=True)
+        if not pool.is_relative_to(private_root):
+            raise ValueError("candidate_pool_outside_private_root")
+        summary_path = pool / "summary.json"
+        pairs_path = pool / "eligible_pairs.json"
+        exclusion_path = pool / "prior_media_sha256_exclusions.json"
+        for path in (summary_path, pairs_path, exclusion_path):
+            info = path.lstat()
+            if (not stat.S_ISREG(info.st_mode) or stat.S_ISLNK(info.st_mode)
+                    or info.st_uid != os.getuid() or stat.S_IMODE(info.st_mode) != 0o600):
+                raise ValueError("candidate_pool_private_file_permissions_invalid")
+        summary = json.loads(summary_path.read_text(encoding="utf-8"))
+        pair_payload = json.loads(pairs_path.read_text(encoding="utf-8"))
+        exclusion_payload = json.loads(exclusion_path.read_text(encoding="utf-8"))
+        if (summary.get("purpose") != "outcome_blind_local_candidate_pool"
+                or summary.get("dataset_split") != dataset_split
+                or not isinstance(summary.get("extracted_unique_media_count"), int)
+                or summary.get("extracted_unique_media_count") < n):
+            raise ValueError("candidate_pool_contract_invalid")
+        pair_hashes = pilot.validate_candidate_pair_filter(pair_payload)
+        exclusions = set(pilot.validate_private_media_exclusion(exclusion_payload))
+        pool_summary_hash = pilot.sha256_file(summary_path)
+        pair_filter_hash = pilot.sha256_file(pairs_path)
+        prior_media_exclusion_hash = pilot.sha256_file(exclusion_path)
     # Extend the source-provided exclusion set with every locally scored claim
     # artifact before selection. This makes successive exploratory cohorts
     # actually disjoint instead of selecting the original first rows and only
@@ -102,7 +113,7 @@ def freeze(*, repo: Path, pool_rel: Path, video_root: Path,
     pilot.MAX_VIDEOS = n
     selected, counts, meta, cohort_hash = pilot.freeze_cohort(
         repo, video_root, selection_exclusions, 16,
-        allowed_pair_sha256=pair_hashes, dataset_split="test")
+        allowed_pair_sha256=pair_hashes, dataset_split=dataset_split)
     if len(selected) != n or len({x["decode"]["source_sha256"] for x in selected}) != n:
         raise ValueError("frozen_cohort_not_three_unique_eligible_videos")
     media = {x["decode"]["source_sha256"] for x in selected}
@@ -116,14 +127,19 @@ def freeze(*, repo: Path, pool_rel: Path, video_root: Path,
         "schema_version": 1,
         "status": "frozen_before_claim_generation_and_scoring",
         "purpose": "exploratory_saved_claim_temporal_order_bias_interaction",
-        "dataset_split": "test",
+        "dataset_split": dataset_split,
         "requested_videos": n,
         "effective_videos": len(selected),
         "selection_rule": "first three eligible unique media in frozen candidate loader order after unioning source exclusions with all locally scored claim media; no new-cohort outcomes used",
-        "candidate_pool_summary_sha256": pilot.sha256_file(summary_path),
-        "candidate_pair_filter_sha256": pilot.sha256_file(pairs_path),
-        "prior_media_exclusion_sha256": pilot.sha256_file(exclusion_path),
-        "candidate_pairs_available": len(pair_hashes),
+        "candidate_pool_summary_sha256": pool_summary_hash,
+        "candidate_pair_filter_sha256": pair_filter_hash,
+        "prior_media_exclusion_sha256": prior_media_exclusion_hash,
+        "candidate_pairs_available": len(pair_hashes) if pair_hashes is not None else None,
+        "full_split_candidate_video_count": meta.get("candidate_video_count"),
+        "dataset_input_sha256": {name: pilot.sha256_file(repo / "NExT-GQA" / "datasets" / "nextgqa" / name)
+            for name in (f"{dataset_split}.csv", f"gsub_{dataset_split}.json", "map_vid_vidorID.json")},
+        "local_sample_exclusion_manifest_count": meta.get("private_exclusion_manifest_count"),
+        "local_sample_exclusion_manifest_digest": meta.get("private_exclusion_manifest_digest"),
         "prior_media_exclusion_count": len(exclusions),
         "prior_scored_claim_digest_count": len(scored),
         "prior_scored_claim_digest_set_sha256": hashlib.sha256(json.dumps(
@@ -162,16 +178,18 @@ def freeze(*, repo: Path, pool_rel: Path, video_root: Path,
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--pool", type=Path, required=True,
-        help="pool directory relative to data/private_nextgqa/")
+    parser.add_argument("--pool", type=Path, default=None,
+        help="optional pool directory relative to data/private_nextgqa; omit to scan the full local split")
     parser.add_argument("--video-root", type=Path, required=True)
     parser.add_argument("--lock-output", required=True)
     parser.add_argument("--pair-filter-output", required=True)
+    parser.add_argument("--dataset-split", choices=("val", "test"), default="test")
     args = parser.parse_args()
     repo = Path(__file__).resolve().parents[1]
-    pool_rel = Path("data/private_nextgqa") / args.pool
+    pool_rel = Path("data/private_nextgqa") / args.pool if args.pool is not None else None
     result = freeze(repo=repo, pool_rel=pool_rel, video_root=args.video_root,
-        lock_rel=Path(args.lock_output), pair_filter_rel=Path(args.pair_filter_output))
+        lock_rel=Path(args.lock_output), pair_filter_rel=Path(args.pair_filter_output),
+        dataset_split=args.dataset_split)
     print(json.dumps(result, sort_keys=True))
     return 0
 
