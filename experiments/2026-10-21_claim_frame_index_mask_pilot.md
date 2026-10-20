@@ -118,9 +118,9 @@ elapsed time was 68.399 s, with 12.49 GiB initial free VRAM and 12.48 GiB peak
 allocated VRAM. Both models used pinned local revisions, BF16 compute and 4-bit
 loading.
 
-| Contrast | Per-video values (nat) | Mean | Sample SD | Positive / negative / near-zero |
+| Contrast | Per-video values (nat) | Mean | Sample SD | Positive / negative / near-zero (abs(Δ) < 1e-6) |
 | --- | --- | ---: | ---: | ---: |
-| Matched-control black minus candidate-interval black | −0.1250, +2.8750, +0.0000 | +0.9167 | 1.6971 | 2 / 1 / 0 |
+| Matched-control black minus candidate-interval black | −0.1250, +2.8750, +0.0000 | +0.9167 | 1.6971 | 1 / 1 / 1 |
 | Matched-control blur minus candidate-interval blur | +0.5000, +2.7500, +0.2500 | +1.1667 | 1.3769 | 3 / 0 / 0 |
 
 The black result is heterogeneous, including one negative and one numerically
