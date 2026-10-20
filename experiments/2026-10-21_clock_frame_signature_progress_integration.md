@@ -17,3 +17,7 @@ This is handoff/readiness engineering, not completed human review. The signed-de
 ## Next action
 
 Obtain the authentic assigned reviewer/release keys and independently pinned root fingerprint, then complete Stage-1 review and capture/frame artifacts. Rerun this integrated diagnostic from the exact raw files. If the trust and semantic gates pass, finish the production atomic baseline-only runner before any model loading. Continue to report structural review counts separately from direct model-faithfulness scores.
+
+## Runtime checkpoint (2026-10-21 02:50 JST)
+
+A fresh individually elevated, read-only runtime check saw an NVIDIA GeForce RTX 5070 Ti with 16,303 MiB VRAM total, 14,554 MiB free, 2% GPU utilization, and 12% memory utilization. The existing environment reported PyTorch 2.11.0+cu128, CUDA 12.8, and `torch.cuda.is_available()=true`; WSL reported 13 GiB host memory available and 888 GiB workspace filesystem free. GPU access and memory are therefore not the current blocker. No model was loaded and no GPU forward was run in this checkpoint: the direct baseline remains gated on authenticated human/release and Stage-1 inputs plus the production transaction runner, and repeating a completed synthetic smoke would not add evidence.
