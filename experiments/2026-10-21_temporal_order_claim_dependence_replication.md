@@ -99,3 +99,17 @@ reproducible implementation are available; otherwise improve direct-faithfulness
 measurement design and identify the concrete data/annotation inputs needed for
 that endpoint. Human review is waived only as a prerequisite for exploratory
 local work; it remains factually incomplete (0/3 reviewed).
+
+## Follow-up availability check
+
+After closing the fixed three-row cohort, I attempted to freeze a separate
+three-row follow-up from the same local candidate pool, excluding all media in
+local scored-claim artifacts before selection. The pool did not yield three
+eligible unique videos after those exclusions, so the freezer stopped before
+writing a new cohort and no second GPU run was started. This confirms that this
+pool cannot support another complete three-row cohort under the frozen selector.
+The freezer now unions source exclusions with locally scored media before
+selection, avoiding a misleading overlap failure after selecting only the first
+few candidates. Its focused regression test covers this union. A different
+source pool or a larger preregistered candidate pool is required for another
+cohort; no rows from the failed cohort are replaced.

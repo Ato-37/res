@@ -7,10 +7,16 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 import unittest
 
-from freeze_temporal_order_claim_cohort import _scored_video_digests
+from freeze_temporal_order_claim_cohort import _scored_video_digests, _selection_exclusions
 
 
 class ScoredVideoDigestAuditTests(unittest.TestCase):
+    def test_selection_exclusions_union_source_and_prior_scored_media(self):
+        source = {"a" * 64, "b" * 64}
+        scored = {"b" * 64, "c" * 64}
+        self.assertEqual(_selection_exclusions(source, scored),
+                         {"a" * 64, "b" * 64, "c" * 64})
+
     def test_reads_only_scoring_output_families_and_video_digest_fields(self):
         digest = hashlib.sha256(b"video").hexdigest()
         with TemporaryDirectory() as temp:

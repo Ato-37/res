@@ -64,6 +64,10 @@ def _scored_video_digests(private_root: Path) -> set[str]:
     return output
 
 
+def _selection_exclusions(source_exclusions, scored_digests: set[str]) -> set[str]:
+    return set(source_exclusions) | set(scored_digests)
+
+
 def freeze(*, repo: Path, pool_rel: Path, video_root: Path,
            lock_rel: Path, pair_filter_rel: Path, n: int = 3) -> dict:
     if n != 3:
@@ -89,13 +93,18 @@ def freeze(*, repo: Path, pool_rel: Path, video_root: Path,
         raise ValueError("candidate_pool_contract_invalid")
     pair_hashes = pilot.validate_candidate_pair_filter(pair_payload)
     exclusions = pilot.validate_private_media_exclusion(exclusion_payload)
+    # Extend the source-provided exclusion set with every locally scored claim
+    # artifact before selection. This makes successive exploratory cohorts
+    # actually disjoint instead of selecting the original first rows and only
+    # discovering overlap afterward.
+    scored = _scored_video_digests(private_root)
+    selection_exclusions = _selection_exclusions(exclusions, scored)
     pilot.MAX_VIDEOS = n
     selected, counts, meta, cohort_hash = pilot.freeze_cohort(
-        repo, video_root, exclusions, 16,
+        repo, video_root, selection_exclusions, 16,
         allowed_pair_sha256=pair_hashes, dataset_split="test")
     if len(selected) != n or len({x["decode"]["source_sha256"] for x in selected}) != n:
         raise ValueError("frozen_cohort_not_three_unique_eligible_videos")
-    scored = _scored_video_digests(private_root)
     media = {x["decode"]["source_sha256"] for x in selected}
     overlap = media & scored
     if overlap:
@@ -110,13 +119,15 @@ def freeze(*, repo: Path, pool_rel: Path, video_root: Path,
         "dataset_split": "test",
         "requested_videos": n,
         "effective_videos": len(selected),
-        "selection_rule": "first three eligible unique media in frozen candidate loader order; no model outcomes used",
+        "selection_rule": "first three eligible unique media in frozen candidate loader order after unioning source exclusions with all locally scored claim media; no new-cohort outcomes used",
         "candidate_pool_summary_sha256": pilot.sha256_file(summary_path),
         "candidate_pair_filter_sha256": pilot.sha256_file(pairs_path),
         "prior_media_exclusion_sha256": pilot.sha256_file(exclusion_path),
         "candidate_pairs_available": len(pair_hashes),
         "prior_media_exclusion_count": len(exclusions),
         "prior_scored_claim_digest_count": len(scored),
+        "prior_scored_claim_digest_set_sha256": hashlib.sha256(json.dumps(
+            sorted(scored), separators=(",", ":")).encode("utf-8")).hexdigest(),
         "local_scored_claim_overlap_count": 0,
         "candidate_videos_scanned": counts["candidate_scan_count"],
         "cohort_sha256": cohort_hash,
