@@ -30,12 +30,18 @@ from claim_text_quality import claim_text_quality_failure
 SEED = 20261015
 MIN_FREE_VRAM = 12 * 1024**3
 MIN_HOST_AVAILABLE = 8 * 1024**3
-PROMPT_SUFFIX = (
+PROMPT_SUFFIX_V1 = (
     "\nWrite exactly one short, standalone sentence about a concrete visible event "
     "that answers the question. Use only visible video content; do not infer from "
     "audio or text overlays. Return only that plain-English sentence, on one line. "
     "Do not include a label, answer letter, frame index, markdown, HTML, or template text."
 )
+PROMPT_SUFFIX_V2_SHORT = PROMPT_SUFFIX_V1 + (
+    " Keep the sentence to 25 words or fewer. Use one simple sentence with one "
+    "main action. Do not add explanations, alternatives, or extra sentences."
+)
+PROMPT_SUFFIX = PROMPT_SUFFIX_V1  # Legacy scoring callers default to the old prompt.
+PROMPT_SUFFIX_BY_VERSION = {"v1": PROMPT_SUFFIX_V1, "v2_short": PROMPT_SUFFIX_V2_SHORT}
 
 
 def parse_claim_output(text: str, frame_count: int) -> dict:
@@ -97,6 +103,8 @@ def main() -> None:
                         help="private local media-hash exclusion JSON")
     parser.add_argument("--n", type=int, choices=(1, 2, 3), default=3)
     parser.add_argument("--frames", type=int, choices=(16, 32), default=16)
+    parser.add_argument("--prompt-version", choices=tuple(PROMPT_SUFFIX_BY_VERSION), default="v1",
+                        help="explicit claim-generation prompt version; default preserves v1")
     parser.add_argument("--dataset-split", choices=("val", "test"), default="test",
                         help="split used for exploratory claim-generation review; default: test")
     parser.add_argument("--video-root", type=Path, default=None,
@@ -177,13 +185,14 @@ def main() -> None:
             load_in_4bit=True, bnb_4bit_compute_dtype=torch.bfloat16)).eval()
     if int(model.config.video_token_id) != int(processor.video_token_id):
         parser.error("processor_checkpoint_video_token_mismatch")
+    prompt_suffix = PROMPT_SUFFIX_BY_VERSION[args.prompt_version]
     torch.cuda.reset_peak_memory_stats()
 
     records = []
     for index, sample in enumerate(selected):
         choices = [f"{chr(65+i)}. {choice}" for i, choice in enumerate(sample["choices"])]
         prompt = (sample["question"] + "\nOptions:\n" + "\n".join(choices)
-                  + PROMPT_SUFFIX)
+                  + prompt_suffix)
         messages = [{"role": "user", "content": [
             {"type": "video", "video": sample["frames"],
              "sample_fps": (sample["decode"]["effective_sample_fps"][0]
@@ -229,6 +238,7 @@ def main() -> None:
             parser.error("empty_generated_review_candidate")
         records.append({
             "review_index": index,
+            "generation_prompt_version": args.prompt_version,
             "local_video_path": sample["video_path"],
             "video_sha256": sample["decode"]["source_sha256"],
             "candidate_pair_sha256": candidate_pair_digest_for_sample(sample),
@@ -260,6 +270,7 @@ def main() -> None:
         "source_commit": subprocess.check_output(
             ["git", "rev-parse", "HEAD"], cwd=repo, text=True).strip(),
         "runner_sha256": sha256_file(Path(__file__)),
+        "generation_prompt_version": args.prompt_version,
         "pilot_runner_sha256": sha256_file(repo / "scripts/run_nextgqa_gold_interval_margin_pilot.py"),
         "dataset_split": args.dataset_split,
         "dataset_inputs_sha256": {name: sha256_file(dataset / name) for name in

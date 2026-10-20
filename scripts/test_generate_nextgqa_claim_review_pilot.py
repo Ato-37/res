@@ -6,12 +6,19 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 
 from generate_nextgqa_claim_review_pilot import (
-    candidate_pair_digest_for_sample, parse_claim_output, read_candidate_pair_filter,
+    PROMPT_SUFFIX_BY_VERSION, candidate_pair_digest_for_sample, parse_claim_output,
+    read_candidate_pair_filter,
 )
 from run_nextgqa_gold_interval_margin_pilot import candidate_pair_sha256, load_candidate_rows
 
 
 class ClaimOutputParserTests(unittest.TestCase):
+    def test_short_prompt_version_is_explicit_and_legacy_v1_stays_unchanged(self):
+        self.assertEqual(set(PROMPT_SUFFIX_BY_VERSION), {"v1", "v2_short"})
+        self.assertIn("25 words or fewer", PROMPT_SUFFIX_BY_VERSION["v2_short"])
+        self.assertTrue(PROMPT_SUFFIX_BY_VERSION["v2_short"].startswith(
+            PROMPT_SUFFIX_BY_VERSION["v1"]))
+
     def test_parses_one_plain_claim_line_without_model_frame_selection(self):
         parsed = parse_claim_output("CLAIM=A person opens the cabinet.", 16)
         self.assertTrue(parsed["valid"])
