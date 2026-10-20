@@ -9,19 +9,19 @@ The Japanese launcher opened the current GPU-generated-claim quick-review artifa
 - Changed `DEFAULT_ARTIFACT` in `scripts/inspect_nextgqa_quick_review_response.py` to the current generated-claim review target; retained the old v14 path as an explicit legacy constant.
 - Added a regression test that invokes the inspector without `--artifact` on a fingerprint-bound v6 fixture and verifies redacted output.
 - Updated the Japanese runbook to open the current generated-claim artifact and explain explicit artifact selection for old responses.
-- Hardened artifact intake to open the HTML once with `O_NOFOLLOW`, derive item IDs and the embedded fingerprint from the same bounded byte snapshot, and use that same snapshot before private import.
+- Hardened artifact intake to open the HTML once with `O_NOFOLLOW | O_NONBLOCK`, derive item IDs and the embedded fingerprint from the same bounded byte snapshot, and use that same snapshot before private import. A post-read `fstat` comparison rejects in-place mutation during reading.
 
 ## Verification
 
 - `PYTHONPATH=scripts .venv/bin/python -m unittest test_inspect_nextgqa_quick_review_response -v`: 20/20 passed.
 - `PYTHONPATH=scripts .venv/bin/python -m unittest test_import_private_quick_review_response -v`: 14/14 passed.
-- After the snapshot hardening, both focused suites passed **36/36**, including symlink rejection and a one-read snapshot regression test.
+- After the initial snapshot hardening, both focused suites passed **36/36**, including symlink rejection and a one-read snapshot regression test. Following independent audit, FIFO nonblocking and concurrent-mutation guards were added; the same suites now pass **38/38**.
 - `git diff --check`: passed.
 - Tests use synthetic response fixtures. No real reviewer response was imported or analyzed in this change; no model or GPU inference ran.
 
 ## Interpretation and limitations
 
-The importer now defaults to the current claim artifact and continues to reject a mismatched schema-v6 fingerprint. The artifact IDs and fingerprint are validated against one no-follow snapshot, closing the concurrent-read/symlink edge. An unbound legacy response still requires explicit legacy opt-in and the correct old artifact; it does not become a verified review. This improves workflow alignment but contributes no direct faithfulness evidence and does not satisfy reviewer identity, release-root, claim-review, or frame-timing gates.
+The importer now defaults to the current claim artifact and continues to reject a mismatched schema-v6 fingerprint. Artifact IDs and fingerprint come from one no-follow snapshot; FIFO paths fail without waiting, and metadata changes during read are rejected. An unbound legacy response still requires explicit legacy opt-in and the correct old artifact; it does not become a verified review. This improves workflow alignment but contributes no direct faithfulness evidence and does not satisfy reviewer identity, release-root, claim-review, or frame-timing gates.
 
 ## Next action
 

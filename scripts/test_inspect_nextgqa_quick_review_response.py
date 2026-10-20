@@ -1,10 +1,12 @@
 import json
 import io
 import hashlib
+import os
 import sys
 import tempfile
 import unittest
 from pathlib import Path
+from types import SimpleNamespace
 from unittest.mock import patch
 
 from inspect_nextgqa_quick_review_response import (
@@ -62,6 +64,30 @@ class QuickReviewResponseTests(unittest.TestCase):
             link.symlink_to(target)
             with self.assertRaisesRegex(ReviewError, "artifact_file_invalid"):
                 expected_item_ids(link)
+
+    @unittest.skipUnless(hasattr(os, "mkfifo"), "FIFO is unavailable")
+    def test_artifact_fifo_is_rejected_without_waiting_for_a_writer(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            fifo = Path(tmp) / "artifact.fifo"
+            os.mkfifo(fifo)
+            with self.assertRaisesRegex(ReviewError, "artifact_file_invalid"):
+                expected_item_ids(fifo)
+
+    def test_artifact_mutated_during_read_is_rejected(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "artifact.html"
+            path.write_text("<script>const items=" + json.dumps(
+                [{"item_id": item_id} for item_id in ITEM_IDS]
+            ) + ";\nlet nickname='';</script>", encoding="utf-8")
+            before = path.stat()
+            changed = SimpleNamespace(
+                st_dev=before.st_dev, st_ino=before.st_ino, st_size=before.st_size,
+                st_mtime_ns=before.st_mtime_ns, st_ctime_ns=before.st_ctime_ns + 1,
+                st_mode=before.st_mode,
+            )
+            with patch.object(inspector.os, "fstat", side_effect=[before, changed]):
+                with self.assertRaisesRegex(ReviewError, "artifact_file_changed_during_read"):
+                    expected_item_ids(path)
 
     def test_v5_keeps_clarity_answer_fit_and_video_evidence_separate(self):
         response = valid_response()

@@ -78,7 +78,8 @@ def _read_artifact_snapshot(artifact_path: Path) -> bytes:
         raise ReviewError("artifact_nofollow_unavailable")
     fd = None
     try:
-        fd = os.open(artifact_path, os.O_RDONLY | nofollow)
+        nonblock = getattr(os, "O_NONBLOCK", 0)
+        fd = os.open(artifact_path, os.O_RDONLY | nofollow | nonblock)
         info = os.fstat(fd)
         if not stat.S_ISREG(info.st_mode) or info.st_size > MAX_ARTIFACT_BYTES:
             raise ReviewError("artifact_file_invalid")
@@ -93,6 +94,12 @@ def _read_artifact_snapshot(artifact_path: Path) -> bytes:
         raw = b"".join(chunks)
         if len(raw) > MAX_ARTIFACT_BYTES:
             raise ReviewError("artifact_file_invalid")
+        after = os.fstat(fd)
+        identity = lambda row: (row.st_dev, row.st_ino, row.st_size,
+                                row.st_mtime_ns, row.st_ctime_ns)
+        if (not stat.S_ISREG(after.st_mode) or identity(info) != identity(after)
+                or len(raw) != after.st_size):
+            raise ReviewError("artifact_file_changed_during_read")
         return raw
     except OSError as exc:
         raise ReviewError("artifact_file_invalid") from exc
