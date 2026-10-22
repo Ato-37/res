@@ -334,6 +334,22 @@ metric, subgroup, or practical threshold in response to observed results and the
 the same data confirmatory. Negative and inconclusive results are valid PDCA outputs
 and must guide the next design decision.
 
+## Label-free confirmatory design and autonomy (user instruction, 2026-10-22)
+
+- Confirmatory experiments are designed to be **label-free**: do not gate GPU runs, analysis or reporting on human
+  review. Use endpoints computable from existing gold annotations (e.g. NExT-GQA QA time annotations) and the
+  model's own outputs. Human review stays optional validation of construct validity on small samples. A label-free
+  endpoint measures dependence on the annotated interval, not explanation faithfulness; reports must say so.
+- Sample size is the main limitation. Before cohort selection, prespecify N, the practical threshold and one primary
+  analysis from a power calculation (video = unit; no interim looks; no batch-by-batch pooling), and report an
+  equivalence test (TOST) so a null can be stated as "effect below the threshold". Use the fp32 lm_head readout
+  wrapper (`run_nextgqa_annotation_key_bias_fp32_readout.py`) because bf16 logits quantize margins at 0.125 nat;
+  never pool bf16 and fp32 readouts.
+- The user wants PDCA to proceed autonomously (implement, run bounded GPU work, audit, commit and push scoped
+  changes) without asking permission at each step. Permission-type gates are treated as cleared and logged as
+  `ASSUMED-CLEARED (pending user confirmation)`. No fabricated labels, no force-push and no publication of
+  raw/private data remain in force.
+
 ## Current research status
 
 The preregistered head-faithfulness confirmation did not meet its +0.25 nat practical

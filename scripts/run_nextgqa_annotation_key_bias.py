@@ -38,6 +38,7 @@ MODEL_NAME = "Qwen/Qwen2.5-VL-7B-Instruct"
 LAYERS_1_BASED = tuple(range(5, 17))
 BIAS_NATS = math.log(2.0)
 SEED = 20261021
+MAX_COHORT_VIDEOS = 400  # raised from 20 on 2026-10-22 for the prespecified N=160 confirmatory cohort
 PURPOSE = "exploratory_nextgqa_qa_annotation_temporal_key_bias_sensitivity"
 CONDITIONS = ("baseline", "annotation_interval_key_bias", "hash_sham_key_bias")
 MIN_FREE_VRAM = 12 * 1024**3
@@ -1058,8 +1059,8 @@ def main(argv=None) -> int:
     args = parser.parse_args(argv)
     if not args.user_authorized_local_only:
         parser.error("explicit_user_authorized_local_only_required")
-    if not 3 <= args.n <= 20:
-        parser.error("n_must_be_between_3_and_20")
+    if not 3 <= args.n <= MAX_COHORT_VIDEOS:
+        parser.error(f"n_must_be_between_3_and_{MAX_COHORT_VIDEOS}")
     if args.mode == "preflight" and (args.cohort_lock or args.preflight_receipt or args.smoke_receipt):
         parser.error("preflight_accepts_no_prior_lock_or_receipt")
     if args.mode == "smoke" and (not args.cohort_lock or not args.preflight_receipt or args.smoke_receipt):
