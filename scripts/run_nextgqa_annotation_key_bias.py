@@ -38,6 +38,7 @@ MODEL_NAME = "Qwen/Qwen2.5-VL-7B-Instruct"
 LAYERS_1_BASED = tuple(range(5, 17))
 BIAS_NATS = math.log(2.0)
 SEED = 20261021
+QUERY_SCOPE = "last"  # "last" (final row only) or "post_video" (all rows after the last video token)
 MAX_COHORT_VIDEOS = 400  # raised from 20 on 2026-10-22 for the prespecified N=160 confirmatory cohort
 PURPOSE = "exploratory_nextgqa_qa_annotation_temporal_key_bias_sensitivity"
 CONDITIONS = ("baseline", "annotation_interval_key_bias", "hash_sham_key_bias")
@@ -295,6 +296,48 @@ def fixed_gold_foil_margin(choice_logprobs: Sequence[float], *, gold_index: int,
     return float(choice_logprobs[gold_index]) - float(choice_logprobs[baseline_foil_index])
 
 
+def audit_attention_mask_delta_rows(*, original_mask: Any, actual_mask: Any,
+                                    query_positions: Sequence[int], key_positions: Sequence[int],
+                                    logit_bias: float, torch_module: Any) -> dict:
+    """Multi-row variant: prove the mask differs only at (query rows x key cells) by exactly the dose."""
+    rows = tuple(query_positions)
+    if (torch_module is None or not torch_module.is_tensor(original_mask)
+            or not torch_module.is_tensor(actual_mask)
+            or original_mask.ndim != 4 or tuple(original_mask.shape[:2]) != (1, 1)
+            or tuple(actual_mask.shape) != tuple(original_mask.shape)
+            or actual_mask.dtype != original_mask.dtype
+            or not rows or tuple(sorted(set(rows))) != rows or any(type(r) is not int for r in rows)
+            or not key_positions or tuple(sorted(set(key_positions))) != tuple(key_positions)
+            or any(type(k) is not int or k < 0 for k in key_positions)
+            or any(r < 0 or r >= int(original_mask.shape[-2]) for r in rows)
+            or any(k >= int(original_mask.shape[-1]) or k >= rows[0] for k in key_positions)
+            or isinstance(logit_bias, bool) or not isinstance(logit_bias, (int, float))
+            or not math.isfinite(float(logit_bias)) or float(logit_bias) == 0):
+        raise ValueError("attention_mask_delta_audit_inputs_invalid")
+    original_mask = original_mask.to(device=actual_mask.device)
+    if bool(torch_module.isnan(original_mask).any()) or bool(torch_module.isnan(actual_mask).any()):
+        raise ValueError("attention_mask_delta_contains_nan")
+    r_idx = torch_module.tensor(rows, device=actual_mask.device, dtype=torch_module.long)
+    k_idx = torch_module.tensor(key_positions, device=actual_mask.device, dtype=torch_module.long)
+    original_target = original_mask[0, 0][r_idx[:, None], k_idx[None, :]]
+    if not bool(torch_module.isfinite(original_target).all()) or not bool((original_target == 0).all()):
+        raise ValueError("annotation_keys_not_originally_visible_zero")
+    expected = original_mask.clone()
+    expected[0, 0][r_idx[:, None], k_idx[None, :]] += float(logit_bias)
+    effective = float(torch_module.tensor(float(logit_bias), dtype=original_mask.dtype).item())
+    if effective == 0 or not math.isfinite(effective):
+        raise ValueError("effective_mask_bias_invalid")
+    if not torch_module.equal(actual_mask, expected):
+        raise ValueError("attention_mask_changed_outside_or_wrong_at_intended_cells")
+    cells = len(rows) * len(key_positions)
+    changed = int(torch_module.count_nonzero(actual_mask != original_mask).item())
+    if changed != cells:
+        raise ValueError("attention_mask_changed_cell_count_mismatch")
+    return {"attention_mask_dtype": str(actual_mask.dtype), "requested_bias": float(logit_bias),
+            "effective_bias": effective, "intended_changed_cells": cells, "observed_changed_cells": cells,
+            "query_row_count": len(rows), "all_and_only_intended_cells_changed": True}
+
+
 def audit_attention_mask_delta(*, original_mask: Any, actual_mask: Any,
                                query_position: int, key_positions: Sequence[int],
                                logit_bias: float, torch_module: Any) -> dict:
@@ -484,8 +527,9 @@ def validate_smoke_receipt(smoke: dict, *, args_n: int, lock_sha256: str,
         expected_effective = (float(torch_module.tensor(BIAS_NATS, dtype=dtype).item())
                               if dtype is not None else math.nan)
         return (audit.get("biased_key_count") == expected_key_count
-                and audit.get("intended_changed_cells") == expected_key_count
-                and audit.get("observed_changed_cells") == expected_key_count
+                and audit.get("intended_changed_cells") == expected_key_count * audit.get("query_row_count", 1)
+                and audit.get("observed_changed_cells") == expected_key_count * audit.get("query_row_count", 1)
+                and audit.get("query_scope", "last") == QUERY_SCOPE
                 and audit.get("all_and_only_intended_cells_changed") is True
                 and isinstance(audit.get("attention_mask_dtype"), str)
                 and audit.get("requested_bias") == BIAS_NATS
@@ -497,7 +541,7 @@ def validate_smoke_receipt(smoke: dict, *, args_n: int, lock_sha256: str,
                 and set(layers) == {str(i) for i in LAYERS_1_BASED}
                 and all(isinstance(value, dict)
                     and value.get("attention_mask_dtype") == audit.get("attention_mask_dtype")
-                    and value.get("observed_changed_cells") == expected_key_count
+                    and value.get("observed_changed_cells") == expected_key_count * audit.get("query_row_count", 1)
                     and value.get("all_and_only_intended_cells_changed") is True
                     and value.get("requested_bias") == BIAS_NATS
                     and value.get("effective_bias") == audit.get("effective_bias")
@@ -788,6 +832,17 @@ def _preflight_or_score(args) -> int:
             raise RuntimeError("per_forward_resource_guard_failed")
         device_batch = batch.to("cuda")
         seq_len = int(device_batch["input_ids"].shape[1])
+        if QUERY_SCOPE == "post_video":
+            video_index = (device_batch["input_ids"][0] == int(model.config.video_token_id)).nonzero().flatten()
+            if int(video_index.numel()) == 0:
+                raise ValueError("video_tokens_missing_for_post_video_scope")
+            query_rows = tuple(range(int(video_index.max().item()) + 1, seq_len))
+            if not query_rows or any(int(k) >= query_rows[0] for k in biased_positions):
+                raise ValueError("post_video_query_rows_invalid")
+        elif QUERY_SCOPE == "last":
+            query_rows = (seq_len - 1,)
+        else:
+            raise ValueError("query_scope_invalid")
         handles = []
         calls = {i: 0 for i in LAYERS_1_BASED}
         before_observers = []
@@ -812,7 +867,7 @@ def _preflight_or_score(args) -> int:
                 handles = install_multiquery_video_key_intervention_hooks(
                     model=model, layer_indices=tuple(i - 1 for i in LAYERS_1_BASED),
                     biased_positions=biased_positions, ablated_positions=(),
-                    query_positions=(seq_len - 1,), logit_bias=BIAS_NATS,
+                    query_positions=query_rows, logit_bias=BIAS_NATS,
                     torch_module=torch)
                 for layer_index in LAYERS_1_BASED:
                     module = layers[layer_index - 1].self_attn
@@ -821,11 +876,18 @@ def _preflight_or_score(args) -> int:
                         original = original_masks.pop(layer, None)
                         if original is None or not torch.is_tensor(mask):
                             raise ValueError("attention_mask_delta_capture_missing")
-                        layer_audits[layer] = audit_attention_mask_delta(
-                            original_mask=original, actual_mask=mask,
-                            query_position=seq_len - 1,
-                            key_positions=biased_positions,
-                            logit_bias=BIAS_NATS, torch_module=torch)
+                        if len(query_rows) == 1:
+                            layer_audits[layer] = audit_attention_mask_delta(
+                                original_mask=original, actual_mask=mask,
+                                query_position=query_rows[0],
+                                key_positions=biased_positions,
+                                logit_bias=BIAS_NATS, torch_module=torch)
+                        else:
+                            layer_audits[layer] = audit_attention_mask_delta_rows(
+                                original_mask=original, actual_mask=mask,
+                                query_positions=query_rows,
+                                key_positions=biased_positions,
+                                logit_bias=BIAS_NATS, torch_module=torch)
                         calls[layer] += 1
                         return args, kwargs
                     after_observers.append(module.register_forward_pre_hook(
@@ -847,14 +909,15 @@ def _preflight_or_score(args) -> int:
                 dtypes = {item["attention_mask_dtype"] for item in layer_audits.values()}
                 doses = {item["effective_bias"] for item in layer_audits.values()}
                 changed = {item["observed_changed_cells"] for item in layer_audits.values()}
-                if len(dtypes) != 1 or len(doses) != 1 or changed != {len(biased_positions)}:
+                if len(dtypes) != 1 or len(doses) != 1 or changed != {len(biased_positions) * len(query_rows)}:
                     raise ValueError("intervention_mask_audit_inconsistent_across_layers")
                 dtype, dose = next(iter(dtypes)), next(iter(doses))
                 audit = {"hook_calls_by_layer": {str(i): calls[i] for i in LAYERS_1_BASED},
                     "biased_key_count": len(biased_positions),
                     "requested_bias": BIAS_NATS,
-                    "intended_changed_cells": len(biased_positions),
-                    "observed_changed_cells": len(biased_positions),
+                    "intended_changed_cells": len(biased_positions) * len(query_rows),
+                    "observed_changed_cells": len(biased_positions) * len(query_rows),
+                    "query_row_count": len(query_rows), "query_scope": QUERY_SCOPE,
                     "all_and_only_intended_cells_changed": True,
                     "attention_mask_dtype": dtype, "effective_bias": dose,
                     "effective_bias_per_layer": dose,
@@ -985,7 +1048,7 @@ def _preflight_or_score(args) -> int:
         "model": MODEL_NAME, "model_revision": MODEL_REVISION,
         "model_config_sha256": model_config_sha256,
         "precision": "4-bit weights, BF16 compute, eager attention",
-        "layers_1_based": list(LAYERS_1_BASED), "requested_bias_nats": BIAS_NATS,
+        "layers_1_based": list(LAYERS_1_BASED), "requested_bias_nats": BIAS_NATS, "query_scope": QUERY_SCOPE,
         "seed": SEED, "cohort_lock_sha256": lock_sha256,
         "cohort_sha256": cohort_hash, "preflight_receipt_sha256": preflight_sha256,
         "candidate_manifest_digest_sha256": meta["private_exclusion_manifest_digest"],

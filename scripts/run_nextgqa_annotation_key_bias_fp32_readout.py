@@ -52,6 +52,17 @@ def _consume_layers_option(argv):
     return argv[:i] + argv[i + 2:]
 
 
+def _consume_scope_option(argv):
+    """Pop an optional `--query-scope post_video` and set it on the base module."""
+    if "--query-scope" not in argv:
+        return argv
+    i = argv.index("--query-scope")
+    if argv[i + 1] not in {"last", "post_video"}:
+        raise SystemExit("query_scope_invalid")
+    base.QUERY_SCOPE = argv[i + 1]
+    return argv[:i] + argv[i + 2:]
+
+
 def _consume_bias_option(argv):
     """Pop an optional `--bias-nats X` (requested additive attention-score bias) and set it on the base module."""
     if "--bias-nats" not in argv:
@@ -65,5 +76,5 @@ def _consume_bias_option(argv):
 
 
 if __name__ == "__main__":
-    sys.argv = _consume_layers_option(_consume_bias_option(sys.argv))
+    sys.argv = _consume_scope_option(_consume_layers_option(_consume_bias_option(sys.argv)))
     raise SystemExit(base.main())

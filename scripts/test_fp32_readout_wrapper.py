@@ -12,10 +12,19 @@ class BiasOptionTests(unittest.TestCase):
     def setUp(self):
         self.saved = base.BIAS_NATS
         self.saved_layers = base.LAYERS_1_BASED
+        self.saved_scope = base.QUERY_SCOPE
 
     def tearDown(self):
         base.BIAS_NATS = self.saved
         base.LAYERS_1_BASED = self.saved_layers
+        base.QUERY_SCOPE = self.saved_scope
+
+    def test_query_scope_option(self):
+        out = wrapper._consume_scope_option(["prog", "--query-scope", "post_video", "--n", "3"])
+        self.assertEqual(out, ["prog", "--n", "3"])
+        self.assertEqual(base.QUERY_SCOPE, "post_video")
+        with self.assertRaises(SystemExit):
+            wrapper._consume_scope_option(["prog", "--query-scope", "everything"])
 
     def test_layers_all_option(self):
         out = wrapper._consume_layers_option(["prog", "--layers", "all", "--n", "3"])
