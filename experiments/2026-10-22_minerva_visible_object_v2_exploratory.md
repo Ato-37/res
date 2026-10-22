@@ -281,9 +281,18 @@ Every treatment had 12 layer-hook calls per generated-token forward: row 0
 132 calls and 3,300 verified mask cells in each treatment, row 1 108 calls
 and 432 cells, row 2 bbox 108 calls/648 cells and sham 132 calls/792 cells.
 All matched the effective bfloat16 delta. The independent source/receipt
-audit verified row 0 and the hook implementation, but has not yet audited
-the complete three-row aggregate. No human frame-grounded judgment has been
+audit verified all three rows, the hook implementation, and the aggregate
+arithmetic. No human frame-grounded judgment has been
 made for these new texts, so direct faithfulness remains unmeasured.
+
+The selected bbox keys occupy only 25/4041, 4/4017, and 6/4046 positions
+in the three prefill prompt sequences (approximately 0.62%, 0.10%, 0.15%).
+As a **toy uniform-attention calculation only**, doubling their unnormalized
+attention weight would change their total mass by approximately +0.61,
++0.10, and +0.15 percentage points, respectively. Actual attention is not
+uniform and was not measured; this arithmetic is a dose-geometry hypothesis,
+not an explanation of the observed null result or a warrant to tune bias
+strength on these outcomes.
 
 A separate CPU verifier recomputed the earlier two-row conditional-likelihood
 summary from the private v2 cohort, official media/time maps, row-specific
@@ -312,3 +321,95 @@ local review artifact for all distinct generated sentences, retaining the
 condition mapping privately. A fresh prospective cohort would then be
 needed to test a revised intervention; this three-row pattern argues against
 claiming the current bbox-key bias improves explanation faithfulness.
+
+The separate local CPU verifier
+`scripts/summarize_minerva_generation_bias_v1.py` checked all three generation
+receipts against the frozen cohort, matching row-specific CPU/preflight hashes,
+current runner/hook source hashes, branch text hashes, mechanical classifications,
+and per-token/layer/key mask-audit counts. It emitted a privacy-minimized
+4,342-byte summary at
+`results/minerva_generation_bias_v1_safe_summary_20261022_02.json`
+(SHA-256 `119be12535dcbdc78b100a2591699eedcafd6797bd2f02e69f2e1bd8a592f0cc`).
+It contains no raw text, video IDs, or media paths. Its 2/3, 2/3, 3/3
+mechanical-validity counts and zero bbox-specific validity gains match the
+private receipt audit. This verifier binds to previously checked media hashes
+in CPU/GPU receipts; it does not itself rehash the 2.5 GB media files.
+An independent audit of `_01` recomputed every count and identified missing
+preflight-record/source checks in the reusable verifier. Those checks were
+added before `_02`: each selected record must equal the final 3/3 preflight
+record and pass, preflight source fields must match, and every CPU source hash
+must match the current source file. The bbox-only validity count is explicitly
+named as a **mechanical** diagnostic. `_01` is superseded and remains local.
+
+One metadata-only follow-up cohort of three videos was frozen privately at
+`data/private_minerva/minerva_metadata_proxy_anchor_cohort_v2_followup_20261022_01.json`
+(SHA-256 `99044f12cfe6affca3371fd9192317b43dce5d0f83d39517c6af5148b1a4a44a`).
+After exposure exclusions, 12 eligible videos from seven participant prefixes
+remained. Its three selected videos are previously unexposed as videos, but
+all three participant prefixes occur among older exposed videos; they are
+therefore **not participant-fresh**. The cohort is still a frame-number/30
+metadata proxy and has not passed official-media CPU preflight. It is a
+candidate for a later prospectively fixed method comparison, not new efficacy
+evidence. Do not download/run it merely to increase sample count under a
+method that has not shown selective benefit.
+The local annotation/association/mask source hashes match the frozen cohort;
+rerunning the metadata selector read-only reproduced the exact counts,
+selection, and exposure-exclusion set.
+
+### Blinded local support-review handoff for generation branches
+
+The private page
+`data/private_minerva/minerva_visible_object_v2_generation_bias_review_ja_20261022_01.html`
+was built from the three completed generation receipts (6,762,268 bytes,
+mode 0600; SHA-256
+`2eb5fa8912e510e0d641433d241a6c7812b33c8fc0883bc71817d5665a60a967`).
+It displays each distinct generated text once per row: 2/1/2 items, five in
+total. Each item has 64 exact sampled source-frame JPEGs, giving 320 embedded
+images; duplicated texts across intervention branches are not presented twice.
+The page does not reveal which attention condition produced a text or any
+model score. Item-to-branch correspondence is confined to the separate private
+mode-0600 mapping
+`data/private_minerva/minerva_visible_object_v2_generation_bias_review_mapping_20261022_01.json`
+(SHA-256 `13d680cb622ac47c2fd95268c0677b8ac881fa7f4c4ffba44f28ac82cfb7dbe5`).
+Its canonical page fingerprint is
+`01940e12cad3abefc56d685956642f701e899470928729f1e6e0c09f5fd28108`.
+The builder source SHA-256 is
+`4e03d9d5aa9577e7be991bad55689bd75321dbe27c2b7daedd6f668841611b21`.
+Focused synthetic tests passed 4/4, Python compilation passed, and the
+actual page's fingerprint, five-item/320 embedded image hashes, item/mapping
+IDs, hidden condition labels, and JavaScript syntax were checked. A separate
+independent read-only audit then reproduced the page/mapping/source-manifest
+hashes, all five item/320 frame hashes and receipt joins, condition blinding,
+and four focused tests. It found no critical integrity issue. No reviewer
+responses have been collected;
+direct semantic support and faithfulness remain unmeasured.
+
+The local read-only response inspector
+`scripts/inspect_minerva_generation_bias_review.py` is ready for a browser
+download from any local directory. It verifies the page fingerprint, embedded
+frame hashes, exact five-answer completeness, private mapping, and now all
+mapping condition labels against the three original GPU generation receipts.
+An independent audit found that a coverage-preserving branch-label swap in the
+private mapping would previously pass; the receipt cross-check closes that
+misattribution path. It passed against all five actual items. The page allows
+reviewers to reuse a nickname, so the inspector retains each response session
+and separately reports the number of distinct case-folded nicknames; neither
+count proves distinct human identity. Focused builder/inspector tests passed
+12/12. No response JSON for this page has been observed, so no new human
+support counts or direct faithfulness result are claimed. To inspect a later
+local export, use the private page and mapping paths above and the three
+`minerva_visible_object_v2_generation_bias_row{0,1,2}_gpu_20261022_01.json`
+receipts with `--gpu-receipt` in row order. Keep the response and private
+inputs local; the inspector prints aggregate counts only.
+
+The next internal-representation branch is a VISTA-inspired **exploratory**
+single-block residual intervention described in
+`docs/image_to_video_intervention_options_20261022.md`. A source-level
+feasibility audit found that Qwen2.5-VL's decoder block output is a residual
+Tensor and that only the final prompt-position vector needs capturing. It also
+found that changing only the last block output at that position cannot affect
+all tokens of a multi-token object name in a parallel teacher-forced pass.
+Therefore the prototype must pre-fix one interior block and its vector dose
+before any outcome inspection. First use an already-local row for a technical
+GPU smoke; the three unexposed candidate videos remain unrun. Neither the
+literature proposal nor the technical audit is efficacy evidence.
