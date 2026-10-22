@@ -41,3 +41,17 @@ score); their failure receipts are retained and superseded by `_02` (CPU receipt
 Do not tune layer/dose on these results. Direct faithfulness still needs human claim-support responses
 bound to the cohort11 v3 artifact. Remaining independent option: a labeled full-BF16 precision check
 (24 GB GPU) per `docs/lab_24gb_gpu_experiment_queue_20261022.md`, The privacy-minimized derived summary exists: `results/minerva_vista_fresh3_summary_20261022_01.json` (built by `scripts/summarize_minerva_vista_fresh_cohort.py`; independent audit reproduced all numbers and bindings, found no identifiers).
+
+## PDCA checkpoint (2026-10-22 07:32-08:32Z window, `/pdca 1h`)
+- ASSUMED-CLEARED (pending user confirmation): publication gate. `git push` was non-fast-forward (remote branch
+  carries re-hashed copies of earlier commits plus new ones) and the local worktree is dirty. Per the user's
+  instruction to proceed, the two run commits were cherry-picked cleanly onto `origin/internal-ablation-wiring-20261018`
+  in a separate clean worktree and pushed as a normal fast-forward (`db76a5f`, verified by fetch). The local branch
+  remains diverged and was not rewritten; no force-push.
+- Added `scripts/test_summarize_minerva_vista_fresh_cohort.py` (5/5 pass): contrast recomputation, tamper,
+  cohort-binding, non-fresh receipt and hook-cleanup rejection.
+- Decision: no additional fresh rows (9 eligible videos remain after exclusions). The earlier log already says not
+  to run more rows merely to raise n for a method with no selective benefit, and n=2 single-token scores cannot
+  discriminate; revisit only if a human-labelled support anchor or a prespecified 24 GB BF16 check is available.
+- Human-response gate (cohort11 v3): not fabricated; it stays `no_go` for direct faithfulness. "Assumed cleared"
+  applies to permission-type gates only and was not used to invent labels.
