@@ -1,0 +1,111 @@
+{
+  "schema_version": 1,
+  "status": "prespecified_dose_response",
+  "doses": [
+    {
+      "n": 149,
+      "mean_nats": -0.0035242518077443523,
+      "sd_nats": 0.07263185474304705,
+      "median_nats": 0.0005644010379910469,
+      "ci95_t": [
+        -0.015282641842490795,
+        0.008234138227002093
+      ],
+      "ci90_t": [
+        -0.013373164422077446,
+        0.006324660806588742
+      ],
+      "p_two_sided_t": 0.5545615447824862,
+      "p_sign_flip": 0.5573272133639332,
+      "permutations": 200000,
+      "delta_min_nats": 0.025,
+      "tost_p": 0.00020978054352973832,
+      "tost_p_lower": 0.00020978054352973832,
+      "tost_p_upper": 1.9731238077020873e-06,
+      "positive": 75,
+      "negative": 74,
+      "verdict": "no_meaningful_effect_equivalence",
+      "requested_bias_nats": 1.3862943611198906,
+      "log2_dose": 2.0,
+      "annotation_minus_baseline_mean": -0.0005600178773841514,
+      "sham_minus_baseline_mean": 0.002964233930360201,
+      "correctness_flips_annotation_vs_baseline": 0,
+      "correctness_flips_sham_vs_baseline": 0,
+      "completed_forwards": 447,
+      "p_holm": 1.0,
+      "significant_after_holm": false,
+      "equivalent_at_alpha_over_k": true
+    },
+    {
+      "n": 149,
+      "mean_nats": -0.007941538288985417,
+      "sd_nats": 0.08703852398116912,
+      "median_nats": -0.0007666535675525665,
+      "ci95_t": [
+        -0.022032227789341184,
+        0.006149151211370352
+      ],
+      "ci90_t": [
+        -0.01974400181967382,
+        0.003860925241702985
+      ],
+      "p_two_sided_t": 0.26719358187579,
+      "p_sign_flip": 0.26869365653171734,
+      "permutations": 200000,
+      "delta_min_nats": 0.025,
+      "tost_p": 0.008998268095443858,
+      "tost_p_lower": 0.008998268095443858,
+      "tost_p_upper": 4.142403916434853e-06,
+      "positive": 73,
+      "negative": 76,
+      "verdict": "no_meaningful_effect_equivalence",
+      "requested_bias_nats": 2.0794415416798357,
+      "log2_dose": 3.0,
+      "annotation_minus_baseline_mean": -0.002823129557260631,
+      "sham_minus_baseline_mean": 0.0051184087317247854,
+      "correctness_flips_annotation_vs_baseline": 0,
+      "correctness_flips_sham_vs_baseline": 0,
+      "completed_forwards": 447,
+      "p_holm": 0.80158074562737,
+      "significant_after_holm": false,
+      "equivalent_at_alpha_over_k": true
+    },
+    {
+      "n": 149,
+      "mean_nats": -0.004899726366571888,
+      "sd_nats": 0.10642119388157338,
+      "median_nats": -0.0087890625,
+      "ci95_t": [
+        -0.02212828138626455,
+        0.012328828653120776
+      ],
+      "ci90_t": [
+        -0.019330488771864208,
+        0.009531036038720433
+      ],
+      "p_two_sided_t": 0.5749657024655221,
+      "p_sign_flip": 0.5754521227393863,
+      "permutations": 200000,
+      "delta_min_nats": 0.025,
+      "tost_p": 0.011263661055254804,
+      "tost_p_lower": 0.011263661055254804,
+      "tost_p_upper": 0.0003918071022742056,
+      "positive": 70,
+      "negative": 79,
+      "verdict": "no_meaningful_effect_equivalence",
+      "requested_bias_nats": 2.772588722239781,
+      "log2_dose": 4.0,
+      "annotation_minus_baseline_mean": 0.004197932473222112,
+      "sham_minus_baseline_mean": 0.009097658839794001,
+      "correctness_flips_annotation_vs_baseline": 0,
+      "correctness_flips_sham_vs_baseline": 0,
+      "completed_forwards": 447,
+      "p_holm": 1.0,
+      "significant_after_holm": false,
+      "equivalent_at_alpha_over_k": true
+    }
+  ],
+  "n_doses": 3,
+  "scope": "answer-margin dependence on the QA time annotation (label-free); not explanation faithfulness",
+  "faithfulness_status": "\u88dc\u52a9\u8a3a\u65ad\u306e\u307f"
+}
