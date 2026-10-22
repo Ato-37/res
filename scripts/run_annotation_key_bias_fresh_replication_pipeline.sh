@@ -14,7 +14,7 @@ LOG=$D/annotation_key_bias_fresh_replication_pipeline_$TAG.log
 exec >> "$LOG" 2>&1
 while pgrep -f '^\.venv/bin/python scripts/run_nextgqa_annotation_key_bias' > /dev/null; do sleep 20; done
 echo "start $(date -u +%FT%TZ) memtotal_kb=$(awk '/MemTotal/{print $2}' /proc/meminfo)"
-SCREEN=$($PY scripts/screen_annotation_key_bias_sham_eligibility.py --exclude-media-sha256 $EXCL0 --video-root $ROOT --pool-n 205 --output-manifest $EXCL | tail -1)
+SCREEN=$($PY scripts/screen_annotation_key_bias_sham_eligibility.py --exclude-media-sha256 $EXCL0 --video-root $ROOT --pool-n 198 --output-manifest $EXCL | tail -1)
 echo "screen $SCREEN"
 E=$(echo "$SCREEN" | $PY -c 'import json,sys; print(json.load(sys.stdin)["eligible"])')
 COMMON="--dataset-split val --n $E --frames 32 --exclude-media-sha256 $EXCL --video-root $ROOT --user-authorized-local-only"

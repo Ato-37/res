@@ -13,6 +13,11 @@ the QA time annotation, not explanation faithfulness.
 - Eligibility (structural): annotation groups <= 8 of 16 temporal groups (equal-count disjoint sham must exist), applied by
   `scripts/screen_annotation_key_bias_sham_eligibility.py`. N = number of eligible media in the pool (<= 205), no other filtering, no replacement.
 
+### Pre-outcome adjustment (recorded 2026-10-23, before any scoring)
+The cohort freezer reported `requested_205_eligible_samples_but_found_198`: 7 of the 205 fresh media fail its own structural eligibility
+(strict interval / decode checks), so the pool is 198. The screen is therefore run with pool-n 198 and N = eligible media after the
+sham-geometry screen (<= 198). Nothing else changes; no outcome data exist.
+
 ## Runs (same settings as the N=149 multi-query runs: 4-bit/BF16 compute, fp32 readout, layers 1-28, post-video rows, 32 frames, seed 20261021)
 - A (control replication): bias -ln256.
 - B, C (positive steering): bias +ln4 and +ln16.
