@@ -58,3 +58,7 @@ git worktree (no untracked files, no private data). Reproducibility check, not a
   edited while untracked). Its recorded digest cannot be reproduced, so
   `test_completed_local_receipts_reconcile` still fails with `run_source_hash_mismatch`. This is a real provenance gap
   for those two test-split receipts, not a test bug; do not cite them as source-verified until re-run or a copy is found.
+- Recovery attempt (time-boxed, failed): replayed `apply_patch` payloads for that file from the Codex rollout logs
+  (deduplicated across forked sessions, cutoff 2026-10-21T06:18:38Z) to rebuild the executed version. Only 2 patches
+  applied, 25 hunks failed, and the result was 79 lines against 340 today (digest did not match `bb1d8f28...`), so the
+  edits evidently went through other mechanisms. Not reconstructible from the logs; the gap stands.
