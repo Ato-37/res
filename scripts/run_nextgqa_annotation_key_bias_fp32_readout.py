@@ -41,5 +41,18 @@ def _patched(cls, *args, **kwargs):
 
 Qwen2_5_VLForConditionalGeneration.from_pretrained = classmethod(_patched)
 
+def _consume_bias_option(argv):
+    """Pop an optional `--bias-nats X` (requested additive attention-score bias) and set it on the base module."""
+    if "--bias-nats" not in argv:
+        return argv
+    i = argv.index("--bias-nats")
+    value = float(argv[i + 1])
+    if not 0.0 < value <= 4.0:
+        raise SystemExit("bias_nats_out_of_range")
+    base.BIAS_NATS = value
+    return argv[:i] + argv[i + 2:]
+
+
 if __name__ == "__main__":
-    raise SystemExit(base.main() if hasattr(base, "main") else base.run())
+    sys.argv = _consume_bias_option(sys.argv)
+    raise SystemExit(base.main())
