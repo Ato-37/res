@@ -1,4 +1,4 @@
-# Prespecified plan: dose-response of QA-annotation key bias (written 2026-10-22T10:42Z, before any dose run)
+# Prespecified plan: dose-response of QA-annotation key bias (written 2026-10-22T10:40:05Z by file mtime, before the dose pipeline was launched at 10:40:45Z and before any dose run; an earlier draft header said 10:42Z in error)
 
 ## Question
 The N=149 confirmatory run at +ln2 found annotation-minus-sham equivalent to zero (within +/-0.025 nat) and almost no
