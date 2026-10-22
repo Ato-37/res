@@ -37,5 +37,6 @@ outcome). Eligibility criterion added: **annotation groups <= 8 of 16**. `script
 applies it outcome-blind (no model, no scores) to the ranked candidates 41-200, adds ineligible media hashes to a new
 exclusion manifest, and the confirmatory N becomes the number of eligible candidates E (<=155). The estimand population is
 therefore videos whose QA annotation covers at most half the clip. A chained driver (`scripts/run_annotation_key_bias_confirmatory_pipeline.sh`)
-runs screen -> preflight(E) -> smoke -> full -> analysis with no analyst intervention. Power for E < 163 is below 80% at
+runs screen -> preflight(E) -> smoke -> full -> analysis with no analyst intervention.
+Screen result (outcome-blind, 09:32Z): of 155 candidates, 6 lack a disjoint equal-count sham geometry, so **E = N = 149**. Power for E < 163 is below 80% at
 delta 0.025 for SD 0.114; the TOST/inconclusive rules cover that case.
