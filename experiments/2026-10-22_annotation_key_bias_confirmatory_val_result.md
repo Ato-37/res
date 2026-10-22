@@ -43,3 +43,10 @@ Secondary, descriptive only: annotation-minus-baseline mean -0.0028 (SD 0.081); 
 Prespecified dose-response check on a fresh cohort (see the follow-up plan) to test whether a stronger bias produces
 selectivity, so the null can be attributed to the mechanism rather than to dose. Reproduce analysis:
 `.venv/bin/python scripts/analyze_annotation_key_bias_confirmatory.py --receipt data/private_nextgqa/annotation_key_bias_valE149_full_20261022_01.json --expected-n 149 --delta-min 0.025 --output results/<new>.json`
+
+## Addendum (2026-10-23): positive control failed
+The prespecified suppression positive control (-ln16, -ln256, same 149 videos) found no effect either
+([result](2026-10-22_annotation_key_bias_positive_control_result.md)), and ln4/ln8/ln16 positive-bias runs were also null
+([result](2026-10-22_annotation_key_bias_dose_response_result.md)). The "no meaningful effect (equivalence)" verdict above
+therefore describes an inert manipulation at the final query position; it must not be read as evidence that the answer
+margin does not depend on the annotated interval.
