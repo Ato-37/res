@@ -1,0 +1,75 @@
+{
+  "schema_version": 1,
+  "status": "verified_minerva_vista_fresh_cohort_exploratory",
+  "generated_utc": "2026-10-22T07:30:16Z",
+  "counts": {
+    "requested_rows": 3,
+    "effective_rows": 2,
+    "failed_rows": 1
+  },
+  "failures": [
+    {
+      "failure_code": "generated_target_unclear",
+      "completed_stages": [
+        "model_loaded",
+        "baseline_generation_attempted",
+        "baseline_generation_completed"
+      ]
+    }
+  ],
+  "per_row": [
+    {
+      "object_name_token_count": 1,
+      "target_token_count": 12,
+      "baseline": -0.16066965460777283,
+      "delta_anchor": -0.013037443161010742,
+      "delta_sham": -0.004830896854400635,
+      "anchor_minus_sham": -0.008206546306610107,
+      "effective_dose_fraction": {
+        "anchor_steering": 0.10016237199306488,
+        "temporal_sham_steering": 0.1000608429312706
+      },
+      "peak_vram_gib": 10.59676742553711
+    },
+    {
+      "object_name_token_count": 1,
+      "target_token_count": 12,
+      "baseline": -0.5091561675071716,
+      "delta_anchor": 0.03633606433868408,
+      "delta_sham": 0.031458258628845215,
+      "anchor_minus_sham": 0.004877805709838867,
+      "effective_dose_fraction": {
+        "anchor_steering": 0.0997922345995903,
+        "temporal_sham_steering": 0.09991016983985901
+      },
+      "peak_vram_gib": 10.560967445373535
+    }
+  ],
+  "aggregate": {
+    "mean_anchor_minus_sham_nats_per_token": -0.0016643702983856201,
+    "n": 2,
+    "sign_counts": {
+      "positive": 1,
+      "negative": 1
+    },
+    "inference": "none; n too small for a CI or test"
+  },
+  "experiment": {
+    "dataset": "Minerva-Ego / HD-EPIC",
+    "model_revision": "cc594898137f460bfe9f0759e9844b3ce807cfb5",
+    "precision": "4-bit weights; BF16 compute",
+    "frames": 64,
+    "block_1_based": 14,
+    "dose_rms_fraction": 0.1,
+    "selection_requested_rows": 3
+  },
+  "limitations": [
+    "exploratory, tiny n",
+    "object-name likelihood is not explanation faithfulness",
+    "no human support labels",
+    "effective rows are conditioned on the model's own sentence naming the metadata object (selection effect)",
+    "each effective row scores a single object-name token",
+    "30 fps proxy anchors; mean-fill OOD; farthest-endpoint sham"
+  ],
+  "faithfulness_status": "補助診断のみ"
+}
