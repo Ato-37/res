@@ -40,3 +40,16 @@ git worktree (no untracked files, no private data). Reproducibility check, not a
   locally (identical to what was published); the user should decide how to reconcile local history.
 - Repair or regenerate the receipts bound to `generate_nextgqa_claim_review_pilot.py` (hash drift).
 - Faithfulness status: `未実施`/`no_go` unchanged; this audit adds no faithfulness evidence.
+
+## Follow-up: source-hash drift on the test-split internal-bias receipts
+- Verified: the local receipts (`test_split_internal_bias_frame_mean_interaction_row{0,1}_20261021_01`) record source
+  digests for three scripts that were edited after the runs. Two (`generate_nextgqa_claim_review_pilot.py`,
+  `run_saved_claim_frame_permutation_attention_smoke.py`) match committed blobs in git history; their exact executed
+  versions are now kept in `scripts/frozen_sources/<stem>__sha256_<first8>.py`.
+- `analyze_test_split_internal_bias_frame_mean_interaction.py` still enforces the recorded digest: it accepts the live
+  file or an exact frozen copy, nothing else (`_source_matches`; 4 unit tests in `test_frozen_source_provenance.py`
+  cover accept, drift, frozen-accept, tampered-frozen-reject). The hash check was not relaxed.
+- **Unresolved:** the executed version of `qta_multiquery_video_key_intervention.py` is in no git revision (it was
+  edited while untracked). Its recorded digest cannot be reproduced, so
+  `test_completed_local_receipts_reconcile` still fails with `run_source_hash_mismatch`. This is a real provenance gap
+  for those two test-split receipts, not a test bug; do not cite them as source-verified until re-run or a copy is found.
