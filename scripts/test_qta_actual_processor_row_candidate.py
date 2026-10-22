@@ -209,6 +209,12 @@ class ActualProcessorRowCandidateTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "candidate_status_or_authority_invalid"):
             verify_actual_processor_row_candidate_self_consistency(candidate)
 
+    def test_self_consistency_rejects_spliced_prompt_binding_artifact(self):
+        candidate, *_ = _build()
+        candidate["prompt_answer_token_bindings_raw"] += b" "
+        with self.assertRaisesRegex(ValueError, "candidate_prompt_answer_binding_mismatch"):
+            verify_actual_processor_row_candidate_self_consistency(candidate)
+
     def test_rejects_duplicate_source_hashes_before_processor_calls(self):
         rows, pins, sampler_rows = _fixtures()
         rows[1]["source_video_sha256"] = rows[0]["source_video_sha256"]

@@ -37,6 +37,13 @@ def overlap_metrics(candidate, annotation_intervals):
             "temporal_iou":intersection/union if union else 0.0,
             "intersection_seconds":intersection}
 
+def sampled_point_coverage(points, annotation_intervals):
+    """Fraction of sampled timestamps contained in the inclusive QA intervals."""
+    if not points:raise ValueError("sampled_points_empty")
+    intervals=union_intervals(annotation_intervals)
+    return sum(any(start<=float(point)<=end for start,end in intervals)
+               for point in points)/len(points)
+
 def _read_private(repo,relative):
     rel=Path(relative)
     if rel.is_absolute() or not rel.is_relative_to(Path("data/private_nextgqa")):
@@ -56,12 +63,13 @@ def _read_private(repo,relative):
     finally:os.close(fd)
     raw=b"".join(chunks);return json.loads(raw.decode()),raw
 
-def analyze(repo,selection_rel,output_rel):
+def analyze(repo,selection_rel,output_rel,packet_rels=None):
     selected,selected_raw=_read_private(repo,selection_rel)
     if selected.get("status")!="completed_window_likelihood_selection" or len(selected.get("records",[]))!=3 or selected.get("completed_windows")!=12:
         raise ValueError("selector_receipt_incomplete")
     packets={};packet_hashes={}
-    for rel in PACKETS:
+    used_packets=tuple(packet_rels) if packet_rels else tuple(Path(x) for x in PACKETS)
+    for rel in used_packets:
         packet,raw=_read_private(repo,Path(rel));packet_hashes[Path(rel).name]=hashlib.sha256(raw).hexdigest()
         if packet.get("status")!="passed" or packet.get("dataset_split")!="test":raise ValueError("claim_packet_invalid")
         for row in packet["records"]:
@@ -83,13 +91,23 @@ def analyze(repo,selection_rel,output_rel):
         scores=[]
         for idxs in windows:
             scores.append(overlap_metrics((pts[idxs[0]],pts[idxs[-1]]),ann))
+        point_coverage=[sampled_point_coverage([pts[i] for i in idxs],ann)
+                        for idxs in windows]
+        selected_coverage=point_coverage[chosen]
+        other_coverage=sum(value for index,value in enumerate(point_coverage)
+                           if index!=chosen)/3
         rows.append({"row_token_sha256":rec["row_token_sha256"],"selected_window_index":chosen,
             "selected_window_metrics":scores[chosen],"all_window_temporal_iou":[x["temporal_iou"] for x in scores],
+            "all_window_sampled_qa_interval_coverage":point_coverage,
+            "selected_window_sampled_qa_interval_coverage":selected_coverage,
+            "other_windows_sampled_qa_interval_coverage_mean":other_coverage,
+            "selected_minus_other_qa_interval_coverage":selected_coverage-other_coverage,
             "selected_iou_rank_among_four":1+sum(x["temporal_iou"]>scores[chosen]["temporal_iou"] for x in scores),
             "annotation_interval_count":len(ann)})
     if len({r["row_token_sha256"] for r in rows})!=3:raise ValueError("unique_row_count_invalid")
     selected_ious=[r["selected_window_metrics"]["temporal_iou"] for r in rows]
     all_iou=[x for r in rows for x in r["all_window_temporal_iou"]]
+    coverage_deltas=[r["selected_minus_other_qa_interval_coverage"] for r in rows]
     source_paths=[Path(__file__),Path(__file__).with_name("claim_likelihood_window_ranking.py")]
     payload={"schema_version":1,"status":"completed_exploratory_overlap_audit",
         "purpose":"posthoc_selected_window_vs_benchmark_qa_interval_overlap",
@@ -98,11 +116,16 @@ def analyze(repo,selection_rel,output_rel):
         "selected_window_temporal_iou_mean":sum(selected_ious)/3,
         "all_four_windows_temporal_iou_mean":sum(all_iou)/12,
         "selected_window_top_iou_count":sum(r["selected_iou_rank_among_four"]==1 for r in rows),
+        "selected_minus_other_qa_interval_coverage_mean":sum(coverage_deltas)/3,
+        "selected_qa_interval_coverage_mean":sum(r["selected_window_sampled_qa_interval_coverage"] for r in rows)/3,
+        "other_windows_qa_interval_coverage_mean":sum(r["other_windows_sampled_qa_interval_coverage_mean"] for r in rows)/3,
         "interpretation_limitations":["dataset QA intervals target benchmark QA, not reviewed claim evidence",
+            "sampled-point coverage is a coarse temporal alignment proxy, not claim-specific evidence validity",
             "post-hoc n=3 descriptive overlap only; no inference","selected chunk was chosen by claim likelihood, not interval overlap",
             "overlap does not validate claim truth or causal model dependence"],
         "rights_status":"unverified; local-only per user authorization",
-        "source_sha256":{p.relative_to(repo).as_posix():hashlib.sha256(p.read_bytes()).hexdigest() for p in source_paths}}
+        "source_sha256":{p.relative_to(repo).as_posix():hashlib.sha256(p.read_bytes()).hexdigest() for p in source_paths},
+        "claim_packet_sha256":packet_hashes}
     output=repo/output_rel
     if not output_rel.is_relative_to(Path("data/private_nextgqa")) or output.exists():raise ValueError("private_output_invalid_or_exists")
     fd=os.open(output,os.O_WRONLY|os.O_CREAT|os.O_EXCL|getattr(os,"O_NOFOLLOW",0),0o600)
@@ -111,5 +134,6 @@ def analyze(repo,selection_rel,output_rel):
 
 def main():
     p=argparse.ArgumentParser(description=__doc__);p.add_argument("--selection-receipt",type=Path,required=True);p.add_argument("--output",type=Path,required=True)
-    a=p.parse_args();repo=Path(__file__).resolve().parents[1];analyze(repo,a.selection_receipt,a.output)
+    p.add_argument("--claim-packet",type=Path,action="append",help="private local packet(s) bound to this selector receipt; repeatable")
+    a=p.parse_args();repo=Path(__file__).resolve().parents[1];analyze(repo,a.selection_receipt,a.output,a.claim_packet)
 if __name__=="__main__":main()

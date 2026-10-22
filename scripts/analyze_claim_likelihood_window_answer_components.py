@@ -23,14 +23,15 @@ def decompose(gold_idx,logprobs):
     out["control_minus_selected_margin_reconstructed"]=d_gold-d_foil
     return out
 
-def analyze(repo,selection_rel,score_rel,output_rel):
+def analyze(repo,selection_rel,score_rel,output_rel,packet_rels=None):
     selection,sraw=_read_private(repo,selection_rel);score,qraw=_read_private(repo,score_rel)
     if selection.get("status")!="completed_window_likelihood_selection" or score.get("status")!="completed" or len(selection.get("records",[]))!=3 or len(score.get("records",[]))!=3 or score.get("completed_forwards")!=9:
         raise ValueError("complete_input_receipts_required")
     sh=hashlib.sha256(sraw).hexdigest()
     if score.get("inputs_sha256",{}).get(str(selection_rel))!=sh:raise ValueError("score_selector_input_hash_mismatch")
     packets={};ph={}
-    for rel in PACKETS:
+    used_packets=tuple(packet_rels) if packet_rels else tuple(Path(x) for x in PACKETS)
+    for rel in used_packets:
         p,raw=_read_private(repo,Path(rel));ph[Path(rel).name]=hashlib.sha256(raw).hexdigest()
         for row in p["records"]:packets[row["video_sha256"]]=row
     rows=[]
@@ -63,5 +64,7 @@ def analyze(repo,selection_rel,score_rel,output_rel):
 
 def main():
     p=argparse.ArgumentParser(description=__doc__);p.add_argument("--selection-receipt",type=Path,required=True);p.add_argument("--score-receipt",type=Path,required=True);p.add_argument("--output",type=Path,required=True)
-    a=p.parse_args();analyze(Path(__file__).resolve().parents[1],a.selection_receipt,a.score_receipt,a.output)
+    p.add_argument("--claim-packet",type=Path,action="append",
+                   help="private generation packet(s) bound to the score receipt; repeatable")
+    a=p.parse_args();analyze(Path(__file__).resolve().parents[1],a.selection_receipt,a.score_receipt,a.output,a.claim_packet)
 if __name__=="__main__":main()

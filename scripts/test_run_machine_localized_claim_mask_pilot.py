@@ -1,16 +1,62 @@
 import sys
 import unittest
+import hashlib
+import json
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from run_machine_localized_claim_mask_pilot import (
     _endpoint_record_view, _require_model_load_resources, _exact_selected_window_interval,
+    _uses_selected_cohort_records,
+    _validate_cohort_lock_binding,
     parse_localized_interval, parse_single_embedded_interval,
     MIN_FREE_VRAM, MIN_HOST_AVAILABLE,
 )
 
 
 class LocalizedIntervalTests(unittest.TestCase):
+    def test_benchmark_gold_can_bind_to_frozen_test_cohort(self):
+        self.assertTrue(_uses_selected_cohort_records(
+            "benchmark_gold", "data/private_nextgqa/selection.json"))
+        self.assertFalse(_uses_selected_cohort_records("benchmark_gold", None))
+        self.assertTrue(_uses_selected_cohort_records(
+            "independent_3b_likelihood_window", None))
+
+    def test_benchmark_gold_requires_selector_to_match_frozen_lock_and_pairs(self):
+        media = [f"{index:x}" * 64 for index in (1, 2, 3)]
+        pairs = [f"{index:x}" * 64 for index in (4, 5, 6)]
+        assignments = [{"media_sha256": item,
+                        "qid_sha256": hashlib.sha256(f"qid-{i}".encode()).hexdigest()}
+                       for i, item in enumerate(media)]
+        pair_payload = {"schema_version": 1, "pair_sha256": pairs}
+        canonical = (json.dumps(pair_payload, sort_keys=True, separators=(",", ":"),
+                                ensure_ascii=False, allow_nan=False) + "\n").encode()
+        lock = {"schema_version": 1,
+                "status": "frozen_before_claim_generation_and_scoring",
+                "purpose": "exploratory_claim_likelihood_selected_window_prediction_dependence",
+                "dataset_split": "test", "requested_videos": 3, "effective_videos": 3,
+                "selected_pair_filter_sha256": hashlib.sha256(canonical).hexdigest(),
+                "assignments": assignments}
+        selection = {"dataset_split": "test",
+                     "status": "completed_window_likelihood_selection",
+                     "selected_cohort_complete": True, "completed_windows": 12,
+                     "cohort_lock_sha256": "lock-hash",
+                     "selected_pair_filter_sha256": hashlib.sha256(canonical).hexdigest(),
+                     "records": [{"source_video_sha256": item,
+                                  "pair_sha256": pairs[i],
+                                  "row_token_sha256": f"{i:x}" * 64}
+                                 for i, item in enumerate(media)]}
+        result = _validate_cohort_lock_binding(lock, "lock-hash", selection, pair_payload)
+        self.assertEqual(result, {row["media_sha256"]: row["qid_sha256"] for row in assignments})
+        with self.assertRaisesRegex(ValueError, "frozen_test_cohort_lock_binding_invalid"):
+            _validate_cohort_lock_binding(lock, "wrong-lock-hash", selection, pair_payload)
+        wrong_filter_selection = dict(selection, selected_pair_filter_sha256="0" * 64)
+        with self.assertRaisesRegex(ValueError, "frozen_test_cohort_lock_binding_invalid"):
+            _validate_cohort_lock_binding(lock, "lock-hash", wrong_filter_selection, pair_payload)
+        wrong_pairs = dict(pair_payload, pair_sha256=[*pairs[:2], "f" * 64])
+        with self.assertRaisesRegex(ValueError, "frozen_test_cohort_pair_filter_mismatch"):
+            _validate_cohort_lock_binding(lock, "lock-hash", selection, wrong_pairs)
+
     def test_selected_window_uses_exact_rational_pts_not_rounded_decimal_bounds(self):
         from fractions import Fraction
         from presentation_time_utils import assign_evidence_control_frames_from_times

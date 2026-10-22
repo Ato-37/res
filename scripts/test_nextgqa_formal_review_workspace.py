@@ -219,6 +219,35 @@ class FormalWorkspaceTests(unittest.TestCase):
         self.assertIn("video_review_receipt_binding", result["failure_code"])
         self.assertEqual(result["authorized_forwards"], 0)
 
+    def test_duplicate_source_video_hash_blocks_stage2_workspace(self):
+        self.assertTrue(self.session.verify_stage1()["stage1_verified"])
+        baseline_path = self.stage2_dir / "baseline.json"
+        baseline = json.loads(baseline_path.read_bytes())
+        rows = baseline["records"]
+        rows[1]["score_binding"]["source_video_sha256"] = (
+            rows[0]["score_binding"]["source_video_sha256"])
+        rows[1]["score_binding_sha256"] = _sha(
+            _canonical(rows[1]["score_binding"]))
+        baseline_raw = _canonical(baseline)
+        _write(baseline_path, baseline_raw)
+
+        context_path = self.stage2_dir / "context.json"
+        context = json.loads(context_path.read_bytes())
+        context["baseline_manifest_sha256"] = _sha(baseline_raw)
+        context_raw = _canonical(context)
+        _write(context_path, context_raw)
+        self.session.expected_stage2_context_sha256 = _sha(context_raw)
+
+        result = self.session.verify_stage2()
+        self.assertFalse(result["stage2_verified"])
+        self.assertEqual(result["failure_code"],
+                         "baseline_pq_duplicate_source_video_sha256")
+        self.assertIsNone(result["stage2"])
+        self.assertFalse(result["model_load_permitted"])
+        self.assertFalse(result["score_ready"])
+        self.assertEqual(result["execution_authorization"], "not_granted")
+        self.assertEqual(result["authorized_forwards"], 0)
+
     def test_context_requires_exact_external_digest(self):
         self.session.verify_stage1()
         passed = self.session.verify_stage2()

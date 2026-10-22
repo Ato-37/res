@@ -16,6 +16,7 @@ from typing import Any
 
 from nextgqa_atomic_batch_freeze import batch_sha256
 from qta_choice_token_binding import build_choice_token_binding
+from qta_prompt_answer_token_bindings_v1 import build_qta_prompt_answer_token_bindings
 from qta_prescore_processor_row_adapter import processor_binding_row
 from necessity_choice_margin_utils import uniform_sample_indices
 from qwen_processor_batch_review_mapping import map_review_interval_from_processor_batch
@@ -377,6 +378,7 @@ def build_actual_processor_row_candidate(*, rows: Any, expected_rows: Any,
         "candidate_rows": output_rows,
         "ordered_candidate_rows_sha256": hashlib.sha256(
             _canonical(row_hashes)).hexdigest(),
+        "prompt_answer_token_bindings_raw": build_qta_prompt_answer_token_bindings(output_rows),
         "integrity_commitment_scope": "internal_self_consistency_not_authentication",
         "external_validation_required": True,
         "model_load_permitted": False,
@@ -435,6 +437,8 @@ def verify_actual_processor_row_candidate_self_consistency(candidate: Any) -> No
     expected_commitment = hashlib.sha256(_canonical(row_hashes)).hexdigest()
     if candidate.get("ordered_candidate_rows_sha256") != expected_commitment:
         raise ValueError("candidate_order_or_row_commitment_mismatch")
+    if candidate.get("prompt_answer_token_bindings_raw") != build_qta_prompt_answer_token_bindings(rows):
+        raise ValueError("candidate_prompt_answer_binding_mismatch")
 
 
 def verify_actual_processor_row_candidate(candidate: Any, *, expected_rows: Any) -> None:

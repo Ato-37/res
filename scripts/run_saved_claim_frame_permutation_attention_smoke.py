@@ -406,11 +406,14 @@ def run(output_arg: str, packet_rel: Path = PACKET_REL,
                                   Qwen2_5_VLForConditionalGeneration)
         from qwen_vl_utils import process_vision_info
         from claim_mask_video_decoder import decode_sampled_video, verify_sampled_frame_pixels
-        from generate_nextgqa_claim_review_pilot import PROMPT_SUFFIX
+        from generate_nextgqa_claim_review_pilot import PROMPT_SUFFIX_BY_VERSION
+        from run_saved_claim_video_content_dependence import resolve_claim_prompt_suffix
 
         stage = "load_processor_and_decode_video"
         processor = AutoProcessor.from_pretrained(str(model_path), local_files_only=True,
             min_pixels=256 * 28 * 28, max_pixels=256 * 28 * 28)
+        prompt_version, prompt_suffix = resolve_claim_prompt_suffix(
+            record, PROMPT_SUFFIX_BY_VERSION)
         if int(processor.video_token_id) < 0:
             raise ValueError("processor_video_token_id_invalid")
         frames, decoded = decode_sampled_video(video_path, num_frames=FRAME_COUNT,
@@ -438,10 +441,10 @@ def run(output_arg: str, packet_rel: Path = PACKET_REL,
         stage = "prepare_original_and_permuted_processor_batches"
         original_cpu, original_meta = _prepare_processor_batch(
             processor, process_vision_info, record, frames,
-            float(sample_fps), PROMPT_SUFFIX, torch)
+            float(sample_fps), prompt_suffix, torch)
         permuted_cpu, permuted_meta = _prepare_processor_batch(
             processor, process_vision_info, record, permuted_frames,
-            float(sample_fps), PROMPT_SUFFIX, torch)
+            float(sample_fps), prompt_suffix, torch)
         if (not torch.equal(original_cpu["input_ids"], permuted_cpu["input_ids"])
                 or not torch.equal(original_cpu["video_grid_thw"], permuted_cpu["video_grid_thw"])
                 or not torch.equal(original_cpu["second_per_grid_ts"], permuted_cpu["second_per_grid_ts"])
@@ -509,6 +512,7 @@ def run(output_arg: str, packet_rel: Path = PACKET_REL,
             permuted_biased=branch_scores["permuted_visual_bias"]["target_logprob_mean"])
         source_files = [Path(__file__).resolve(),
             repo / "scripts" / "qta_multiquery_video_key_intervention.py",
+            repo / "scripts" / "run_saved_claim_video_content_dependence.py",
             repo / "scripts" / "generate_nextgqa_claim_review_pilot.py",
             repo / "scripts" / "claim_mask_video_decoder.py"]
         checkpoint_hashes = {name: _sha256_file(model_path / name)
@@ -538,7 +542,9 @@ def run(output_arg: str, packet_rel: Path = PACKET_REL,
             "reencoded_claim_token_ids_sha256": target_ids_hash,
             "target_token_count": len(target_ids),
             "target_id_semantics": "deterministic_tokenizer_encoding_of_saved_parsed_claim_string; not original generation emission IDs; no special tokens added",
-            "prompt_template": "question + A-E choices + pinned PROMPT_SUFFIX; video-first; add_generation_prompt=True",
+            "generation_prompt_version": prompt_version,
+            "prompt_suffix_sha256": _sha256_bytes(prompt_suffix.encode("utf-8")),
+            "prompt_template": f"question + A-E choices + pinned PROMPT_SUFFIX_BY_VERSION[{prompt_version}]; video-first; add_generation_prompt=True",
             "model": "Qwen/Qwen2.5-VL-7B-Instruct",
             "model_revision": MODEL_REVISION,
             "checkpoint_config_sha256": checkpoint_hashes,

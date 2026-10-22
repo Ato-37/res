@@ -191,26 +191,95 @@ def _read_records(repo: Path) -> tuple[list[dict], dict[str, str]]:
     return records, input_hashes
 
 
-def _read_selected_window_records(repo: Path, selection_relative: str):
+def _read_owner_private_json(repo: Path, relative: str, error_prefix: str):
+    """Read and hash one owner-only private JSON file through a single fd."""
+    rel = Path(relative)
+    private_root = (repo / "data/private_nextgqa").resolve(strict=True)
+    if rel.is_absolute() or not rel.is_relative_to(Path("data/private_nextgqa")):
+        raise ValueError(f"{error_prefix}_path_invalid")
+    entry = repo / rel
+    if stat.S_ISLNK(entry.lstat().st_mode):
+        raise ValueError(f"{error_prefix}_path_invalid")
+    path = entry.resolve(strict=True)
+    if not path.is_relative_to(private_root):
+        raise ValueError(f"{error_prefix}_path_invalid")
+    fd = os.open(path, os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0))
+    try:
+        info = os.fstat(fd)
+        if (not stat.S_ISREG(info.st_mode) or info.st_uid != os.getuid()
+                or stat.S_IMODE(info.st_mode) != 0o600 or info.st_size > 128 * 1024 * 1024):
+            raise ValueError(f"{error_prefix}_permissions_invalid")
+        chunks = []; total = 0
+        while True:
+            block = os.read(fd, min(1024 * 1024, 128 * 1024 * 1024 + 1 - total))
+            if not block: break
+            chunks.append(block); total += len(block)
+            if total > 128 * 1024 * 1024:
+                raise ValueError(f"{error_prefix}_size_invalid")
+        raw = b"".join(chunks)
+        payload = json.loads(raw.decode("utf-8"))
+        if not isinstance(payload, dict):
+            raise ValueError(f"{error_prefix}_schema_invalid")
+        return payload, raw, hashlib.sha256(raw).hexdigest()
+    finally:
+        os.close(fd)
+
+
+def _read_selected_window_records(repo: Path, selection_relative: str,
+                                  packet_relatives: list[str] | None = None,
+                                  cohort_lock_relative: str | None = None,
+                                  cohort_pairs_relative: str | None = None):
     """Read the exact test claims/windows bound by a completed local selector receipt."""
-    selection_path=(repo/selection_relative).resolve(strict=True)
-    private_root=(repo/"data/private_nextgqa").resolve(strict=True)
-    if not selection_path.is_relative_to(private_root):
-        raise ValueError("selection_receipt_path_invalid")
-    selection=json.loads(selection_path.read_text(encoding="utf-8"))
+    selection, selection_raw, selection_sha = _read_owner_private_json(
+        repo, selection_relative, "selection_receipt")
     if (selection.get("status")!="completed_window_likelihood_selection"
             or selection.get("selected_cohort_complete") is not True
             or selection.get("completed_windows")!=12 or len(selection.get("records",[]))!=3):
         raise ValueError("selection_receipt_incomplete")
-    packets=("data/private_nextgqa/claim_generation_window_test_smoke_20261021_03.json",
-             "data/private_nextgqa/claim_generation_window_test_remaining_20261021_03.json")
-    merged={}; hashes={selection_relative:hashlib.sha256(selection_path.read_bytes()).hexdigest()}
+    if ((cohort_lock_relative is None) != (cohort_pairs_relative is None)):
+        raise ValueError("frozen_test_cohort_lock_inputs_incomplete")
+    if cohort_lock_relative is not None and not packet_relatives:
+        raise ValueError("frozen_test_cohort_claim_packet_required")
+    locked_qids = None
+    lock_hashes = {}
+    if cohort_lock_relative is not None:
+        lock, _lock_raw, lock_sha = _read_owner_private_json(
+            repo, cohort_lock_relative, "cohort_lock")
+        pair_payload, pair_raw, pair_sha = _read_owner_private_json(
+            repo, cohort_pairs_relative, "cohort_pair_filter")
+        locked_qids = _validate_cohort_lock_binding(lock, lock_sha, selection, pair_payload)
+        pair_file_sha = hashlib.sha256(pair_raw).hexdigest()
+        if (pair_file_sha != selection.get("selected_pair_filter_sha256")
+                or pair_file_sha != lock.get("selected_pair_filter_sha256")):
+            raise ValueError("frozen_test_cohort_pair_file_hash_mismatch")
+        lock_hashes[cohort_lock_relative] = lock_sha
+        lock_hashes[cohort_pairs_relative] = pair_sha
+    packets=tuple(packet_relatives if packet_relatives is not None else (
+        "data/private_nextgqa/claim_generation_window_test_smoke_20261021_03.json",
+        "data/private_nextgqa/claim_generation_window_test_remaining_20261021_03.json"))
+    if not packets:
+        raise ValueError("claim_packet_required")
+    merged={}; hashes={selection_relative:selection_sha, **lock_hashes}
     packet_hashes={}
     for relative in packets:
-        path=repo/relative; raw=path.read_bytes(); payload=json.loads(raw.decode("utf-8"))
-        hashes[relative]=hashlib.sha256(raw).hexdigest()
+        payload, raw, packet_sha = _read_owner_private_json(repo, relative, "claim_packet")
+        if (payload.get("status")!="passed" or payload.get("dataset_split")!="test"
+                or payload.get("model_revision")!=MODEL_REVISION
+                or payload.get("claim_review_completed") is not False
+                or not isinstance(payload.get("records"),list)):
+            raise ValueError("claim_packet_contract_invalid")
+        hashes[relative]=packet_sha
+        if Path(relative).name in packet_hashes:
+            raise ValueError("claim_packet_basename_collision")
         packet_hashes[Path(relative).name]=hashes[relative]
         for record in payload.get("records",[]):
+            if (not isinstance(record, dict)
+                    or not isinstance(record.get("video_sha256"), str)
+                    or not isinstance(record.get("dataset_question_id"), str)
+                    or not isinstance(record.get("candidate_pair_sha256"), str)
+                    or not isinstance(record.get("generated_parsed"), dict)
+                    or not isinstance(record["generated_parsed"].get("claim"), str)):
+                raise ValueError("claim_packet_record_schema_invalid")
             if record.get("video_sha256") in merged:
                 raise ValueError("selected_window_duplicate_packet_media")
             merged[record["video_sha256"]]=record
@@ -225,6 +294,10 @@ def _read_selected_window_records(repo: Path, selection_relative: str):
                     record.get("generated_parsed",{}).get("claim","").encode()).hexdigest()
                 or selected.get("row_token_sha256")!=hashlib.sha256(
                     (media+str(record.get("dataset_question_id"))).encode()).hexdigest()
+                or (locked_qids is not None and locked_qids.get(media)
+                    != hashlib.sha256(str(record.get("dataset_question_id")).encode()).hexdigest())
+                or (locked_qids is not None and selected.get("pair_sha256")
+                    not in pair_payload.get("pair_sha256", []))
                 or len(selected.get("selected_sampled_frame_indices",[]))!=8
                 or selected.get("window_count")!=4 or selected.get("frames_per_window")!=8):
             raise ValueError("selection_receipt_packet_binding_invalid")
@@ -300,6 +373,67 @@ def _endpoint_record_view(records: list[dict], interval_source: str) -> tuple[li
     return renamed, new, metric
 
 
+def _uses_selected_cohort_records(interval_source: str,
+                                  selection_receipt: str | None) -> bool:
+    """Bind test benchmark-interval runs to an already frozen claim cohort."""
+    return (interval_source == "independent_3b_likelihood_window"
+            or (interval_source == "benchmark_gold" and selection_receipt is not None))
+
+
+def _validate_cohort_lock_binding(lock: dict, lock_sha256: str,
+                                 selection: dict, pair_payload: dict) -> list[dict]:
+    """Validate a selected test cohort against its frozen lock and pair set."""
+    import hashlib
+    assignments = lock.get("assignments")
+    pair_hashes = pair_payload.get("pair_sha256")
+    selected = selection.get("records")
+    if (lock.get("schema_version") != 1
+            or lock.get("status") != "frozen_before_claim_generation_and_scoring"
+            or lock.get("purpose") != "exploratory_claim_likelihood_selected_window_prediction_dependence"
+            or lock.get("dataset_split") != "test"
+            or lock.get("requested_videos") != 3 or lock.get("effective_videos") != 3
+            or selection.get("dataset_split") != "test"
+            or selection.get("cohort_lock_sha256") != lock_sha256
+            or selection.get("status") != "completed_window_likelihood_selection"
+            or selection.get("selected_cohort_complete") is not True
+            or selection.get("completed_windows") != 12
+            or selection.get("selected_pair_filter_sha256") != lock.get("selected_pair_filter_sha256")
+            or not isinstance(assignments, list) or len(assignments) != 3
+            or not isinstance(pair_hashes, list) or len(pair_hashes) != 3
+            or not isinstance(selected, list) or len(selected) != 3):
+        raise ValueError("frozen_test_cohort_lock_binding_invalid")
+    is_sha = lambda value: (isinstance(value, str) and len(value) == 64
+                            and all(char in "0123456789abcdef" for char in value))
+    if (pair_payload.get("schema_version") != 1
+            or any(not isinstance(row, dict)
+                   or not is_sha(row.get("media_sha256"))
+                   or not is_sha(row.get("qid_sha256")) for row in assignments)
+            or any(not is_sha(value) for value in pair_hashes)
+            or any(not isinstance(row, dict)
+                   or not is_sha(row.get("source_video_sha256"))
+                   or not is_sha(row.get("pair_sha256"))
+                   or not is_sha(row.get("row_token_sha256")) for row in selected)):
+        raise ValueError("frozen_test_cohort_lock_schema_invalid")
+    canonical = (json.dumps({"schema_version": 1, "pair_sha256": pair_hashes},
+                            sort_keys=True, separators=(",", ":"),
+                            ensure_ascii=False, allow_nan=False) + "\n").encode()
+    if (hashlib.sha256(canonical).hexdigest() != lock.get("selected_pair_filter_sha256")
+            or len(set(pair_hashes)) != 3
+            or set(pair_hashes) != {row.get("pair_sha256") for row in selected}):
+        raise ValueError("frozen_test_cohort_pair_filter_mismatch")
+    locked = {(row.get("media_sha256"), row.get("qid_sha256"))
+              for row in assignments if isinstance(row, dict)}
+    rows = [(row.get("source_video_sha256"), row.get("row_token_sha256"),
+             row.get("pair_sha256")) for row in selected if isinstance(row, dict)]
+    if (len(locked) != 3 or len(rows) != 3
+            or len({row[0] for row in rows}) != 3
+            or len({row[1] for row in rows}) != 3
+            or any(not media or not token or not pair for media, token, pair in rows)
+            or {media for media, _token, _pair in rows} != {media for media, _qid in locked}):
+        raise ValueError("frozen_test_cohort_assignment_mismatch")
+    return {row["media_sha256"]: row["qid_sha256"] for row in assignments}
+
+
 def _write_failure(output_arg: str, exc: Exception) -> None:
     repo = Path(__file__).resolve().parents[1]
     try:
@@ -364,7 +498,10 @@ def _write_failure(output_arg: str, exc: Exception) -> None:
 
 
 def run(output_arg: str, interval_source: str, selection_receipt: str | None = None,
-        smoke_first_record: bool = False) -> int:
+        smoke_first_record: bool = False,
+        claim_packets: list[str] | None = None,
+        cohort_lock: str | None = None,
+        cohort_pairs: str | None = None) -> int:
     global ACTIVE_STAGE, COMPLETED_LOCALIZATIONS, ACTIVE_INTERVAL_SOURCE, CURRENT_INPUT_HASHES
     global CURRENT_LOCALIZER_PROMPT_HASHES
     ACTIVE_STAGE = "private_input_validation"
@@ -375,13 +512,16 @@ def run(output_arg: str, interval_source: str, selection_receipt: str | None = N
     repo = Path(__file__).resolve().parents[1]
     output = validate_private_output(output_arg, repo)
     started = time.monotonic()
-    if interval_source=="independent_3b_likelihood_window":
+    if _uses_selected_cohort_records(interval_source, selection_receipt):
         if not selection_receipt:raise ValueError("selection_receipt_required")
-        records,input_hashes=_read_selected_window_records(repo,selection_receipt)
+        if interval_source == "benchmark_gold" and (not cohort_lock or not cohort_pairs):
+            raise ValueError("benchmark_gold_frozen_lock_required")
+        records,input_hashes=_read_selected_window_records(
+            repo,selection_receipt,claim_packets,cohort_lock,cohort_pairs)
     else:
         records, input_hashes = _read_records(repo)
     if smoke_first_record:
-        if interval_source!="independent_3b_likelihood_window":
+        if not _uses_selected_cohort_records(interval_source, selection_receipt):
             raise ValueError("single_record_smoke_only_supported_for_selected_window")
         records=records[:1]
     CURRENT_INPUT_HASHES = input_hashes
@@ -801,13 +941,18 @@ def main() -> int:
     parser.add_argument("--output", required=True, help="new local private output under data/private_nextgqa/")
     parser.add_argument("--interval-source", choices=("model_localized", "independent_3b_localized", "independent_3b_likelihood_window", "benchmark_gold"), required=True)
     parser.add_argument("--selection-receipt", help="completed private 3B selected-window receipt")
+    parser.add_argument("--claim-packet", action="append",
+                        help="private claim-generation packet bound to this selector receipt; repeatable")
+    parser.add_argument("--cohort-lock", help="private frozen cohort lock; required for benchmark_gold with a selector receipt")
+    parser.add_argument("--cohort-pairs", help="private selected candidate-pair filter matching --cohort-lock")
     parser.add_argument("--smoke-first-record", action="store_true", help="score one selected-window triplet for path validation only")
     parser.add_argument("--user-authorized-local-only", action="store_true")
     args = parser.parse_args()
     if not args.user_authorized_local_only:
         parser.error("explicit local-only authorization flag required")
     try:
-        return run(args.output, args.interval_source,args.selection_receipt,args.smoke_first_record)
+        return run(args.output, args.interval_source,args.selection_receipt,
+                   args.smoke_first_record,args.claim_packet,args.cohort_lock,args.cohort_pairs)
     except Exception as exc:
         _write_failure(args.output, exc)
         print(json.dumps({"status": "failed_incomplete_no_effect_estimate",

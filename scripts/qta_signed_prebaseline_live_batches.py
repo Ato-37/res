@@ -70,7 +70,9 @@ def verify_and_bind_signed_phase1_batches(
         integrity_roster_raw: bytes, release_roster_raw: bytes,
         root_public_key_pem: bytes, expected_root_public_der_sha256: str,
         expected_external_cohort_pin_sha256: str,
-        live_rows: Any) -> dict[str, Any]:
+        live_rows: Any,
+        expected_processor_batch_row_pins: Any = None,
+        expected_processor_batch_protocol_sha256: str | None = None) -> dict[str, Any]:
     """Verify the signed phase-1 receipt then atomically bind its 3 row hashes.
 
     Only aggregate counts and fixed, content-free failure codes are returned.
@@ -92,6 +94,8 @@ def verify_and_bind_signed_phase1_batches(
             root_public_key_pem=root_public_key_pem,
             expected_root_public_der_sha256=expected_root_public_der_sha256,
             expected_external_cohort_pin_sha256=expected_external_cohort_pin_sha256,
+            expected_processor_batch_row_pins=expected_processor_batch_row_pins,
+            expected_processor_batch_protocol_sha256=expected_processor_batch_protocol_sha256,
         )
         if (report.get("status") != "verified_signed_byte_bindings_non_authorizing"
                 or report.get("receipt_signature_valid") is not True

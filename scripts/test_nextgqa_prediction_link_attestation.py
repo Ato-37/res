@@ -18,6 +18,7 @@ from nextgqa_prediction_link_attestation import (
     verify_attestation,
 )
 from nextgqa_prediction_link_review import displayed_fields_sha256
+from qta_test_baseline_v3_fixture import build_synthetic_baseline_v3
 
 
 class PredictionLinkAttestationTests(unittest.TestCase):
@@ -25,7 +26,7 @@ class PredictionLinkAttestationTests(unittest.TestCase):
         self.tmp = tempfile.TemporaryDirectory()
         self.root = Path(self.tmp.name)
         self.keys = {}
-        for name in ("root", "owner", "claim", "frame", "prediction", "witness"):
+        for name in ("root", "owner", "capture", "claim", "frame", "prediction", "witness"):
             private = self.root / f"{name}.pem"
             public = self.root / f"{name}.pub"
             subprocess.run(["openssl", "genpkey", "-algorithm", "ED25519",
@@ -41,6 +42,7 @@ class PredictionLinkAttestationTests(unittest.TestCase):
             [("freeze_owner", "owner"), ("claim_reviewer", "claim"),
              ("frame_reviewer", "frame")], b"nextgqa_pre_review_roster_v1\0")
         role_to_key = {"freeze_owner": "owner", "custodian": "owner",
+                       "capture_operator": "capture",
                        "claim_reviewer": "claim", "frame_reviewer": "frame",
                        "prediction_link_reviewer": "prediction",
                        "release_witness": "witness"}
@@ -49,30 +51,9 @@ class PredictionLinkAttestationTests(unittest.TestCase):
             [(role, role_to_key[role]) for role in RELEASE_ROLES], _ROSTER_DOMAIN)
         self.video_review_hash = "c" * 64
         self.protocol_hash = "b" * 64
-        self.rows = [
-            {"review_token": f"opaque-{i}", "question": f"Question {i}?",
-             "options": ["A", "B", "C", "D", "E"], "claim": f"Claim {i}.",
-             "option_log_probabilities": [-0.1, -0.2, -1, -2, -3],
-             "p_index": 0, "q_index": 1, "video_support_decision": "supports_claim",
-             "reviewed_intervals_sha256": "d" * 64}
-            for i in (1, 2, 3)
-        ]
-        manifest = {"schema_version": 1, "purpose": "qta_baseline_prediction_link_manifest",
-                    "video_claim_review_receipt_sha256": self.video_review_hash,
-                    "records": self.rows}
-        self.manifest_raw = _canonical(manifest)
+        (self.manifest_raw, self.rows,
+         self.source_hashes) = build_synthetic_baseline_v3(self.video_review_hash)
         self.manifest_hash = _sha(self.manifest_raw)
-        self.source_hashes = {
-            row["review_token"]: {
-                "question_sha256": _sha(row["question"].encode()),
-                "options_sha256": _sha(json.dumps(
-                    row["options"], ensure_ascii=False, sort_keys=True,
-                    separators=(",", ":")).encode()),
-                "claim_sha256": _sha(row["claim"].encode()),
-                "video_support_decision": row["video_support_decision"],
-                "reviewed_intervals_sha256": row["reviewed_intervals_sha256"],
-            } for row in self.rows
-        }
         receipt = {
             "schema_version": 1, "purpose": "qta_prediction_link_adjudication",
             "status": "prediction_link_review_recorded_unvalidated",
@@ -113,7 +94,8 @@ class PredictionLinkAttestationTests(unittest.TestCase):
 
     def _signed_roster(self, purpose, role_names, domain):
         entries = []
-        key_ids = {"owner": "owner-key", "claim": "claim-key", "frame": "frame-key",
+        key_ids = {"owner": "owner-key", "capture": "capture-key",
+                   "claim": "claim-key", "frame": "frame-key",
                    "prediction": "prediction-key", "witness": "witness-key"}
         for role, name in role_names:
             public = self.keys[name][1]

@@ -368,7 +368,8 @@ def _open_path_no_follow(path: Path) -> int:
 
 
 def _read_stable_regular_file(path: Path, *, max_bytes: int,
-                              required_mode: int | None = None) -> bytes:
+                              required_mode: int | None = None,
+                              required_uid: int | None = None) -> bytes:
     try:
         fd = _open_path_no_follow(path)
     except OSError as exc:
@@ -379,6 +380,8 @@ def _read_stable_regular_file(path: Path, *, max_bytes: int,
             raise ValueError("input_must_be_regular_file")
         if required_mode is not None and stat.S_IMODE(before.st_mode) != required_mode:
             raise ValueError("input_mode_invalid")
+        if required_uid is not None and before.st_uid != required_uid:
+            raise ValueError("input_owner_invalid")
         if before.st_size < 0 or before.st_size > max_bytes:
             raise ValueError("input_size_limit_exceeded")
         chunks = []
@@ -398,9 +401,9 @@ def _read_stable_regular_file(path: Path, *, max_bytes: int,
     return raw
 
 
-def _read_secret(path: Path) -> bytes:
+def _read_secret(path: Path, *, required_uid: int | None = None) -> bytes:
     raw = _read_stable_regular_file(path, max_bytes=MAX_SECRET_BYTES,
-                                    required_mode=0o600)
+                                    required_mode=0o600, required_uid=required_uid)
     if len(raw) < 32:
         raise ValueError("secret_must_be_at_least_32_bytes")
     return raw

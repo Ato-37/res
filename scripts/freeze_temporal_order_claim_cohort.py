@@ -64,7 +64,17 @@ def _scored_video_digests(private_root: Path) -> set[str]:
             continue
         marker = carries_score_marker(payload)
         scan_output_family = path.name.startswith(prefixes)
-        if not marker and not scan_output_family:
+        purpose = (payload.get("purpose", "")
+                   if isinstance(payload, dict) else "")
+        # Generation packets are prior model exposure even before answer
+        # scoring. Include them by their schema purpose, not only by their
+        # filename: several valid packets use task-specific prefixes such as
+        # ``temporal_order_claim_generation_*``.
+        claim_generation = (isinstance(purpose, str)
+                            and ("claim_generation" in purpose
+                                 or "generated_claim" in purpose
+                                 or "claim_review_pilot" in purpose))
+        if not marker and not scan_output_family and not claim_generation:
             continue
         stack = [payload]
         while stack:
@@ -85,6 +95,73 @@ def _selection_exclusions(source_exclusions, scored_digests: set[str]) -> set[st
     return set(source_exclusions) | set(scored_digests)
 
 
+def _read_exposure_manifest(repo: Path, relative: Path) -> tuple[set[str], str, dict]:
+    """Verify a frozen local generation/scoring union and its source hashes."""
+    private_root = (repo / "data" / "private_nextgqa").resolve(strict=True)
+    if (relative.is_absolute() or not relative.is_relative_to(Path("data/private_nextgqa"))):
+        raise ValueError("claim_exposure_manifest_path_invalid")
+    path = (repo / relative).resolve(strict=True)
+    if not path.is_relative_to(private_root):
+        raise ValueError("claim_exposure_manifest_path_invalid")
+    fd = os.open(path, os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0))
+    try:
+        info = os.fstat(fd)
+        if (not stat.S_ISREG(info.st_mode) or info.st_uid != os.getuid()
+                or stat.S_IMODE(info.st_mode) != 0o600):
+            raise ValueError("claim_exposure_manifest_permissions_invalid")
+        blocks = []
+        while True:
+            block = os.read(fd, 1024 * 1024)
+            if not block:
+                break
+            blocks.append(block)
+        raw = b"".join(blocks)
+    finally:
+        os.close(fd)
+    manifest = json.loads(raw.decode("utf-8"))
+    sources = manifest.get("sources")
+    media = manifest.get("media_sha256")
+    if (manifest.get("schema_version") != 1
+            or manifest.get("purpose") != "local_claim_exposure_union_manifest"
+            or not isinstance(sources, list) or not isinstance(media, list)
+            or manifest.get("source_file_count") != len(sources)
+            or manifest.get("unique_media_count") != len(media)
+            or media != sorted(set(media))
+            or any(not isinstance(value, str) or len(value) != 64
+                   or any(c not in "0123456789abcdef" for c in value) for value in media)):
+        raise ValueError("claim_exposure_manifest_contract_invalid")
+    inventory_raw = json.dumps(sources, sort_keys=True, separators=(",", ":"),
+                               ensure_ascii=False, allow_nan=False).encode("utf-8")
+    inventory_hash = hashlib.sha256(inventory_raw).hexdigest()
+    if manifest.get("source_inventory_sha256") != inventory_hash:
+        raise ValueError("claim_exposure_manifest_inventory_hash_mismatch")
+    for source in sources:
+        if (not isinstance(source, dict)
+                or set(source) != {"relative_filename", "source_sha256", "role"}
+                or not isinstance(source.get("relative_filename"), str)
+                or not isinstance(source.get("source_sha256"), str)
+                or len(source["source_sha256"]) != 64
+                or any(c not in "0123456789abcdef" for c in source["source_sha256"])
+                or source.get("role") not in {"claim_generation", "scoring_receipt"}):
+            raise ValueError("claim_exposure_manifest_source_invalid")
+        source_rel = Path(source["relative_filename"])
+        if (source_rel.is_absolute() or not source_rel.is_relative_to(private_root.relative_to(repo))):
+            raise ValueError("claim_exposure_manifest_source_path_invalid")
+        source_entry = repo / source_rel
+        source_entry_info = source_entry.lstat()
+        if stat.S_ISLNK(source_entry_info.st_mode):
+            raise ValueError("claim_exposure_manifest_source_path_invalid")
+        source_path = source_entry.resolve(strict=True)
+        if not source_path.is_relative_to(private_root):
+            raise ValueError("claim_exposure_manifest_source_path_invalid")
+        source_info = source_path.stat()
+        if (not stat.S_ISREG(source_info.st_mode) or source_info.st_uid != os.getuid()
+                or stat.S_IMODE(source_info.st_mode) != 0o600
+                or pilot.sha256_file(source_path) != source.get("source_sha256")):
+            raise ValueError("claim_exposure_manifest_source_hash_mismatch")
+    return set(media), hashlib.sha256(raw).hexdigest(), manifest
+
+
 def _private_json_sha256(payload: dict) -> str:
     raw = (json.dumps(payload, sort_keys=True, separators=(",", ":"),
                       allow_nan=False) + "\n").encode("utf-8")
@@ -94,14 +171,16 @@ def _private_json_sha256(payload: dict) -> str:
 def freeze(*, repo: Path, pool_rel: Path | None, video_root: Path,
            lock_rel: Path, pair_filter_rel: Path, n: int = 3,
            dataset_split: str = "test",
-           purpose: str = "exploratory_saved_claim_temporal_order_bias_interaction") -> dict:
+           purpose: str = "exploratory_saved_claim_temporal_order_bias_interaction",
+           exposure_manifest_rel: Path | None = None) -> dict:
     if n != 3:
         raise ValueError("frozen_cohort_requires_three_rows")
     if dataset_split not in ("val", "test"):
         raise ValueError("candidate_pool_split_invalid")
     if purpose not in {
             "exploratory_saved_claim_temporal_order_bias_interaction",
-            "exploratory_saved_claim_video_content_frame_mean_split_check"}:
+            "exploratory_saved_claim_video_content_frame_mean_split_check",
+            "exploratory_claim_likelihood_selected_window_prediction_dependence"}:
         raise ValueError("cohort_purpose_invalid")
     private_root = (repo / "data" / "private_nextgqa").resolve(strict=True)
     pool_summary_hash = pair_filter_hash = prior_media_exclusion_hash = None
@@ -137,6 +216,15 @@ def freeze(*, repo: Path, pool_rel: Path | None, video_root: Path,
     # actually disjoint instead of selecting the original first rows and only
     # discovering overlap afterward.
     scored = _scored_video_digests(private_root)
+    exposure_manifest_sha256 = exposure_inventory_sha256 = None
+    exposure_source_count = exposure_media_count = None
+    if exposure_manifest_rel is not None:
+        exposure_media, exposure_manifest_sha256, exposure_manifest = \
+            _read_exposure_manifest(repo, exposure_manifest_rel)
+        scored.update(exposure_media)
+        exposure_inventory_sha256 = exposure_manifest["source_inventory_sha256"]
+        exposure_source_count = exposure_manifest["source_file_count"]
+        exposure_media_count = exposure_manifest["unique_media_count"]
     selection_exclusions = _selection_exclusions(exclusions, scored)
     pilot.MAX_VIDEOS = n
     selected, counts, meta, cohort_hash = pilot.freeze_cohort(
@@ -174,6 +262,10 @@ def freeze(*, repo: Path, pool_rel: Path | None, video_root: Path,
         "prior_scored_claim_digest_count": len(scored),
         "prior_scored_claim_digest_set_sha256": hashlib.sha256(json.dumps(
             sorted(scored), separators=(",", ":")).encode("utf-8")).hexdigest(),
+        "local_claim_exposure_manifest_sha256": exposure_manifest_sha256,
+        "local_claim_exposure_source_inventory_sha256": exposure_inventory_sha256,
+        "local_claim_exposure_source_file_count": exposure_source_count,
+        "local_claim_exposure_media_hash_count": exposure_media_count,
         "local_scored_claim_overlap_count": 0,
         "candidate_videos_scanned": counts["candidate_scan_count"],
         "cohort_sha256": cohort_hash,
@@ -181,6 +273,7 @@ def freeze(*, repo: Path, pool_rel: Path | None, video_root: Path,
         "source_sha256": {
             "scripts/freeze_temporal_order_claim_cohort.py": pilot.sha256_file(Path(__file__).resolve()),
             "scripts/run_nextgqa_gold_interval_margin_pilot.py": pilot.sha256_file(repo / "scripts/run_nextgqa_gold_interval_margin_pilot.py"),
+            "scripts/build_claim_exposure_union_manifest.py": pilot.sha256_file(repo / "scripts/build_claim_exposure_union_manifest.py"),
         },
         "limitations": [
             "candidate media appear in prior split/candidate metadata; complete exposure history is unavailable",
@@ -213,17 +306,21 @@ def main() -> int:
     parser.add_argument("--video-root", type=Path, required=True)
     parser.add_argument("--lock-output", required=True)
     parser.add_argument("--pair-filter-output", required=True)
+    parser.add_argument("--claim-exposure-manifest", type=Path, default=None,
+        help="optional private generation/scoring union manifest, relative to repository root")
     parser.add_argument("--dataset-split", choices=("val", "test"), default="test")
     parser.add_argument("--purpose", choices=(
         "exploratory_saved_claim_temporal_order_bias_interaction",
-        "exploratory_saved_claim_video_content_frame_mean_split_check"),
+        "exploratory_saved_claim_video_content_frame_mean_split_check",
+        "exploratory_claim_likelihood_selected_window_prediction_dependence"),
         default="exploratory_saved_claim_temporal_order_bias_interaction")
     args = parser.parse_args()
     repo = Path(__file__).resolve().parents[1]
     pool_rel = Path("data/private_nextgqa") / args.pool if args.pool is not None else None
     result = freeze(repo=repo, pool_rel=pool_rel, video_root=args.video_root,
         lock_rel=Path(args.lock_output), pair_filter_rel=Path(args.pair_filter_output),
-        dataset_split=args.dataset_split, purpose=args.purpose)
+        dataset_split=args.dataset_split, purpose=args.purpose,
+        exposure_manifest_rel=args.claim_exposure_manifest)
     print(json.dumps(result, sort_keys=True))
     return 0
 

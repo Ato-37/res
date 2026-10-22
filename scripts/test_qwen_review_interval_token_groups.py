@@ -9,6 +9,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 from qwen_review_interval_token_groups import (  # noqa: E402
     map_review_intervals_to_qwen_groups,
     map_review_interval_to_qwen_groups,
+    select_single_annotation_anchor_group,
     select_equal_count_rank_distance_control_groups,
 )
 
@@ -235,6 +236,29 @@ class ReviewIntervalTokenGroupTests(unittest.TestCase):
         )
         self.assertEqual(result["evidence_group_indices"], [0, 5])
 
+    def test_annotation_bound_is_separate_from_sampled_video_support_end(self):
+        from qwen_review_interval_token_groups import map_review_intervals_to_qwen_groups
+        support_end = Fraction(50417, 1000)
+        kwargs = {
+            "input_ids": [99] * 16,
+            "video_token_id": 99,
+            "video_grid_thw": [4, 2, 2],
+            "spatial_merge_size": 1,
+            "temporal_patch_size": 1,
+            "sampled_pts_seconds": [0, 10, 20, support_end],
+            "video_duration_seconds": support_end,
+            "annotation_duration_seconds": 50,
+            "reviewed_intervals_seconds": [[17, Fraction(35, 2)]],
+        }
+        result = map_review_intervals_to_qwen_groups(**kwargs)
+        self.assertEqual(result["evidence_group_indices"], [2])
+        self.assertEqual(result["support_duration_seconds"], float(support_end))
+        self.assertEqual(result["annotation_duration_seconds"], 50.0)
+        self.assertEqual(kwargs["reviewed_intervals_seconds"], [[17, Fraction(35, 2)]])
+        with self.assertRaisesRegex(ValueError, "reviewed_interval_invalid"):
+            map_review_intervals_to_qwen_groups(
+                **{**kwargs, "reviewed_intervals_seconds": [[Fraction(501, 10), 50.2]]})
+
     def test_processor_scalar_fps_gate_rejects_group_boundary_disagreement(self):
         kwargs = {
             "input_ids": [99] * 16,
@@ -301,6 +325,140 @@ class ReviewIntervalTokenGroupTests(unittest.TestCase):
                     **{**base, field: None},
                     reviewed_intervals_seconds=[[0, 0.5]],
                 )
+
+    def test_single_anchor_merges_overlapping_annotations_without_double_counting(self):
+        result = select_single_annotation_anchor_group(
+            sampled_pts_seconds=[0, 1, 5, 9], support_duration_seconds=10,
+            temporal_patch_size=1, evidence_group_indices=[1, 2],
+            reviewed_intervals_seconds=[[Fraction(1, 2), 7],
+                                        [Fraction(1, 2), 3]],
+            annotation_duration_seconds=10)
+        # Midpoint support cells are [0,1/2], [1/2,3], [3,7], [7,10].
+        # The merged union overlaps group 2 by 4 seconds and group 1 by 5/2;
+        # summing the overlapping annotation rows separately would incorrectly
+        # give group 1 the larger total (5 versus 4).
+        self.assertEqual(result["representative_group_index"], 2)
+        self.assertEqual(result["control_group_index"], 3)
+        self.assertEqual(result["overlap_duration_fraction"], "4/1")
+        self.assertEqual(result["merged_annotation_union_seconds"], "13/2")
+
+    def test_single_anchor_overlap_tie_chooses_earliest_group(self):
+        result = select_single_annotation_anchor_group(
+            sampled_pts_seconds=[0, 1, 2, 3, 4], support_duration_seconds=5,
+            temporal_patch_size=1, evidence_group_indices=[1, 2],
+            reviewed_intervals_seconds=[[Fraction(1, 2), Fraction(5, 2)]],
+            annotation_duration_seconds=5)
+        self.assertEqual(result["representative_group_index"], 1)
+        self.assertEqual(result["control_group_index"], 0)
+        self.assertEqual(result["overlap_duration_fraction"], "1/1")
+        self.assertEqual(result["merged_annotation_union_seconds"], "2/1")
+
+    def test_single_anchor_handles_support_edge_exactly(self):
+        result = select_single_annotation_anchor_group(
+            sampled_pts_seconds=[0, 1, 2], support_duration_seconds=3,
+            temporal_patch_size=1, evidence_group_indices=[0],
+            reviewed_intervals_seconds=[[0, Fraction(1, 4)]],
+            annotation_duration_seconds=3)
+        self.assertEqual(result["representative_group_index"], 0)
+        self.assertEqual(result["control_group_index"], 1)
+        self.assertEqual(result["overlap_duration_fraction"], "1/4")
+        self.assertEqual(result["merged_annotation_union_seconds"], "1/4")
+
+    def test_single_anchor_allows_one_control_when_evidence_exceeds_half(self):
+        with self.assertRaisesRegex(ValueError, "equal_count_temporal_control_unavailable"):
+            select_equal_count_rank_distance_control_groups([0, 1, 2], 5)
+        result = select_single_annotation_anchor_group(
+            sampled_pts_seconds=[0, 1, 2, 3, 4], support_duration_seconds=5,
+            temporal_patch_size=1, evidence_group_indices=[0, 1, 2],
+            reviewed_intervals_seconds=[[0, Fraction(5, 2)]],
+            annotation_duration_seconds=5)
+        self.assertEqual(result["representative_group_index"], 1)
+        self.assertEqual(result["control_group_index"], 3)
+        self.assertEqual(result["overlap_duration_fraction"], "1/1")
+
+    def test_single_anchor_rejects_short_pts_empty_evidence_and_invalid_intervals(self):
+        common = {"sampled_pts_seconds": [0, 1, 2],
+                  "support_duration_seconds": 3, "temporal_patch_size": 1,
+                  "evidence_group_indices": [1],
+                  "reviewed_intervals_seconds": [[0, 2]],
+                  "annotation_duration_seconds": 3}
+        invalid = [
+            ({**common, "sampled_pts_seconds": [0]}, "anchor_requires_at_least_two_groups"),
+            ({**common, "evidence_group_indices": []}, "evidence_group_indices_invalid"),
+            ({**common, "reviewed_intervals_seconds": [[2, 4]]}, "reviewed_interval_invalid"),
+            ({**common, "reviewed_intervals_seconds": []}, "reviewed_intervals_invalid"),
+        ]
+        for kwargs, error_code in invalid:
+            with self.subTest(error_code=error_code), self.assertRaisesRegex(
+                    ValueError, error_code):
+                select_single_annotation_anchor_group(**kwargs)
+
+    def test_single_anchor_rejects_omitted_or_uncovered_evidence_groups(self):
+        common = {"sampled_pts_seconds": [0, 1, 2, 3],
+                  "support_duration_seconds": 4, "temporal_patch_size": 1,
+                  "reviewed_intervals_seconds": [[0, Fraction(12, 5)]],
+                  "annotation_duration_seconds": 4}
+        # The interval has positive overlap with groups 0, 1, and 2, but not 3.
+        for supplied in ([0, 1], [0, 1, 2, 3]):
+            with self.subTest(supplied=supplied), self.assertRaisesRegex(
+                    ValueError, "annotation_evidence_group_set_mismatch"):
+                select_single_annotation_anchor_group(
+                    **common, evidence_group_indices=supplied)
+
+    def test_single_anchor_policy_maps_over_half_evidence_to_one_disjoint_control(self):
+        kwargs = {
+            "input_ids": [99] * 5, "video_token_id": 99,
+            "video_grid_thw": [5, 1, 1], "spatial_merge_size": 1,
+            "temporal_patch_size": 1,
+            "sampled_pts_seconds": [0, 1, 2, 3, 4],
+            "video_duration_seconds": 5, "annotation_duration_seconds": 5,
+            "reviewed_intervals_seconds": [[0, Fraction(5, 2)]],
+        }
+        with self.assertRaisesRegex(ValueError, "equal_count_temporal_control_unavailable"):
+            map_review_intervals_to_qwen_groups(**kwargs)
+
+        first = map_review_intervals_to_qwen_groups(
+            **kwargs, evidence_selection_policy="single_overlap_anchor")
+        second = map_review_intervals_to_qwen_groups(
+            **kwargs, evidence_selection_policy="single_overlap_anchor")
+        self.assertEqual(first["annotation_covered_group_indices"], [0, 1, 2])
+        self.assertEqual(first["evidence_group_indices"], [1])
+        self.assertEqual(first["control_group_indices"], [3])
+        self.assertEqual(first["representative_annotation_group_index"], 1)
+        self.assertEqual(first["evidence_selection_policy"], "single_overlap_anchor")
+        self.assertNotIn(first["control_group_indices"][0],
+                         first["annotation_covered_group_indices"])
+        self.assertEqual(first["evidence_group_indices"], second["evidence_group_indices"])
+        self.assertEqual(first["control_group_indices"], second["control_group_indices"])
+        self.assertEqual(first["representative_annotation_group_index"],
+                         second["representative_annotation_group_index"])
+        with self.assertRaisesRegex(ValueError, "evidence_selection_policy_invalid"):
+            map_review_intervals_to_qwen_groups(
+                **kwargs, evidence_selection_policy="unknown_policy")
+
+    def test_annotation_union_only_returns_exact_union_and_explicit_empty_control(self):
+        kwargs = {
+            "input_ids": [99] * 5, "video_token_id": 99,
+            "video_grid_thw": [5, 1, 1], "spatial_merge_size": 1,
+            "temporal_patch_size": 1,
+            "sampled_pts_seconds": [0, 1, 2, 3, 4],
+            "video_duration_seconds": 5, "annotation_duration_seconds": 5,
+            "reviewed_intervals_seconds": [[0, Fraction(5, 2)]],
+        }
+        result = map_review_intervals_to_qwen_groups(
+            **kwargs, evidence_selection_policy="annotation_union_only")
+        self.assertEqual(result["annotation_covered_group_indices"], [0, 1, 2])
+        self.assertEqual(result["evidence_group_indices"], [0, 1, 2])
+        self.assertEqual(result["control_group_indices"], [])
+        self.assertEqual(result["control_token_positions"], [])
+        self.assertEqual(result["control_rule"], "none_one_sided_annotation_union_ablation")
+        # The no-control estimand remains geometrically defined even if every
+        # temporal group is annotation covered.
+        full = map_review_intervals_to_qwen_groups(
+            **{**kwargs, "reviewed_intervals_seconds": [[0, 5]]},
+            evidence_selection_policy="annotation_union_only")
+        self.assertEqual(full["evidence_group_indices"], [0, 1, 2, 3, 4])
+        self.assertEqual(full["control_group_indices"], [])
 
 
 if __name__ == "__main__":

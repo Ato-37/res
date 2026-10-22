@@ -1,5 +1,7 @@
 import unittest
-from analyze_claim_likelihood_window_gold_overlap import union_intervals,overlap_metrics
+from analyze_claim_likelihood_window_gold_overlap import (
+    union_intervals,overlap_metrics,sampled_point_coverage,
+)
 
 class GoldOverlapTests(unittest.TestCase):
     def test_unions_overlapping_and_touching_annotation_spans(self):
@@ -15,5 +17,11 @@ class GoldOverlapTests(unittest.TestCase):
     def test_invalid_or_empty_candidates_fail_closed(self):
         with self.assertRaises(ValueError):overlap_metrics((1,1),[[0,2]])
         with self.assertRaises(ValueError):union_intervals([[2,1]])
+
+    def test_sampled_point_coverage_uses_union_and_inclusive_interval_bounds(self):
+        self.assertAlmostEqual(sampled_point_coverage(
+            [0,1,2,3,4],[[1,2],[2,3]]),.6)
+        with self.assertRaisesRegex(ValueError,"sampled_points_empty"):
+            sampled_point_coverage([],[[0,1]])
 
 if __name__=="__main__":unittest.main()

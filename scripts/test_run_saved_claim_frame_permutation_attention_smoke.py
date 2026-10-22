@@ -14,10 +14,22 @@ from run_saved_claim_frame_permutation_attention_smoke import (
     _read_packet,
     validate_biased_mask_rows,
 )
+from run_saved_claim_video_content_dependence import resolve_claim_prompt_suffix
+from generate_nextgqa_claim_review_pilot import PROMPT_SUFFIX, PROMPT_SUFFIX_BY_VERSION
 import torch
 
 
 class SavedClaimFramePermutationSmokeTests(unittest.TestCase):
+    def test_claim_prompt_version_uses_recorded_suffix_not_legacy_default(self):
+        row = {"generation_prompt_version": "v2_short"}
+        version, suffix = resolve_claim_prompt_suffix(row, PROMPT_SUFFIX_BY_VERSION)
+        self.assertEqual(version, "v2_short")
+        self.assertEqual(suffix, PROMPT_SUFFIX_BY_VERSION["v2_short"])
+        self.assertNotEqual(suffix, PROMPT_SUFFIX)
+        with self.assertRaisesRegex(ValueError, "prompt_version_invalid"):
+            resolve_claim_prompt_suffix({"generation_prompt_version": "future"},
+                                        PROMPT_SUFFIX_BY_VERSION)
+
     def test_reverse_blocks_preserves_within_block_temporal_patch_order(self):
         self.assertEqual(deterministic_reverse_block_indices(8, 2),
                          (6, 7, 4, 5, 2, 3, 0, 1))

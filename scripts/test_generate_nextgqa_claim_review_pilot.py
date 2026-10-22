@@ -14,10 +14,20 @@ from run_nextgqa_gold_interval_margin_pilot import candidate_pair_sha256, load_c
 
 class ClaimOutputParserTests(unittest.TestCase):
     def test_short_prompt_version_is_explicit_and_legacy_v1_stays_unchanged(self):
-        self.assertEqual(set(PROMPT_SUFFIX_BY_VERSION), {"v1", "v2_short"})
+        self.assertEqual(set(PROMPT_SUFFIX_BY_VERSION), {
+            "v1", "v2_short", "v3_sequence_complete"})
         self.assertIn("25 words or fewer", PROMPT_SUFFIX_BY_VERSION["v2_short"])
         self.assertTrue(PROMPT_SUFFIX_BY_VERSION["v2_short"].startswith(
             PROMPT_SUFFIX_BY_VERSION["v1"]))
+
+    def test_sequence_complete_prompt_allows_relevant_action_steps_without_invention(self):
+        prompt = PROMPT_SUFFIX_BY_VERSION["v3_sequence_complete"]
+        self.assertTrue(prompt.startswith(PROMPT_SUFFIX_BY_VERSION["v1"]))
+        self.assertIn("40 words or fewer", prompt)
+        self.assertIn("every part of the question", prompt)
+        self.assertIn("more than one action verb", prompt)
+        self.assertIn("Do not invent intent", prompt)
+        self.assertNotIn("Use one simple sentence with one", prompt)
 
     def test_parses_one_plain_claim_line_without_model_frame_selection(self):
         parsed = parse_claim_output("CLAIM=A person opens the cabinet.", 16)

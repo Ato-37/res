@@ -41,13 +41,16 @@ def map_review_interval_to_qwen_groups(
     video_grid_thw: Sequence[int], spatial_merge_size: int,
     temporal_patch_size: int, sampled_pts_seconds: Sequence[Real],
     video_duration_seconds: Real, reviewed_interval_seconds: Sequence[Real],
+    annotation_duration_seconds: Real | None = None,
     _select_control: bool = True,
 ) -> dict:
     """Return complete temporal-grid groups overlapping the reviewed time cells.
 
     Sampled-frame support cells use midpoint boundaries clipped to
     ``video_duration_seconds``; contiguous frames in one temporal patch form
-    one cell span. The matched control is a contiguous, disjoint window with
+    one cell span. When supplied, ``annotation_duration_seconds`` separately
+    bounds the reviewed interval; it must be positive and no greater than the
+    sampled-support duration. The matched control is a contiguous, disjoint window with
     the same number of temporal groups, minimizing the difference in temporal
     duration, then center-time distance, then choosing the earlier start. If
     no such window exists, the helper fails closed. Time comparisons use exact
@@ -80,6 +83,9 @@ def map_review_interval_to_qwen_groups(
         interval = tuple(_finite_fraction(value, "reviewed_interval")
                          for value in reviewed_interval_seconds)
         duration = _finite_fraction(video_duration_seconds, "video_duration")
+        annotation_duration = _finite_fraction(
+            video_duration_seconds if annotation_duration_seconds is None
+            else annotation_duration_seconds, "annotation_duration")
     except TypeError:
         raise ValueError("time_mapping_invalid") from None
     if (not pts or len(pts) != temporal_steps * temporal_patch_size
@@ -88,8 +94,10 @@ def map_review_interval_to_qwen_groups(
         raise ValueError("sampled_pts_grid_mismatch")
     if duration <= 0 or pts[-1] > duration:
         raise ValueError("video_duration_or_sampled_pts_invalid")
+    if annotation_duration <= 0 or annotation_duration > duration:
+        raise ValueError("annotation_duration_outside_video_support")
     if (len(interval) != 2 or interval[0] < 0 or interval[0] >= interval[1]
-            or interval[1] > duration):
+            or interval[1] > annotation_duration):
         raise ValueError("reviewed_interval_invalid")
 
     positions = tuple(index for index, token in enumerate(ids)
@@ -168,6 +176,8 @@ def map_review_interval_to_qwen_groups(
             - boundaries[index * temporal_patch_size]
             for index in range(temporal_steps))),
         "temporal_diagnostics_status": "diagnostic_only_no_prespecified_acceptance_threshold",
+        "support_duration_seconds": float(duration),
+        "annotation_duration_seconds": float(annotation_duration),
         "temporal_support_rule": "frame_midpoint_cells_clipped_to_video_duration_positive_overlap",
         "control_rule": ("disjoint_equal_count_window_min_duration_difference_then_center_distance_then_earlier"
                          if _select_control else "not_selected_evidence_mapping_only"),
@@ -225,14 +235,116 @@ def select_equal_count_rank_distance_control_groups(
     return list(best[1])
 
 
+def select_single_annotation_anchor_group(
+    sampled_pts_seconds: Sequence[Real], support_duration_seconds: Real,
+    temporal_patch_size: int, evidence_group_indices: Sequence[int],
+    reviewed_intervals_seconds: Sequence[Sequence[Real]],
+    annotation_duration_seconds: Real,
+) -> dict:
+    """Select one interval-overlap anchor and nearest wholly non-evidence group.
+
+    Selection uses only annotation intervals and sampled-frame support geometry.
+    Overlapping or touching intervals are merged before exact rational overlap
+    is measured. Both the anchor and control are disjoint from every other
+    group covered by the complete annotation union.
+    """
+    if type(temporal_patch_size) is not int or temporal_patch_size <= 0:
+        raise ValueError("temporal_patch_size_invalid")
+    try:
+        pts = tuple(_finite_fraction(value, "sampled_pts")
+                    for value in sampled_pts_seconds)
+        support = _finite_fraction(support_duration_seconds, "support_duration")
+        annotation_duration = _finite_fraction(
+            annotation_duration_seconds, "annotation_duration")
+    except TypeError:
+        raise ValueError("anchor_time_geometry_invalid") from None
+    if (not pts or len(pts) % temporal_patch_size
+            or pts[0] < 0 or any(right <= left for left, right in zip(pts, pts[1:]))
+            or support <= 0 or pts[-1] > support
+            or annotation_duration <= 0 or annotation_duration > support):
+        raise ValueError("anchor_time_geometry_invalid")
+    total_groups = len(pts) // temporal_patch_size
+    if total_groups < 2:
+        raise ValueError("anchor_requires_at_least_two_groups")
+    if (not isinstance(evidence_group_indices, Sequence)
+            or isinstance(evidence_group_indices, (str, bytes))
+            or not evidence_group_indices
+            or any(type(index) is not int for index in evidence_group_indices)):
+        raise ValueError("evidence_group_indices_invalid")
+    covered = tuple(sorted(set(evidence_group_indices)))
+    if (len(covered) != len(evidence_group_indices)
+            or covered[0] < 0 or covered[-1] >= total_groups):
+        raise ValueError("evidence_group_indices_invalid")
+    if (not isinstance(reviewed_intervals_seconds, Sequence)
+            or isinstance(reviewed_intervals_seconds, (str, bytes))
+            or not reviewed_intervals_seconds):
+        raise ValueError("reviewed_intervals_invalid")
+    intervals = []
+    for interval in reviewed_intervals_seconds:
+        if (not isinstance(interval, Sequence)
+                or isinstance(interval, (str, bytes)) or len(interval) != 2):
+            raise ValueError("reviewed_intervals_invalid")
+        start = _finite_fraction(interval[0], "reviewed_interval")
+        end = _finite_fraction(interval[1], "reviewed_interval")
+        if start < 0 or start >= end or end > annotation_duration:
+            raise ValueError("reviewed_interval_invalid")
+        intervals.append((start, end))
+    intervals.sort()
+    merged = []
+    for start, end in intervals:
+        if merged and start <= merged[-1][1]:
+            merged[-1] = (merged[-1][0], max(merged[-1][1], end))
+        else:
+            merged.append((start, end))
+
+    boundaries = [Fraction(0)]
+    boundaries.extend((left + right) / 2 for left, right in zip(pts, pts[1:]))
+    boundaries.append(support)
+    overlap_by_group = {}
+    for index in range(total_groups):
+        start = boundaries[index * temporal_patch_size]
+        end = boundaries[(index + 1) * temporal_patch_size]
+        overlap = sum((max(Fraction(0), min(end, ann_end) - max(start, ann_start))
+                       for ann_start, ann_end in merged), Fraction(0))
+        overlap_by_group[index] = overlap
+    expected_covered = tuple(index for index, overlap in overlap_by_group.items()
+                             if overlap > 0)
+    if covered != expected_covered:
+        raise ValueError("annotation_evidence_group_set_mismatch")
+    max_overlap = max(overlap_by_group[index] for index in covered)
+    representative = min(index for index, value in overlap_by_group.items()
+                          if index in covered and value == max_overlap)
+    controls = [index for index in range(total_groups) if index not in covered]
+    if not controls:
+        raise ValueError("annotation_anchor_control_unavailable")
+    control = min(controls, key=lambda index: (abs(index - representative), index))
+    selected_overlap = overlap_by_group[representative]
+    merged_union = sum((end - start for start, end in merged), Fraction(0))
+    return {
+        "representative_group_index": representative,
+        "control_group_index": control,
+        "overlap_duration_fraction": (
+            f"{selected_overlap.numerator}/{selected_overlap.denominator}"),
+        "annotation_overlap_fraction": (
+            f"{(selected_overlap / merged_union).numerator}/"
+            f"{(selected_overlap / merged_union).denominator}"),
+        "merged_annotation_union_seconds": (
+            f"{merged_union.numerator}/{merged_union.denominator}"),
+        "annotation_covered_group_indices": list(covered),
+        "selection_rule": "max_exact_union_overlap_tie_earlier_nearest_uncovered_control_tie_earlier",
+    }
+
+
 def map_review_intervals_to_qwen_groups(
     *, input_ids: Sequence[int], video_token_id: int,
     video_grid_thw: Sequence[int], spatial_merge_size: int,
     temporal_patch_size: int, sampled_pts_seconds: Sequence[Real],
     video_duration_seconds: Real,
     reviewed_intervals_seconds: Sequence[Sequence[Real]],
+    annotation_duration_seconds: Real | None = None,
     interval_boundary_guard_seconds: Real = 0.0,
     require_processor_uniform_grid_assignment: bool = False,
+    evidence_selection_policy: str = "all_annotations",
 ) -> dict:
     """Map occurrences and require stable assignment under a clock guard.
 
@@ -243,10 +355,13 @@ def map_review_intervals_to_qwen_groups(
 
     Each interval is mapped with the same midpoint-cell positive-overlap rule
     as the single-interval mapper. Evidence is the union of all covered groups;
-    intervening groups are not filled. The control contains the same number of
-    groups outside that union, minimizes order-paired summed absolute index
-    distance, and lexicographically prefers earlier ties. If no such control
-    exists, the row is ineligible and this function fails closed. The interval
+    intervening groups are not filled. The default ``all_annotations`` policy
+    requires an equal-count control outside that union. The explicit
+    ``single_overlap_anchor`` policy selects one group by exact annotation-union
+    overlap and its nearest group outside the full annotation union. The
+    ``annotation_union_only`` policy returns the full annotation-covered union
+    with an explicitly empty control for a one-sided ablation. When a required
+    matched control does not exist, matched-control policies fail closed. The interval
     guard compares possible membership (expanded intervals) with certain
     membership (contracted intervals); any difference rejects the row.
     When `require_processor_uniform_grid_assignment` is true, each interval's
@@ -296,6 +411,7 @@ def map_review_intervals_to_qwen_groups(
         "temporal_patch_size": temporal_patch_size,
         "sampled_pts_seconds": frozen_pts,
         "video_duration_seconds": video_duration_seconds,
+        "annotation_duration_seconds": annotation_duration_seconds,
     }
     mapped = [map_review_interval_to_qwen_groups(
         **common, reviewed_interval_seconds=interval, _select_control=False)
@@ -349,14 +465,33 @@ def map_review_intervals_to_qwen_groups(
                                and guard_boundaries[(index + 1) * temporal_patch_size] > start + guard)
         if possible != certain:
             raise ValueError("calibration_guard_changes_group_assignment")
-    control = select_equal_count_rank_distance_control_groups(
-        evidence, temporal_group_count)
+    all_annotation_evidence = list(evidence)
+    anchor = None
+    if evidence_selection_policy == "all_annotations":
+        control = select_equal_count_rank_distance_control_groups(
+            evidence, temporal_group_count)
+    elif evidence_selection_policy == "single_overlap_anchor":
+        anchor = select_single_annotation_anchor_group(
+            frozen_pts, video_duration_seconds, temporal_patch_size, evidence,
+            normalized_intervals,
+            (video_duration_seconds if annotation_duration_seconds is None
+             else annotation_duration_seconds))
+        evidence = [anchor["representative_group_index"]]
+        control = [anchor["control_group_index"]]
+    elif evidence_selection_policy == "annotation_union_only":
+        # One-sided mask estimand: keep every group covered by the annotation
+        # union and make the lack of a matched control explicit.
+        evidence = list(all_annotation_evidence)
+        control = []
+    else:
+        raise ValueError("evidence_selection_policy_invalid")
     groups = reference["groups"]
     evidence_positions = tuple(position for index in evidence
                                for position in groups[index]["token_positions"])
     control_positions = tuple(position for index in control
                               for position in groups[index]["token_positions"])
-    if (len(evidence_positions) != len(control_positions)
+    if ((evidence_selection_policy != "annotation_union_only"
+            and len(evidence_positions) != len(control_positions))
             or set(evidence_positions).intersection(control_positions)):
         raise ValueError("internal_group_budget_or_overlap_invalid")
     return {
@@ -379,7 +514,21 @@ def map_review_intervals_to_qwen_groups(
             if processor_grid_max_deviation is not None else None),
         "reviewed_occurrence_group_indices": [
             row["evidence_group_indices"] for row in mapped],
-        "control_rule": "equal_count_order_paired_rank_distance_sum_then_lexicographic_earlier",
+        "annotation_covered_group_indices": all_annotation_evidence,
+        "annotation_covered_group_count": len(all_annotation_evidence),
+        "evidence_selection_policy": evidence_selection_policy,
+        "representative_annotation_group_index": (
+            anchor["representative_group_index"] if anchor is not None else None),
+        "representative_annotation_overlap_duration_fraction": (
+            anchor["overlap_duration_fraction"] if anchor is not None else None),
+        "representative_annotation_overlap_fraction": (
+            anchor["annotation_overlap_fraction"] if anchor is not None else None),
+        "control_rule": (
+            "equal_count_order_paired_rank_distance_sum_then_lexicographic_earlier"
+            if evidence_selection_policy == "all_annotations" else
+            "none_one_sided_annotation_union_ablation"
+            if evidence_selection_policy == "annotation_union_only" else
+            "nearest_uncovered_group_to_representative_tie_earlier"),
         "temporal_group_count_alias": "evidence_group_count; total_temporal_group_count is all groups",
         "mapping_scope": "union_of_all_distinct_reviewed_occurrences",
     }

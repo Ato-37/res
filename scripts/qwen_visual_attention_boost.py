@@ -115,6 +115,172 @@ def install_video_key_bias_hooks(*, model: Any, layer_indices: Sequence[int],
     return handles
 
 
+def bias_video_keys_during_generation(*, attention_mask: Any,
+        selected_positions: Sequence[int], first_query_position: int,
+        logit_bias: float, torch_module: Any) -> Any:
+    """Bias frozen absolute video keys on answer-generation query rows.
+
+    Supports Qwen eager masks for full prefill (Q=K), cached decode (Q=1,
+    K=prefix length), and uncached full-prefix decode. This helper alone
+    assumes that the key axis begins at absolute position 0; the hook installer
+    enforces a DynamicCache-only sequence to rule out static/cropped caches.
+    `first_query_position`
+    is the prompt's final token row, which predicts the first generated token.
+    Keys must be strict causal predecessors; only selected keys and eligible
+    query rows change. Do not use alone to authenticate a static or cropped
+    cache because mask shape does not reveal key-axis origin.
+    """
+    if (torch_module is None or not callable(getattr(torch_module, "is_tensor", None))
+            or not torch_module.is_tensor(attention_mask)):
+        raise ValueError("attention_mask_tensor_required")
+    if (attention_mask.ndim != 4 or tuple(attention_mask.shape[:2]) != (1, 1)
+            or not attention_mask.dtype.is_floating_point):
+        raise ValueError("attention_mask_shape_or_dtype_invalid")
+    if (bool(torch_module.isnan(attention_mask).any())
+            or bool(torch_module.isposinf(attention_mask).any())):
+        raise ValueError("attention_mask_contains_invalid_nonfinite")
+    qlen, klen = map(int, attention_mask.shape[-2:])
+    if qlen < 1 or klen < qlen:
+        raise ValueError("generation_attention_mask_geometry_invalid")
+    if type(first_query_position) is not int or first_query_position < 0:
+        raise ValueError("first_query_position_invalid")
+    if (not isinstance(selected_positions, Sequence)
+            or isinstance(selected_positions, (str, bytes)) or not selected_positions
+            or any(type(p) is not int for p in selected_positions)
+            or tuple(sorted(set(selected_positions))) != tuple(selected_positions)
+            or any(p < 0 or p >= klen for p in selected_positions)):
+        raise ValueError("selected_video_positions_invalid")
+    if (isinstance(logit_bias, bool) or not isinstance(logit_bias, (int, float))
+            or not math.isfinite(float(logit_bias)) or logit_bias <= 0):
+        raise ValueError("positive_finite_logit_bias_required")
+    offset = klen - qlen
+    rows = tuple(row for row in range(qlen)
+                 if offset + row >= first_query_position)
+    if not rows:
+        raise ValueError("no_generation_query_rows_in_mask")
+    if any(position >= offset + row
+           for position in selected_positions for row in rows):
+        raise ValueError("selected_video_keys_must_precede_generation_query")
+    row_idx = torch_module.tensor(rows, device=attention_mask.device,
+                                  dtype=torch_module.long)
+    col_idx = torch_module.tensor(tuple(selected_positions),
+                                  device=attention_mask.device,
+                                  dtype=torch_module.long)
+    current = attention_mask[0, 0][row_idx[:, None], col_idx[None, :]]
+    if not bool(torch_module.isfinite(current).all()) or not bool((current == 0).all()):
+        raise ValueError("selected_video_key_not_visible_zero_in_generation_rows")
+    result = attention_mask.clone()
+    result[0, 0][row_idx[:, None], col_idx[None, :]] += float(logit_bias)
+    if not bool(torch_module.isfinite(
+            result[0, 0][row_idx[:, None], col_idx[None, :]]).all()):
+        raise ValueError("biased_generation_attention_mask_nonfinite")
+    return result
+
+
+def install_generation_video_key_bias_hooks(*, model: Any,
+        layer_indices: Sequence[int], selected_positions: Sequence[int],
+        first_query_position: int, logit_bias: float,
+        torch_module: Any, observations: list[dict] | None = None) -> list[Any]:
+    """Bias frozen temporal keys during a verified DynamicCache generation.
+
+    A stateful contract requires one square Q=K prefill followed only by
+    cached Q=1 decode calls whose key length increases by exactly one each
+    step, across selected layers in ascending order. This rejects
+    static-capacity masks, multi-token cache updates, and cropped/rebased key
+    axes rather than treating K-Q as an absolute offset.
+    """
+    try:
+        layers = model.model.language_model.layers
+    except AttributeError:
+        raise ValueError("qwen_language_layers_unavailable") from None
+    if (not isinstance(layer_indices, Sequence) or isinstance(layer_indices, (str, bytes))
+            or not layer_indices
+            or any(type(i) is not int or i < 0 or i >= len(layers) for i in layer_indices)
+            or tuple(sorted(set(layer_indices))) != tuple(layer_indices)):
+        raise ValueError("intervention_layer_indices_invalid")
+    frozen_layers = tuple(layer_indices)
+    frozen_positions = tuple(selected_positions)
+    state = {"last_key_length": None, "active_shape": None, "seen_layers": set()}
+    handles = []
+    try:
+        for layer_index in frozen_layers:
+            attention = getattr(layers[layer_index], "self_attn", None)
+            register = getattr(attention, "register_forward_pre_hook", None)
+            if not callable(register):
+                raise ValueError("self_attention_pre_hook_unavailable")
+            def pre_hook(_module, args, kwargs, *, selected_layer_index=layer_index):
+                if "attention_mask" not in kwargs:
+                    raise ValueError("attention_mask_keyword_missing")
+                kwargs = dict(kwargs)
+                mask = kwargs["attention_mask"]
+                if (not torch_module.is_tensor(mask) or mask.ndim != 4
+                        or tuple(mask.shape[:2]) != (1, 1)):
+                    raise ValueError("generation_attention_mask_shape_invalid")
+                shape = (int(mask.shape[-2]), int(mask.shape[-1]))
+                active = state["active_shape"]
+                if active is None:
+                    qlen, klen = shape
+                    previous = state["last_key_length"]
+                    if previous is None:
+                        if qlen != klen:
+                            raise ValueError("dynamic_cache_prefill_must_be_square")
+                    elif qlen != 1 or klen != previous + 1:
+                        raise ValueError("dynamic_cache_decode_length_not_incremental")
+                    state["active_shape"] = shape
+                elif active != shape:
+                    raise ValueError("generation_layer_mask_shapes_disagree")
+                if selected_layer_index in state["seen_layers"]:
+                    raise ValueError("generation_layer_called_twice_before_step_complete")
+                changed = bias_video_keys_during_generation(
+                    attention_mask=mask,
+                    selected_positions=frozen_positions,
+                    first_query_position=first_query_position,
+                    logit_bias=logit_bias, torch_module=torch_module)
+                if observations is not None:
+                    qlen, klen = shape
+                    effective_bias = float(torch_module.tensor(
+                        logit_bias, dtype=mask.dtype).detach().cpu())
+                    modified_cells = 0
+                    max_error = 0.0
+                    for query_index in range(qlen):
+                        absolute_query = query_index if qlen > 1 else klen - 1
+                        if absolute_query < first_query_position:
+                            continue
+                        for key_position in frozen_positions:
+                            if key_position >= absolute_query or key_position >= klen:
+                                continue
+                            delta = float((changed[0, 0, query_index, key_position]
+                                           - mask[0, 0, query_index, key_position]).detach().cpu())
+                            max_error = max(max_error, abs(delta - effective_bias))
+                            modified_cells += 1
+                    observations.append({
+                        "layer_index": selected_layer_index,
+                        "query_length": qlen,
+                        "key_length": klen,
+                        "effective_bias": effective_bias,
+                        "modified_cells": modified_cells,
+                        "max_abs_delta_error": max_error,
+                        "verified": modified_cells > 0 and max_error <= 1e-6,
+                    })
+                    if not observations[-1]["verified"]:
+                        raise ValueError("generation_intervention_mask_delta_unverified")
+                kwargs["attention_mask"] = changed
+                state["seen_layers"].add(selected_layer_index)
+                if len(state["seen_layers"]) == len(frozen_layers):
+                    state["last_key_length"] = shape[1]
+                    state["active_shape"] = None
+                    state["seen_layers"].clear()
+                return args, kwargs
+            try:
+                handles.append(register(pre_hook, with_kwargs=True))
+            except TypeError:
+                raise ValueError("pytorch_keyword_pre_hook_unavailable") from None
+    except Exception:
+        remove_hooks(handles)
+        raise
+    return handles
+
+
 def remove_hooks(handles: Sequence[Any]) -> None:
     """Remove every registered treatment hook, even if one removal fails."""
     first_error = None

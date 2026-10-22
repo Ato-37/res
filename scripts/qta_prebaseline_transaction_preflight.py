@@ -113,7 +113,9 @@ def preflight_qta_phase1_batch_transaction(
         root_public_key_pem: bytes,
         expected_root_public_der_sha256: str,
         expected_external_cohort_pin_sha256: str,
-        live_processor_rows: Any) -> dict[str, Any]:
+        live_processor_rows: Any,
+        expected_processor_batch_row_pins: Any = None,
+        expected_processor_batch_protocol_sha256: str | None = None) -> dict[str, Any]:
     """Bind Stage-1 source pins, signed phase-1 receipt, and live batches.
 
     A shallow snapshot is made once; both independent leaf validators receive
@@ -196,6 +198,8 @@ def preflight_qta_phase1_batch_transaction(
             root_public_key_pem=root_public_key_pem,
             expected_root_public_der_sha256=expected_root_public_der_sha256,
             expected_external_cohort_pin_sha256=expected_external_cohort_pin_sha256,
+            expected_processor_batch_row_pins=expected_processor_batch_row_pins,
+            expected_processor_batch_protocol_sha256=expected_processor_batch_protocol_sha256,
             live_rows=live_snapshot,
         )
         if (signed.get("status") != "passed"

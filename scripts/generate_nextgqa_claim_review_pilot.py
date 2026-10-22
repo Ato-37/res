@@ -25,9 +25,11 @@ from run_nextgqa_gold_interval_margin_pilot import (
 )
 from private_output_paths import validate_private_output
 from claim_text_quality import claim_text_quality_failure
+from load_frozen_claim_packet_samples import _private_payload, reconstruct_samples
 
 
 SEED = 20261015
+MAX_GENERATION_N = 10
 MIN_FREE_VRAM = 12 * 1024**3
 MIN_HOST_AVAILABLE = 8 * 1024**3
 PROMPT_SUFFIX_V1 = (
@@ -40,8 +42,28 @@ PROMPT_SUFFIX_V2_SHORT = PROMPT_SUFFIX_V1 + (
     " Keep the sentence to 25 words or fewer. Use one simple sentence with one "
     "main action. Do not add explanations, alternatives, or extra sentences."
 )
+PROMPT_SUFFIX_V3_SEQUENCE_COMPLETE = PROMPT_SUFFIX_V1 + (
+    " Keep the sentence concise (40 words or fewer). Include the visually "
+    "observable steps needed to answer every part of the question, including "
+    "the resulting state when it matters. A short event sequence may need "
+    "more than one action verb; do not omit a relevant step just to describe "
+    "one main action. Do not invent intent, causes, or details that are not "
+    "visible. Return one sentence only."
+)
 PROMPT_SUFFIX = PROMPT_SUFFIX_V1  # Legacy scoring callers default to the old prompt.
-PROMPT_SUFFIX_BY_VERSION = {"v1": PROMPT_SUFFIX_V1, "v2_short": PROMPT_SUFFIX_V2_SHORT}
+PROMPT_SUFFIX_BY_VERSION = {
+    "v1": PROMPT_SUFFIX_V1,
+    "v2_short": PROMPT_SUFFIX_V2_SHORT,
+    "v3_sequence_complete": PROMPT_SUFFIX_V3_SEQUENCE_COMPLETE,
+}
+
+
+def validate_replay_dataset_split(binding: dict, requested_split: str) -> None:
+    """Prevent a replay receipt from relabeling its frozen source split."""
+    if (not isinstance(binding, dict)
+            or binding.get("dataset_split") != requested_split
+            or requested_split not in {"val", "test"}):
+        raise ValueError("frozen_packet_dataset_split_must_match_cli")
 
 
 def parse_claim_output(text: str, frame_count: int) -> dict:
@@ -101,7 +123,8 @@ def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--exclude-media-sha256", required=True,
                         help="private local media-hash exclusion JSON")
-    parser.add_argument("--n", type=int, choices=(1, 2, 3), default=3)
+    parser.add_argument("--n", type=int, choices=range(1, MAX_GENERATION_N + 1), default=3,
+                        help="number of frozen video/QID pairs (1–10)")
     parser.add_argument("--frames", type=int, choices=(16, 32), default=16)
     parser.add_argument("--prompt-version", choices=tuple(PROMPT_SUFFIX_BY_VERSION), default="v1",
                         help="explicit claim-generation prompt version; default preserves v1")
@@ -111,6 +134,10 @@ def main() -> None:
                         help="explicit local video root (default: ~/nextgqa_sample/NExTVideo)")
     parser.add_argument("--candidate-pair-filter", type=Path, default=None,
                         help="optional local JSON allowlist with schema_version and pair_sha256")
+    parser.add_argument("--source-packet", type=Path, default=None,
+                        help="replay an exact prior three-row packet as a development cohort")
+    parser.add_argument("--cohort-lock", type=Path, default=None,
+                        help="frozen lock required with --source-packet")
     parser.add_argument("--output", required=True,
                         help="new mode-0600 local JSON; overwrite refused")
     parser.add_argument("--user-authorized-local-only", action="store_true")
@@ -124,12 +151,13 @@ def main() -> None:
         parser.error("refusing to overwrite output")
     except (OSError, ValueError) as exc:
         parser.error(str(exc).split(":", 1)[0] or "private_output_path_invalid")
-    exclusion_path = Path(args.exclude_media_sha256).resolve()
-    exclusion = json.loads(exclusion_path.read_text(encoding="utf-8"))
-    hashes = exclusion.get("media_sha256")
-    if (exclusion.get("schema_version") != 1 or not isinstance(hashes, list)
-            or any(not isinstance(x, str) or len(x) != 64
-                   or any(c not in "0123456789abcdef" for c in x) for x in hashes)):
+    exclusion_path = Path(args.exclude_media_sha256).expanduser()
+    private_root = repo / "data/private_nextgqa"
+    try:
+        exclusion_raw, exclusion = _private_payload(exclusion_path, private_root)
+        import run_nextgqa_gold_interval_margin_pilot as pilot
+        hashes = pilot.validate_private_media_exclusion(exclusion)
+    except (OSError, ValueError):
         parser.error("private_media_exclusion_manifest_invalid")
     dataset = repo / "NExT-GQA/datasets/nextgqa"
     video_root = (args.video_root.expanduser().resolve() if args.video_root else
@@ -139,17 +167,52 @@ def main() -> None:
     allowed_pair_sha256 = None
     if args.candidate_pair_filter is not None:
         try:
-            allowed_pair_sha256, candidate_pair_filter_sha256, candidate_pair_filter_digest = \
-                read_candidate_pair_filter(args.candidate_pair_filter.expanduser().resolve())
+            filter_path = args.candidate_pair_filter.expanduser()
+            pair_raw, pair_payload = _private_payload(filter_path, private_root)
+            allowed_pair_sha256 = pilot.validate_candidate_pair_filter(pair_payload)
+            candidate_pair_filter_sha256 = hashlib.sha256(pair_raw).hexdigest()
+            candidate_pair_filter_digest = pilot._hash(sorted(allowed_pair_sha256))
         except (OSError, ValueError):
             parser.error("private_candidate_pair_filter_invalid")
     # The imported selector's fixed cap is lowered before selection so that
     # only the requested small review set is decoded and retained in memory.
     import run_nextgqa_gold_interval_margin_pilot as pilot
     pilot.MAX_VIDEOS = args.n
-    selected, counts, meta, cohort_hash = freeze_cohort(
-        repo, video_root, hashes, args.frames,
-        allowed_pair_sha256=allowed_pair_sha256, dataset_split=args.dataset_split)
+    replay_binding = None
+    if args.source_packet is not None:
+        if (args.cohort_lock is None or args.candidate_pair_filter is None
+                or args.frames != 16 or args.n != 3):
+            parser.error("frozen_packet_replay_requires_lock_filter_3_rows_16_frames")
+        try:
+            selected, replay_binding = reconstruct_samples(
+                packet_path=args.source_packet.expanduser(),
+                lock_path=args.cohort_lock.expanduser(),
+                pair_filter_path=args.candidate_pair_filter.expanduser(),
+                exclusion_path=exclusion_path,
+                video_root=(args.video_root.expanduser().resolve()
+                            if args.video_root else None),
+                repo_root=repo,
+                frame_count=args.frames,
+            )
+        except (OSError, ValueError) as exc:
+            parser.error(str(exc).split(":", 1)[0] or "frozen_packet_replay_invalid")
+        if (replay_binding["pair_filter_sha256"] != candidate_pair_filter_sha256
+                or replay_binding["exclusion_manifest_sha256"]
+                != hashlib.sha256(exclusion_raw).hexdigest()):
+            parser.error("frozen_packet_input_snapshot_changed")
+        try:
+            validate_replay_dataset_split(replay_binding, args.dataset_split)
+        except ValueError as exc:
+            parser.error(str(exc))
+        cohort_hash = replay_binding["cohort_sha256"]
+        counts = {"candidate_scan_count": 3}
+        meta = {"candidate_video_count": 3}
+    else:
+        if args.cohort_lock is not None:
+            parser.error("--cohort-lock_requires_--source-packet")
+        selected, counts, meta, cohort_hash = freeze_cohort(
+            repo, video_root, hashes, args.frames,
+            allowed_pair_sha256=allowed_pair_sha256, dataset_split=args.dataset_split)
     if len(selected) != args.n:
         parser.error(f"requested_{args.n}_eligible_samples_but_found_{len(selected)}")
 
@@ -241,7 +304,9 @@ def main() -> None:
             "generation_prompt_version": args.prompt_version,
             "local_video_path": sample["video_path"],
             "video_sha256": sample["decode"]["source_sha256"],
-            "candidate_pair_sha256": candidate_pair_digest_for_sample(sample),
+            "candidate_pair_sha256": (sample["candidate_pair_sha256"]
+                                       if "candidate_pair_sha256" in sample
+                                       else candidate_pair_digest_for_sample(sample)),
             "dataset_question_id": sample["qid"],
             "question": sample["question"],
             "choices": sample["choices"],
@@ -272,15 +337,18 @@ def main() -> None:
         "runner_sha256": sha256_file(Path(__file__)),
         "generation_prompt_version": args.prompt_version,
         "pilot_runner_sha256": sha256_file(repo / "scripts/run_nextgqa_gold_interval_margin_pilot.py"),
+        "replay_loader_sha256": sha256_file(repo / "scripts/load_frozen_claim_packet_samples.py"),
         "dataset_split": args.dataset_split,
-        "dataset_inputs_sha256": {name: sha256_file(dataset / name) for name in
-            (f"{args.dataset_split}.csv", f"gsub_{args.dataset_split}.json",
-             "map_vid_vidorID.json", f"frame2time_{args.dataset_split}.json")},
-        "private_exclusion_manifest_sha256": sha256_file(exclusion_path),
+        "dataset_inputs_sha256": (replay_binding["dataset_inputs_sha256"]
+            if replay_binding is not None else {name: sha256_file(dataset / name) for name in
+                (f"{args.dataset_split}.csv", f"gsub_{args.dataset_split}.json",
+                 "map_vid_vidorID.json", f"frame2time_{args.dataset_split}.json")}),
+        "private_exclusion_manifest_sha256": hashlib.sha256(exclusion_raw).hexdigest(),
         "candidate_pair_filter_sha256": candidate_pair_filter_sha256,
         "candidate_pair_filter_digest": candidate_pair_filter_digest,
         "candidate_pair_filter_entries": (len(allowed_pair_sha256)
                                           if allowed_pair_sha256 is not None else None),
+        "frozen_development_replay": replay_binding,
         "cohort_sha256": cohort_hash,
         "requested_videos": args.n,
         "effective_videos": len(records),
