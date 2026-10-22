@@ -31,12 +31,13 @@ score); their failure receipts are retained and superseded by `_02` (CPU receipt
 
 ## Interpretation and limits
 - Observation only: effects are tiny (|x| < 0.04 nat/token), inconsistent in sign, and far below the 0.25 nat
-  practical threshold used earlier. No evidence that anchor steering beats the temporal sham.
+  practical threshold used earlier. No evidence that anchor steering beats the temporal sham; n=2 also cannot detect an effect in either direction. The 0.25 nat figure is a loose reference from the earlier head-faithfulness metric, not a gate for this metric.
 - Anchor times are a 30 fps proxy; whole-pair mean-fill is OOD; sham is farthest-endpoint, not exchangeable.
 - Likelihood of an object name is not explanation faithfulness; no human support labels were collected.
+- Selection effect (independent audit): `_generated_target` requires the model's own sentence to name the metadata object, so effective rows are conditioned on that. Each effective row scores a single object-name token (noisy).
 - Video-fresh but not participant-fresh. Row 0 exclusion is a post-hoc-visible failure; it is retained.
 
 ## Next action
 Do not tune layer/dose on these results. Direct faithfulness still needs human claim-support responses
 bound to the cohort11 v3 artifact. Remaining independent option: a labeled full-BF16 precision check
-(24 GB GPU) per `docs/lab_24gb_gpu_experiment_queue_20261022.md`, and a privacy-minimized derived summary.
+(24 GB GPU) per `docs/lab_24gb_gpu_experiment_queue_20261022.md`, The privacy-minimized derived summary exists: `results/minerva_vista_fresh3_summary_20261022_01.json` (built by `scripts/summarize_minerva_vista_fresh_cohort.py`; independent audit reproduced all numbers and bindings, found no identifiers).
