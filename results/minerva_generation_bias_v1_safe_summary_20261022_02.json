@@ -1,0 +1,118 @@
+{
+  "cohort_sha256": "750af9b4303b4576954061e377bf6d16ef2f640f7a6b6027fc071c6c5ea0e678",
+  "completed_videos": 3,
+  "direct_faithfulness_measured": false,
+  "effective_bfloat16_mask_bias_nats": 0.69140625,
+  "final_preflight_sha256": "b12eee8bdb7b85eae703bd1c7807c6ca2920cbd2cce9c5632701ac4c3b397413",
+  "generation_calls_completed": 9,
+  "limitations": [
+    "three already exposed exploratory videos; no independent confirmation",
+    "mechanical text validity does not establish semantic video support",
+    "bbox and sham key doses match within each video but vary across videos",
+    "no human support review of these generated sentences"
+  ],
+  "mechanical_bbox_only_validity_gain_vs_sham_rows": 0,
+  "mechanically_valid_counts": {
+    "baseline": 2,
+    "bbox_key_bias": 2,
+    "spatial_sham_key_bias": 3
+  },
+  "nominal_bias_nats": 0.6931471805599453,
+  "requested_videos": 3,
+  "rights_status": "unverified_local_only",
+  "rows": [
+    {
+      "bbox_text_differs_from_spatial_sham": false,
+      "cohort_preflight_sha256": "467bdae10d4e0370d525ffd2960a39a5b373e91a6bb2c6efbf28f740e6c4eaba",
+      "cpu_receipt_sha256": "b6be257080d71a61c1a3814ccd3848cb16745235175a68cbcd4f740f284f84b6",
+      "hook_calls": {
+        "baseline": 0,
+        "bbox_key_bias": 132,
+        "spatial_sham_key_bias": 132
+      },
+      "key_dose_per_branch": 25,
+      "mechanically_valid": {
+        "baseline": true,
+        "bbox_key_bias": true,
+        "spatial_sham_key_bias": true
+      },
+      "peak_vram_bytes": 11438253056,
+      "receipt_sha256": "7b1548c0655ff280137a25a3fc26ef718df57bffa7714750cc1d0bee079c31e2",
+      "row_index": 0,
+      "text_changed_from_baseline": {
+        "bbox_key_bias": true,
+        "spatial_sham_key_bias": true
+      },
+      "verified_mask_cells": {
+        "baseline": 0,
+        "bbox_key_bias": 3300,
+        "spatial_sham_key_bias": 3300
+      }
+    },
+    {
+      "bbox_text_differs_from_spatial_sham": false,
+      "cohort_preflight_sha256": "b12eee8bdb7b85eae703bd1c7807c6ca2920cbd2cce9c5632701ac4c3b397413",
+      "cpu_receipt_sha256": "ec97ac7ab7af2065b12cfe5f9788f6dfd475c9b060382f0db9515ce1539adebf",
+      "hook_calls": {
+        "baseline": 0,
+        "bbox_key_bias": 108,
+        "spatial_sham_key_bias": 108
+      },
+      "key_dose_per_branch": 4,
+      "mechanically_valid": {
+        "baseline": true,
+        "bbox_key_bias": true,
+        "spatial_sham_key_bias": true
+      },
+      "peak_vram_bytes": 11381703680,
+      "receipt_sha256": "27f8f57d721526a815128ec3641142e540264e34301ecf7d8cc6ee3b7e479221",
+      "row_index": 1,
+      "text_changed_from_baseline": {
+        "bbox_key_bias": false,
+        "spatial_sham_key_bias": false
+      },
+      "verified_mask_cells": {
+        "baseline": 0,
+        "bbox_key_bias": 432,
+        "spatial_sham_key_bias": 432
+      }
+    },
+    {
+      "bbox_text_differs_from_spatial_sham": true,
+      "cohort_preflight_sha256": "b12eee8bdb7b85eae703bd1c7807c6ca2920cbd2cce9c5632701ac4c3b397413",
+      "cpu_receipt_sha256": "b095e3ffa3acb33f5d0a9cc3347531c4d2ad1552e8cb25cc7c5fd890a16e4bd3",
+      "hook_calls": {
+        "baseline": 0,
+        "bbox_key_bias": 108,
+        "spatial_sham_key_bias": 132
+      },
+      "key_dose_per_branch": 6,
+      "mechanically_valid": {
+        "baseline": false,
+        "bbox_key_bias": false,
+        "spatial_sham_key_bias": true
+      },
+      "peak_vram_bytes": 11453990400,
+      "receipt_sha256": "09bde4b7beddd304d7ffbc36bf4fe70d2f15a2f53b147e0e02b231a41f9df67a",
+      "row_index": 2,
+      "text_changed_from_baseline": {
+        "bbox_key_bias": false,
+        "spatial_sham_key_bias": true
+      },
+      "verified_mask_cells": {
+        "baseline": 0,
+        "bbox_key_bias": 648,
+        "spatial_sham_key_bias": 792
+      }
+    }
+  ],
+  "schema_version": 1,
+  "source_sha256": {
+    "generation_audit": "1cfc0bb0fe5d8ffeac6bb689526f3a14b2e60c74c1b3986cfc4584ec7bdc0fb4",
+    "generation_hooks": "a57defa5d667fda5849b6befe0d222a0594fe016e7b440b609c5d62e1bf3a106",
+    "pilot": "316fe7e0ad46243921c683b43c04307d4957216b91d68a0ed82da19ca67b86f3",
+    "runner": "07de0a586741f1c712f19c7ef60686bc6051a1b665cf4e1cf2175dadb3f5ffe8",
+    "summarizer": "f21eeccb23b7f7971c96f0e6398bacb1dbc3f848ad3a5e0175322ae16b3cdd1d"
+  },
+  "status": "verified_three_video_exploratory_generation_comparison"
+}
