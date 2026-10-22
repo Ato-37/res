@@ -1,0 +1,52 @@
+{
+  "schema_version": 1,
+  "status": "confirmatory_prespecified_analysis",
+  "dataset_split": "val",
+  "requested_videos": 149,
+  "effective_videos": 149,
+  "completed_forwards": 447,
+  "readout": "fp32_lm_head_matmul_of_bf16_final_hidden_state",
+  "primary": {
+    "n": 149,
+    "mean_nats": -0.0006356509191440356,
+    "sd_nats": 0.08045040732319822,
+    "median_nats": -0.0018462538719177246,
+    "ci95_t": [
+      -0.013659788483949132,
+      0.012388486645661062
+    ],
+    "ci90_t": [
+      -0.011544762827642188,
+      0.010273460989354118
+    ],
+    "p_two_sided_t": 0.9232969510740657,
+    "p_sign_flip": 0.9245953770231149,
+    "permutations": 200000,
+    "delta_min_nats": 0.025,
+    "tost_p": 0.00015346910650521436,
+    "tost_p_lower": 0.00015346910650521436,
+    "tost_p_upper": 7.561752862558253e-05,
+    "positive": 73,
+    "negative": 76,
+    "verdict": "no_meaningful_effect_equivalence"
+  },
+  "secondary_descriptive_no_inference": {
+    "annotation_minus_baseline_nats": {
+      "mean": -0.0028143610569707823,
+      "sd": 0.080842591779323,
+      "median": -0.0009918212890625
+    },
+    "sham_minus_baseline_nats": {
+      "mean": -0.002178710137826747,
+      "sd": 0.08680858076306491,
+      "median": 0.0030080778524279594
+    }
+  },
+  "correct_counts_by_condition": {
+    "annotation_interval_key_bias": 109,
+    "baseline": 109,
+    "hash_sham_key_bias": 109
+  },
+  "scope": "dependence of the five-choice answer margin on the QA time annotation (label-free); not explanation faithfulness",
+  "faithfulness_status": "\u88dc\u52a9\u8a3a\u65ad\u306e\u307f"
+}
