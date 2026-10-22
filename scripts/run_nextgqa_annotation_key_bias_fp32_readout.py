@@ -41,6 +41,17 @@ def _patched(cls, *args, **kwargs):
 
 Qwen2_5_VLForConditionalGeneration.from_pretrained = classmethod(_patched)
 
+def _consume_layers_option(argv):
+    """Pop an optional `--layers all` and set the base module's intervention layers to 1..28 (1-based)."""
+    if "--layers" not in argv:
+        return argv
+    i = argv.index("--layers")
+    if argv[i + 1] != "all":
+        raise SystemExit("layers_option_must_be_all")
+    base.LAYERS_1_BASED = tuple(range(1, 29))
+    return argv[:i] + argv[i + 2:]
+
+
 def _consume_bias_option(argv):
     """Pop an optional `--bias-nats X` (requested additive attention-score bias) and set it on the base module."""
     if "--bias-nats" not in argv:
@@ -54,5 +65,5 @@ def _consume_bias_option(argv):
 
 
 if __name__ == "__main__":
-    sys.argv = _consume_bias_option(sys.argv)
+    sys.argv = _consume_layers_option(_consume_bias_option(sys.argv))
     raise SystemExit(base.main())

@@ -11,9 +11,18 @@ import run_nextgqa_annotation_key_bias_fp32_readout as wrapper
 class BiasOptionTests(unittest.TestCase):
     def setUp(self):
         self.saved = base.BIAS_NATS
+        self.saved_layers = base.LAYERS_1_BASED
 
     def tearDown(self):
         base.BIAS_NATS = self.saved
+        base.LAYERS_1_BASED = self.saved_layers
+
+    def test_layers_all_option(self):
+        out = wrapper._consume_layers_option(["prog", "--layers", "all", "--n", "3"])
+        self.assertEqual(out, ["prog", "--n", "3"])
+        self.assertEqual(base.LAYERS_1_BASED, tuple(range(1, 29)))
+        with self.assertRaises(SystemExit):
+            wrapper._consume_layers_option(["prog", "--layers", "5-16"])
 
     def test_option_sets_base_module_and_is_removed(self):
         argv = ["prog", "--mode", "full", "--bias-nats", str(math.log(4)), "--n", "3"]
