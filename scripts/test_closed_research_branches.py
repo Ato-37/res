@@ -111,6 +111,12 @@ USER_AUTHORIZED_LOCAL_DATA_PILOTS = {
     "run_selected_claim_text_likelihood.py",
     "run_test_split_internal_bias_frame_mean_interaction.py",
     "run_claim_frame_index_mask_pilot.py",
+}
+# Known gap (independent audit 2026-10-22): head-selection-rule measurements near the closed head-search branch.
+# They load the 7B model on private media and are gated only by a no-op `--exploratory` flag, output-path checks
+# and CPU preflight, with no user-authorization flag or protocol-hash gate. Classified here so the gap is explicit;
+# do not run them again without first adding a hard guard. Editing the executed copy is not allowed (frozen).
+KNOWN_UNGUARDED_HEAD_SELECTION_MEASUREMENTS = {
     "run_head_bootstrap_exploration.py",
     "run_head_gold_answer_query_exploration.py",
     "run_head_gold_answer_query_exploration_executed_20261019_v1.py",
@@ -216,6 +222,14 @@ def _weight_loader_calls(tree):
 
 
 class ClosedResearchBranchGuardTests(unittest.TestCase):
+    def test_known_guard_gaps_are_disjoint_from_authorized_classes(self):
+        gaps = KNOWN_UNGUARDED_HEAD_SELECTION_MEASUREMENTS
+        self.assertEqual(len(gaps), 4)
+        self.assertFalse(gaps & (USER_AUTHORIZED_LOCAL_DATA_PILOTS | GATE_CONTROLLED_LOADERS
+                                 | ALLOWED_ENGINEERING_LOADERS | PROCESSOR_ONLY_LOADERS))
+        for name in gaps:
+            self.assertTrue((REPO / "scripts" / name).is_file())
+
     def test_prompt_tokenizer_audit_is_processor_only_not_weight_loading(self):
         source = (REPO / "scripts" / "audit_nextgqa_prompt_tokenizer.py").read_text(
             encoding="utf-8")
@@ -246,7 +260,8 @@ class ClosedResearchBranchGuardTests(unittest.TestCase):
                 discovered.add(path.name)
         expected = (set(GUARDED_ENTRYPOINTS) & discovered
                     | GATE_CONTROLLED_LOADERS | ALLOWED_ENGINEERING_LOADERS
-                    | USER_AUTHORIZED_LOCAL_DATA_PILOTS | PROCESSOR_ONLY_LOADERS)
+                    | USER_AUTHORIZED_LOCAL_DATA_PILOTS | PROCESSOR_ONLY_LOADERS
+                    | KNOWN_UNGUARDED_HEAD_SELECTION_MEASUREMENTS)
         self.assertEqual(discovered, expected)
 
     def test_other_common_weight_loaders_are_explicitly_classified(self):
@@ -259,7 +274,7 @@ class ClosedResearchBranchGuardTests(unittest.TestCase):
                 discovered.add(path.name)
         expected = (set(GUARDED_ENTRYPOINTS) | GATE_CONTROLLED_LOADERS
                     | ALLOWED_ENGINEERING_LOADERS | USER_AUTHORIZED_LOCAL_DATA_PILOTS
-                    | PROCESSOR_ONLY_LOADERS)
+                    | PROCESSOR_ONLY_LOADERS | KNOWN_UNGUARDED_HEAD_SELECTION_MEASUREMENTS)
         self.assertLessEqual(discovered, expected)
 
     def test_common_loader_aliases_are_detected(self):
