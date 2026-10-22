@@ -31,6 +31,13 @@ class BiasOptionTests(unittest.TestCase):
             wrapper._consume_bias_option(["prog", "--bias-nats", "9"])
         with self.assertRaises(SystemExit):
             wrapper._consume_bias_option(["prog", "--bias-nats", "0"])
+        with self.assertRaises(SystemExit):
+            wrapper._consume_bias_option(["prog", "--bias-nats", "-9"])
+
+    def test_negative_suppression_bias_accepted(self):
+        out = wrapper._consume_bias_option(["prog", "--bias-nats", str(-math.log(16))])
+        self.assertEqual(out, ["prog"])
+        self.assertAlmostEqual(base.BIAS_NATS, -math.log(16))
 
 
 if __name__ == "__main__":

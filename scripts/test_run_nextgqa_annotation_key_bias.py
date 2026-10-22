@@ -45,6 +45,24 @@ class AnnotationKeyBiasGeometryTests(unittest.TestCase):
         self.assertEqual(len(first), 2)
         self.assertFalse(set(first) & set(args["annotation_groups"]))
 
+    def test_mask_audit_accepts_suppression_bias_and_rejects_zero(self):
+        import torch
+        original = torch.zeros(1, 1, 6, 6)
+        for bias in (-2.0, 1.0):
+            actual = original.clone()
+            actual[0, 0, 5, [1, 2]] += bias
+            audit = runner.audit_attention_mask_delta(original_mask=original, actual_mask=actual,
+                query_position=5, key_positions=[1, 2], logit_bias=bias, torch_module=torch)
+            self.assertEqual(audit["effective_bias"], bias)
+        with self.assertRaisesRegex(ValueError, "attention_mask_delta_audit_inputs_invalid"):
+            runner.audit_attention_mask_delta(original_mask=original, actual_mask=original.clone(),
+                query_position=5, key_positions=[1, 2], logit_bias=0.0, torch_module=torch)
+        wrong = original.clone()
+        wrong[0, 0, 5, [1, 2]] += 2.0
+        with self.assertRaisesRegex(ValueError, "attention_mask_changed_outside_or_wrong"):
+            runner.audit_attention_mask_delta(original_mask=original, actual_mask=wrong,
+                query_position=5, key_positions=[1, 2], logit_bias=-2.0, torch_module=torch)
+
     def test_no_equal_budget_sham_fails_instead_of_shrinking(self):
         with self.assertRaisesRegex(ValueError, "annotation_sham_inputs_invalid"):
             runner.choose_disjoint_hash_sham(temporal_group_count=4,

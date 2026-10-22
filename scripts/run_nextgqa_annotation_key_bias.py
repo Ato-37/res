@@ -312,7 +312,7 @@ def audit_attention_mask_delta(*, original_mask: Any, actual_mask: Any,
                    for k in key_positions)
             or not 0 <= query_position < int(original_mask.shape[-2])
             or isinstance(logit_bias, bool) or not isinstance(logit_bias, (int, float))
-            or not math.isfinite(float(logit_bias)) or float(logit_bias) <= 0):
+            or not math.isfinite(float(logit_bias)) or float(logit_bias) == 0):
         raise ValueError("attention_mask_delta_audit_inputs_invalid")
     original_mask = original_mask.to(device=actual_mask.device)
     if (bool(torch_module.isnan(original_mask).any())
@@ -328,7 +328,7 @@ def audit_attention_mask_delta(*, original_mask: Any, actual_mask: Any,
     expected[0, 0, query_position, indices] += float(logit_bias)
     effective = float(torch_module.tensor(float(logit_bias),
                                           dtype=original_mask.dtype).item())
-    if effective <= 0 or not math.isfinite(effective):
+    if effective == 0 or not math.isfinite(effective):  # sign-capable since 2026-10-22 (suppression positive control)
         raise ValueError("effective_mask_bias_invalid")
     if not torch_module.equal(actual_mask, expected):
         raise ValueError("attention_mask_changed_outside_or_wrong_at_intended_cells")
@@ -492,7 +492,7 @@ def validate_smoke_receipt(smoke: dict, *, args_n: int, lock_sha256: str,
                 and audit.get("effective_bias") == audit.get("effective_bias_per_layer")
                 and audit.get("effective_bias") == expected_effective
                 and math.isfinite(float(audit.get("effective_bias", math.nan)))
-                and audit.get("effective_bias", 0) > 0
+                and audit.get("effective_bias", 0) != 0
                 and isinstance(layers, dict)
                 and set(layers) == {str(i) for i in LAYERS_1_BASED}
                 and all(isinstance(value, dict)

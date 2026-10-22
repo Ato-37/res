@@ -47,7 +47,7 @@ def _consume_bias_option(argv):
         return argv
     i = argv.index("--bias-nats")
     value = float(argv[i + 1])
-    if not 0.0 < value <= 4.0:
+    if value == 0.0 or not -8.0 <= value <= 4.0:
         raise SystemExit("bias_nats_out_of_range")
     base.BIAS_NATS = value
     return argv[:i] + argv[i + 2:]
