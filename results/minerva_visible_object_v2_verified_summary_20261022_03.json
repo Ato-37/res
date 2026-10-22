@@ -1,0 +1,138 @@
+{
+  "direct_generated_explanation_faithfulness_measured": false,
+  "effective_preflight_rows": 3,
+  "estimand": {
+    "D": "meanLP(spatial-sham-filled frame) - meanLP(annotation-bbox-filled frame)",
+    "primary": "D_bbox_bias - D_spatial_sham_bias",
+    "scores": "teacher-forced generated-token mean log probability in nats/token",
+    "secondary": "D_bbox_bias - D_no_bias"
+  },
+  "input_sha256": {
+    "final_preflight": "b12eee8bdb7b85eae703bd1c7807c6ca2920cbd2cce9c5632701ac4c3b397413",
+    "frozen_cohort": "750af9b4303b4576954061e377bf6d16ef2f640f7a6b6027fc071c6c5ea0e678",
+    "items_manifest": "700e3c552741d5ce8bfc0ce015bffb644cd8d6f6702e7b690b7e84c5bc4fac23"
+  },
+  "limitations": [
+    "Descriptive, post-feasibility, three-row exploratory pilot; two scored rows only.",
+    "The 95% t intervals use df=1 and are unstable; no confirmatory or population claim is warranted.",
+    "Conditional likelihood sensitivity is not human semantic support or direct explanation faithfulness.",
+    "Object bbox mean fill can be out of distribution; bbox is not object segmentation.",
+    "The row-2 generation-format failure remains structural attrition; no replacement was selected.",
+    "Rights status remains unverified; outputs are derived local research summaries."
+  ],
+  "official_manifest_sha256": "4b2bc0f8bae6c27d3521d7f319b3a9df16652da1f0492be3ff01261fd8197c06",
+  "primary_interaction_summary_nats_per_token": {
+    "ci95_t": [
+      -0.16041880890356272,
+      0.16497423417877047
+    ],
+    "df": 1,
+    "mean": 0.0022777126376038737,
+    "n": 2,
+    "t_critical_df1": 12.706204736432095
+  },
+  "purpose": "privacy_safe_descriptive_summary_of_minerva_visible_object_v2_pilot",
+  "requested_rows": 3,
+  "rights_status": "unverified_local_only",
+  "rows": [
+    {
+      "D_bbox_bias_nats_per_token": 0.041973138228058815,
+      "D_no_bias_nats_per_token": 0.032760703936219215,
+      "D_spatial_sham_bias_nats_per_token": 0.026890931650996208,
+      "annotation_source_sha256": {
+        "assoc_info": "f5c6852ccf400dea945758abb168df5b789e4bb13d8387f68ec17c0b9b751204",
+        "mask_info": "2ea7ce0dfa5aff5a144e29953d02c19d372fed3f8eb8ce871c09e6eed55e551f",
+        "minerva_json": "46707b6d30b6e5d4291569f48f6c89ec89091ddf589ddc4793d5a35faf4a0639"
+      },
+      "bbox_key_count": 25,
+      "branch_count": 6,
+      "cohort_preflight_sha256": "467bdae10d4e0370d525ffd2960a39a5b373e91a6bb2c6efbf28f740e6c4eaba",
+      "cpu_receipt_sha256": "b6be257080d71a61c1a3814ccd3848cb16745235175a68cbcd4f740f284f84b6",
+      "gpu_receipt_sha256": "916f39e824846fdd80de8f485ebcf6151850759630f807a96d4afff38445c99e",
+      "hook_calls_total": 72,
+      "model_revision_sha256": "d554941c2a20a66e1bc3a816604f213aaca2c5e3f240f673d1d06666c1440324",
+      "primary_interaction_nats_per_token": 0.015082206577062607,
+      "row_index": 0,
+      "runner_sha256": "316fe7e0ad46243921c683b43c04307d4957216b91d68a0ed82da19ca67b86f3",
+      "score_forward_count": 6,
+      "secondary_interaction_nats_per_token": 0.0092124342918396,
+      "source_bundle_sha256": "5c02217ea3d19b39a7eb5d44952ef1baf08604352057a8a4e81f8297b8ecad90",
+      "spatial_sham_key_count": 25,
+      "status": "scored",
+      "target_token_count": 8,
+      "target_token_ids_sha256": "5281352c3417a424a9f5af97041261df78319a9dd4690587e22eb1fccc1f59e6"
+    },
+    {
+      "D_bbox_bias_nats_per_token": 0.0007342695817998401,
+      "D_no_bias_nats_per_token": -0.013739260456835212,
+      "D_spatial_sham_bias_nats_per_token": 0.0112610508836547,
+      "annotation_source_sha256": {
+        "assoc_info": "f5c6852ccf400dea945758abb168df5b789e4bb13d8387f68ec17c0b9b751204",
+        "mask_info": "2ea7ce0dfa5aff5a144e29953d02c19d372fed3f8eb8ce871c09e6eed55e551f",
+        "minerva_json": "46707b6d30b6e5d4291569f48f6c89ec89091ddf589ddc4793d5a35faf4a0639"
+      },
+      "bbox_key_count": 4,
+      "branch_count": 6,
+      "cohort_preflight_sha256": "b12eee8bdb7b85eae703bd1c7807c6ca2920cbd2cce9c5632701ac4c3b397413",
+      "cpu_receipt_sha256": "ec97ac7ab7af2065b12cfe5f9788f6dfd475c9b060382f0db9515ce1539adebf",
+      "gpu_receipt_sha256": "b009e0ed32eea1db1b05f9af30b75f6f586bf5abe643e63cbcdd21d275778d0f",
+      "hook_calls_total": 72,
+      "model_revision_sha256": "d554941c2a20a66e1bc3a816604f213aaca2c5e3f240f673d1d06666c1440324",
+      "primary_interaction_nats_per_token": -0.01052678130185486,
+      "row_index": 1,
+      "runner_sha256": "316fe7e0ad46243921c683b43c04307d4957216b91d68a0ed82da19ca67b86f3",
+      "score_forward_count": 6,
+      "secondary_interaction_nats_per_token": 0.014473530038635052,
+      "source_bundle_sha256": "5c02217ea3d19b39a7eb5d44952ef1baf08604352057a8a4e81f8297b8ecad90",
+      "spatial_sham_key_count": 4,
+      "status": "scored",
+      "target_token_count": 9,
+      "target_token_ids_sha256": "353e55b36e8bca86ac295dc8abdad5d652feff36e954e06a5346e0992e281f1a"
+    },
+    {
+      "annotation_source_sha256": {
+        "assoc_info": "f5c6852ccf400dea945758abb168df5b789e4bb13d8387f68ec17c0b9b751204",
+        "mask_info": "2ea7ce0dfa5aff5a144e29953d02c19d372fed3f8eb8ce871c09e6eed55e551f",
+        "minerva_json": "46707b6d30b6e5d4291569f48f6c89ec89091ddf589ddc4793d5a35faf4a0639"
+      },
+      "bbox_key_count": 6,
+      "branch_count": 0,
+      "cohort_preflight_sha256": "b12eee8bdb7b85eae703bd1c7807c6ca2920cbd2cce9c5632701ac4c3b397413",
+      "cpu_receipt_sha256": "b095e3ffa3acb33f5d0a9cc3347531c4d2ad1552e8cb25cc7c5fd890a16e4bd3",
+      "failure_code": "generated_target_not_short_single_line",
+      "gpu_receipt_sha256": "3ec7c7fb68187c9050705095c0cfe3574649fa476842fb0bed27e91188f95811",
+      "hook_calls_total": 0,
+      "row_index": 2,
+      "runner_sha256": "316fe7e0ad46243921c683b43c04307d4957216b91d68a0ed82da19ca67b86f3",
+      "score_forward_count": 0,
+      "source_bundle_sha256": "5c02217ea3d19b39a7eb5d44952ef1baf08604352057a8a4e81f8297b8ecad90",
+      "spatial_sham_key_count": 6,
+      "status": "structural_generation_attrition"
+    }
+  ],
+  "schema_version": 1,
+  "scored_rows": 2,
+  "secondary_interaction_summary_nats_per_token": {
+    "ci95_t": [
+      -0.021581297683140238,
+      0.04526726201361489
+    ],
+    "df": 1,
+    "mean": 0.011842982165237326,
+    "n": 2,
+    "t_critical_df1": 12.706204736432095
+  },
+  "source_sha256": {
+    "annotation_sources": {
+      "assoc_info": "f5c6852ccf400dea945758abb168df5b789e4bb13d8387f68ec17c0b9b751204",
+      "mask_info": "2ea7ce0dfa5aff5a144e29953d02c19d372fed3f8eb8ce871c09e6eed55e551f",
+      "minerva_json": "46707b6d30b6e5d4291569f48f6c89ec89091ddf589ddc4793d5a35faf4a0639"
+    },
+    "model_revision_sha256": "d554941c2a20a66e1bc3a816604f213aaca2c5e3f240f673d1d06666c1440324",
+    "runner_sha256": "316fe7e0ad46243921c683b43c04307d4957216b91d68a0ed82da19ca67b86f3",
+    "source_bundle_sha256": "5c02217ea3d19b39a7eb5d44952ef1baf08604352057a8a4e81f8297b8ecad90",
+    "summarizer_sha256": "7339f465d160fc9b2b54e6da3bfe0cf53d229c634373d2289de942ab3ebd1387"
+  },
+  "status": "verified_exploratory_two_of_three_scored",
+  "structural_attrition_rows": 1
+}
