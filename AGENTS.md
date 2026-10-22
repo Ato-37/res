@@ -60,11 +60,6 @@ scripts, sample manifests and dated experiment logs; not a packaged library. Rea
 - Reassign agents promptly when tasks finish or priorities change; avoid duplicate experiments. Give each file one owner:
   no concurrent edits, competing Git operations or simultaneous GPU jobs. The primary controls integration, publication and
   the GPU workload.
-- **Concurrent agents (Claude Code + Codex).** Each agent works in its own Git worktree and pushes only to its own branch
-  (`git worktree add ~/res-codex -b codex/work origin/<branch>`); integrate later, never push two agents to one branch.
-  Private data lives only in the main checkout and the runners reject symlinks, so GPU experiments on private data run from
-  `/home/ato121/res`. Run every GPU or RAM-heavy job through `scripts/with_gpu_lock.sh <command>` (machine-wide `flock`; VRAM is
-  16 GB and WSL RAM 22 GB, so two such jobs cannot coexist). Do not edit a shell script while it is running.
 - The primary is the overall auditor and stays accountable for provenance: verify important claims against source,
   manifests, original results and primary sources, investigate conflicts, and run proportionate checks before accepting
   delegated findings.
