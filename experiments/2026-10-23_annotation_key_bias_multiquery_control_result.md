@@ -31,3 +31,19 @@ Unit tests 34/34. Bias -ln256, layers 1-28, fp32 readout; smoke 3/3; full 149/14
 
 ## Next action
 Step 2 (positive bias +ln4, +ln16, multi-query, all layers; Holm; TOST at +/-0.025) is running; result log to follow.
+
+## Independent audit and diagnostics (2026-10-23)
+- Read-only code audit (sub-agent; primary verified the receipt fields): query rows are exactly the positions after the last video
+  token through the final position, so they include the vision-end marker, the question/choice text and the generation prompt
+  (54 to ~80 rows per video, 66 in the smoke row); both arms use identical rows and only the intended key columns; the per-layer
+  pre-hook audit requires the mask to equal original + dose on those cells only and every layer to be hit once, so no layer can be
+  skipped silently (eager attention); causality is preserved (keys precede every row; the bias path never makes cells visible);
+  the fp32 `lm_head` patch is identical for all conditions; the row contrast arithmetic is recomputed by the validator.
+  Unit tests 25/25 (CPU only; they say nothing about live Qwen masks beyond the per-layer runtime audit).
+- bf16 mask dtype rounds the dose: requested -5.545 -> effective -5.53125 (about x1/252, not exactly x1/256); doses are labelled by
+  requested bias. The analysis scripts now record `query_scope`, `layers_1_based` and `precision` and refuse to combine receipts
+  with different scope/layers/precision.
+- Exploratory diagnostics on the control receipt (not prespecified): the contrast is uncorrelated with the baseline margin
+  (Spearman -0.07, p=0.41; no regression-to-the-mean pattern) and with the annotation-minus-sham temporal position
+  (rho -0.02); mean group position annotation 7.44 vs sham 7.77 of 16 (paired p=0.53); weak non-significant trend with the number
+  of annotated groups (rho -0.15, p=0.07); tercile means by baseline margin -0.60 / -0.23 / -0.71.
