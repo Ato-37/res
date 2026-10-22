@@ -1,0 +1,43 @@
+{
+  "schema_version": 1,
+  "status": "prespecified_dose_response",
+  "doses": [
+    {
+      "n": 149,
+      "mean_nats": 0.003331761221317793,
+      "sd_nats": 0.09235917141618145,
+      "median_nats": -0.0015295147895812988,
+      "ci95_t": [
+        -0.011620289289294115,
+        0.0182838117319297
+      ],
+      "ci90_t": [
+        -0.00919218452711789,
+        0.015855706969753476
+      ],
+      "p_two_sided_t": 0.6603341700935124,
+      "p_sign_flip": 0.663641681791591,
+      "permutations": 200000,
+      "delta_min_nats": 0.025,
+      "tost_p": 0.0023975215270119897,
+      "tost_p_lower": 0.00012914100404669355,
+      "tost_p_upper": 0.0023975215270119897,
+      "positive": 74,
+      "negative": 75,
+      "verdict": "no_meaningful_effect_equivalence",
+      "requested_bias_nats": -5.545177444479562,
+      "log2_dose": -8.0,
+      "annotation_minus_baseline_mean": 0.011520838964321876,
+      "sham_minus_baseline_mean": 0.008189077743004083,
+      "correctness_flips_annotation_vs_baseline": 0,
+      "correctness_flips_sham_vs_baseline": 0,
+      "completed_forwards": 447,
+      "p_holm": 0.6603341700935124,
+      "significant_after_holm": false,
+      "equivalent_at_alpha_over_k": true
+    }
+  ],
+  "n_doses": 1,
+  "scope": "answer-margin dependence on the QA time annotation (label-free); not explanation faithfulness",
+  "faithfulness_status": "\u88dc\u52a9\u8a3a\u65ad\u306e\u307f"
+}
