@@ -1,0 +1,77 @@
+{
+  "schema_version": 1,
+  "status": "prespecified_dose_response",
+  "doses": [
+    {
+      "n": 149,
+      "mean_nats": -0.004492242755419137,
+      "sd_nats": 0.09049764531756971,
+      "median_nats": 5.9098005294799805e-05,
+      "ci95_t": [
+        -0.01914293031716002,
+        0.010158444806321745
+      ],
+      "ci90_t": [
+        -0.016763764716256548,
+        0.007779279205418273
+      ],
+      "p_two_sided_t": 0.5454925288626878,
+      "p_sign_flip": 0.5471372643136785,
+      "permutations": 200000,
+      "delta_min_nats": 0.025,
+      "tost_p": 0.0031979348090233587,
+      "tost_p_lower": 0.0031979348090233587,
+      "tost_p_upper": 5.421365182548918e-05,
+      "positive": 75,
+      "negative": 74,
+      "verdict": "no_meaningful_effect_equivalence",
+      "requested_bias_nats": -2.772588722239781,
+      "log2_dose": -4.0,
+      "annotation_minus_baseline_mean": -0.0018954536959219523,
+      "sham_minus_baseline_mean": 0.002596789059497185,
+      "correctness_flips_annotation_vs_baseline": 0,
+      "correctness_flips_sham_vs_baseline": 0,
+      "completed_forwards": 447,
+      "p_holm": 0.5454925288626878,
+      "significant_after_holm": false,
+      "equivalent_at_alpha_over_k": true
+    },
+    {
+      "n": 149,
+      "mean_nats": 0.009215775933003384,
+      "sd_nats": 0.08202460998214925,
+      "median_nats": 0.0029489099979400635,
+      "ci95_t": [
+        -0.004063209713585734,
+        0.0224947615795925
+      ],
+      "ci90_t": [
+        -0.001906798573690964,
+        0.02033835043969773
+      ],
+      "p_two_sided_t": 0.17230954309505112,
+      "p_sign_flip": 0.1746241268793656,
+      "permutations": 200000,
+      "delta_min_nats": 0.025,
+      "tost_p": 0.010074434013394747,
+      "tost_p_lower": 5.313409471904906e-07,
+      "tost_p_upper": 0.010074434013394747,
+      "positive": 77,
+      "negative": 72,
+      "verdict": "no_meaningful_effect_equivalence",
+      "requested_bias_nats": -5.545177444479562,
+      "log2_dose": -8.0,
+      "annotation_minus_baseline_mean": 0.013378798576550803,
+      "sham_minus_baseline_mean": 0.004163022643547417,
+      "correctness_flips_annotation_vs_baseline": 0,
+      "correctness_flips_sham_vs_baseline": 0,
+      "completed_forwards": 447,
+      "p_holm": 0.34461908619010223,
+      "significant_after_holm": false,
+      "equivalent_at_alpha_over_k": true
+    }
+  ],
+  "n_doses": 2,
+  "scope": "answer-margin dependence on the QA time annotation (label-free); not explanation faithfulness",
+  "faithfulness_status": "\u88dc\u52a9\u8a3a\u65ad\u306e\u307f"
+}
