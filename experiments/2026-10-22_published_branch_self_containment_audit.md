@@ -24,12 +24,17 @@ git worktree (no untracked files, no private data). Reproducibility check, not a
   smokes + `smoke_nextgqa_baseline_only_qwen_gpu.py` -> ALLOWED_ENGINEERING_LOADERS; 4 processor-only scripts ->
   PROCESSOR_ONLY_LOADERS; `run_claim_token_key_order_interaction.py` (docstring: GPU smoke/full scoring fail-closed)
   -> GATE_CONTROLLED_LOADERS.
-- **ASSUMED-CLEARED (pending user confirmation):** five scripts have no local-only CLI flag and were classified
-  USER_AUTHORIZED_LOCAL_DATA_PILOTS on the strength of their docstrings only (local-only, post-selection):
-  `run_claim_frame_index_mask_pilot.py`, `run_head_bootstrap_exploration.py`, `run_head_gold_answer_query_exploration.py`,
-  `run_head_gold_answer_query_exploration_executed_20261019_v1.py`, `run_head_query_position_exploration.py`.
-  The four head-attention scripts sit near the closed head-search branch (AGENTS.md: do not resume head/layer/alpha
-  search); they are measurement-only, but the user should confirm the classification or revert it.
+- **ASSUMED-CLEARED (pending user confirmation):** `run_claim_frame_index_mask_pilot.py` has no local-only CLI flag and
+  was classified USER_AUTHORIZED_LOCAL_DATA_PILOTS because it has a real receipt chain (full mode needs a passed smoke
+  receipt bound to packet/source hashes, private output only); independent audit agreed.
+- **Known guard gap (independent audit, supersedes my first docstring-based classification):** the four head scripts
+  `run_head_bootstrap_exploration.py`, `run_head_gold_answer_query_exploration.py`,
+  `run_head_gold_answer_query_exploration_executed_20261019_v1.py`, `run_head_query_position_exploration.py` load the 7B
+  model on private media and are gated only by a no-op `--exploratory` flag, output checks and CPU preflight. They
+  re-apply head-selection rules, i.e. sit inside the closed head-search branch. They are now in an explicit
+  `KNOWN_UNGUARDED_HEAD_SELECTION_MEASUREMENTS` set (test asserts it is disjoint from the authorized classes). Do not run
+  them again until a hard guard (user-authorization flag or protocol-hash gate) is added; the executed copy is frozen.
+  `run_claim_token_key_order_interaction.py` GATE_CONTROLLED was confirmed (in-code `not_granted` refusal before loading).
 - Published the local `scripts/` directory state plus two experiment logs read by tests to the remote branch
   (code only; no docs/data/results). Clean-worktree rerun: 3166 tests, 0 failures, 23 errors, all from absent
   private/untracked inputs (`data/private_nextgqa/*`, `datasets/runtime_source_audit/private/*`); no import errors.
