@@ -34,6 +34,21 @@ def read_private(path: Path) -> tuple[dict, str]:
     return json.loads(raw), hashlib.sha256(raw).hexdigest()
 
 
+
+def _source_matches(repo: Path, source_name: str, source_digest: str) -> bool:
+    """Current source must match the recorded digest, or an exact frozen copy of the executed version must.
+
+    A later edit to a tracked script must not silently invalidate or relax provenance: the hash is still
+    enforced, against `scripts/frozen_sources/<stem>__sha256_<first8>.py` when the live file has moved on.
+    """
+    def digest(path: Path) -> str:
+        return hashlib.sha256(path.read_bytes()).hexdigest()
+    source_path = repo / source_name
+    if source_path.is_file() and digest(source_path) == source_digest:
+        return True
+    frozen = repo / "scripts" / "frozen_sources" / f"{Path(source_name).stem}__sha256_{source_digest[:8]}.py"
+    return frozen.is_file() and not frozen.is_symlink() and digest(frozen) == source_digest
+
 def summarize(repo: Path) -> dict:
     lock, lock_sha = read_private(repo / ROOT / LOCK_NAME)
     pair_filter, pair_filter_sha = read_private(repo / ROOT / FILTER_NAME)
@@ -78,8 +93,7 @@ def summarize(repo: Path) -> dict:
                 != base.get("condition", {}).get("frame_mean_processor_pixels_sha256")):
             raise ValueError("processor_condition_hash_join_invalid:" + run_name)
         for source_name, source_digest in run.get("source_sha256", {}).items():
-            source_path = repo / source_name
-            if not source_path.is_file() or hashlib.sha256(source_path.read_bytes()).hexdigest() != source_digest:
+            if not _source_matches(repo, source_name, source_digest):
                 raise ValueError("run_source_hash_mismatch:" + source_name)
         expected_layers = {str(layer): 1 for layer in range(5, 17)}
         for branch in ("original_video", "per_frame_rgb_mean_video"):
