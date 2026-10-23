@@ -173,9 +173,9 @@ Negative and inconclusive results are valid outputs that guide the next design.
   [-0.1578, +0.0065]); do not resume head/layer/alpha search. The CLEVRER matched-pair branch is closed (158/12,974 pairs
   shared operator traces; 12/158 had token edit distance 2-3; not evidence of semantic validity).
 - Earlier grounding/claim-fit counts are geometric/proxy audits only, not efficacy results.
-- QA-annotation key bias (label-free, NExT-GQA val, N=149, fp32 readout; see `experiments/2026-10-22_annotation_key_bias_*`
-  and `2026-10-23_*`): last-row bias at +ln2..+ln16 was equivalent to zero within +/-0.025 nat, but the suppression positive
-  controls at the final row failed (layers 5-16 and all layers), so those nulls are uninformative. The multi-query control
-  (all post-video rows, all layers, -ln256) passed (mean -0.515 nat, 95% CI [-0.82, -0.21]); positive-bias doses under that
-  scope were still running when this was written. None of this is explanation faithfulness.
+- QA-annotation key bias (label-free, NExT-GQA val, fp32 readout; see `experiments/2026-10-22_annotation_key_bias_*` and `2026-10-23_*`, consolidated in
+  `2026-10-23_annotation_key_bias_consolidated_summary.md`): last-row bias nulls (+ln2..+ln16) are uninformative because their suppression controls failed. With the
+  multi-query scope (all post-video rows, all 28 layers) the suppression control passed in two fresh cohorts (N=149 p=0.001; N=196 p=0.031, fragile under rank tests);
+  steering (+ln4, +ln16) was inconclusive after Holm in both and never improved the margin over baseline; contrasts are mostly sham-driven. Scoped SSS for these
+  measurements only; none of this is explanation faithfulness (direct evaluation not done).
 - Hardware note: RTX 5070 Ti, `.venv` and the pinned checkpoint as above; check runtime availability before each run.
