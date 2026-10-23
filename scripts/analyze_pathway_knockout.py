@@ -46,8 +46,8 @@ def profile(records: list[dict]) -> dict:
             m, lo, hi = interval(vals)
             flips = sum(k["predicted_after"] != r["predicted"] for r in correct for k in r["knockouts"]
                         if k["edge"] == edge and k["center"] == c)
-            out[edge][c] = {"n": len(vals), "mean_percent": m, "ci95": [lo, hi], "median_percent": st.median(vals),
-                            "prediction_change_rate": flips / len(vals), "meaningful": m <= MEANINGFUL_PERCENT and hi < 0}
+            out[edge][c] = {"n": len(vals), "mean_percent": float(m), "ci95": [float(lo), float(hi)], "median_percent": float(st.median(vals)),
+                            "prediction_change_rate": flips / len(vals), "meaningful": bool(m <= MEANINGFUL_PERCENT and hi < 0)}
     return out
 
 
