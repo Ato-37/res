@@ -1,0 +1,68 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="760" height="488" font-family="sans-serif" font-size="12">
+<rect width="760" height="488" fill="white"/>
+<text x="210" y="22" font-size="14" font-weight="bold">Multi-query key bias, NExT-GQA val, Qwen2.5-VL-7B (fp32 readout)</text>
+<text x="210" y="40" fill="#444">answer-margin change in nat: mean and 95% t CI; dashed = practical threshold +/-0.3</text>
+<line x1="270.0" y1="44" x2="270.0" y2="448" stroke="#dddddd" stroke-width="0.8"/>
+<text x="270.0" y="464" text-anchor="middle" fill="#444">-1.0</text>
+<line x1="370.0" y1="44" x2="370.0" y2="448" stroke="#dddddd" stroke-width="0.8"/>
+<text x="370.0" y="464" text-anchor="middle" fill="#444">-0.5</text>
+<line x1="470.0" y1="44" x2="470.0" y2="448" stroke="black" stroke-width="1.2"/>
+<text x="470.0" y="464" text-anchor="middle" fill="#444">+0.0</text>
+<line x1="570.0" y1="44" x2="570.0" y2="448" stroke="#dddddd" stroke-width="0.8"/>
+<text x="570.0" y="464" text-anchor="middle" fill="#444">+0.5</text>
+<line x1="670.0" y1="44" x2="670.0" y2="448" stroke="#dddddd" stroke-width="0.8"/>
+<text x="670.0" y="464" text-anchor="middle" fill="#444">+1.0</text>
+<line x1="410.0" y1="44" x2="410.0" y2="448" stroke="#2e8b57" stroke-dasharray="5,4"/>
+<line x1="530.0" y1="44" x2="530.0" y2="448" stroke="#2e8b57" stroke-dasharray="5,4"/>
+<text x="200" y="71" text-anchor="end" font-weight="bold">-ln256 suppress</text>
+<text x="200" y="86" text-anchor="end" fill="#444">cohort 1 (N=149)</text>
+<line x1="305.9431063841726" y1="58.5" x2="428.0677251764138" y2="58.5" stroke="#1f4e79" stroke-width="2"/>
+<circle cx="367.0054157802932" cy="58.5" r="3.6" fill="#1f4e79"/>
+<line x1="358.37201283359" y1="75.5" x2="448.9320257628823" y2="75.5" stroke="#c0504d" stroke-width="2"/>
+<circle cx="403.65201929823616" cy="75.5" r="3.6" fill="#c0504d"/>
+<line x1="473.3183973630648" y1="92.5" x2="539.974809672821" y2="92.5" stroke="#7f7f7f" stroke-width="2"/>
+<circle cx="506.64660351794294" cy="92.5" r="3.6" fill="#7f7f7f"/>
+<text x="200" y="134" text-anchor="end" font-weight="bold">-ln256 suppress</text>
+<text x="200" y="149" text-anchor="end" fill="#444">cohort 2 (N=196)</text>
+<line x1="380.1648300518244" y1="121.5" x2="465.7104543440131" y2="121.5" stroke="#1f4e79" stroke-width="2"/>
+<circle cx="422.93764219791876" cy="121.5" r="3.6" fill="#1f4e79"/>
+<line x1="435.9929520637637" y1="138.5" x2="504.662331100398" y2="138.5" stroke="#c0504d" stroke-width="2"/>
+<circle cx="470.32764158208084" cy="138.5" r="3.6" fill="#c0504d"/>
+<line x1="493.1426278338712" y1="155.5" x2="541.637370934453" y2="155.5" stroke="#7f7f7f" stroke-width="2"/>
+<circle cx="517.3899993841621" cy="155.5" r="3.6" fill="#7f7f7f"/>
+<text x="200" y="197" text-anchor="end" font-weight="bold">+ln4 steer</text>
+<text x="200" y="212" text-anchor="end" fill="#444">cohort 1 (N=149)</text>
+<line x1="469.0494803752648" y1="184.5" x2="553.9170318836218" y2="184.5" stroke="#1f4e79" stroke-width="2"/>
+<circle cx="511.48325612944325" cy="184.5" r="3.6" fill="#1f4e79"/>
+<line x1="414.30450190757426" y1="201.5" x2="490.2104540381497" y2="201.5" stroke="#c0504d" stroke-width="2"/>
+<circle cx="452.257477972862" cy="201.5" r="3.6" fill="#c0504d"/>
+<line x1="375.753877751108" y1="218.5" x2="445.79456593572945" y2="218.5" stroke="#7f7f7f" stroke-width="2"/>
+<circle cx="410.77422184341873" cy="218.5" r="3.6" fill="#7f7f7f"/>
+<text x="200" y="260" text-anchor="end" font-weight="bold">+ln4 steer</text>
+<text x="200" y="275" text-anchor="end" fill="#444">cohort 2 (N=196)</text>
+<line x1="455.8994030269845" y1="247.5" x2="533.6522444335978" y2="247.5" stroke="#1f4e79" stroke-width="2"/>
+<circle cx="494.77582373029117" cy="247.5" r="3.6" fill="#1f4e79"/>
+<line x1="420.6317179077054" y1="264.5" x2="480.71148677816626" y2="264.5" stroke="#c0504d" stroke-width="2"/>
+<circle cx="450.67160234293584" cy="264.5" r="3.6" fill="#c0504d"/>
+<line x1="396.266249535008" y1="281.5" x2="455.52530769028147" y2="281.5" stroke="#7f7f7f" stroke-width="2"/>
+<circle cx="425.8957786126447" cy="281.5" r="3.6" fill="#7f7f7f"/>
+<text x="200" y="323" text-anchor="end" font-weight="bold">+ln16 steer</text>
+<text x="200" y="338" text-anchor="end" fill="#444">cohort 1 (N=149)</text>
+<line x1="480.94222033901974" y1="310.5" x2="638.5662888059923" y2="310.5" stroke="#1f4e79" stroke-width="2"/>
+<circle cx="559.7542545725059" cy="310.5" r="3.6" fill="#1f4e79"/>
+<line x1="328.7161995082307" y1="327.5" x2="465.2730752836237" y2="327.5" stroke="#c0504d" stroke-width="2"/>
+<circle cx="396.99463739592716" cy="327.5" r="3.6" fill="#c0504d"/>
+<line x1="231.96141095056228" y1="344.5" x2="382.51935469628006" y2="344.5" stroke="#7f7f7f" stroke-width="2"/>
+<circle cx="307.24038282342116" cy="344.5" r="3.6" fill="#7f7f7f"/>
+<text x="200" y="386" text-anchor="end" font-weight="bold">+ln16 steer</text>
+<text x="200" y="401" text-anchor="end" fill="#444">cohort 2 (N=196)</text>
+<line x1="467.72924861324515" y1="373.5" x2="593.8207051144027" y2="373.5" stroke="#1f4e79" stroke-width="2"/>
+<circle cx="530.774976863824" cy="373.5" r="3.6" fill="#1f4e79"/>
+<line x1="398.58892410848955" y1="390.5" x2="515.4526584512139" y2="390.5" stroke="#c0504d" stroke-width="2"/>
+<circle cx="457.02079127985166" cy="390.5" r="3.6" fill="#c0504d"/>
+<line x1="338.81730213285255" y1="407.5" x2="453.6743266992029" y2="407.5" stroke="#7f7f7f" stroke-width="2"/>
+<circle cx="396.24581441602777" cy="407.5" r="3.6" fill="#7f7f7f"/>
+<circle cx="210" cy="476" r="4" fill="#1f4e79"/><text x="219" y="480" fill="#222">annotation - sham (contrast)</text>
+<circle cx="400" cy="476" r="4" fill="#c0504d"/><text x="409" y="480" fill="#222">annotation - baseline</text>
+<circle cx="590" cy="476" r="4" fill="#7f7f7f"/><text x="599" y="480" fill="#222">sham - baseline</text>
+</svg>
