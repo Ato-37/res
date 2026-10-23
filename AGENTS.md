@@ -107,6 +107,11 @@ if it could expose restricted data.
 - Sample size is the main limitation. Before selecting a cohort prespecify N, the practical threshold and one primary analysis
   from a power calculation (video = unit; no interim looks; no batch-by-batch pooling), and report an equivalence test (TOST)
   so a null reads "effect below the threshold".
+- Justify the practical threshold (delta_min) from data before selection, never by convention: (a) decision relevance (share of
+  videos whose baseline gold-vs-foil margin lies within +/-delta of the decision boundary), (b) a standardized smallest effect of
+  interest (d_z = 0.2 x the SD of the per-video contrast), (c) the measurement noise floor. For the answer-margin endpoint in the
+  annotation-key-bias design use delta_min = 0.3 nat (345 videos: 5.5% of decisions lie within 0.3 nat; 0.2 x SD 1.69 = 0.34 nat;
+  0.025 nat moved 0.0% of decisions and was too small). Re-derive it for a new endpoint.
 - Use the fp32 `lm_head` readout wrapper `scripts/run_nextgqa_annotation_key_bias_fp32_readout.py` (bf16 logits quantize
   margins at 0.125 nat); never pool bf16 and fp32 readouts.
 - Pair every intervention test with a prespecified **positive control** that must be able to move the endpoint; if it fails,
