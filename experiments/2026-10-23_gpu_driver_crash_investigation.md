@@ -21,3 +21,16 @@ An earlier report said the identical low 16 bits (`d080`) of the faulting addres
 - Started `scripts/log_gpu_telemetry.sh` (temperature, power, clocks, utilization, PCIe link, throttle reasons every ~2 s into `data/gpu_telemetry/gpu_YYYYMMDD.csv`, untracked) so the seconds before the next crash survive a reboot.
 - New long runs (`scripts/run_pathway_knockout.py`) append one record per video to a partial JSONL and can resume, so a crash costs at most one video.
 - Needs the user: install a different NVIDIA driver version with a clean removal (DDU) and compare; optionally lower the GPU power limit; copy the minidumps to a readable folder if a stack analysis is wanted.
+
+## Dump analysis (2026-10-23, after the user copied the minidumps; header-level parsing only, no symbol-based stack analysis)
+Four kernel minidumps (Windows build 26100, 8 CPUs; PAGEDU64 triage dumps):
+| dump | bugcheck | parameters |
+|---|---|---|
+| 2026-08-23 22:24 | **0x116 VIDEO_TDR_ERROR** | arg3 = 0xC000009A (STATUS_INSUFFICIENT_RESOURCES), arg4 = 4 |
+| 2026-10-09 21:32 | 0x133 DPC_WATCHDOG_VIOLATION | (1, 0x1e00, ...) |
+| 2026-10-23 03:02 | 0xD1 | arg1 = arg4 = 0xfffff8018b50d080, arg2 = 2, arg3 = 8 (execute) |
+| 2026-10-23 14:42 | 0xD1 | arg1 = arg4 = 0xfffff801cd8cd080, arg2 = 2, arg3 = 8 (execute) |
+- `nvlddmkm.sys` is in the loaded-driver list of all four dumps. The 0xD1 faulting address lies below the kernel image and could not be attributed to a module (the module-base table was not parsed); the low-16-bit coincidence (`d080`) stays inconclusive.
+- **The first NVIDIA-driver bugcheck is from 2026-08-23, before the October experiments**, and a different driver generation: NVIDIA component re-configuration events (nvvad/nvhda) appear on 07-07, 08-12 and 09-14 and the installed display driver is 32.0.16.1742 (2026-09-30, installed after 09-14), so the instability occurred under at least two driver versions and on workloads other than these experiments (the experiments only started in September).
+- Kind of failures seen: TDR with insufficient-resources status (Aug), DPC watchdog after a burst of GPU exceptions (Oct 9), instruction fetch at an invalid address at DISPATCH_LEVEL (Oct 23, twice). They are different bugcheck types, which fits a failing/unstable GPU or platform (power, thermals, VRAM, PCIe) at least as well as a single driver bug.
+- Not established: whether these are a driver bug or a hardware fault; that needs a different-driver trial or a hardware test (e.g. a VRAM/GPU stress test with the telemetry logger running, power-limit trial, another PSU rail or cable).
