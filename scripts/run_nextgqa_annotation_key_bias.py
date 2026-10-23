@@ -38,6 +38,7 @@ MODEL_NAME = "Qwen/Qwen2.5-VL-7B-Instruct"
 LAYERS_1_BASED = tuple(range(5, 17))
 BIAS_NATS = math.log(2.0)
 SEED = 20261021
+ARM_MODE = "bias"  # "bias": edit keys of the annotated/sham groups; "keep": edit all keys EXCEPT those groups (evidence cropping)
 QUERY_SCOPE = "last"  # "last" (final row only) or "post_video" (all rows after the last video token)
 MAX_COHORT_VIDEOS = 400  # raised from 20 on 2026-10-22 for the prespecified N=160 confirmatory cohort
 PURPOSE = "exploratory_nextgqa_qa_annotation_temporal_key_bias_sensitivity"
@@ -296,6 +297,21 @@ def fixed_gold_foil_margin(choice_logprobs: Sequence[float], *, gold_index: int,
     return float(choice_logprobs[gold_index]) - float(choice_logprobs[baseline_foil_index])
 
 
+def keep_mode_complement_keys(*, temporal_groups: Sequence[Sequence[int]], annotation_keys: Sequence[int],
+                              sham_keys: Sequence[int]) -> tuple[tuple[int, ...], tuple[int, ...]]:
+    """Keep mode: the edited keys are all video keys EXCEPT the kept (annotation / sham) groups; budgets stay equal."""
+    all_keys = tuple(sorted(position for group in temporal_groups for position in group))
+    kept_annotation, kept_sham = set(annotation_keys), set(sham_keys)
+    if (not kept_annotation <= set(all_keys) or not kept_sham <= set(all_keys)
+            or len(kept_annotation) != len(kept_sham) or kept_annotation & kept_sham):
+        raise ValueError("keep_mode_key_budget_invalid")
+    edited_annotation = tuple(k for k in all_keys if k not in kept_annotation)
+    edited_sham = tuple(k for k in all_keys if k not in kept_sham)
+    if not edited_annotation or len(edited_annotation) != len(edited_sham):
+        raise ValueError("keep_mode_key_budget_invalid")
+    return edited_annotation, edited_sham
+
+
 def audit_attention_mask_delta_rows(*, original_mask: Any, actual_mask: Any,
                                     query_positions: Sequence[int], key_positions: Sequence[int],
                                     logit_bias: float, torch_module: Any) -> dict:
@@ -465,8 +481,12 @@ def validate_smoke_receipt(smoke: dict, *, args_n: int, lock_sha256: str,
         first_row_binding, dict) else None
     token_count_per_group = first_row_binding.get("video_keys_per_temporal_group") if isinstance(
         first_row_binding, dict) else None
-    expected_key_count = (group_count * token_count_per_group
-                          if type(group_count) is int
+    edited_groups = group_count
+    if ARM_MODE == "keep" and type(group_count) is int and isinstance(first_row_binding, dict) \
+            and type(first_row_binding.get("temporal_group_count")) is int:
+        edited_groups = first_row_binding["temporal_group_count"] - group_count
+    expected_key_count = (edited_groups * token_count_per_group
+                          if type(edited_groups) is int
                           and type(token_count_per_group) is int else None)
     groups = first_row_binding.get("annotation_group_indices", []) if isinstance(
         first_row_binding, dict) else []
@@ -963,6 +983,9 @@ def _preflight_or_score(args) -> int:
                 temporal_groups=groups,
                 annotation_group_indices=annotation_group_ids,
                 sham_group_indices=sham_group_ids)
+            if ARM_MODE == "keep":
+                annotation_keys, sham_keys = keep_mode_complement_keys(
+                    temporal_groups=groups, annotation_keys=annotation_keys, sham_keys=sham_keys)
             label_tensor = torch.tensor(label_ids, device="cuda")
 
             failed_condition = "baseline"
@@ -1048,7 +1071,7 @@ def _preflight_or_score(args) -> int:
         "model": MODEL_NAME, "model_revision": MODEL_REVISION,
         "model_config_sha256": model_config_sha256,
         "precision": "4-bit weights, BF16 compute, eager attention",
-        "layers_1_based": list(LAYERS_1_BASED), "requested_bias_nats": BIAS_NATS, "query_scope": QUERY_SCOPE,
+        "layers_1_based": list(LAYERS_1_BASED), "requested_bias_nats": BIAS_NATS, "query_scope": QUERY_SCOPE, "arm_mode": ARM_MODE,
         "seed": SEED, "cohort_lock_sha256": lock_sha256,
         "cohort_sha256": cohort_hash, "preflight_receipt_sha256": preflight_sha256,
         "candidate_manifest_digest_sha256": meta["private_exclusion_manifest_digest"],

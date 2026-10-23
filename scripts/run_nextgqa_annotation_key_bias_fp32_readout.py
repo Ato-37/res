@@ -63,6 +63,17 @@ def _consume_scope_option(argv):
     return argv[:i] + argv[i + 2:]
 
 
+def _consume_arm_option(argv):
+    """Pop an optional `--arm-mode keep` (edit all keys except the annotated/sham groups) and set it on the base module."""
+    if "--arm-mode" not in argv:
+        return argv
+    i = argv.index("--arm-mode")
+    if argv[i + 1] not in {"bias", "keep"}:
+        raise SystemExit("arm_mode_invalid")
+    base.ARM_MODE = argv[i + 1]
+    return argv[:i] + argv[i + 2:]
+
+
 def _consume_bias_option(argv):
     """Pop an optional `--bias-nats X` (requested additive attention-score bias) and set it on the base module."""
     if "--bias-nats" not in argv:
@@ -76,5 +87,5 @@ def _consume_bias_option(argv):
 
 
 if __name__ == "__main__":
-    sys.argv = _consume_scope_option(_consume_layers_option(_consume_bias_option(sys.argv)))
+    sys.argv = _consume_arm_option(_consume_scope_option(_consume_layers_option(_consume_bias_option(sys.argv))))
     raise SystemExit(base.main())

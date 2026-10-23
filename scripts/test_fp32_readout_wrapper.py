@@ -13,11 +13,20 @@ class BiasOptionTests(unittest.TestCase):
         self.saved = base.BIAS_NATS
         self.saved_layers = base.LAYERS_1_BASED
         self.saved_scope = base.QUERY_SCOPE
+        self.saved_arm = base.ARM_MODE
 
     def tearDown(self):
         base.BIAS_NATS = self.saved
         base.LAYERS_1_BASED = self.saved_layers
         base.QUERY_SCOPE = self.saved_scope
+        base.ARM_MODE = self.saved_arm
+
+    def test_arm_mode_option(self):
+        out = wrapper._consume_arm_option(["prog", "--arm-mode", "keep", "--n", "3"])
+        self.assertEqual(out, ["prog", "--n", "3"])
+        self.assertEqual(base.ARM_MODE, "keep")
+        with self.assertRaises(SystemExit):
+            wrapper._consume_arm_option(["prog", "--arm-mode", "remove"])
 
     def test_query_scope_option(self):
         out = wrapper._consume_scope_option(["prog", "--query-scope", "post_video", "--n", "3"])

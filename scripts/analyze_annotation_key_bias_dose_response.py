@@ -43,7 +43,7 @@ def main(argv=None) -> int:
         if d.get("status") != "completed" or d.get("effective_videos") != args.expected_n or len(rows) != args.expected_n:
             raise SystemExit("receipt_incomplete")
         media_sets.append([r["media_sha256"] for r in rows])
-        design.add((d.get("query_scope", "last"), tuple(d.get("layers_1_based", ())), d.get("precision")))
+        design.add((d.get("query_scope", "last"), tuple(d.get("layers_1_based", ())), d.get("precision"), d.get("arm_mode", "bias")))
         res = analyze([float(r["primary_annotation_minus_sham_nats"]) for r in rows], args.delta_min)
         changed = lambda c: sum(r["gold_prediction_correct_by_condition"][c] != r["gold_prediction_correct_by_condition"]["baseline"] for r in rows)
         res.update({"requested_bias_nats": d.get("requested_bias_nats"), "log2_dose": d.get("requested_bias_nats") / math.log(2),
@@ -57,7 +57,7 @@ def main(argv=None) -> int:
         raise SystemExit("cohort_differs_between_doses")
     if len(design) != 1:
         raise SystemExit("query_scope_layers_or_precision_differ_between_receipts")
-    scope, layers, precision = next(iter(design))
+    scope, layers, precision, arm_mode = next(iter(design))
     k = len(per)
     adj = holm([r["p_two_sided_t"] for r in per])
     for r, a in zip(per, adj):
@@ -65,7 +65,7 @@ def main(argv=None) -> int:
         r["significant_after_holm"] = a < ALPHA
         r["equivalent_at_alpha_over_k"] = r["tost_p"] < ALPHA / k
     out = {"schema_version": 1, "status": "prespecified_dose_response", "doses": per, "n_doses": k,
-           "query_scope": scope, "layers_1_based": list(layers), "precision": precision,
+           "query_scope": scope, "layers_1_based": list(layers), "precision": precision, "arm_mode": arm_mode,
            "effective_bias_note": "mask dtype rounds the dose (e.g. bf16 -5.545 -> -5.53125); doses are labelled by requested bias",
            "scope": "answer-margin dependence on the QA time annotation (label-free); not explanation faithfulness",
            "faithfulness_status": "補助診断のみ"}

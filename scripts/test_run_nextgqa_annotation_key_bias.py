@@ -81,6 +81,18 @@ class AnnotationKeyBiasGeometryTests(unittest.TestCase):
             runner.audit_attention_mask_delta_rows(original_mask=original, actual_mask=actual,
                 query_positions=(1, 5), key_positions=[2, 3], logit_bias=-3.0, torch_module=torch)
 
+    def test_keep_mode_edits_complements_with_equal_budgets(self):
+        groups = ((10, 11), (12, 13), (14, 15), (16, 17))
+        a, s = runner.flatten_selected_key_positions(temporal_groups=groups,
+            annotation_group_indices=(0,), sham_group_indices=(2,))
+        ea, es = runner.keep_mode_complement_keys(temporal_groups=groups, annotation_keys=a, sham_keys=s)
+        self.assertEqual(ea, (12, 13, 14, 15, 16, 17))
+        self.assertEqual(es, (10, 11, 12, 13, 16, 17))
+        self.assertEqual(len(ea), len(es))
+        self.assertFalse(set(ea) & set(a))
+        with self.assertRaisesRegex(ValueError, "keep_mode_key_budget_invalid"):
+            runner.keep_mode_complement_keys(temporal_groups=groups, annotation_keys=(10, 11), sham_keys=(12,))
+
     def test_no_equal_budget_sham_fails_instead_of_shrinking(self):
         with self.assertRaisesRegex(ValueError, "annotation_sham_inputs_invalid"):
             runner.choose_disjoint_hash_sham(temporal_group_count=4,
