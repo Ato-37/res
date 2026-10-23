@@ -41,6 +41,10 @@ def analyze(values: list[float], delta_min: float, *, permutations: int = 200_00
         if abs(s) >= obs - 1e-12:
             extreme += 1
     p_perm = (extreme + 1) / (permutations + 1)
+    try:
+        p_wilcoxon = float(stats.wilcoxon(values).pvalue)
+    except ValueError:  # all differences zero
+        p_wilcoxon = 1.0
     significant = p_two < ALPHA
     meaningful = significant and abs(mean) >= delta_min
     equivalent = p_tost < ALPHA
@@ -49,7 +53,7 @@ def analyze(values: list[float], delta_min: float, *, permutations: int = 200_00
                "no_meaningful_effect_equivalence" if equivalent else "inconclusive")
     return {"n": n, "mean_nats": mean, "sd_nats": sd, "median_nats": st.median(values),
             "ci95_t": [mean - tcrit * se, mean + tcrit * se], "ci90_t": list(ci90),
-            "p_two_sided_t": p_two, "p_sign_flip": p_perm, "permutations": permutations,
+            "p_two_sided_t": p_two, "p_sign_flip": p_perm, "p_wilcoxon": p_wilcoxon, "permutations": permutations,
             "delta_min_nats": delta_min, "tost_p": p_tost, "tost_p_lower": p_lower, "tost_p_upper": p_upper,
             "positive": sum(v > 1e-9 for v in values), "negative": sum(v < -1e-9 for v in values),
             "verdict": verdict}

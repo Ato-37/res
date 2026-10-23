@@ -36,3 +36,8 @@ in spirit. Status: ASSUMED-CLEARED (pending user confirmation). Target N = all e
   t-test, sign-flip test and the Wilcoxon test all give p < 0.05 with mean >= 0.3 nat.
 - Reporting regardless of outcome: N requested/effective, failures, CIs, medians/trimmed means, effect decomposition per arm. Scope: answer-margin effect of oracle evidence-interval attention
   cropping; the annotation is used at inference (oracle), so this is an upper-bound mechanism test, not a deployable method and not explanation faithfulness.
+
+## Stage 2 cohort update (2026-10-23, after Stage 1; before any Stage-2 outcome)
+Stage 1 gate passed at -ln256 (mean +0.659 nat >= 0.3), so Stage 2 uses -ln256. The test candidate pool (ranks 1-300) is shared with the pathway-knockout replication (WP0, ranks 1-80 of the same ranking); to keep the studies
+independent, **Stage 2 excludes the media used by WP0** (read from the WP0 receipt after it finishes) and uses all structurally eligible, sham-eligible media among the remaining candidates (expected about 200). The
+confirmation rule is unchanged: two-sided t-test, sign-flip test and Wilcoxon test all p < 0.05 with mean >= 0.3 nat on keepAnn - keepRand; otherwise TOST at +/-0.3 nat and the descriptive decomposition are reported.
