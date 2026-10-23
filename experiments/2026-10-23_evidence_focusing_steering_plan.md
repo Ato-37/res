@@ -41,3 +41,12 @@ in spirit. Status: ASSUMED-CLEARED (pending user confirmation). Target N = all e
 Stage 1 gate passed at -ln256 (mean +0.659 nat >= 0.3), so Stage 2 uses -ln256. The test candidate pool (ranks 1-300) is shared with the pathway-knockout replication (WP0, ranks 1-80 of the same ranking); to keep the studies
 independent, **Stage 2 excludes the media used by WP0** (read from the WP0 receipt after it finishes) and uses all structurally eligible, sham-eligible media among the remaining candidates (expected about 200). The
 confirmation rule is unchanged: two-sided t-test, sign-flip test and Wilcoxon test all p < 0.05 with mean >= 0.3 nat on keepAnn - keepRand; otherwise TOST at +/-0.3 nat and the descriptive decomposition are reported.
+
+## Stage 2 power problem and Stage 2b (recorded 2026-10-23 ~12:05Z, before any Stage-2 outcome; the Stage-2 full run was in progress and unseen)
+The structural screens leave only about 54% of the test candidates eligible (strict annotation-interval checks etc.), so Stage 2 has **N = 80** (82 structurally eligible, 2 sham-ineligible), not the ~200 expected. With the
+development effect (+0.66 nat, SD 2.4, probably inflated by dose selection) the power of a single N=80 test is about 0.7 or lower. Therefore, before any Stage-2 outcome is known:
+- **Stage 2b** (independent second confirmation cohort): NExT-GQA test candidates ranked 501-990 (all remaining), excluding the first 500 ranked media (used by WP0, Stage 2 and WP1) and applying the same structural and sham screens;
+  same intervention (keep mode, -ln256, all layers, all post-video rows), N = number eligible (expected ~250).
+- **Final confirmatory analysis = the pooled contrast of Stage 2 + Stage 2b** (one test, video = unit): confirmed iff the two-sided t-test, sign-flip test and Wilcoxon test on keepAnn - keepRand all give p < 0.05 and the mean >= 0.3 nat;
+  otherwise TOST at +/-0.3 nat or inconclusive. Stage 2 and Stage 2b alone are reported descriptively (the earlier Stage-2-alone rule is reported for transparency and is no longer the decision rule). The pooled analysis does not include the
+  development cohort. Cohort heterogeneity (Welch test of the two means) is reported.
