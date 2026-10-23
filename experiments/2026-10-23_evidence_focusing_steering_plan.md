@@ -19,6 +19,15 @@ baseline (secondary, "does evidence cropping beat the unmodified model").
   If neither dose reaches 0.3 nat the hypothesis is dropped, the result is reported as negative, and no confirmation run is made. The dose for Stage 2 = the one with the larger
   primary mean (ties: the milder dose).
 
+### Pre-outcome deviation for Stage 2 (recorded 2026-10-23 ~03:45Z, before any Stage-1 outcome existed)
+The test-split builder (2026-10-23) found **0 exposure-fresh test candidates**: 2,928 rows are excluded by the project's prior-exposure index and 2,611 by local sample
+manifests (5,553 rows; 14 invalid intervals), i.e. every test video was used by some earlier experiment (head-faithfulness, grounding probes, claim pilots; all before the key-bias
+series). The val split is exhausted by the development cohort. Revised Stage-2 cohort: NExT-GQA test split, outcome-blind SHA-256 hash ranking, structural screens only,
+**excluding only media used in the key-bias / evidence-focusing series (none on test)**; prior exposure from unrelated earlier experiments is allowed. Rationale: H was generated
+exclusively from the two val key-bias cohorts, so test videos are independent of the hypothesis-generating data; earlier test-split experiments measured different endpoints and
+their per-video outcomes are not used for selection. Limitation: these videos are not "never analysed" and the project's earlier evidence-masking probe (test heldout) is related
+in spirit. Status: ASSUMED-CLEARED (pending user confirmation). Target N = all eligible among the first 300 hash-ranked test media.
+
 ## Stage 2: confirmation, test split
 - Cohort: NExT-GQA test split, outcome-blind hash-ranked candidates not exposed before (exposure scan as in the val builder), same structural screens; N = all eligible among the first 300 ranked
   (target >= 200). Single run at the chosen dose, one prespecified analysis.
