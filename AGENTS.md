@@ -183,4 +183,7 @@ Negative and inconclusive results are valid outputs that guide the next design.
   multi-query scope (all post-video rows, all 28 layers) the suppression control passed in two fresh cohorts (N=149 p=0.001; N=196 p=0.031, fragile under rank tests);
   steering (+ln4, +ln16) was inconclusive after Holm in both and never improved the margin over baseline; contrasts are mostly sham-driven. Scoped SSS for these
   measurements only; none of this is explanation faithfulness (direct evaluation not done).
+- Base-paper extension (Map the Flow, ICLR 2026): WP0 pathway-knockout replication on Qwen2.5-VL met all four prespecified criteria; WP1 (evidence-specific knockout, test N=112) supported its primary hypothesis
+  (video->text, layers 6-20: evidence minus sham -0.68 nat, Holm p=4e-5, positive control passed; video->last equivalent to zero). Evidence-focusing Stage 2 (N=80) was not confirmed (+0.18 nat, random-keep also improves);
+  Stage 2b/pooled confirmation and SGC are queued. See `experiments/2026-10-23_*` and `docs/thesis_base_paper_extension_plan.md`.
 - Hardware note: RTX 5070 Ti, `.venv` and the pinned checkpoint as above; check runtime availability before each run.
