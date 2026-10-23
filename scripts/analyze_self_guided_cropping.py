@@ -48,13 +48,16 @@ def main(argv=None) -> int:
     ap.add_argument("--receipt", type=Path, required=True)
     ap.add_argument("--output", type=Path)
     ap.add_argument("--permutations", type=int, default=100_000)
+    ap.add_argument("--prefix", choices=("selfguided", "csl"), default="selfguided", help="selector arm family (csl = causal self-localization receipts)")
     args = ap.parse_args(argv)
     records = load(args.receipt)
+    S, S4 = args.prefix, args.prefix + "4"
+    loc_key = "selfguided_vs_annotation" if S == "selfguided" else "csl_vs_annotation"
     used = [r for r in records if not r.get("excluded")]
     out = {"schema_version": 1, "purpose": "self_guided_cropping_summary", "recorded": len(records), "excluded": len(records) - len(used),
            "analysed": len(used), "delta_min_nat": DELTA_MIN, "contrasts": {}, "arm_minus_baseline": {}}
-    for label, (a, b) in {"P1_selfguided_minus_random": ("selfguided", "random"), "P2_selfguided4_minus_random4": ("selfguided4", "random4"),
-                          "ref_oracle_minus_random": ("oracle", "random"), "ref_selfguided_minus_oracle": ("selfguided", "oracle")}.items():
+    for label, (a, b) in {"P1_selfguided_minus_random": (S, "random"), "P2_selfguided4_minus_random4": (S4, "random4"),
+                          "ref_oracle_minus_random": ("oracle", "random"), "ref_selfguided_minus_oracle": (S, "oracle")}.items():
         res = analyze(contrast(used, a, b), DELTA_MIN, permutations=args.permutations)
         out["contrasts"][label] = res
     adj = holm([out["contrasts"]["P1_selfguided_minus_random"]["p_two_sided_t"], out["contrasts"]["P2_selfguided4_minus_random4"]["p_two_sided_t"]])
@@ -63,17 +66,17 @@ def main(argv=None) -> int:
         out["contrasts"][label]["decision"] = decide(out["contrasts"][label], p)
     for label in ("ref_oracle_minus_random", "ref_selfguided_minus_oracle"):
         out["contrasts"][label]["decision"] = decide(out["contrasts"][label])
-    for arm in ("oracle", "random", "selfguided", "selfguided4", "random4"):
+    for arm in ("oracle", "random", S, S4, "random4"):
         v = versus_baseline(used, arm)
         out["arm_minus_baseline"][arm] = {"mean": st.fmean(v), "median": st.median(v), "sd": st.stdev(v)}
-    ov = [r["localization"]["selfguided_vs_annotation"] for r in used]
+    ov = [r["localization"][loc_key] for r in used]
     out["localization"] = {"mean_overlap": st.fmean(o["overlap"] for o in ov), "mean_expected_by_chance": st.fmean(o["expected_by_chance"] for o in ov),
                            "top1_hit_rate": st.fmean(bool(r["localization"]["top1_in_annotation"]) for r in used),
                            "top1_chance_rate": st.fmean(len(r["annotation_group_indices"]) / r["temporal_group_count"] for r in used)}
     o_r = out["contrasts"]["ref_oracle_minus_random"]
     out["oracle_gain_reference_passed"] = bool(o_r["mean_nats"] >= DELTA_MIN)
     out["correct_counts"] = {"baseline": sum(bool(r["baseline_correct"]) for r in used)}
-    for arm in ("oracle", "random", "selfguided", "selfguided4", "random4"):
+    for arm in ("oracle", "random", S, S4, "random4"):
         out["correct_counts"][arm] = sum(r["arms"][arm]["predicted_after"] == r["gold"] for r in used)
     out["scope"] = "answer-margin effect of attention-level cropping (label-free); not explanation faithfulness"
     if args.output:
