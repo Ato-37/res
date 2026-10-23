@@ -3,7 +3,7 @@
 凡例: **[確認]** = 2026-10-23 に arXiv の公式ページで題名・著者・日付を確認。**[記載]** = リポジトリの文献調査([faithfulness methods review](faithfulness_methods_and_internal_interventions_review.md)、[internal intervention review](internal_intervention_for_video_grounding_review.md)、[image-to-video options](image_to_video_intervention_options_20261022.md))の記載に基づく。本文の精読は一部のみで、**引用前に本文で照合すること**。各論文の知見は、その論文の対象・タスクに限られ、本研究の測定とは区別している。
 
 ## 土台とする論文(提案)
-**Menzat et al., *Counterfactual Tests for Measuring Chain-of-Thought Faithfulness in Visual Language Models*, Findings of EMNLP 2026, arXiv:2609.06704** **[確認]**。コード(MIT)は github.com/neuralisa/cct-vlm、画像は非公開。画像の物体削除の反事実で、回答分布の変化と、説明の言及の相関(vCCT)を測る。著者は内部機構の解析と動画を、今後の課題とする。本研究は、動画・内部の反事実・ステアリングの評価の 3 軸で拡充する([検討メモ](thesis_base_paper_extension_plan.md))。
+**Menzat et al., *Counterfactual Tests for Measuring Chain-of-Thought Faithfulness in Visual Language Models*, Findings of EMNLP 2026, arXiv:2609.06704** **[確認]**。コード(MIT)は github.com/neuralisa/cct-vlm、画像は非公開。**査読状況**: arXiv の Comments 欄に「Accepted to Findings of ACL: EMNLP 2026」とあるが(著者記載、v1 のみ)、ACL Anthology など独立した情報源では未確認。Findings は査読を経た採択区分(main より一段下)。画像の物体削除の反事実で、回答分布の変化と、説明の言及の相関(vCCT)を測る。著者は内部機構の解析と動画を、今後の課題とする。本研究は、動画・内部の反事実・ステアリングの評価の 3 軸で拡充する([検討メモ](thesis_base_paper_extension_plan.md))。
 介入手法の側の参照は、STEAR(arXiv:2604.03045)。Qwen2.5-VL-7B で評価され(Table 1 の平均 65.97→68.44)、ランダムパッチでも改善が大部分残る(Table 4)。コードは補遺のみで、公開リポジトリはない。
 
 ## A. 対象モデルとデータ
