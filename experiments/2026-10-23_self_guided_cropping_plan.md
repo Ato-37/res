@@ -29,3 +29,18 @@ temporal groups to keep, without any annotation, and does this beat a random cho
 
 ## Limits
 Oracle count |A| leaks the budget in S and R (not in S4/R4); attention is a routing signal, not a faithful attribution; extreme OOD cropping (-ln256 on ~12 of 16 groups, all layers); one model, one dataset; val exposure; NExT-GQA annotation intervals are uncalibrated.
+
+## Addendum (2026-10-24, before any SGC run): secondary confidence-signal analysis (no extra GPU)
+Motivation: the user pointed out that adjusting frame visibility with the annotation gives the model the location of the evidence (an oracle hint), so oracle results are only an upper bound; a deployable correction has to be annotation-free, and
+adjusting the model's *confidence* may be the more defensible target. The SGC receipts already contain, per video, the unmodified option log-probabilities (-> confidence) and the self-guided group attention scores (-> evidence concentration)
+for the val primary cohort and the test replication cohort, so a confidence analysis costs no extra forwards. Prespecified, exploratory, no annotation used:
+- Target: baseline correctness (predicted option == gold option; the dataset answer, no human labels).
+- Signals: p_max (maximum option probability from the 5 option-label tokens), option-distribution entropy, and annotation-free evidence-concentration features from the group scores (normalized group score entropy, maximum share).
+- Models (5-fold cross-validated, repeated 20 times; fitted on one cohort and also evaluated cross-cohort val -> test): raw p_max; temperature-scaled p_max (1 parameter, the standard strong baseline); logistic regression on [logit p_max, entropy];
+  the same plus the concentration features.
+- Metrics: AUROC, Brier score and 10-bin ECE; the primary comparison is "concentration features added" minus "temperature-scaled p_max alone" (paired over repeats, bootstrap interval). A signal counts as useful only if the interval of the Brier-score improvement
+  excludes 0 on the val cohort and the same direction holds cross-cohort on test.
+- Prior check (exploratory, WP1 data N=112, annotation-free whole-video video->text reliance as the signal): AUROC for correctness 0.41-0.45 (reversed direction; confidence p_max alone 0.72) and the combination was worse than confidence alone
+  (-0.155, bootstrap 95% [-0.27, -0.06]); p_max is overconfident in the 0.8-0.95 bin (confidence 0.88 vs accuracy 0.57; ECE 0.12). A naive reliance signal does not help; concentration features are the untested candidate.
+- Correction (2026-10-24, still before any SGC run; found by the unit test on a null simulation): temperature scaling cannot recalibrate to the base rate, so any logistic model would beat it even with no concentration signal. The primary comparison is therefore
+  "concentration features added" minus "logistic on [logit p_max, entropy] only" (same flexibility); temperature-scaled p_max stays as a reference model. Implementation: scripts/analyze_confidence_signal.py (+ test).
