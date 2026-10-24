@@ -1,0 +1,106 @@
+{
+ "schema_version": 1,
+ "purpose": "evidence_focusing_pooled_confirmation",
+ "delta_min_nat": 0.3,
+ "cohort_sizes": [
+  80,
+  278
+ ],
+ "pooled": {
+  "n": 358,
+  "mean_nats": 0.41203590542454294,
+  "sd_nats": 2.331215481376484,
+  "median_nats": 0.25912370160222054,
+  "ci95_t": [
+   0.16973009360859437,
+   0.6543417172404915
+  ],
+  "ci90_t": [
+   0.2088485857759385,
+   0.6152232250731473
+  ],
+  "p_two_sided_t": 0.0009126949508305825,
+  "p_sign_flip": 0.0007849960750196249,
+  "p_wilcoxon": 0.004842669909144226,
+  "permutations": 200000,
+  "delta_min_nats": 0.3,
+  "tost_p": 0.8181024105280071,
+  "tost_p_lower": 8.18886535856891e-09,
+  "tost_p_upper": 0.8181024105280071,
+  "positive": 201,
+  "negative": 157,
+  "verdict": "practically_meaningful_effect",
+  "decision": "confirmed"
+ },
+ "per_cohort": [
+  {
+   "n": 80,
+   "mean_nats": 0.1770522003316728,
+   "sd_nats": 2.324603513373553,
+   "median_nats": 0.29058264195919037,
+   "ci95_t": [
+    -0.34026297059055366,
+    0.6943673712538992
+   ],
+   "ci90_t": [
+    -0.2555155552295152,
+    0.6096199558928608
+   ],
+   "p_two_sided_t": 0.4977144338897551,
+   "p_sign_flip": 0.49237538123093844,
+   "p_wilcoxon": 0.40396888724865576,
+   "permutations": 20000,
+   "delta_min_nats": 0.3,
+   "tost_p": 0.31873718422914377,
+   "tost_p_lower": 0.035095003066495524,
+   "tost_p_upper": 0.31873718422914377,
+   "positive": 46,
+   "negative": 34,
+   "verdict": "inconclusive",
+   "decision_alone": "not_confirmed_inconclusive"
+  },
+  {
+   "n": 278,
+   "mean_nats": 0.4796571155232106,
+   "sd_nats": 2.3329012403012594,
+   "median_nats": 0.23776713572442532,
+   "ci95_t": [
+    0.20421919835931468,
+    0.7550950326871065
+   ],
+   "ci90_t": [
+    0.2487400091870304,
+    0.7105742218593908
+   ],
+   "p_two_sided_t": 0.0007001274418183488,
+   "p_sign_flip": 0.0008499575021248938,
+   "p_wilcoxon": 0.005630467630305517,
+   "permutations": 20000,
+   "delta_min_nats": 0.3,
+   "tost_p": 0.8998953648343225,
+   "tost_p_lower": 2.9790171449823804e-08,
+   "tost_p_upper": 0.8998953648343225,
+   "positive": 155,
+   "negative": 123,
+   "verdict": "practically_meaningful_effect",
+   "decision_alone": "confirmed"
+  }
+ ],
+ "heterogeneity_welch_p": 0.307199725137688,
+ "keepAnn_minus_baseline": {
+  "mean": 0.6389038168238803,
+  "sd": 2.434985291236993,
+  "median": 0.305881530046463
+ },
+ "keepRand_minus_baseline": {
+  "mean": 0.2268679113993374,
+  "sd": 2.3934066976594823,
+  "median": 0.07954311557114124
+ },
+ "correct_counts": {
+  "baseline": 260,
+  "annotation_interval_key_bias": 271,
+  "hash_sham_key_bias": 253
+ },
+ "scope": "oracle evidence-interval attention cropping, answer margin (label-free); not explanation faithfulness"
+}
