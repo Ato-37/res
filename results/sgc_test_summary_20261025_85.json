@@ -1,0 +1,159 @@
+{
+ "schema_version": 1,
+ "purpose": "self_guided_cropping_summary",
+ "recorded": 278,
+ "excluded": 0,
+ "analysed": 278,
+ "delta_min_nat": 0.3,
+ "contrasts": {
+  "P1_selfguided_minus_random": {
+   "n": 278,
+   "mean_nats": 0.22493906839297767,
+   "sd_nats": 2.2688218285034387,
+   "median_nats": 0.10392668843269348,
+   "ci95_t": [
+    -0.042933205007790076,
+    0.4928113417937454
+   ],
+   "ci90_t": [
+    0.0003647219184049755,
+    0.44951341486755036
+   ],
+   "p_two_sided_t": 0.09945286996810333,
+   "p_sign_flip": 0.1000089999100009,
+   "p_wilcoxon": 0.2897896895713923,
+   "permutations": 100000,
+   "delta_min_nats": 0.3,
+   "tost_p": 0.2908284824808377,
+   "tost_p_lower": 7.120552785412923e-05,
+   "tost_p_upper": 0.2908284824808377,
+   "positive": 145,
+   "negative": 131,
+   "verdict": "inconclusive",
+   "p_holm": 0.19890573993620667,
+   "decision": "inconclusive"
+  },
+  "P2_selfguided4_minus_random4": {
+   "n": 278,
+   "mean_nats": -0.06048916837181364,
+   "sd_nats": 1.9195567664781903,
+   "median_nats": -0.0954447090625763,
+   "ci95_t": [
+    -0.2871248735199405,
+    0.16614653677631322
+   ],
+   "ci90_t": [
+    -0.25049227965051407,
+    0.12951394290688678
+   ],
+   "p_two_sided_t": 0.5997179154847951,
+   "p_sign_flip": 0.5994340056599434,
+   "p_wilcoxon": 0.17870722574422226,
+   "permutations": 100000,
+   "delta_min_nats": 0.3,
+   "tost_p": 0.01920401904799294,
+   "tost_p_lower": 0.01920401904799294,
+   "tost_p_upper": 0.000963561366813049,
+   "positive": 127,
+   "negative": 150,
+   "verdict": "no_meaningful_effect_equivalence",
+   "p_holm": 0.5997179154847951,
+   "decision": "equivalent_within_delta_min"
+  },
+  "ref_oracle_minus_random": {
+   "n": 278,
+   "mean_nats": 0.4796571155232106,
+   "sd_nats": 2.3329012403012594,
+   "median_nats": 0.23776713572442532,
+   "ci95_t": [
+    0.20421919835931468,
+    0.7550950326871065
+   ],
+   "ci90_t": [
+    0.2487400091870304,
+    0.7105742218593908
+   ],
+   "p_two_sided_t": 0.0007001274418183488,
+   "p_sign_flip": 0.0006899931000689993,
+   "p_wilcoxon": 0.005630467630305517,
+   "permutations": 100000,
+   "delta_min_nats": 0.3,
+   "tost_p": 0.8998953648343225,
+   "tost_p_lower": 2.9790171449823804e-08,
+   "tost_p_upper": 0.8998953648343225,
+   "positive": 155,
+   "negative": 123,
+   "verdict": "practically_meaningful_effect",
+   "decision": "supported"
+  },
+  "ref_selfguided_minus_oracle": {
+   "n": 278,
+   "mean_nats": -0.25471804713023294,
+   "sd_nats": 1.8962568092537335,
+   "median_nats": -0.02083307213615626,
+   "ci95_t": [
+    -0.47860280355535106,
+    -0.030833290705114813
+   ],
+   "ci90_t": [
+    -0.4424148633086172,
+    -0.0670212309518487
+   ],
+   "p_two_sided_t": 0.025905518662856866,
+   "p_sign_flip": 0.025269747302526974,
+   "p_wilcoxon": 0.03729013699551489,
+   "permutations": 100000,
+   "delta_min_nats": 0.3,
+   "tost_p": 0.3454119172594334,
+   "tost_p_lower": 0.3454119172594334,
+   "tost_p_upper": 9.070384327599049e-07,
+   "positive": 124,
+   "negative": 142,
+   "verdict": "statistically_significant_below_threshold",
+   "decision": "inconclusive"
+  }
+ },
+ "arm_minus_baseline": {
+  "oracle": {
+   "mean": 0.639737452343469,
+   "median": 0.305881530046463,
+   "sd": 2.4665038210167642
+  },
+  "random": {
+   "mean": 0.1600803368202584,
+   "median": 0.01685076585272327,
+   "sd": 2.458557361914405
+  },
+  "selfguided": {
+   "mean": 0.3850194052132361,
+   "median": 0.23094592450070195,
+   "sd": 2.2253842957809247
+  },
+  "selfguided4": {
+   "mean": 0.47805906881118887,
+   "median": 0.1702623963356018,
+   "sd": 2.0369487320006536
+  },
+  "random4": {
+   "mean": 0.5385482371830025,
+   "median": 0.32640058506513014,
+   "sd": 2.264973522604155
+  }
+ },
+ "localization": {
+  "mean_overlap": 1.0287769784172662,
+  "mean_expected_by_chance": 0.9289568345323741,
+  "top1_hit_rate": 0.26618705035971224,
+  "top1_chance_rate": 0.210431654676259
+ },
+ "oracle_gain_reference_passed": true,
+ "correct_counts": {
+  "baseline": 210,
+  "oracle": 214,
+  "random": 199,
+  "selfguided": 212,
+  "selfguided4": 213,
+  "random4": 216
+ },
+ "scope": "answer-margin effect of attention-level cropping (label-free); not explanation faithfulness"
+}
