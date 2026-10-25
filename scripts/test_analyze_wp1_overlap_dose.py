@@ -3,7 +3,7 @@ import unittest
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from analyze_wp1_overlap_dose import decide, dose_points, slope
+from analyze_wp1_overlap_dose import by_fraction, decide, dose_points, slope
 
 
 def rec(base, pairs):
@@ -24,6 +24,11 @@ class WP1DTests(unittest.TestCase):
         self.assertEqual(decide(res), "supported")
         self.assertEqual(decide(dict(res, mean_nats=0.2)), "inconclusive")
         self.assertEqual(decide(dict(res, mean_nats=0.1, p_two_sided_t=0.6, tost_p=0.01)), "equivalent_within_delta_min")
+
+    def test_by_fraction_averages_windows_with_equal_overlap(self):
+        r = rec(0.0, [(0.0, -1.0), (0.0, -3.0), (1.0, -5.0)])
+        self.assertEqual(by_fraction(r), {0.0: -2.0, 1.0: -5.0})
+        self.assertAlmostEqual(slope(dose_points(r)), -3.0)
 
 
 if __name__ == "__main__":

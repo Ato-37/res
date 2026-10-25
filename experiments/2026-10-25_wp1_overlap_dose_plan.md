@@ -17,3 +17,6 @@ One group = 2 sampled frames, annotation boundaries may be uncalibrated, so "100
 
 ## Workload
 About 112 x 7 = 780 forwards, about 1 hour; queued after the CSL run. Runner scripts/run_wp1_overlap_dose.py, set builder scripts/qta_overlap_dose.py (+ test), analysis scripts/analyze_wp1_overlap_dose.py (+ test). Not yet run on GPU.
+
+## Addendum (2026-10-26, before any WP1D/WP1S run; user request): sliding-window variant WP1S
+Same cohort, edge (video->text), band (6-20), endpoint and analysis script, but the blocked set is a contiguous window of width k = |annotation groups| slid over every start position (16-k+1 windows per video, every window run, no sampling); overlap m/k then varies naturally with position. Primary analysis: per-video slope of the margin change on the achieved overlap fraction, as in WP1D (several windows sharing a fraction are all used for the slope, averaged for the per-level descriptives). Secondary: margin change by window start relative to the annotation start (position profile; descriptive). Positive control as in WP1D. Cost: about 112 videos x (up to 16 windows + baseline + control), about 1,300 forwards, about 2 h; queued after WP1D (runner flag --design sliding; tag 20261026_96). Not yet run on GPU.

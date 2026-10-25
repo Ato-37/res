@@ -31,6 +31,14 @@ def dose_points(record: dict) -> list[tuple[float, float]]:
                   for k in record["knockouts"] if k.get("overlap_fraction") is not None)
 
 
+def by_fraction(record: dict) -> dict[float, float]:
+    """Mean margin change per achieved overlap fraction (several sliding windows can share a fraction)."""
+    acc: dict[float, list[float]] = {}
+    for f, y in dose_points(record):
+        acc.setdefault(round(f, 4), []).append(y)
+    return {f: st.fmean(v) for f, v in acc.items()}
+
+
 def slope(points: list[tuple[float, float]]) -> float | None:
     xs = [p[0] for p in points]
     if len(set(xs)) < 2:
@@ -66,12 +74,12 @@ def main(argv=None) -> int:
             levels.setdefault(round(f, 2), []).append(y)
     out["margin_change_by_overlap_level"] = {str(f): {"n": len(v), "mean": st.fmean(v), "sd": st.stdev(v) if len(v) > 1 else None}
                                               for f, v in sorted(levels.items())}
-    ends = [(dict(dose_points(r)).get(0.0), dict(dose_points(r)).get(1.0)) for r in used]
+    ends = [(by_fraction(r).get(0.0), by_fraction(r).get(1.0)) for r in used]
     ends = [(a, b) for a, b in ends if a is not None and b is not None]
     out["zero_vs_full_overlap"] = analyze([a - b for a, b in ends], DELTA_MIN, permutations=args.permutations)
     mid = []
     for r in used:
-        d = dict(dose_points(r))
+        d = by_fraction(r)
         if 0.0 in d and 1.0 in d and 0.5 in d:
             mid.append(d[0.5] - (d[0.0] + d[1.0]) / 2)
     out["middle_minus_line_between_ends"] = ({"n": len(mid), "mean": st.fmean(mid), "sd": st.stdev(mid)} if len(mid) > 1 else None)

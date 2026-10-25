@@ -3,7 +3,7 @@ import unittest
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from qta_overlap_dose import overlap_sets
+from qta_overlap_dose import overlap_sets, sliding_sets
 
 
 class OverlapDoseTests(unittest.TestCase):
@@ -31,6 +31,17 @@ class OverlapDoseTests(unittest.TestCase):
             overlap_sets(tuple(range(9)), tuple(range(9, 16)), 16, "tok")
         with self.assertRaises(ValueError):
             overlap_sets((4, 5), (5, 6), 16, "tok")
+
+    def test_sliding_windows_cover_all_positions(self):
+        sets = sliding_sets((4, 5, 6), 16)
+        self.assertEqual(len(sets), 14)
+        self.assertEqual([s["start"] for s in sets], list(range(14)))
+        self.assertTrue(all(len(s["groups"]) == 3 for s in sets))
+        self.assertEqual(max(s["overlap"] for s in sets), 3)
+        self.assertEqual(sets[4]["groups"], (4, 5, 6))
+        self.assertEqual(sets[0]["overlap"], 0)
+        with self.assertRaises(ValueError):
+            sliding_sets(tuple(range(16)), 16)
 
 
 if __name__ == "__main__":

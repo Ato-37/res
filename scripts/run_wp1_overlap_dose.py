@@ -32,7 +32,7 @@ BANDS = {"band": tuple(range(6, 21))}
 
 def arms_for(dose_sets):
     """(name, edge, key_groups or None for whole video, band, overlap info)."""
-    arms = [(f"v2t_dose_m{d['overlap']}", "video_to_text", d["groups"], "band", d) for d in dose_sets]
+    arms = [(f"v2t_dose_m{d['overlap']}" + (f"_s{d['start']}" if "start" in d else ""), "video_to_text", d["groups"], "band", d) for d in dose_sets]
     arms.append(("v2t_allvideo_band", "video_to_text", None, "band", None))
     return arms
 
@@ -47,6 +47,7 @@ def parse_args(argv=None):
     p.add_argument("--video-root", required=True)
     p.add_argument("--output", required=True)
     p.add_argument("--resume", action="store_true")
+    p.add_argument("--design", choices=("hash", "sliding"), default="hash", help="hash: graded-overlap sets; sliding: contiguous width-k windows at every start")
     p.add_argument("--user-authorized-local-only", action="store_true")
     return p.parse_args(argv)
 
@@ -165,7 +166,8 @@ def main(argv=None) -> int:
                         "baseline_margin": base.fixed_gold_foil_margin(base_logp, gold_index=gold, baseline_foil_index=foil),
                         "annotation_group_indices": list(ann_groups), "sham_group_indices": list(sham_groups),
                         "temporal_group_count": len(groups), "knockouts": []})
-            dose_sets = od.overlap_sets(ann_groups, sham_groups, len(groups), base.row_token(media_hash, qid_hash))
+            dose_sets = (od.sliding_sets(ann_groups, len(groups)) if args.design == "sliding"
+                         else od.overlap_sets(ann_groups, sham_groups, len(groups), base.row_token(media_hash, qid_hash)))
             for name, edge, key_groups, band, dose in arms_for(dose_sets):
                 blocks = (ev.all_video_blocks(edge, video_groups=groups, seq_len=seq_len) if key_groups is None
                           else ev.evidence_blocks(edge, video_groups=groups, seq_len=seq_len, key_groups=key_groups))
@@ -193,7 +195,7 @@ def main(argv=None) -> int:
         partial_file.close()
     complete = len(records) >= (args.n if args.mode == "full" else min(3, args.n))
     payload = {
-        "schema_version": 1, "purpose": "wp1d_overlap_dose_response", "status": "completed" if complete else "incomplete",
+        "schema_version": 1, "purpose": "wp1d_overlap_dose_response", "design": args.design, "status": "completed" if complete else "incomplete",
         "mode": args.mode, "dataset_split": args.dataset_split, "requested_videos": args.n, "recorded_videos": len(records),
         "excluded_videos": sum(bool(r.get("excluded")) for r in records),
         "baseline_correct": sum(bool(r.get("baseline_correct")) for r in records), "bands": {k: [v[0], v[-1]] for k, v in BANDS.items()},

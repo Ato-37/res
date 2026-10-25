@@ -38,3 +38,19 @@ def overlap_sets(annotation: Sequence[int], sham: Sequence[int], group_count: in
             groups = tuple(sorted(inside + rest))
         out.append({"overlap": m, "fraction": m / k, "groups": groups})
     return out
+
+
+def sliding_sets(annotation: Sequence[int], group_count: int) -> list[dict]:
+    """Contiguous windows of width k = |annotation| slid over all 16-k+1 start positions (stride 1 group).
+
+    Each window records its start, its overlap m with the annotation and m/k; every window is run (no sampling)."""
+    ann = set(annotation)
+    k = len(ann)
+    if k < 1 or k >= group_count:
+        raise ValueError("sliding_window_geometry_invalid")
+    out = []
+    for start in range(group_count - k + 1):
+        groups = tuple(range(start, start + k))
+        m = len(set(groups) & ann)
+        out.append({"overlap": m, "fraction": m / k, "groups": groups, "start": start})
+    return out
