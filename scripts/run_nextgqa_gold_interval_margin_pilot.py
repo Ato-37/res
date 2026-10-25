@@ -304,6 +304,26 @@ def host_available_bytes() -> int:
     raise RuntimeError("host_memavailable_missing")
 
 
+LAZY_FRAMES = False  # set True by runners that cannot hold every decoded video in host RAM; frames are then re-decoded on use
+
+
+class LazyFrames:
+    """Sequence of sampled frames re-decoded on each iteration (bit-identical to the frozen decode, which is verified by source hash and PTS)."""
+
+    def __init__(self, video_path, frame_count, decode):
+        self._path, self._count, self._decode = video_path, frame_count, decode
+
+    def __len__(self):
+        return self._count
+
+    def __iter__(self):
+        frames, decode = decode_sampled_video(self._path, num_frames=self._count, uniform_tolerance_seconds=UNIFORM_TOLERANCE)
+        if (decode["source_sha256"] != self._decode["source_sha256"]
+                or decode["sampled_frames"] != self._decode["sampled_frames"]):
+            raise ValueError("lazy_frame_redecode_mismatch")
+        return iter(frames)
+
+
 def load_candidate_rows(repo: Path, video_root: Path, allowed_pair_sha256=None,
                         dataset_split="test"):
     if dataset_split not in {"train", "val", "test"}:
@@ -449,7 +469,7 @@ def freeze_cohort(repo: Path, video_root: Path, excluded_media_sha256=(),
             control = nearest_control_indices(indices, evidence)
             if evidence and len(control) == len(evidence) and not set(control) & set(evidence):
                 chosen = dict(question)
-                chosen.update({"frames": frames, "decode": decode,
+                chosen.update({"frames": (LazyFrames(video_path, frame_count, decode) if LAZY_FRAMES else frames), "decode": decode,
                                "sampled_times": pts, "evidence_positions": evidence,
                                "control_positions": control})
                 break

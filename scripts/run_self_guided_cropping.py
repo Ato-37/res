@@ -68,9 +68,6 @@ def main(argv=None) -> int:
     model_path, model_config_sha256 = base._load_checkpoint_config(repo)
     exclusion_payload, exclusion_sha256 = base.read_private_json(Path(args.exclude_media_sha256), private_root)
     exclusion_hashes = cohort.validate_private_media_exclusion(exclusion_payload)
-    selected, counts, meta, cohort_hash = base._freeze_exact(
-        repo, video_root=video_root, n=args.n, frame_count=args.frames, exclusion=exclusion_hashes,
-        lock_assignments=None, dataset_split=args.dataset_split)
 
     import torch
     from transformers import AutoProcessor
@@ -97,6 +94,11 @@ def main(argv=None) -> int:
             load_in_4bit=True, bnb_4bit_compute_dtype=torch.bfloat16)).eval()
     if int(model.config.video_token_id) != int(processor.video_token_id):
         raise ValueError("processor_checkpoint_video_token_mismatch")
+    cohort.LAZY_FRAMES = True  # 508 decoded videos do not fit in 22 GB host RAM; re-decode per video instead
+    # Cohort freeze retains decoded frames in host RAM (~20 MB/video); do it after the model is loaded so the pre-model guard sees free memory.
+    selected, counts, meta, cohort_hash = base._freeze_exact(
+        repo, video_root=video_root, n=args.n, frame_count=args.frames, exclusion=exclusion_hashes,
+        lock_assignments=None, dataset_split=args.dataset_split)
     layers = model.model.language_model.layers
     layer_count = len(layers)
     label_tensor = torch.tensor(label_ids, device="cuda")

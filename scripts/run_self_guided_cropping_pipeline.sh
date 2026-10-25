@@ -28,7 +28,8 @@ EV=$(echo "$SCREEN" | $PY -c 'import json,sys; print(json.load(sys.stdin)["eligi
 COMMON="--dataset-split val --frames 32 --exclude-media-sha256 $EXCL --video-root $ROOT --user-authorized-local-only"
 $PY scripts/run_self_guided_cropping.py --mode smoke --n 3 $COMMON --output $D/sgc_val_smoke_$TAG.json 2>&1 | grep -v -i -E "warn|Loading weights" | tail -3
 echo "val smoke done $(date -u +%FT%TZ)"
-$PY scripts/run_self_guided_cropping.py --mode full --n $EV $COMMON --output $D/sgc_val_full_$TAG.json 2>&1 | grep -v -i -E "warn|Loading weights" | tail -3
+sleep 90  # let the smoke process release VRAM/host memory before the resource guard of the next process
+for t in 1 2 3; do $PY scripts/run_self_guided_cropping.py --mode full --n $EV $COMMON --output $D/sgc_val_full_$TAG.json --resume 2>&1 | grep -v -i -E "warn|Loading weights" | tail -3; [ -f $D/sgc_val_full_$TAG.json ] && break; sleep 120; done
 echo "val full done $(date -u +%FT%TZ)"
 (cd scripts && ../.venv/bin/python analyze_self_guided_cropping.py --receipt ../$D/sgc_val_full_$TAG.json --output ../results/sgc_val_summary_$TAG.json)
 # ---- replication: test (Stage 2b cohort)
@@ -37,7 +38,8 @@ ET=$(grep -o '"eligible": [0-9]*' $S2BLOG | tail -1 | grep -o '[0-9]*$')
 ROOT=$D/evidence_focusing_test_all_candidates_20261023_04/NExTVideo
 EXCLT=$D/known_media_sha_union_test_stage2b_shamscreen_20261023_70.json
 COMMONT="--dataset-split test --frames 32 --exclude-media-sha256 $EXCLT --video-root $ROOT --user-authorized-local-only"
-$PY scripts/run_self_guided_cropping.py --mode full --n $ET $COMMONT --output $D/sgc_test_full_$TAG.json 2>&1 | grep -v -i -E "warn|Loading weights" | tail -3
+sleep 90
+for t in 1 2 3; do $PY scripts/run_self_guided_cropping.py --mode full --n $ET $COMMONT --output $D/sgc_test_full_$TAG.json --resume 2>&1 | grep -v -i -E "warn|Loading weights" | tail -3; [ -f $D/sgc_test_full_$TAG.json ] && break; sleep 120; done
 echo "test full done $(date -u +%FT%TZ)"
 (cd scripts && ../.venv/bin/python analyze_self_guided_cropping.py --receipt ../$D/sgc_test_full_$TAG.json --output ../results/sgc_test_summary_$TAG.json)
 echo "all done $(date -u +%FT%TZ)"
