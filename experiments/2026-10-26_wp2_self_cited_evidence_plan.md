@@ -1,0 +1,20 @@
+# Prespecified plan: WP2, does the answer depend on the model's OWN cited evidence interval? (written 2026-10-26, before any WP2 run)
+
+## Why (the direct step toward faithfulness)
+WP0/WP1 showed where video information enters the answer (video->text pathway, layers 6-20) and that the annotated evidence interval matters more than an equal-count sham. They use the dataset annotation. A faithfulness-type question needs the model's own statement: if the model says "the evidence is at seconds a-b", does removing exactly that interval from the video->text pathway hurt the answer more than removing an equal-count other interval? This is a causal self-consistency (necessity-type) test of a generated citation. It is label-free and annotation-free: the annotation is used only for descriptive grounding statistics. It is not a general faithfulness result (one model, one citation format, forced-choice answer).
+
+## Design (fixed now)
+- Cohort: NExT-GQA val, the first 300 of the 508 sham-eligible outcome-blind hash-ranked media used by SGC (exposed to earlier key-bias and SGC endpoints, which are different measurements; ASSUMED-CLEARED). Same model/precision/seed policy as WP1 (4-bit, BF16, fp32 readout, 32 frames, eager attention).
+- Per video: (1) generation (greedy, max 40 new tokens): question + options + "Choose the best answer and give the time span of the video, in seconds, that supports it. Respond exactly in the format: Answer: <letter>. Time: <start>-<end>". The span is parsed (scripts/qta_cited_evidence.py), mapped to temporal groups (a group is cited if its frame-time span intersects the cited seconds). Raw generated text is not stored, only parsed numbers. Videos with no parsable span or a cited set that is empty or covers more than half of the 16 groups are excluded and counted (not replaced).
+- (2) Baseline forced-choice forward (the standard QA prompt); predicted option = argmax of the 5 option log-probs. (3) Video->text knockouts (text rows cannot attend to the keys of the blocked groups, layers 6-20): cited groups; an equal-count disjoint hash sham of the cited groups; the annotation groups (reference); the whole video (positive control). 6 forwards plus one generation per video.
+- Endpoint (label-free): self-margin = log-prob of the baseline-predicted option minus the best other option; change = knockout minus baseline.
+- Primary (one analysis, video = unit): contrast = change(cited) - change(sham); effect = -contrast. Supported iff t, sign-flip and Wilcoxon p < 0.05 and mean effect >= 0.3 nat (delta_min justified in experiments/2026-10-23_practical_threshold_justification.md, applied to this margin-type endpoint); else TOST at +/-0.3 nat or inconclusive.
+- Positive control (must pass for a null to be informative): whole-video video->text mean relative change <= -20% on baseline-correct videos.
+- Descriptive: parse rate and exclusions, how often the cited letter matches the forced-choice prediction, overlap of cited groups with the annotation versus chance, annotation-vs-sham effect (WP1-like reference on this cohort), and the effect split by cited-annotation overlap > 0 versus = 0.
+- Smoke (n=3) first; the queue skips the full run if the smoke fails (e.g. the generation format is not followed). Parse failure rate is itself a result: if fewer than half of the videos yield a usable citation, the citation format is reported as unreliable and the primary is exploratory.
+
+## Limits
+Citations may be hallucinated or uncalibrated in time (the model need not see absolute seconds); necessity-only test (removing the cited interval), no sufficiency; sham differs in position and content; one model, one format; forced-choice answer rather than the free-form answer the citation accompanied; val exposure. A null would mean "no detectable dependence on the cited interval beyond a sham", not unfaithfulness proven.
+
+## Workload
+About 300 videos x (1 generation + 5 forwards), about 2-3 h. Runner scripts/run_wp2_cited_evidence.py (not yet run on GPU), analysis scripts/analyze_wp2_cited_evidence.py (+ test), helpers scripts/qta_cited_evidence.py (+ test).
