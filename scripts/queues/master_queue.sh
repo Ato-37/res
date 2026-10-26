@@ -2,7 +2,7 @@ set -uo pipefail
 cd "$(git rev-parse --show-toplevel)"
 D=data/private_nextgqa
 PY=.venv/bin/python
-LOG=$D/master_queue_20261026g.log
+LOG=$D/master_queue_20261026h.log
 exec >> $LOG 2>&1
 echo "master start $(date -u +%FT%TZ)"
 VALROOT=$D/annotation_key_bias_val_dev_candidates_20261023_01/NExTVideo
@@ -13,7 +13,7 @@ WPN=$(cat $D/evidence_pathway_knockout_N_20261023_60.txt)
 stage() {
   local name=$1 runner=$2 analyzer=$3 n=$4 split=$5 root=$6 excl=$7; shift 7
   local AARGS=${ANALYZER_ARGS:-}
-  local T=20261026g_$name
+  local T=20261026h_$name
   local COMMON="--dataset-split $split --frames 32 --exclude-media-sha256 $excl --video-root $root --user-authorized-local-only $*"
   echo "== stage $name start $(date -u +%FT%TZ)"
   sleep 90

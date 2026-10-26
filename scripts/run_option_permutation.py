@@ -170,7 +170,7 @@ def main(argv=None) -> int:
             images, videos = process_vision_info(messages0, return_video_metadata=True)
             pixels, metadata = videos[0]
             batch0 = cohort.process_qa_video(processor, text0, images, pixels, metadata)
-            identity_ok = bool(torch.equal(batch0["input_ids"], batch["input_ids"]))
+            identity_ok = bool(torch.equal(batch0["input_ids"].cpu(), batch["input_ids"].cpu()))
             del batch0
             rec.update({"excluded": False, "gold": gold, "predicted": pred, "baseline_correct": pred == gold, "identity_prompt_matches": identity_ok,
                         "baseline_choice_logprobs": base_logp, "shifts": []})
