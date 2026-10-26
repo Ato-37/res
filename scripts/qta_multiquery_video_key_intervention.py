@@ -300,7 +300,7 @@ def install_multiquery_video_key_intervention_hooks(*, model: Any,
     frozen_queries = tuple(query_positions)
     handles = []
     # One causal mask object is shared by all layers of a forward and the edit is identical per layer: edit and validate once per mask object.
-    cache = {"mask": None, "edited": None}
+    cache = {"mask": None, "edited": None, "built": None}
     try:
         for layer_index in frozen_layers:
             attention = getattr(layers[layer_index], "self_attn", None)
@@ -313,6 +313,12 @@ def install_multiquery_video_key_intervention_hooks(*, model: Any,
                     raise ValueError("attention_mask_keyword_missing")
                 kwargs = dict(kwargs)
                 original = kwargs["attention_mask"]
+                if original is None and torch_module.is_tensor(kwargs.get("hidden_states")):
+                    # SDPA hands None for a plain causal forward: build the explicit mask once per installation (hooks are installed per forward)
+                    if cache.get("built") is None:
+                        from qta_mask_utils import causal_additive_mask
+                        cache["built"] = causal_additive_mask(kwargs["hidden_states"], torch_module)
+                    original = cache["built"]
                 if cache["mask"] is not original:
                     cache["edited"] = apply_multiquery_video_key_intervention(
                         attention_mask=original,

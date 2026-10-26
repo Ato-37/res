@@ -43,6 +43,7 @@ def parse_args(argv=None):
     p.add_argument("--video-root", required=True)
     p.add_argument("--output", required=True)
     p.add_argument("--resume", action="store_true")
+    p.add_argument("--attn", choices=("eager", "sdpa"), default="sdpa", help="the mask hooks build an explicit causal mask when sdpa passes None; sdpa is about 2.5x faster than eager, bf16 numerics differ slightly (baseline and arms always share the setting within a run)")
     p.add_argument("--user-authorized-local-only", action="store_true")
     return p.parse_args(argv)
 
@@ -88,7 +89,7 @@ def main(argv=None) -> int:
         raise RuntimeError("pre_model_resource_guard_failed")
     from transformers import BitsAndBytesConfig, Qwen2_5_VLForConditionalGeneration
     model = Qwen2_5_VLForConditionalGeneration.from_pretrained(
-        str(model_path), local_files_only=True, torch_dtype=torch.bfloat16, attn_implementation="eager",
+        str(model_path), local_files_only=True, torch_dtype=torch.bfloat16, attn_implementation=args.attn,
         device_map="cuda", quantization_config=BitsAndBytesConfig(
             load_in_4bit=True, bnb_4bit_compute_dtype=torch.bfloat16)).eval()
     if int(model.config.video_token_id) != int(processor.video_token_id):
@@ -184,7 +185,7 @@ def main(argv=None) -> int:
         "excluded_videos": sum(bool(r.get("excluded")) for r in records), "frames": args.frames,
         "n_crops": N_CROPS, "keep_bias_nats": BIAS, "fixed_k": FIXED_K,
         "model": "Qwen/Qwen2.5-VL-7B-Instruct", "model_revision": base.MODEL_REVISION, "model_config_sha256": model_config_sha256,
-        "precision": "4-bit weights, BF16 compute, fp32 lm_head readout", "seed": SEED, "cohort_sha256": cohort_hash,
+        "precision": "4-bit weights, BF16 compute, fp32 lm_head readout", "attn_implementation": args.attn, "seed": SEED, "cohort_sha256": cohort_hash,
         "exclusion_manifest_sha256": exclusion_sha256, "source_snapshot": source, "runner_sha256": base.sha256_file(RUNNER_PATH),
         "module_sha256": base.sha256_file(RUNNER_PATH.parent / "qta_attention_scores.py"),
         "runtime": {"python": platform.python_version(), "torch": torch.__version__, "gpu": torch.cuda.get_device_name(0)},

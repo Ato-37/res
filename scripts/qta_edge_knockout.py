@@ -86,12 +86,18 @@ def install_knockout_hooks(*, model: Any, layers_1based: Sequence[int], blocks, 
     handles = []
     # The same causal mask object is passed to every layer of one forward and the edit is identical for every selected layer, so the edited mask and
     # its audits (visibility, changed-cell count) are computed once per mask object and reused; a different mask object recomputes (no stale reuse).
-    cache = {"mask": None, "edited": None, "changed": None}
+    cache = {"mask": None, "edited": None, "changed": None, "built": None}
     for layer in layers_1based:
         module = layers[layer - 1].self_attn
 
         def hook(_module, args, kwargs, *, layer=int(layer)):
             mask = kwargs.get("attention_mask")
+            if mask is None and torch.is_tensor(kwargs.get("hidden_states")):
+                # SDPA hands None for a plain causal forward: build the explicit mask once per installation (hooks are installed per forward)
+                if cache.get("built") is None:
+                    from qta_mask_utils import causal_additive_mask
+                    cache["built"] = causal_additive_mask(kwargs["hidden_states"], torch)
+                mask = cache["built"]
             if not torch.is_tensor(mask) or mask.ndim != 4 or mask.shape[0] != 1:
                 raise ValueError("knockout_attention_mask_invalid")
             if cache["mask"] is mask:

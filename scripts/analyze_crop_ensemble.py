@@ -63,6 +63,9 @@ def main(argv=None) -> int:
 
     out = {"schema_version": 1, "purpose": "crop_ensemble_summary", "analysed": int(len(rows)), "n_crops": int(k), "min_difference": MIN_DIFF}
     out["A_base_plus_2_crops_primary"] = compare(ok((base + crops[:, :2].sum(axis=1)) / 3.0), cb)
+    gate = base.max(axis=1) < 0.6  # fixed before any CEN run (experiments/2026-10-26_option_permutation_plan.md)
+    pa = (base + crops[:, :2].sum(axis=1)) / 3.0
+    out["gated_A_ensemble_only_if_baseline_pmax_lt_0.6"] = dict(compare(ok(np.where(gate[:, None], pa, base)), cb), fraction_ensembled=float(gate.mean()))
     out["B_3_crops_only"] = compare(ok(crops[:, :3].mean(axis=1)), cb)
     out["C_base_plus_all_crops"] = compare(ok((base + crops.sum(axis=1)) / (1 + k)), cb)
     out["D_all_crops_only"] = compare(ok(crops.mean(axis=1)), cb)
@@ -75,7 +78,7 @@ def main(argv=None) -> int:
         args.output.write_text(json.dumps(out, indent=1))
     a = out["A_base_plus_2_crops_primary"]
     print(f"analysed {out['analysed']}: baseline {a['baseline_accuracy']:.3f}; A (base+2 crops, 3 fwd) {a['accuracy']:.3f} ({a['difference']:+.3f}, +{a['wrong_to_correct']}/-{a['correct_to_wrong']}, McNemar p={a['mcnemar_p']:.3g}) supported={a['supported']}")
-    for key in ("B_3_crops_only", "C_base_plus_all_crops", "D_all_crops_only"):
+    for key in ("gated_A_ensemble_only_if_baseline_pmax_lt_0.6", "B_3_crops_only", "C_base_plus_all_crops", "D_all_crops_only"):
         v = out[key]
         print(f"{key}: {v['accuracy']:.3f} ({v['difference']:+.3f}, p={v['mcnemar_p']:.3g})")
     print("accuracy by number of crops added to baseline:", {m: round(x, 3) for m, x in out["accuracy_by_n_crops_with_baseline"].items()})

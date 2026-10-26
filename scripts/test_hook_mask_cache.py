@@ -71,6 +71,30 @@ class MaskCacheTests(unittest.TestCase):
         finally:
             remove_hooks(handles)
 
+    def test_none_mask_from_sdpa_is_built_and_edited(self):
+        model = fake_model(3)
+
+        def call(layer, hidden):
+            return layer.self_attn(hidden, attention_mask=None)
+
+        class Probe(Attn):  # receives hidden_states as a keyword like the real decoder layer does
+            def forward(self, hidden_states=None, attention_mask=None):
+                return attention_mask
+
+        for l in model.model.language_model.layers:
+            l.self_attn = Probe()
+        handles, _ = ko.install_knockout_hooks(model=model, layers_1based=[1, 2, 3], blocks=[((6, 7), (1, 2, 3))], torch_module=torch)
+        try:
+            hidden = torch.zeros(1, 8, 4)
+            outs = [l.self_attn(hidden_states=hidden, attention_mask=None) for l in model.model.language_model.layers]
+        finally:
+            ko.remove_hooks(handles)
+        expected = causal(8)
+        expected[0, 0][torch.tensor([6, 7])[:, None], torch.tensor([1, 2, 3])[None, :]] = torch.finfo(expected.dtype).min
+        for o in outs:
+            self.assertTrue(torch.equal(o, expected))
+        self.assertIs(outs[0], outs[1])  # one edited mask object shared by the layers
+
 
 if __name__ == "__main__":
     unittest.main()

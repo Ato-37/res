@@ -2,7 +2,7 @@ set -uo pipefail
 cd "$(git rev-parse --show-toplevel)"
 D=data/private_nextgqa
 PY=.venv/bin/python
-LOG=$D/master_queue_20261026e.log
+LOG=$D/master_queue_20261026g.log
 exec >> $LOG 2>&1
 echo "master start $(date -u +%FT%TZ)"
 VALROOT=$D/annotation_key_bias_val_dev_candidates_20261023_01/NExTVideo
@@ -13,7 +13,7 @@ WPN=$(cat $D/evidence_pathway_knockout_N_20261023_60.txt)
 stage() {
   local name=$1 runner=$2 analyzer=$3 n=$4 split=$5 root=$6 excl=$7; shift 7
   local AARGS=${ANALYZER_ARGS:-}
-  local T=20261026c_$name
+  local T=20261026g_$name
   local COMMON="--dataset-split $split --frames 32 --exclude-media-sha256 $excl --video-root $root --user-authorized-local-only $*"
   echo "== stage $name start $(date -u +%FT%TZ)"
   sleep 90
@@ -33,6 +33,8 @@ stage() {
 # test cohort = SGC test / Stage 2b cohort
 TESTROOT=$D/evidence_focusing_test_all_candidates_20261023_04/NExTVideo
 TESTEXCL=$D/known_media_sha_union_test_stage2b_shamscreen_20261023_70.json
+stage permval run_option_permutation.py analyze_option_permutation.py 300 val $VALROOT $VALEXCL
+stage permtest run_option_permutation.py analyze_option_permutation.py 278 test $TESTROOT $TESTEXCL
 stage cenval run_crop_ensemble.py analyze_crop_ensemble.py 300 val $VALROOT $VALEXCL
 stage centest run_crop_ensemble.py analyze_crop_ensemble.py 278 test $TESTROOT $TESTEXCL
 stage wp1dval run_wp1_overlap_dose.py analyze_wp1_overlap_dose.py 300 val $VALROOT $VALEXCL
