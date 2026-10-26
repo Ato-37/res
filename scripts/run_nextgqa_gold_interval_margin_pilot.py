@@ -494,7 +494,7 @@ def freeze_cohort(repo: Path, video_root: Path, excluded_media_sha256=(),
 
 
 def prepare_conditions(selected, processor, torch, frame_count=FRAMES,
-                       retain_batches=True):
+                       retain_batches=True, only_full=False):
     import numpy as np
     from qwen_vl_utils import process_vision_info
     prepared = []
@@ -502,7 +502,7 @@ def prepare_conditions(selected, processor, torch, frame_count=FRAMES,
         evidence = set(item["evidence_positions"])
         control = set(item["control_positions"])
         conditions = {"full": [frame.copy() for frame in item["frames"]]}
-        for fill in ("black", "blur"):
+        for fill in (() if only_full else ("black", "blur")):
             for name, masked in ((f"{fill}_gold_interval_mask", evidence),
                                  (f"{fill}_equal_count_control_mask", control)):
                 conditions[name] = [

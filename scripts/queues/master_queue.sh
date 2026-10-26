@@ -2,7 +2,7 @@ set -uo pipefail
 cd "$(git rev-parse --show-toplevel)"
 D=data/private_nextgqa
 PY=.venv/bin/python
-LOG=$D/master_queue_20261026c.log
+LOG=$D/master_queue_20261026e.log
 exec >> $LOG 2>&1
 echo "master start $(date -u +%FT%TZ)"
 VALROOT=$D/annotation_key_bias_val_dev_candidates_20261023_01/NExTVideo
@@ -17,10 +17,15 @@ stage() {
   local COMMON="--dataset-split $split --frames 32 --exclude-media-sha256 $excl --video-root $root --user-authorized-local-only $*"
   echo "== stage $name start $(date -u +%FT%TZ)"
   sleep 90
-  $PY scripts/$runner --mode smoke --n 3 $COMMON --output $D/${name}_smoke_$T.json 2>&1 | grep -v -i -E "warn|Loading weights" | tail -3
-  if [ ! -f $D/${name}_smoke_$T.json ]; then echo "stage $name: smoke failed, skipped"; return 0; fi
-  sleep 90
-  $PY scripts/$runner --mode full --n $n $COMMON --output $D/${name}_full_$T.json 2>&1 | grep -v -i -E "warn|Loading weights" | tail -3
+  local RES=""
+  if [ -f $D/${name}_full_$T.json.partial.jsonl ]; then
+    RES="--resume"; echo "stage $name: resuming from partial"
+  else
+    $PY scripts/$runner --mode smoke --n 3 $COMMON --output $D/${name}_smoke_$T.json 2>&1 | grep -v -i -E "warn|Loading weights" | tail -3
+    if [ ! -f $D/${name}_smoke_$T.json ]; then echo "stage $name: smoke failed, skipped"; return 0; fi
+    sleep 90
+  fi
+  $PY scripts/$runner --mode full --n $n $COMMON $RES --output $D/${name}_full_$T.json 2>&1 | grep -v -i -E "warn|Loading weights" | tail -3
   if [ ! -f $D/${name}_full_$T.json ]; then echo "stage $name: full failed"; return 0; fi
   (cd scripts && ../$PY $analyzer --receipt ../$D/${name}_full_$T.json --output ../results/${name}_summary_$T.json $AARGS) || true
   echo "== stage $name done $(date -u +%FT%TZ)"
@@ -28,7 +33,6 @@ stage() {
 # test cohort = SGC test / Stage 2b cohort
 TESTROOT=$D/evidence_focusing_test_all_candidates_20261023_04/NExTVideo
 TESTEXCL=$D/known_media_sha_union_test_stage2b_shamscreen_20261023_70.json
-ANALYZER_ARGS="--prefix csl" stage csltest run_csl.py analyze_self_guided_cropping.py 278 test $TESTROOT $TESTEXCL
 stage cenval run_crop_ensemble.py analyze_crop_ensemble.py 300 val $VALROOT $VALEXCL
 stage centest run_crop_ensemble.py analyze_crop_ensemble.py 278 test $TESTROOT $TESTEXCL
 stage wp1dval run_wp1_overlap_dose.py analyze_wp1_overlap_dose.py 300 val $VALROOT $VALEXCL
