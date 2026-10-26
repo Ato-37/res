@@ -10,12 +10,15 @@ import sys
 import time
 from pathlib import Path
 
-DEFAULTS = ("data/private_nextgqa", str(Path.home() / ".cache/huggingface/hub"))
+REPO = Path(__file__).resolve().parents[1]
+DEFAULTS = tuple(str(REPO / d) for d in ("data/private_nextgqa", "data/private_minerva", ".git", "NExT-GQA", "datasets")) + (str(Path.home() / ".cache/huggingface/hub"),)
 
 
 def evict(paths) -> int:
     n = 0
     for root in paths:
+        if not os.path.isdir(root):
+            continue
         for dirpath, _dirs, files in os.walk(root):
             for name in files:
                 p = os.path.join(dirpath, name)
