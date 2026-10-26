@@ -107,7 +107,8 @@ def main(argv=None) -> int:
     label_tensor = torch.tensor(label_ids, device="cuda")
 
     def forward(device_batch):
-        torch.cuda.empty_cache()
+        if torch.cuda.mem_get_info()[0] < 2 * base.MIN_FORWARD_VRAM:
+            torch.cuda.empty_cache()  # only when VRAM is tight; an unconditional empty_cache per forward forces re-allocation and a sync
         if torch.cuda.mem_get_info()[0] < base.MIN_FORWARD_VRAM or cohort.host_available_bytes() < base.MIN_FORWARD_HOST:
             raise RuntimeError("per_forward_resource_guard_failed")
         with torch.inference_mode():

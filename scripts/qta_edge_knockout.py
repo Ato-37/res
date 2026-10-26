@@ -84,6 +84,9 @@ def install_knockout_hooks(*, model: Any, layers_1based: Sequence[int], blocks, 
     _assert_causal_unique(blocks)
     state = {"calls": {int(i): 0 for i in layers_1based}, "changed": {}, "expected_cells": expected}
     handles = []
+    # The same causal mask object is passed to every layer of one forward and the edit is identical for every selected layer, so the edited mask and
+    # its audits (visibility, changed-cell count) are computed once per mask object and reused; a different mask object recomputes (no stale reuse).
+    cache = {"mask": None, "edited": None, "changed": None}
     for layer in layers_1based:
         module = layers[layer - 1].self_attn
 
@@ -91,17 +94,21 @@ def install_knockout_hooks(*, model: Any, layers_1based: Sequence[int], blocks, 
             mask = kwargs.get("attention_mask")
             if not torch.is_tensor(mask) or mask.ndim != 4 or mask.shape[0] != 1:
                 raise ValueError("knockout_attention_mask_invalid")
-            edited = mask.clone()
-            low = torch.finfo(edited.dtype).min
-            for rows, cols in blocks:
-                r = torch.tensor(rows, device=edited.device, dtype=torch.long)
-                c = torch.tensor(cols, device=edited.device, dtype=torch.long)
-                if not bool((mask[0, 0][r[:, None], c[None, :]] == 0).all()):
-                    raise ValueError("knockout_cells_not_originally_visible")
-                edited[0, 0][r[:, None], c[None, :]] = low
-            changed = int(torch.count_nonzero(edited != mask).item())
-            if changed != expected:
-                raise ValueError("knockout_changed_cell_count_mismatch")
+            if cache["mask"] is mask:
+                edited, changed = cache["edited"], cache["changed"]
+            else:
+                edited = mask.clone()
+                low = torch.finfo(edited.dtype).min
+                for rows, cols in blocks:
+                    r = torch.tensor(rows, device=edited.device, dtype=torch.long)
+                    c = torch.tensor(cols, device=edited.device, dtype=torch.long)
+                    if not bool((mask[0, 0][r[:, None], c[None, :]] == 0).all()):
+                        raise ValueError("knockout_cells_not_originally_visible")
+                    edited[0, 0][r[:, None], c[None, :]] = low
+                changed = int(torch.count_nonzero(edited != mask).item())
+                if changed != expected:
+                    raise ValueError("knockout_changed_cell_count_mismatch")
+                cache["mask"], cache["edited"], cache["changed"] = mask, edited, changed
             state["calls"][layer] += 1
             state["changed"][layer] = changed
             new_kwargs = dict(kwargs)

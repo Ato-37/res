@@ -299,6 +299,8 @@ def install_multiquery_video_key_intervention_hooks(*, model: Any,
     frozen_ablation = tuple(ablated_positions)
     frozen_queries = tuple(query_positions)
     handles = []
+    # One causal mask object is shared by all layers of a forward and the edit is identical per layer: edit and validate once per mask object.
+    cache = {"mask": None, "edited": None}
     try:
         for layer_index in frozen_layers:
             attention = getattr(layers[layer_index], "self_attn", None)
@@ -310,11 +312,15 @@ def install_multiquery_video_key_intervention_hooks(*, model: Any,
                 if "attention_mask" not in kwargs:
                     raise ValueError("attention_mask_keyword_missing")
                 kwargs = dict(kwargs)
-                kwargs["attention_mask"] = apply_multiquery_video_key_intervention(
-                    attention_mask=kwargs["attention_mask"],
-                    biased_positions=frozen_bias, ablated_positions=frozen_ablation,
-                    query_positions=frozen_queries, logit_bias=logit_bias,
-                    torch_module=torch_module)
+                original = kwargs["attention_mask"]
+                if cache["mask"] is not original:
+                    cache["edited"] = apply_multiquery_video_key_intervention(
+                        attention_mask=original,
+                        biased_positions=frozen_bias, ablated_positions=frozen_ablation,
+                        query_positions=frozen_queries, logit_bias=logit_bias,
+                        torch_module=torch_module)
+                    cache["mask"] = original
+                kwargs["attention_mask"] = cache["edited"]
                 return args, kwargs
 
             try:
