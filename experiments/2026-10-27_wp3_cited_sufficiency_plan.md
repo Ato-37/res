@@ -15,3 +15,6 @@ Keep-mode is a strong out-of-distribution intervention (about 12 of 16 groups su
 
 ## Next
 Implement `scripts/run_wp3_cited_sufficiency.py` by reusing `qta_cited_evidence.py` and the keep-mode hooks, add a CPU test and an analyzer, smoke, then queue test then val.
+
+## Implementation and start (2026-10-27)
+Implemented: scripts/run_wp3_cited_sufficiency.py (generated from the WP2 runner; same citation prompt/parsing; arms keep_cited, keep_sham, keep_annotation via the multiquery keep-mode hooks, bias -ln256, all 28 layers, sdpa), scripts/analyze_wp3_cited_sufficiency.py (primary = keep_cited minus keep_sham on the gold-minus-foil margin; positive control = keep_annotation minus keep_sham >= 0.3 nat, else the result is labelled uninformative; secondary cited minus baseline and accuracy with exact McNemar), scripts/test_run_wp3_cited_sufficiency.py (CPU, passes when called directly; pytest is not installed in .venv). Smoke n=3 (test): 3 recorded, 0 excluded, 12 forwards; the analyzer code path ran on the smoke receipt (numbers meaningless at n=3). Queue m (tag 20261027m): wp3test (278) then wp3val (300), each smoke -> full -> analysis, one analysis per cohort, no pooling. Note: unlike WP2 (self-margin, label-free), WP3 uses the gold margin as stated in the plan above.
