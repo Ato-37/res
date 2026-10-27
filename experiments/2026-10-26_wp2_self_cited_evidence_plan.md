@@ -18,3 +18,6 @@ Citations may be hallucinated or uncalibrated in time (the model need not see ab
 
 ## Workload
 About 300 videos x (1 generation + 5 forwards), about 2-3 h. Runner scripts/run_wp2_cited_evidence.py (not yet run on GPU), analysis scripts/analyze_wp2_cited_evidence.py (+ test), helpers scripts/qta_cited_evidence.py (+ test).
+
+## Addendum (2026-10-27, written before any WP2 test run): replication on the test cohort
+Val result (N=289 analysed of 300): cited minus sham +0.298 nat [+0.161, +0.435], t p=2.6e-5, TOST p=0.49 -> inconclusive (mean just under delta_min = 0.3). Replication on the SGC/CSL/PERM test cohort (N=278, same screens and exclusion list, sdpa, same runner and analyzer, no parameter changes). Decision rule fixed now: the replication is **supported** iff the analyzer's primary rule is met (t, sign-flip and Wilcoxon p < 0.05 and mean >= 0.3 nat, positive control passed); otherwise the result is reported as inconclusive/not replicated with the interval. Pooling val+test is not planned; each cohort is analysed once. Workload: about 278 x (1 generation + 5 forwards), ~1.5-2 h. Tag j, new output paths.
