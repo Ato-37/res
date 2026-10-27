@@ -1,0 +1,17 @@
+# Plan (not yet implemented or run): WP4 generated-answer flips under cited-interval knockout and keep (written 2026-10-28, before any WP4 run)
+
+## Why
+WP2/WP3 measure dependence of the forced-choice readout (log-probs of the five option letters at one position) on the interval the model cites. A reviewer concern from the base paper (option-format artifact) and the faithfulness definition both point to the generated answer that accompanies the citation: if the model writes "Answer: C. Time: 3-6", does removing 3-6 change the answer it then writes, more often than removing an equal-count sham? WP4 uses the same generation prompt as WP2 and measures flips of the generated letter (a discrete, decision-level endpoint) instead of margins.
+
+## Design (fixed now)
+- Cohort: WP2 test cohort (N=278 recorded; analysed set = valid citation) first; WP2 val cohort second, each analysed once, not pooled.
+- Per video (greedy decoding, max 40 new tokens, same prompt/parser as WP2): (1) baseline generation -> letter L0 and cited groups C; (2) generation with the video->text pathway of C knocked out (layers 6-20, the WP1/WP2 edge); (3) the same with an equal-count disjoint hash sham S; (4) generation with a whole-video video->text knockout as the positive control. 4 generations/video, each ~40 tokens with the knockout hook active for every decoding step (the hook masks are position-based; verified at implementation that the mask is applied to the prompt prefill and to later steps via the full-length key mask without KV cache re-use bugs; use_cache must be handled explicitly and tested on 3 videos with the knockout effect checked against the WP2 forced-choice change).
+- Endpoint: flip indicator F = 1 if the generated letter differs from L0 (unparseable generations count as a flip and are also reported separately). Primary: paired difference in flip rate (cited minus sham) with exact McNemar on discordant pairs; supported iff exact McNemar p < 0.05 and the difference >= 5 percentage points (justification before the run: the baseline-wrong/-right share near the decision boundary in WP2 is about 6% of videos within 0.3 nat, so a smaller flip difference would be inside the measurement noise of the readout). Positive control: whole-video knockout flip rate - sham flip rate >= 20 points, else nulls are uninformative.
+- Secondary (descriptive): flip rate among baseline-correct vs baseline-wrong; accuracy of the knockout generations; agreement of the generated letter with the forced-choice readout at baseline.
+- Workload: 4 generations x ~40 tokens x 278 videos; with HF generate at ~1 s/token on this setup (to be measured in the smoke) roughly 3-4 h per cohort; smoke n=3 first and timing is reported before queuing the full run.
+
+## Limits
+Greedy decoding gives one sample; flips can reflect numerical instability (bf16, sdpa) rather than dependence, so the sham flip rate is the noise baseline; a zero-intervention repeat of the baseline generation will be run on the first 50 videos as the determinism check (flip rate must be ~0, otherwise the endpoint is unusable); one model and format; the citation may be uncalibrated; label-free (no gold label in the endpoint).
+
+## Next
+Implement scripts/run_wp4_generated_flip.py reusing run_wp2_cited_evidence.py (generation helper, knockout hooks), CPU test for the flip/McNemar helpers, smoke n=3 with timing and the determinism check, then queue test then val.
