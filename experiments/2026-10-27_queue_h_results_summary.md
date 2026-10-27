@@ -25,3 +25,6 @@ Ensembles of the baseline with CSL arms, accuracy vs baseline (exact McNemar). v
 
 ## Next
 Reviewer-concern items (attention-vs-causal score agreement, correct/wrong split of WP1, failure modes, limitations); decide whether any new correction idea is worth GPU time (open: abstain-or-defer using confidence drop under crop; answer-order + crop combination is not motivated by the null PERM/CEN results).
+
+## Exploratory CPU check: attention-mass (SGC) vs causal (CSL) group scores (2026-10-27; same videos matched by media hash, gold and annotation groups)
+Per-video Spearman between the 16 SGC attention-mass scores and the 16 CSL causal scores: val (N=150) mean -0.015 [-0.059, +0.027]; test (N=278) +0.013 [-0.023, +0.049] (paired bootstrap over videos). Top-4 overlap 1.39 / 1.42 groups vs 1.00 expected by chance (the overlap above chance coexists with a near-zero rank correlation, so it should not be over-read). Split by baseline correctness: correct -0.027 (n=96) / -0.007 (n=210); wrong +0.006 (n=54) / +0.075 (n=68). Inference: attention mass is not a proxy for causal importance here, consistent with SGC failing where CSL did not. Answers the reviewer concern "attention vs causal" for this model only.
