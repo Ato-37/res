@@ -631,9 +631,23 @@ def summarize(values: Sequence[float]) -> dict:
             "min": ordered[0], "max": ordered[-1]}
 
 
+def active_model() -> tuple[str, str]:
+    """(model id, snapshot revision); the pinned 7B unless RES_MODEL_ID / RES_MODEL_REVISION select a local snapshot (cross-model replication)."""
+    import os
+    return os.environ.get("RES_MODEL_ID", MODEL_NAME), os.environ.get("RES_MODEL_REVISION", MODEL_REVISION)
+
+
+def layer_band_from_env() -> tuple[tuple[int, int], int]:
+    """((first, last) 1-based layer of the middle band, number of layers); defaults are the 7B values 6-20 of 28."""
+    import os
+    a, b = (int(x) for x in os.environ.get("RES_BAND", "6-20").split("-"))
+    return (a, b), int(os.environ.get("RES_NUM_LAYERS", "28"))
+
+
 def _load_checkpoint_config(repo: Path) -> tuple[Path, str]:
-    model_path = (Path.home() / ".cache/huggingface/hub/models--Qwen--Qwen2.5-VL-7B-Instruct"
-                  / "snapshots" / MODEL_REVISION)
+    model_id, revision = active_model()
+    model_path = (Path.home() / ".cache/huggingface/hub" / ("models--" + model_id.replace("/", "--"))
+                  / "snapshots" / revision)
     if not model_path.is_dir():
         raise ValueError("pinned_local_checkpoint_missing_downloads_disabled")
     return model_path, sha256_file(model_path / "config.json")

@@ -27,7 +27,8 @@ import qta_evidence_edge_knockout as ev
 
 SEED = 20261023
 RUNNER_PATH = Path(__file__).resolve()
-BANDS = {"band": tuple(range(6, 21)), "all": tuple(range(1, 29))}
+(_BA, _BB), _NL = base.layer_band_from_env()
+BANDS = {"band": tuple(range(_BA, _BB + 1)), "all": tuple(range(1, _NL + 1))}
 
 
 def arms_for(groups_count: int, annotation_groups, sham_groups):
@@ -200,7 +201,7 @@ def main(argv=None) -> int:
         "mode": args.mode, "dataset_split": args.dataset_split, "requested_videos": args.n, "recorded_videos": len(records),
         "excluded_videos": sum(bool(r.get("excluded")) for r in records),
         "baseline_correct": sum(bool(r.get("baseline_correct")) for r in records), "bands": {k: [v[0], v[-1]] for k, v in BANDS.items()},
-        "frames": args.frames, "model": "Qwen/Qwen2.5-VL-7B-Instruct", "model_revision": base.MODEL_REVISION,
+        "frames": args.frames, "model": base.active_model()[0], "model_revision": base.active_model()[1],
         "model_config_sha256": model_config_sha256, "precision": "4-bit weights, BF16 compute, fp32 lm_head readout", "seed": SEED,
         "cohort_sha256": cohort_hash, "exclusion_manifest_sha256": exclusion_sha256, "source_snapshot": source,
         "runner_sha256": base.sha256_file(RUNNER_PATH),

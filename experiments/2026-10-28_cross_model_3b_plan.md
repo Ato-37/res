@@ -1,0 +1,15 @@
+# Prespecified plan: cross-model replication of WP1 and WP2 on Qwen2.5-VL-3B-Instruct (written 2026-10-28, before any 3B run)
+
+## Why
+All results so far are for one model (Qwen2.5-VL-7B-Instruct), the main limitation named in the thesis and by the base paper's reviewers. Qwen2.5-VL-3B-Instruct is cached locally (snapshot 66285546d2b821cf421d4f5eb2576359d3770cd3, 36 layers, hidden size 2048; same processor and vision tokenizer, so the video token layout and the temporal groups are identical). Question: does the video->text pathway dependence on the annotated evidence interval (WP1) and on the model's own cited interval (WP2) appear in a smaller sibling model with the band placed at the same relative depth? Label-free; scope = answer margin on NExT-GQA, not explanation faithfulness.
+
+## Fixed now (no tuning)
+- Model: 3B, same loading as 7B (4-bit weights, BF16 compute, fp32 lm_head readout, sdpa with explicit masks); selected through the environment variables RES_MODEL_ID / RES_MODEL_REVISION; the 7B defaults are unchanged and the unit tests for the touched modules pass.
+- Layer band mapped proportionally from 6-20 of 28 (21%-71% of depth) to **layers 8-26 of 36** (6*36/28=7.7 -> 8; 20*36/28=25.7 -> 26); the all-layer band is 1-36. RES_BAND=8-26, RES_NUM_LAYERS=36. The band is not tuned and not swept; a single deviation (a different band) would need its own prespecification.
+- WP1-3B: same runner (scripts/run_evidence_pathway_knockout.py), same cohort (the WP1 test cohort, N=112 requested, same exclusion manifest), same analyzer and rules unchanged (P1 video->text band: t, sign-flip and Wilcoxon p<0.05 and effect >= 0.3 nat, Holm over P1/P2; positive control: whole-video video->text mean relative change <= -20% on baseline-correct videos). If the positive control fails, nulls are uninformative.
+- WP2-3B: same runner (scripts/run_wp2_cited_evidence.py), the WP2 test cohort (N=278 requested), same analyzer and rule (mean >= 0.3 nat with t/sign-flip/Wilcoxon p<0.05; positive control as in WP2). The 3B model may format the citation differently or ignore the format; the parse rate and the share of usable citations are reported and a low usable share (<50% of recorded) is reported as "citation format not followed" rather than as an absence of dependence.
+- Each analysis once, no pooling with the 7B results; 3B and 7B baselines are separate (baseline accuracy is expected to differ).
+- Workload: WP1 about 13 forwards/video x 112, WP2 about 1 generation + 5 forwards x 278; 3B is faster than 7B; smoke n=3 first; new tags.
+
+## Limits
+One additional smaller model of the same family (not an independent architecture); the band mapping is a proportional assumption; 3B accuracy may be low, shrinking the baseline-correct subset used by the positive control; label-free endpoint measures dependence on the interval, not faithfulness.
