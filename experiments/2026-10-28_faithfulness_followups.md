@@ -12,3 +12,10 @@
 4. Not pursued now: free-form explanation text scoring (no label-free scorer; human review is not available), further correction experiments (null on PERM/CEN, CSL only sharpens confidence).
 
 ## C. Cross-model replication (3B) is running separately: experiments/2026-10-28_cross_model_3b_plan.md.
+
+## D. Further exploratory CPU findings (2026-10-28, WP2 receipts; not prespecified; no multiplicity correction)
+- **The model often cites the start of the video.** The cited groups contain group 0 in 99/265 (37%) test and 127/289 (44%) val videos; the most common citation sets are (0,1,2), (0,1), (0). A start-anchored citation is a likely default rather than a located piece of evidence.
+- **WP2 necessity effect by citation type** (self-margin drop, cited minus sham knockout, nat; mean, sd, n): test start-anchored +0.146 (sd 1.04, n=99), not anchored +0.403 (sd 1.62, n=166); val start-anchored +0.152 (n=127), not anchored +0.412 (n=162). Among not-anchored citations the effect is concentrated where the citation overlaps the annotation: test overlap>0 +0.695 (n=90) vs overlap=0 +0.057 (n=76); val +0.691 (n=87) vs +0.089 (n=75). Start-anchored citations show small effects whether or not they overlap the annotation (test +0.066 / +0.271; val +0.179 / +0.106).
+- Inference: the WP2 effect (about 0.3 nat on average) is carried by citations that point to a specific non-start location that coincides with the annotated evidence (about +0.7 nat in both cohorts); citations at the start of the video, and non-overlapping non-anchored citations, show little dependence. The average hides two populations; reporting only the pooled effect would overstate the generality of "the model's citation matters".
+- The citation letter matches the forced-choice prediction in 258/265 (test) and 274/289 (val) videos.
+- These are strata chosen after seeing that anchoring is common (post hoc), so they are exploratory and need a prespecified replication before being claimed; a candidate is a prespecified WP2 re-analysis on a fresh cohort stratified by anchored / not anchored.
