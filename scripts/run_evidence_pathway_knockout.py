@@ -53,6 +53,7 @@ def parse_args(argv=None):
     p.add_argument("--video-root", required=True)
     p.add_argument("--output", required=True)
     p.add_argument("--resume", action="store_true")
+    p.add_argument("--attn", choices=("eager", "sdpa"), default="eager", help="default eager = the original WP1 setting; sdpa uses the explicit-mask hooks (about 2.5x faster, bf16 numerics differ slightly; never pool eager and sdpa receipts)")
     p.add_argument("--user-authorized-local-only", action="store_true")
     return p.parse_args(argv)
 
@@ -72,6 +73,7 @@ def main(argv=None) -> int:
     model_path, model_config_sha256 = base._load_checkpoint_config(repo)
     exclusion_payload, exclusion_sha256 = base.read_private_json(Path(args.exclude_media_sha256), private_root)
     exclusion_hashes = cohort.validate_private_media_exclusion(exclusion_payload)
+    cohort.LAZY_FRAMES = True  # re-decode frames on demand instead of holding the decoded cohort in host RAM (verified bit-identical by source hash and PTS)
     selected, counts, meta, cohort_hash = base._freeze_exact(
         repo, video_root=video_root, n=args.n, frame_count=args.frames, exclusion=exclusion_hashes,
         lock_assignments=None, dataset_split=args.dataset_split)
@@ -96,7 +98,7 @@ def main(argv=None) -> int:
         raise RuntimeError("pre_model_resource_guard_failed")
     from transformers import BitsAndBytesConfig, Qwen2_5_VLForConditionalGeneration
     model = Qwen2_5_VLForConditionalGeneration.from_pretrained(
-        str(model_path), local_files_only=True, torch_dtype=torch.bfloat16, attn_implementation="eager",
+        str(model_path), local_files_only=True, torch_dtype=torch.bfloat16, attn_implementation=args.attn,
         device_map="cuda", quantization_config=BitsAndBytesConfig(
             load_in_4bit=True, bnb_4bit_compute_dtype=torch.bfloat16)).eval()
     if int(model.config.video_token_id) != int(processor.video_token_id):
@@ -202,7 +204,7 @@ def main(argv=None) -> int:
         "excluded_videos": sum(bool(r.get("excluded")) for r in records),
         "baseline_correct": sum(bool(r.get("baseline_correct")) for r in records), "bands": {k: [v[0], v[-1]] for k, v in BANDS.items()},
         "frames": args.frames, "model": base.active_model()[0], "model_revision": base.active_model()[1],
-        "model_config_sha256": model_config_sha256, "precision": "4-bit weights, BF16 compute, fp32 lm_head readout", "seed": SEED,
+        "model_config_sha256": model_config_sha256, "precision": "4-bit weights, BF16 compute, fp32 lm_head readout", "attn_implementation": args.attn, "seed": SEED,
         "cohort_sha256": cohort_hash, "exclusion_manifest_sha256": exclusion_sha256, "source_snapshot": source,
         "runner_sha256": base.sha256_file(RUNNER_PATH),
         "module_sha256": {n: base.sha256_file(RUNNER_PATH.parent / n) for n in ("qta_edge_knockout.py", "qta_evidence_edge_knockout.py")},
