@@ -1,0 +1,20 @@
+# Related-work scan for the interim presentation (2026-10-28)
+
+Method: a delegated subagent searched the web and opened abstract pages (abstracts only, no full texts); the primary agent re-opened two of the items itself (marked VERIFIED). All other entries are the subagent's report and are UNVERIFIED by the primary agent; do not cite them in the thesis before reading the source.
+
+| # | Paper | Source | Status | Relevance |
+|---|---|---|---|---|
+| 1 | EG-VQA: Benchmarking Verifiable Video QA with Grounded Temporal Evidence (Huang et al.) | arXiv 2606.24797 | unverified | scores answer plus cited temporal evidence against annotation (EG-F1); no causal intervention per the abstract |
+| 2 | TempCore: Are Video QA Benchmarks Temporally Grounded? (Ok & Lee) | arXiv 2509.01167, EMNLP 2026 | VERIFIED | Frame Selection Sensitivity: swap the most relevant frames for the least relevant and track accuracy; most samples frame-agnostic. Closest published frame-level intervention; relevance is benchmark-defined, not the model's own citation; a caveat for cohort selection |
+| 3 | Faithfulness Evaluation for Decoder-only LLM Attributions with Controlled Retained Information (Huang & Chan) | arXiv 2601.03089 | unverified | comprehensiveness/sufficiency confounded by retained information (text-only); supports dose/retention matching |
+| 4 | Can I Trust Your Answer? Visually Grounded Video QA (Xiao et al.) | CVPR 2024, arXiv 2309.01327 | unverified (foundational, the dataset paper) | NExT-GQA |
+| 5 | What You Ask is What You Ground (Seo et al.) | ECCV 2026, arXiv 2608.15708 | unverified | question-invariant grounding on NExT-GQA |
+| 6 | TempCloze (Pei et al.) | EMNLP 2026 Findings, arXiv 2609.01515 | unverified | option-order and frame-density sensitivity |
+| 7 | An Empirical Study on How Video-LLMs Answer Video Questions (Gou et al.) | arXiv 2508.15360 (no venue on the abstract page) | VERIFIED | attention knockouts over layer windows; video information extracted mainly in early layers with a few intermediate layers having outsized effect; language-guided retrieval matters more than video self-attention. Directly related to the base paper; cite as concurrent work |
+| 8 | Causality Matters: How Temporal Information Emerges in Video Language Models (Shi et al.) | AAAI 2026, arXiv 2508.11576 | unverified | supports the middle-layer video->text pathway |
+| 9 | MLLMs Know When Before Speaking (Du et al.) | arXiv 2605.21954 | unverified | Temporal Grounding Heads by per-head knockout, then crop to the extracted interval; a model-derived interval plus keep-only step, used to improve grounding |
+| 10 | How to use and interpret activation patching (Heimersheim & Nanda) | arXiv 2404.15255 | unverified | metric/corruption choice; ablation more off-distribution than noising/denoising (snippet only) |
+| 11 | Faithful Faithfulness Evaluations: Challenges & Pitfalls (breast MRI) (Poolpol et al.) | MICCAI iMIMIC 2026, arXiv 2609.25978 | unverified | method rankings change with the perturbation strategy; supports reporting more than one intervention mode |
+
+## Novelty assessment (honest, limited search)
+No paper was found that tests necessity (remove) and sufficiency (keep only) of a video LLM's OWN cited time interval at both the attention-mask and the input-frame level, with an evidence-interval-specific sham and an overlap dose-response. This is an absence in a limited search of about nine queries, not proof. Wording for the thesis and the talk: "to our knowledge, not found in the 2025-26 literature we searched", not "first". Nearest items to read in full before claiming novelty: TempCore (frame swap by relevance), "MLLMs Know When" (model-derived interval then crop), EG-VQA (evidence grading), Gou et al. (knockout study; the knockout on video QA itself is not new). Implications for the thesis: the retention-matching and perturbation-strategy critiques (items 3, 10, 11) support reporting both an attention-mask and an input-level intervention, as WP2/WP3 and WP5 do.
