@@ -137,7 +137,7 @@ def main(argv=None) -> int:
             if media_hash in done_media:
                 continue
             qid_hash = base.hashlib.sha256(str(sample["qid"]).encode()).hexdigest()
-            prepared = cohort.prepare_conditions([sample], processor, torch, args.frames, retain_batches=True)[0]
+            prepared = cohort.prepare_conditions([sample], processor, torch, args.frames, retain_batches=True, only_full=True)[0]  # only the full-video condition is used below; skipping the 4 unused masked conditions is an equivalent speed-up (CPU-verified batch identity)
             batch = prepared["batches"]["full"]
             device_batch = batch.to("cuda")
             input_ids = batch["input_ids"][0].tolist()

@@ -13,3 +13,6 @@ All results so far are for one model (Qwen2.5-VL-7B-Instruct), the main limitati
 
 ## Limits
 One additional smaller model of the same family (not an independent architecture); the band mapping is a proportional assumption; 3B accuracy may be low, shrinking the baseline-correct subset used by the positive control; label-free endpoint measures dependence on the interval, not faithfulness.
+
+## Implementation note (2026-10-28 00:58 UTC, before any 3B outcome)
+The first WP1-3B full run progressed at about 100 s/video because the WP1 runner built four unused masked conditions per video (CPU-bound preprocessing, GPU idle). The runner now calls `prepare_conditions(..., only_full=True)` (the same equivalent speed-up as in the SGC/CSL/CEN/WP2 runners, whose full-condition batch tensors were verified identical on CPU); the WP1 runner keeps eager attention as before. The 3 records written before the restart (same arms, same code semantics) are kept via --resume. No outcome of the 3B run had been inspected.
