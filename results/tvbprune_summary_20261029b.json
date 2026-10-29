@@ -1,0 +1,87 @@
+{
+ "n": 400,
+ "accuracy": {
+  "baseline": 0.575,
+  "pathway": 0.535,
+  "random_mean": 0.45833333333333326,
+  "chance": 0.375
+ },
+ "blocked_fraction_mean": 0.4511823513141999,
+ "pathway_minus_baseline": {
+  "point_pt": -4.0,
+  "ci95_pt": [
+   -8.5,
+   0.5
+  ]
+ },
+ "pathway_minus_random": {
+  "point_pt": 7.666666666666669,
+  "ci95_pt": [
+   2.9166666666666687,
+   12.500000000000004
+  ]
+ },
+ "random_minus_baseline": {
+  "point_pt": -11.66666666666667,
+  "ci95_pt": [
+   -16.166666666666668,
+   -7.000000000000002
+  ]
+ },
+ "mcnemar_baseline_vs_pathway": {
+  "baseline_only_correct": 49,
+  "pathway_only_correct": 33,
+  "p_exact": 0.09703091129729906
+ },
+ "criteria": {
+  "P1_retention_ci_lower_gt_-3pt": false,
+  "P2_control_ci_lower_gt_0_and_point_ge_5pt": true
+ },
+ "per_task": {
+  "action_sequence": {
+   "n": 100,
+   "baseline": 0.63,
+   "pathway": 0.64,
+   "random_mean": 0.54,
+   "chance": 0.5
+  },
+  "moving_direction": {
+   "n": 100,
+   "baseline": 0.43,
+   "pathway": 0.27,
+   "random_mean": 0.3233333333333333,
+   "chance": 0.25
+  },
+  "object_count": {
+   "n": 100,
+   "baseline": 0.46,
+   "pathway": 0.39,
+   "random_mean": 0.32,
+   "chance": 0.25
+  },
+  "scene_transition": {
+   "n": 100,
+   "baseline": 0.78,
+   "pathway": 0.84,
+   "random_mean": 0.65,
+   "chance": 0.5
+  }
+ },
+ "receipt_name": "tvbprune_full_20261029b.json",
+ "cohort_sha256": "1cf0fe95e2876a4aa6e6057db06859276ab1b623de6cd9219b793720590939dc",
+ "scaled_layers_1based": {
+  "cross_frame": [
+   5,
+   13
+  ],
+  "question_to_last": [
+   14,
+   22
+  ],
+  "video_to_question": [
+   5,
+   18
+  ]
+ },
+ "interpretation_limit": "accuracy under attention pruning on TVBench (4 of 5 paper tasks); not explanation faithfulness"
+}
