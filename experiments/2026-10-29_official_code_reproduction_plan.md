@@ -23,3 +23,20 @@ E and F finished (fast copy, 50 questions per task, official 7B ranges, official
 - Paired pathway vs baseline: discordant 21 (baseline-only correct) vs 11, exact McNemar p=0.11; random vs pathway is a 7-point gap on 200 questions. n=200 with 4 tasks (the paper's 5th task and full set are not run): descriptive; the paper's "no loss" is not matched (-5.0 pt point estimate, interval not computed on this small n), the pathway-vs-random ordering is.
 - A (cross-frame, window k=9 sweep, original code, 50 per task): mean relative change over layers 1-16 / 17-32: Action Sequence -2.9% / +0.2%, Moving Direction -3.2% / +0.8%, Object Count -27.8% / +0.1% (min -44.3% at L7), Scene Transition -5.8% / -0.3%; minima at L5-L7. Pattern (early-layer dependence, none late, strongest for Object Count) matches the paper; magnitudes are not comparable with Table 2 because Table 2 blocks layers 1-16 jointly while the sweep blocks 9 layers at a time.
 Prespecified addition (before running): the official window_style options reproduce Table 2 and Table B exactly: I1 `--window_style bottom_up --sweep_range 15-16` (blocks layers 1-16) and I2 `--window_style top_down --sweep_range 16-17` (blocks layers 17-32), 50 questions per task, video model. Criteria (descriptive, set now): Table 2 "reproduced" if the accuracy-probability drop is worse than -10% for every one of the 4 tasks (paper -18% to -61% for 5 tasks); Table B "reproduced" if the drop is within -5% for every task (paper -0.5% to -1.7%).
+
+## Update 2026-10-30 (B, C, D, I1, I2, H done; G blocked)
+
+Source: `scripts/analyze_official_reproduction.py` -> `results/official_reproduction_summary_20261030.json` (derived only). Official code LLaVA-NeXT-7B-Video-FT on TVBench (4 tasks), correct-only samples (13-30 questions per task after the correct filter), metric = mean relative change of answer probability (%). CIs resample records (layers pooled), so they are optimistic; descriptive only.
+
+| item | Action Seq | Moving Dir | Object Count | Scene Trans |
+|---|---|---|---|---|
+| I1 layers 1-16 blocked (paper -18..-61%) | -6.9 | -6.5 | -45.9 | -11.8 |
+| I2 layers 17-32 blocked (paper -0.5..-1.7%) | +0.1 | +0.8 | +0.2 | -0.5 |
+| B video->question (mean over layers) | -4.3 | -0.6 | -6.7 | -3.2 |
+| C question+options->last | -0.3 | +0.7 | -0.1 | -0.5 |
+| D video+question->true option | -7.3 | -7.3 | -4.3 | -4.7 |
+
+Prespecified criteria: I1 NOT met (needs < -10% for all 4 tasks; Action Sequence and Moving Direction are -6.9 / -6.5; Object Count and Scene Transition do satisfy it). I2 met (all within -5%). Reading: the early-vs-late asymmetry of cross-frame blocking reproduces in direction (I2 ~0), but the large early-layer drop is task-dependent here (Object Count only). Correction to the earlier partial reading: with all 4 tasks, C (question+options->last) is about 0, not mid/late-layer dependent; the earlier 2-task statement is withdrawn. D drops mainly in early/mid layers (~-7 to -15% per band), late ~0.
+
+Blockers/deviations: H (logit lens) official script referenced undefined `args.target/args.window`; patched locally in the fast copy (`target='logit-lens'`, `window=9`, original kept as .orig); H output exists but not yet analysed against criterion (d). G (cross-frame on the base ImageLLM) failed twice at `load_pllava` (fallback processor `llava-hf/llava-1.5-7b-hf` tokenizer.json not parseable by tokenizers 0.19.1); not pursued, the "more than the base ImageLLM" part of criterion (a) stays unverified. ASSUMED-CLEARED: none new.
+Next: analyse H once against (d); update slide doc (slide 5) and explainer table; fix G only if cheap (tokenizers upgrade is out of scope without instruction).

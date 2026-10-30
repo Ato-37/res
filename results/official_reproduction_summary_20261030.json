@@ -1,0 +1,318 @@
+{
+ "I1_table2_first_half": {
+  "Action Sequence": {
+   "n_questions": 30,
+   "n_records": 30,
+   "mean_rel_diff_pct": -6.93,
+   "ci95_records": [
+    -17.11,
+    2.95
+   ],
+   "layer_bands": {}
+  },
+  "Moving Direction": {
+   "n_questions": 13,
+   "n_records": 13,
+   "mean_rel_diff_pct": -6.53,
+   "ci95_records": [
+    -24.19,
+    14.89
+   ],
+   "layer_bands": {}
+  },
+  "Object Count": {
+   "n_questions": 27,
+   "n_records": 27,
+   "mean_rel_diff_pct": -45.92,
+   "ci95_records": [
+    -57.2,
+    -34.93
+   ],
+   "layer_bands": {}
+  },
+  "Scene Transition": {
+   "n_questions": 29,
+   "n_records": 29,
+   "mean_rel_diff_pct": -11.79,
+   "ci95_records": [
+    -21.71,
+    -2.12
+   ],
+   "layer_bands": {}
+  }
+ },
+ "I2_tableB_second_half": {
+  "Action Sequence": {
+   "n_questions": 30,
+   "n_records": 30,
+   "mean_rel_diff_pct": 0.14,
+   "ci95_records": [
+    -0.38,
+    0.71
+   ],
+   "layer_bands": {}
+  },
+  "Moving Direction": {
+   "n_questions": 13,
+   "n_records": 13,
+   "mean_rel_diff_pct": 0.79,
+   "ci95_records": [
+    -0.78,
+    2.37
+   ],
+   "layer_bands": {}
+  },
+  "Object Count": {
+   "n_questions": 27,
+   "n_records": 27,
+   "mean_rel_diff_pct": 0.15,
+   "ci95_records": [
+    -0.46,
+    0.94
+   ],
+   "layer_bands": {}
+  },
+  "Scene Transition": {
+   "n_questions": 29,
+   "n_records": 29,
+   "mean_rel_diff_pct": -0.51,
+   "ci95_records": [
+    -1.55,
+    0.49
+   ],
+   "layer_bands": {}
+  }
+ },
+ "A_cross_frame": {
+  "Action Sequence": {
+   "n_questions": 30,
+   "n_records": 960,
+   "mean_rel_diff_pct": -1.31,
+   "ci95_records": [
+    -2.22,
+    -0.4
+   ],
+   "layer_bands": {
+    "early": -3.43,
+    "mid": -1.0,
+    "late": 0.19
+   }
+  },
+  "Moving Direction": {
+   "n_questions": 13,
+   "n_records": 416,
+   "mean_rel_diff_pct": -1.21,
+   "ci95_records": [
+    -2.94,
+    0.55
+   ],
+   "layer_bands": {
+    "early": -3.08,
+    "mid": -1.36,
+    "late": 0.46
+   }
+  },
+  "Object Count": {
+   "n_questions": 27,
+   "n_records": 864,
+   "mean_rel_diff_pct": -13.88,
+   "ci95_records": [
+    -15.7,
+    -12.05
+   ],
+   "layer_bands": {
+    "early": -32.65,
+    "mid": -11.99,
+    "late": 0.2
+   }
+  },
+  "Scene Transition": {
+   "n_questions": 29,
+   "n_records": 928,
+   "mean_rel_diff_pct": -3.03,
+   "ci95_records": [
+    -3.89,
+    -2.23
+   ],
+   "layer_bands": {
+    "early": -6.76,
+    "mid": -2.47,
+    "late": -0.4
+   }
+  }
+ },
+ "B_vql_to_ql": {
+  "Action Sequence": {
+   "n_questions": 19,
+   "n_records": 2432,
+   "mean_rel_diff_pct": -4.27,
+   "ci95_records": [
+    -5.02,
+    -3.55
+   ],
+   "layer_bands": {
+    "early": -2.47,
+    "mid": -8.13,
+    "late": -2.55
+   }
+  },
+  "Moving Direction": {
+   "n_questions": 6,
+   "n_records": 768,
+   "mean_rel_diff_pct": -0.56,
+   "ci95_records": [
+    -2.49,
+    1.36
+   ],
+   "layer_bands": {
+    "early": -3.54,
+    "mid": -0.94,
+    "late": 2.23
+   }
+  },
+  "Object Count": {
+   "n_questions": 12,
+   "n_records": 1536,
+   "mean_rel_diff_pct": -6.66,
+   "ci95_records": [
+    -7.73,
+    -5.6
+   ],
+   "layer_bands": {
+    "early": -3.47,
+    "mid": -13.84,
+    "late": -3.33
+   }
+  },
+  "Scene Transition": {
+   "n_questions": 14,
+   "n_records": 1792,
+   "mean_rel_diff_pct": -3.2,
+   "ci95_records": [
+    -4.04,
+    -2.37
+   ],
+   "layer_bands": {
+    "early": -1.85,
+    "mid": -5.76,
+    "late": -2.19
+   }
+  }
+ },
+ "C_q_opts_to_last": {
+  "Action Sequence": {
+   "n_questions": 19,
+   "n_records": 1824,
+   "mean_rel_diff_pct": -0.28,
+   "ci95_records": [
+    -0.59,
+    0.03
+   ],
+   "layer_bands": {
+    "early": 0.17,
+    "mid": -1.29,
+    "late": 0.17
+   }
+  },
+  "Moving Direction": {
+   "n_questions": 6,
+   "n_records": 576,
+   "mean_rel_diff_pct": 0.68,
+   "ci95_records": [
+    -1.04,
+    2.38
+   ],
+   "layer_bands": {
+    "early": 0.67,
+    "mid": -0.26,
+    "late": 1.48
+   }
+  },
+  "Object Count": {
+   "n_questions": 12,
+   "n_records": 1152,
+   "mean_rel_diff_pct": -0.12,
+   "ci95_records": [
+    -0.35,
+    0.11
+   ],
+   "layer_bands": {
+    "early": -0.14,
+    "mid": -0.62,
+    "late": 0.32
+   }
+  },
+  "Scene Transition": {
+   "n_questions": 14,
+   "n_records": 1344,
+   "mean_rel_diff_pct": -0.49,
+   "ci95_records": [
+    -0.95,
+    -0.03
+   ],
+   "layer_bands": {
+    "early": -0.23,
+    "mid": -0.86,
+    "late": -0.39
+   }
+  }
+ },
+ "D_vq_to_true_opt": {
+  "Action Sequence": {
+   "n_questions": 19,
+   "n_records": 1824,
+   "mean_rel_diff_pct": -7.3,
+   "ci95_records": [
+    -8.22,
+    -6.39
+   ],
+   "layer_bands": {
+    "early": -11.21,
+    "mid": -12.37,
+    "late": 0.19
+   }
+  },
+  "Moving Direction": {
+   "n_questions": 6,
+   "n_records": 576,
+   "mean_rel_diff_pct": -7.28,
+   "ci95_records": [
+    -9.28,
+    -5.3
+   ],
+   "layer_bands": {
+    "early": -9.39,
+    "mid": -14.51,
+    "late": 0.5
+   }
+  },
+  "Object Count": {
+   "n_questions": 12,
+   "n_records": 1152,
+   "mean_rel_diff_pct": -4.31,
+   "ci95_records": [
+    -4.94,
+    -3.69
+   ],
+   "layer_bands": {
+    "early": -6.05,
+    "mid": -7.82,
+    "late": 0.07
+   }
+  },
+  "Scene Transition": {
+   "n_questions": 14,
+   "n_records": 1344,
+   "mean_rel_diff_pct": -4.65,
+   "ci95_records": [
+    -5.36,
+    -3.94
+   ],
+   "layer_bands": {
+    "early": -7.7,
+    "mid": -7.06,
+    "late": -0.11
+   }
+  }
+ }
+}
