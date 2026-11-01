@@ -1,0 +1,29 @@
+{
+ "n_baseline_correct": 85,
+ "n_with_slope": 85,
+ "effect_pct_points_per_0_to_100_overlap": {
+  "mean": 6.22,
+  "ci95": [
+   0.85,
+   12.65
+  ]
+ },
+ "pooled_mean_pct_by_overlap_bin": {
+  "0": {
+   "n_windows": 704,
+   "mean": -0.67
+  },
+  "1-49": {
+   "n_windows": 131,
+   "mean": -0.16
+  },
+  "50-99": {
+   "n_windows": 220,
+   "mean": -2.78
+  },
+  "100": {
+   "n_windows": 72,
+   "mean": -4.47
+  }
+ }
+}

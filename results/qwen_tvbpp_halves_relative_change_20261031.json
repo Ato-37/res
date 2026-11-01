@@ -1,0 +1,79 @@
+{
+ "source_videos": 400,
+ "metric": "mean relative change of answer probability (%), cross-frame blocked, baseline-correct videos",
+ "bootstrap": "video unit, 10k, seed 0",
+ "tasks": {
+  "action_sequence": {
+   "layers_1_14": {
+    "n": 63,
+    "mean_pct": -16.6,
+    "ci95": [
+     -22.0,
+     -11.2
+    ]
+   },
+   "layers_15_28": {
+    "n": 63,
+    "mean_pct": -3.5,
+    "ci95": [
+     -6.1,
+     -1.0
+    ]
+   }
+  },
+  "moving_direction": {
+   "layers_1_14": {
+    "n": 43,
+    "mean_pct": -28.8,
+    "ci95": [
+     -36.3,
+     -20.8
+    ]
+   },
+   "layers_15_28": {
+    "n": 43,
+    "mean_pct": -9.9,
+    "ci95": [
+     -14.1,
+     -6.1
+    ]
+   }
+  },
+  "object_count": {
+   "layers_1_14": {
+    "n": 46,
+    "mean_pct": -38.5,
+    "ci95": [
+     -47.8,
+     -29.3
+    ]
+   },
+   "layers_15_28": {
+    "n": 46,
+    "mean_pct": -6.6,
+    "ci95": [
+     -11.9,
+     -1.9
+    ]
+   }
+  },
+  "scene_transition": {
+   "layers_1_14": {
+    "n": 78,
+    "mean_pct": -28.5,
+    "ci95": [
+     -33.3,
+     -23.4
+    ]
+   },
+   "layers_15_28": {
+    "n": 78,
+    "mean_pct": -5.8,
+    "ci95": [
+     -7.8,
+     -3.8
+    ]
+   }
+  }
+ }
+}

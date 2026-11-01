@@ -1,0 +1,145 @@
+{
+ "n": 391,
+ "accuracy_pct": {
+  "baseline": 57.29,
+  "pathway": 53.45,
+  "random": 41.6,
+  "qwen_pathway": 50.9,
+  "qwen_random": 47.31
+ },
+ "blocked_fraction_mean": {
+  "scaled": 0.451,
+  "qwen": 0.38
+ },
+ "qwen_pathway_minus_qwen_random": {
+  "mean_pt": 3.58,
+  "ci95_pt": [
+   -0.94,
+   8.1
+  ]
+ },
+ "qwen_pathway_minus_baseline": {
+  "mean_pt": -6.39,
+  "ci95_pt": [
+   -10.74,
+   -2.3
+  ]
+ },
+ "scaled_pathway_minus_scaled_random": {
+  "mean_pt": 11.85,
+  "ci95_pt": [
+   6.99,
+   16.54
+  ]
+ },
+ "scaled_pathway_minus_baseline": {
+  "mean_pt": -3.84,
+  "ci95_pt": [
+   -8.44,
+   0.77
+  ]
+ },
+ "qwen_pathway_minus_scaled_pathway": {
+  "mean_pt": -2.56,
+  "ci95_pt": [
+   -7.42,
+   2.3
+  ]
+ },
+ "mcnemar_qwen_pathway_vs_baseline": {
+  "first_only": 49,
+  "second_only": 24,
+  "p_exact": 0.0046
+ },
+ "mcnemar_qwen_vs_scaled_pathway": {
+  "first_only": 52,
+  "second_only": 42,
+  "p_exact": 0.3533
+ },
+ "per_task_accuracy_pct": {
+  "action_sequence": {
+   "n": 91,
+   "baseline": 62.6,
+   "pathway": 64.8,
+   "random": 52.4,
+   "qwen_pathway": 60.4,
+   "qwen_random": 53.8
+  },
+  "moving_direction": {
+   "n": 100,
+   "baseline": 43.0,
+   "pathway": 27.0,
+   "random": 25.3,
+   "qwen_pathway": 23.0,
+   "qwen_random": 32.3
+  },
+  "object_count": {
+   "n": 100,
+   "baseline": 46.0,
+   "pathway": 39.0,
+   "random": 28.0,
+   "qwen_pathway": 42.0,
+   "qwen_random": 31.3
+  },
+  "scene_transition": {
+   "n": 100,
+   "baseline": 78.0,
+   "pathway": 84.0,
+   "random": 61.7,
+   "qwen_pathway": 79.0,
+   "qwen_random": 72.3
+  }
+ },
+ "qwen_layers_1based": {
+  "cross_frame": [
+   5,
+   6,
+   7,
+   8,
+   9,
+   10,
+   11,
+   12,
+   13,
+   14,
+   15,
+   16,
+   17
+  ],
+  "question_to_last": [
+   15,
+   16,
+   17,
+   18,
+   19,
+   20,
+   21,
+   23,
+   24,
+   25,
+   26,
+   27
+  ],
+  "video_to_question": [
+   15,
+   16,
+   17,
+   18,
+   19
+  ]
+ },
+ "scaled_layers_1based": {
+  "cross_frame": [
+   5,
+   13
+  ],
+  "question_to_last": [
+   14,
+   22
+  ],
+  "video_to_question": [
+   5,
+   18
+  ]
+ }
+}

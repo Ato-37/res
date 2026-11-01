@@ -1,0 +1,40 @@
+{
+ "n_baseline_correct": 78,
+ "metric": "mean relative change of answer probability (%), V2T band layers 6-20",
+ "bootstrap": "video unit, 10k, seed 0",
+ "v2t_allvideo_band": {
+  "mean_pct": -42.58,
+  "ci95": [
+   -50.65,
+   -34.61
+  ]
+ },
+ "v2t_evidence_band": {
+  "mean_pct": -9.24,
+  "ci95": [
+   -14.82,
+   -4.05
+  ]
+ },
+ "v2t_sham_band": {
+  "mean_pct": 2.5,
+  "ci95": [
+   -0.2,
+   5.62
+  ]
+ },
+ "v2l_evidence_band": {
+  "mean_pct": -0.01,
+  "ci95": [
+   -0.28,
+   0.25
+  ]
+ },
+ "evidence_minus_sham_pct": {
+  "mean_pct": -11.74,
+  "ci95": [
+   -17.59,
+   -6.35
+  ]
+ }
+}

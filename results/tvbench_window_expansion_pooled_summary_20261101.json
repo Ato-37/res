@@ -1,0 +1,31 @@
+{
+ "baseline_correct_videos": 204,
+ "amount_blocked_per_full_video": {
+  "n": 198,
+  "mean": -29.75,
+  "ci95_boot": [
+   -51.18,
+   -9.04
+  ],
+  "t_p": 0.006
+ },
+ "evidence_coverage_0to1": {
+  "n": 198,
+  "mean": -20.92,
+  "ci95_boot": [
+   -46.2,
+   3.61
+  ],
+  "t_p": 0.1052
+ },
+ "includes_group0": {
+  "n": 198,
+  "mean": -10.49,
+  "ci95_boot": [
+   -15.62,
+   -5.38
+  ],
+  "t_p": 0.0001
+ },
+ "note": "post-hoc pooling of two disjoint batches; descriptive"
+}
