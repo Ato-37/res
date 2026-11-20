@@ -57,10 +57,11 @@ done_vids = set()
 if a.done_from:
     # a video counts as done only if every requested k has all num_layers x conds rows (partial trailing writes are not done)
     _c = defaultdict(lambda: defaultdict(set))
-    for _l in open(a.done_from):
-        _r = json.loads(_l)
-        if "meta" in _r: continue
-        _c[(_r["task"], _r["video"])][_r["k"]].add((_r["layer"], _r["cond"]))
+    for _f in a.done_from.split(","):  # comma-separated list of earlier output files
+        for _l in open(_f):
+            _r = json.loads(_l)
+            if "meta" in _r: continue
+            _c[(_r["task"], _r["video"])][_r["k"]].add((_r["layer"], _r["cond"]))
     _need = num_layers * (2 if a.null else 1)
     done_vids = {key for key, v in _c.items() if all(len(v.get(k, ())) >= _need for k in ks)}
 t0 = time.time(); nvid = 0
