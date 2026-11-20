@@ -26,15 +26,16 @@
 - 使い方: `ssh gw.dbms.tunnels` (gw) → `ssh <server>`。**入る前に Zabbix で使用状況を確認し、他の人が使っていたら極力使わない。** 入ったら `top` と `nvidia-smi` を確認。実行中は
   `nvidia-smi --query-gpu=timestamp,temperature.gpu,utilization.gpu,power.draw,memory.used,memory.total --format=csv -l 1`
 - アカウント作成は先輩に相談が必要 (ユーザーが対応)。
-- **atlantis の確認結果 (2026-11-20, ユーザー確認)**: RTX 3090 は空き(75MiB/24GB, 使用率0%)。ドライバ 590.48.01 (CUDA 13.1 まで対応)。表の「CUDA 11.6」は古い情報で、**cu118 でも cu128 でも動く**。→ ローカルと同じ `torch==2.11.0+cu128` を入れられる(CUDAの版は揃えられる。残る差はGPU世代: Blackwell vs Ampere のみ)。CPU/RAM は余裕 (空き約116GB)。OS Ubuntu 24.04, pyenv Python 3.12.3 (conda なし; ローカルは 3.12.14 なので3.10は不要)。他の利用者 takumi が CPU を少し使うのみ。他のサーバーの CUDA 表記も古い可能性があるが、未確認。
-- **ディスク**: ホームは共有NAS (/nas.dbms, 11TB中98%使用, 残り約273GB)。大きなファイルは控えめに置く。目安: モデル約15GB + 動画約3.2GB + venv約8〜10GB = 30GB前後。NTU の元zip(1.6GB)は置かず、取り出した320本だけ置く。`HF_HOME` などのキャッシュ先を指定して、ホームに無駄に溜めない。NAS は読み込みが遅い可能性があるので、ローカルディスク (`/tmp` 等) が使えるか `df -h` で確認し、使えるなら速度を比較する。
+- **atlantis の確認結果 (2026-11-20)**: RTX 3090 は空き(75MiB/24GB, 使用率0%)。ドライバ 590.48.01 (CUDA 13.1 まで対応)。表の「CUDA 11.6」は古い情報で、cu118 も cu128 も動く。CPU/RAM は余裕 (空き約116GB)。OS Ubuntu 24.04, conda なし。
+- **環境の決定 (2026-11-20, ユーザー決定)**: atlantis は**公式準拠** (Python 3.10.21 / torch 2.2.1+cu118, 公式 requirements.txt の版) に統一する。ローカル版 (torch 2.11+cu128) には揃えない。したがってローカル結果との同等性チェック (§2) で差が出ても、GPU世代とライブラリ版の差を切り分けられない (記述的比較にとどめる)。詳細は `experiments/2026-11-20_atlantis_environment.md`。
+- **ディスク**: ホームは共有NAS (/nas.dbms, 11TB中98%使用, 残り約273GB)。/nas2.dbms は個人フォルダが管理者作成制で未作成のため、作業場所は `/nas.dbms/okamoto/mtf` (ユーザー決定)。大きなファイルは控えめに置く。目安: モデル約15GB + 動画約3.2GB + venv約8〜10GB = 30GB前後。NTU の元zip(1.6GB)は置かず、取り出した320本だけ置く。`HF_HOME` などのキャッシュ先を指定して、ホームに無駄に溜めない。NAS は読み込みが遅い可能性があるので、ローカルディスク (`/tmp` 等) が使えるか `df -h` で確認し、使えるなら速度を比較する。
 - 共有サーバーにデータを置く場所とライセンス: 動画 (TVBench, NTU RGB+D) は再配布不可。置き場所を先輩に確認。生動画や重みをgitに入れない。
 
 ## 4. 用意するもの (gitに入っていない)
 1. 公式コード: `git clone https://github.com/byminji/map-the-flow && git checkout 566f3ed`。`tasks/eval/config_dataset.py` の `DATASET_PATH['tvbench']` を、TVBench のルート(下記の構成)に書き換える。環境変数 `MTF_CODE_DIR` でこのcheckoutを指す。
 2. モデル: 公式の LLaVA-NeXT-7B-Video-FT (公式 README のHugging Face 配布先から取得。約15GB)。環境変数 `MTF_MODEL_PATH` で指す。
-3. TVBench: `<root>/json/*.json` と `<root>/video/{action_antonym,action_sequence,moving_direction,object_count,scene_transition}/`。Action Antonym は NTU RGB+D の元zipから `scripts/extract_ntu_action_antonym.py` で必要な動画(320本)だけを取り出す。
-4. Python環境(ローカルの版; atlantis では同じ torch が使える): python 3.12.14, torch 2.11.0+cu128, transformers 4.40.0, tokenizers 0.19.1, peft 0.10.0, accelerate 1.15.0, decord 0.6.0, av 19.0.2, timm 0.9.16, numpy 2.5.2。サーバーでも、できるだけ同じ版を入れ(pip install torch==2.11.0 --index-url https://download.pytorch.org/whl/cu128 など。公式の手順で確認)、実際に使った版を meta と実験ログに記録する。
+3. TVBench: `<root>/json/*.json` と `<root>/video/{action_antonym,action_sequence,moving_direction,object_count,scene_transition}/`。Action Antonym は NTU RGB+D の元zipから `scripts/extract_ntu_action_antonym.py` で必要な動画(320本)だけを取り出す。**Hugging Face の TVBench には Action Antonym の動画zipがない (json のみ)** ため、atlantis では自動取得できない。NTU は利用登録制なので、取り出し済みの320本を手元から転送する (クラウド経由にしない)。
+4. Python環境: atlantis は公式準拠 (Python 3.10.21, torch 2.2.1+cu118, transformers 4.40.0, tokenizers 0.19.1, peft 0.10.0, accelerate 0.26.1, timm 0.6.12, numpy 1.26.4, av 16.1.0, decord 0.6.0)。参考: ローカル(5070 Ti)は python 3.12.14, torch 2.11.0+cu128, accelerate 1.15.0, av 19.0.2, timm 0.9.16, numpy 2.5.2 (他は同じ)。実際に使った版を meta と実験ログに記録する。
 
 ## 5. 実装済みスクリプト (`scripts/mtf_v2/`)
 - `make_split.py`: dev/test を動画単位で作る(ハッシュ規則; 既存出力は上書きしない)。出力済みの `tvbench_split_v1.json` (sha256 d8a689bf2f7702387e6aba08493b2b5469b2c13322e8aa85a58bb2955d521c6d) をそのまま使う。dev/test 動画数: Action Antonym 186/134, Action Sequence 172/164, Moving Direction 124/108, Object Count 60/87, Scene Transition 99/86。
