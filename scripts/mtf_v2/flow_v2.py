@@ -36,7 +36,7 @@ vocab = processor.tokenizer.get_vocab(); conv_mode = "eval_mvbench"
 idx_by = defaultdict(list)
 for i, e in enumerate(dataset.data_list): idx_by[e["task_type"]].append(i)
 meta = {"script": "flow_v2.py", "split": a.split, "split_sha256": hashlib.sha256(open(a.split, "rb").read()).hexdigest(), "part": a.part, "ks": ks, "null": a.null,
-        "n_per_task": a.n_per_task, "skip_n": a.skip_n, "done_from": a.done_from, "seed": a.seed, "torch": torch.__version__, "gpu": torch.cuda.get_device_name(0), "dtype": str(model.dtype), "attn": "eager", "readout": "fp32_lm_head" if a.fp32_readout else "bf16", "mask_num_heads": mask_heads,
+        "n_per_task": a.n_per_task, "skip_n": a.skip_n, "done_from": a.done_from, "seed": a.seed, "host": __import__("socket").gethostname(), "transformers": __import__("transformers").__version__, "torch": torch.__version__, "gpu": torch.cuda.get_device_name(0), "dtype": str(model.dtype), "attn": "eager", "readout": "fp32_lm_head" if a.fp32_readout else "bf16", "mask_num_heads": mask_heads,
         "note": "mask_num_heads=1 broadcast (same as official fast copy); layers 0-based"}
 fo = open(a.out, "w"); fo.write(json.dumps({"meta": meta}) + "\n"); fo.flush()
 
@@ -55,12 +55,14 @@ def margin(p, letters, gt):
 
 done_vids = set()
 if a.done_from:
-    _c = defaultdict(set)
+    # a video counts as done only if every requested k has all num_layers x conds rows (partial trailing writes are not done)
+    _c = defaultdict(lambda: defaultdict(set))
     for _l in open(a.done_from):
         _r = json.loads(_l)
         if "meta" in _r: continue
-        _c[(_r["task"], _r["video"])].add(_r["k"])
-    done_vids = {key for key, v in _c.items() if set(ks) <= v}
+        _c[(_r["task"], _r["video"])][_r["k"]].add((_r["layer"], _r["cond"]))
+    _need = num_layers * (2 if a.null else 1)
+    done_vids = {key for key, v in _c.items() if all(len(v.get(k, ())) >= _need for k in ks)}
 t0 = time.time(); nvid = 0
 for task in a.tasks.split(","):
     want = split["tasks"][task][a.part][a.skip_n:a.skip_n + a.n_per_task]; seen = set()
