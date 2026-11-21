@@ -14,10 +14,24 @@ from tasks.eval.model_utils import load_model_and_dataset
 from analysis.causal_intervention_tools import (precompute_attention_masks, precompute_random_block_attention_masks,
     _set_block_attn_hooks, _remove_wrapper, find_inter_frame_block_ranges)
 
+def rowmatched_null_mask(ntoks, num_heads, ph, nvis, nfr, dtype, device, gen=None):
+    """Null with the real block's per-row budget: each vision query row in frame f blocks the same number (144*f) of keys as the real
+    cross-frame block, but chosen at random among that row's strictly-earlier vision keys (self cell never blocked)."""
+    per = nvis // nfr
+    cnt = (torch.arange(nvis, device=device) // per) * per                      # keys blocked per row = real count
+    sc = torch.rand(nvis, nvis, device=device, generator=gen)
+    allowed = torch.tril(torch.ones(nvis, nvis, device=device, dtype=torch.bool), diagonal=-1)
+    sc = sc.masked_fill(~allowed, 2.0)                                          # disallowed cells rank last
+    rank = sc.argsort(1).argsort(1)
+    blk = (rank < cnt[:, None]) & allowed
+    m = torch.tril(torch.ones((ntoks, ntoks), dtype=torch.uint8, device=device))
+    m[ph:ph + nvis, ph:ph + nvis][blk] = 0
+    return ((1.0 - m.unsqueeze(0).unsqueeze(0).expand(-1, num_heads, -1, -1).to(dtype)) * torch.finfo(dtype).min), int(blk.sum())
+
 ap = argparse.ArgumentParser()
 ap.add_argument("--out", required=True); ap.add_argument("--split", required=True); ap.add_argument("--part", choices=["dev", "test"], default="dev")
 ap.add_argument("--tasks", default="Action Antonym,Action Sequence,Object Count,Scene Transition,Moving Direction")
-ap.add_argument("--n_per_task", type=int, default=5); ap.add_argument("--ks", default="1,5,9,13"); ap.add_argument("--null", action="store_true")
+ap.add_argument("--n_per_task", type=int, default=5); ap.add_argument("--ks", default="1,5,9,13"); ap.add_argument("--null", action="store_true"); ap.add_argument("--null_kind", choices=["random", "rowmatched"], default="random")
 ap.add_argument("--model_path", default=os.path.expanduser(os.environ.get("MTF_MODEL_PATH", "~/external/models/LLaVA-NeXT-7B-Video-FT"))); ap.add_argument("--seed", type=int, default=0); ap.add_argument("--fp32_readout", action="store_true"); ap.add_argument("--skip_n", type=int, default=0); ap.add_argument("--done_from", default=None)
 a = ap.parse_args()
 if os.path.exists(a.out): raise SystemExit(f"exists {a.out}")
@@ -35,7 +49,7 @@ num_layers = model.config.text_config.num_hidden_layers; image_token_index = mod
 vocab = processor.tokenizer.get_vocab(); conv_mode = "eval_mvbench"
 idx_by = defaultdict(list)
 for i, e in enumerate(dataset.data_list): idx_by[e["task_type"]].append(i)
-meta = {"script": "flow_v2.py", "split": a.split, "split_sha256": hashlib.sha256(open(a.split, "rb").read()).hexdigest(), "part": a.part, "ks": ks, "null": a.null,
+meta = {"script": "flow_v2.py", "split": a.split, "split_sha256": hashlib.sha256(open(a.split, "rb").read()).hexdigest(), "part": a.part, "ks": ks, "null": a.null, "null_kind": a.null_kind,
         "n_per_task": a.n_per_task, "skip_n": a.skip_n, "done_from": a.done_from, "seed": a.seed, "host": __import__("socket").gethostname(), "transformers": __import__("transformers").__version__, "torch": torch.__version__, "gpu": torch.cuda.get_device_name(0), "dtype": str(model.dtype), "attn": "eager", "readout": "fp32_lm_head" if a.fp32_readout else "bf16", "mask_num_heads": mask_heads,
         "note": "mask_num_heads=1 broadcast (same as official fast copy); layers 0-based"}
 fo = open(a.out, "w"); fo.write(json.dumps({"meta": meta}) + "\n"); fo.flush()
@@ -88,6 +102,9 @@ for task in a.tasks.split(","):
                 ll = list(range(max(0, layer - k // 2), min(num_layers, layer - (-k // 2))))
                 for cond in (["real", "null"] if a.null else ["real"]):
                     if cond == "real": m = am
+                    elif a.null_kind == "rowmatched":
+                        torch.manual_seed(a.seed * 1000003 + layer * 31 + k)
+                        m, _nb = rowmatched_null_mask(ntoks, mask_heads, ph, nvis, 8, model.dtype, model.device); assert _nb == n_block
                     else:
                         torch.manual_seed(a.seed * 1000003 + layer * 31 + k)
                         m = precompute_random_block_attention_masks(ntoks, mask_heads, vv, n_block, model.dtype, model.device)
