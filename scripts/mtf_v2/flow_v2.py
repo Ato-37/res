@@ -41,7 +41,7 @@ def rowmatched_null_mask(ntoks, num_heads, ph, nvis, nfr, dtype, device, gen=Non
 ap = argparse.ArgumentParser()
 ap.add_argument("--out", required=True); ap.add_argument("--split", required=True); ap.add_argument("--part", choices=["dev", "test"], default="dev")
 ap.add_argument("--tasks", default="Action Antonym,Action Sequence,Object Count,Scene Transition,Moving Direction")
-ap.add_argument("--n_per_task", type=int, default=5); ap.add_argument("--ks", default="1,5,9,13"); ap.add_argument("--null", action="store_true"); ap.add_argument("--null_kind", choices=["random", "rowmatched"], default="random"); ap.add_argument("--dose", default="", help="comma list of fractions q: block a random fraction q of the CROSS-FRAME cells only (within-frame cells never touched); conds named dose<q>"); ap.add_argument("--layer_lo", type=int, default=0); ap.add_argument("--layer_hi", type=int, default=31)
+ap.add_argument("--n_per_task", type=int, default=5); ap.add_argument("--ks", default="1,5,9,13"); ap.add_argument("--null", action="store_true"); ap.add_argument("--null_kind", choices=["random", "rowmatched"], default="random"); ap.add_argument("--dose", default="", help="comma list of fractions q: block a random fraction q of the CROSS-FRAME cells only (within-frame cells never touched); conds named dose<q>"); ap.add_argument("--posctl", action="store_true", help="positive control: also block post-video text rows (question/answer prompt) from all video keys, cond name posctl"); ap.add_argument("--layer_lo", type=int, default=0); ap.add_argument("--layer_hi", type=int, default=31)
 ap.add_argument("--model_path", default=os.path.expanduser(os.environ.get("MTF_MODEL_PATH", "~/external/models/LLaVA-NeXT-7B-Video-FT"))); ap.add_argument("--seed", type=int, default=0); ap.add_argument("--fp32_readout", action="store_true"); ap.add_argument("--skip_n", type=int, default=0); ap.add_argument("--done_from", default=None)
 a = ap.parse_args()
 if os.path.exists(a.out): raise SystemExit(f"exists {a.out}")
@@ -59,7 +59,7 @@ num_layers = model.config.text_config.num_hidden_layers; image_token_index = mod
 vocab = processor.tokenizer.get_vocab(); conv_mode = "eval_mvbench"
 idx_by = defaultdict(list)
 for i, e in enumerate(dataset.data_list): idx_by[e["task_type"]].append(i)
-meta = {"script": "flow_v2.py", "split": a.split, "split_sha256": hashlib.sha256(open(a.split, "rb").read()).hexdigest(), "part": a.part, "ks": ks, "null": a.null, "null_kind": a.null_kind, "dose": a.dose, "layer_lo": a.layer_lo, "layer_hi": a.layer_hi,
+meta = {"script": "flow_v2.py", "split": a.split, "split_sha256": hashlib.sha256(open(a.split, "rb").read()).hexdigest(), "part": a.part, "ks": ks, "null": a.null, "null_kind": a.null_kind, "dose": a.dose, "posctl": a.posctl, "layer_lo": a.layer_lo, "layer_hi": a.layer_hi,
         "n_per_task": a.n_per_task, "skip_n": a.skip_n, "done_from": a.done_from, "seed": a.seed, "host": __import__("socket").gethostname(), "transformers": __import__("transformers").__version__, "torch": torch.__version__, "gpu": torch.cuda.get_device_name(0), "dtype": str(model.dtype), "attn": "eager", "readout": "fp32_lm_head" if a.fp32_readout else "bf16", "mask_num_heads": mask_heads,
         "note": "mask_num_heads=1 broadcast (same as official fast copy); layers 0-based"}
 fo = open(a.out, "w"); fo.write(json.dumps({"meta": meta}) + "\n"); fo.flush()
@@ -86,7 +86,7 @@ if a.done_from:
             _r = json.loads(_l)
             if "meta" in _r: continue
             _c[(_r["task"], _r["video"])][_r["k"]].add((_r["layer"], _r["cond"]))
-    _need = (a.layer_hi - a.layer_lo + 1) * ((2 if a.null else 1) + len([x for x in a.dose.split(',') if x]))
+    _need = (a.layer_hi - a.layer_lo + 1) * ((2 if a.null else 1) + int(a.posctl) + len([x for x in a.dose.split(',') if x]))
     done_vids = {key for key, v in _c.items() if all(len(v.get(k, ())) >= _need for k in ks)}
 t0 = time.time(); nvid = 0
 for task in a.tasks.split(","):
@@ -104,6 +104,7 @@ for task in a.tasks.split(","):
         qlists, klists = find_inter_frame_block_ranges(vision_range, num_frames=8, num_vis_one_frame=144, vis_start_id=ph)
         am = precompute_attention_masks(ntoks, mask_heads, qlists, klists, model.dtype, model.device)  # (query_ranges, key_ranges) as in the official call
         base = torch.tril(torch.ones((ntoks, ntoks), device=model.device)); n_block = int(((am[0, 0] < -1e4).float() * base).sum().item())
+        am_pc = precompute_attention_masks(ntoks, mask_heads, [list(range(ph + nvis, ntoks))], [vision_range], model.dtype, model.device) if a.posctl else None
         vr = torch.tensor(vision_range, device=model.device); vv = torch.tril(torch.ones(nvis, nvis, device=model.device)).nonzero() + ph
         pb = full_probs(inputs); mb, lpb = margin(pb, letters, gt); pred = letters[int(torch.tensor(lpb).argmax())]
         rec_base = {"task": task, "video": vid, "letters": letters, "gt": gt, "pred": pred, "base_margin": mb, "base_logp": lpb, "n_block_cells": n_block}
@@ -111,8 +112,9 @@ for task in a.tasks.split(","):
             for layer in range(a.layer_lo, a.layer_hi + 1):
                 ll = list(range(max(0, layer - k // 2), min(num_layers, layer - (-k // 2))))
                 doses = [x for x in a.dose.split(",") if x]
-                for cond in (["real", "null"] if a.null else ["real"]) + [f"dose{x}" for x in doses]:
+                for cond in (["real", "null"] if a.null else ["real"]) + [f"dose{x}" for x in doses] + (["posctl"] if a.posctl else []):
                     if cond == "real": m = am
+                    elif cond == "posctl": m = am_pc
                     elif cond.startswith("dose"):
                         m, _nd = dose_mask(am, float(cond[4:]), model.device, model.dtype, a.seed * 1000003 + layer * 31 + k + int(float(cond[4:]) * 1000))
                     elif a.null_kind == "rowmatched":
