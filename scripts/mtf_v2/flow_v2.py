@@ -14,6 +14,20 @@ from tasks.eval.model_utils import load_model_and_dataset
 from analysis.causal_intervention_tools import (precompute_attention_masks, precompute_random_block_attention_masks,
     _set_block_attn_hooks, _remove_wrapper, find_inter_frame_block_ranges)
 
+def struct_mask(am, name, ph, per, device, dtype, seed, match=False):
+    """Block a structured subset of the cross-frame cells (name in adj|far|first|notfirst: key frame offset 1 / >=2 / key frame 0 / key frame >=1).
+    match=True blocks the same NUMBER of cells, chosen uniformly at random among all cross-frame cells (size-matched control, within-frame cells never touched)."""
+    n = am.shape[-1]; blocked = am[0, 0] < -1e4
+    cross = (blocked & torch.tril(torch.ones(n, n, device=device, dtype=torch.bool))).nonzero()
+    qf = (cross[:, 0] - ph) // per; kf = (cross[:, 1] - ph) // per
+    sel = {"adj": (qf - kf) == 1, "far": (qf - kf) >= 2, "first": kf == 0, "notfirst": kf >= 1}[name]
+    if match:
+        g = torch.Generator(device=device); g.manual_seed(seed); k = int(sel.sum())
+        pick = torch.randperm(cross.shape[0], device=device, generator=g)[:k]; sel = torch.zeros_like(sel); sel[pick] = True
+    cs = cross[sel]; m = torch.tril(torch.ones((n, n), dtype=torch.uint8, device=device)); m[cs[:, 0], cs[:, 1]] = 0
+    return ((1.0 - m.unsqueeze(0).unsqueeze(0).expand(-1, am.shape[1], -1, -1).to(dtype)) * torch.finfo(dtype).min), int(sel.sum())
+
+
 def dose_mask(am, q, device, dtype, seed, complement=False):
     """Block a random fraction q of the cross-frame cells of the real block mask `am` (cells blocked in am and on/below the diagonal)."""
     g = torch.Generator(device=device); g.manual_seed(seed)
@@ -43,7 +57,7 @@ def rowmatched_null_mask(ntoks, num_heads, ph, nvis, nfr, dtype, device, gen=Non
 ap = argparse.ArgumentParser()
 ap.add_argument("--out", required=True); ap.add_argument("--split", required=True); ap.add_argument("--part", choices=["dev", "test"], default="dev")
 ap.add_argument("--tasks", default="Action Antonym,Action Sequence,Object Count,Scene Transition,Moving Direction")
-ap.add_argument("--n_per_task", type=int, default=5); ap.add_argument("--ks", default="1,5,9,13"); ap.add_argument("--null", action="store_true"); ap.add_argument("--null_kind", choices=["random", "rowmatched"], default="random"); ap.add_argument("--dose", default="", help="comma list of fractions q: block a random fraction q of the CROSS-FRAME cells only (within-frame cells never touched); conds named dose<q>"); ap.add_argument("--dose_complement", action="store_true", help="for each dose q also run cond dose<q>c = the complementary cell set (same seed), additivity positive control"); ap.add_argument("--posctl", action="store_true", help="positive control: also block post-video text rows (question/answer prompt) from all video keys, cond name posctl"); ap.add_argument("--layer_lo", type=int, default=0); ap.add_argument("--layer_hi", type=int, default=31)
+ap.add_argument("--n_per_task", type=int, default=5); ap.add_argument("--ks", default="1,5,9,13"); ap.add_argument("--null", action="store_true"); ap.add_argument("--null_kind", choices=["random", "rowmatched"], default="random"); ap.add_argument("--dose", default="", help="comma list of fractions q: block a random fraction q of the CROSS-FRAME cells only (within-frame cells never touched); conds named dose<q>"); ap.add_argument("--dose_complement", action="store_true", help="for each dose q also run cond dose<q>c = the complementary cell set (same seed), additivity positive control"); ap.add_argument("--struct", default="", help="comma list of structured cross-frame blocks (adj,far,first,notfirst); each also gets a size-matched random cross-frame control cond <name>_m"); ap.add_argument("--posctl", action="store_true", help="positive control: also block post-video text rows (question/answer prompt) from all video keys, cond name posctl"); ap.add_argument("--layer_lo", type=int, default=0); ap.add_argument("--layer_hi", type=int, default=31)
 ap.add_argument("--model_path", default=os.path.expanduser(os.environ.get("MTF_MODEL_PATH", "~/external/models/LLaVA-NeXT-7B-Video-FT"))); ap.add_argument("--seed", type=int, default=0); ap.add_argument("--fp32_readout", action="store_true"); ap.add_argument("--skip_n", type=int, default=0); ap.add_argument("--done_from", default=None)
 a = ap.parse_args()
 if os.path.exists(a.out): raise SystemExit(f"exists {a.out}")
@@ -61,7 +75,7 @@ num_layers = model.config.text_config.num_hidden_layers; image_token_index = mod
 vocab = processor.tokenizer.get_vocab(); conv_mode = "eval_mvbench"
 idx_by = defaultdict(list)
 for i, e in enumerate(dataset.data_list): idx_by[e["task_type"]].append(i)
-meta = {"script": "flow_v2.py", "split": a.split, "split_sha256": hashlib.sha256(open(a.split, "rb").read()).hexdigest(), "part": a.part, "ks": ks, "null": a.null, "null_kind": a.null_kind, "dose": a.dose, "posctl": a.posctl, "layer_lo": a.layer_lo, "layer_hi": a.layer_hi,
+meta = {"script": "flow_v2.py", "split": a.split, "split_sha256": hashlib.sha256(open(a.split, "rb").read()).hexdigest(), "part": a.part, "ks": ks, "null": a.null, "null_kind": a.null_kind, "dose": a.dose, "posctl": a.posctl, "struct": a.struct, "layer_lo": a.layer_lo, "layer_hi": a.layer_hi,
         "n_per_task": a.n_per_task, "skip_n": a.skip_n, "done_from": a.done_from, "seed": a.seed, "host": __import__("socket").gethostname(), "transformers": __import__("transformers").__version__, "torch": torch.__version__, "gpu": torch.cuda.get_device_name(0), "dtype": str(model.dtype), "attn": "eager", "readout": "fp32_lm_head" if a.fp32_readout else "bf16", "mask_num_heads": mask_heads,
         "note": "mask_num_heads=1 broadcast (same as official fast copy); layers 0-based"}
 fo = open(a.out, "w"); fo.write(json.dumps({"meta": meta}) + "\n"); fo.flush()
@@ -88,7 +102,7 @@ if a.done_from:
             _r = json.loads(_l)
             if "meta" in _r: continue
             _c[(_r["task"], _r["video"])][_r["k"]].add((_r["layer"], _r["cond"]))
-    _need = (a.layer_hi - a.layer_lo + 1) * ((2 if a.null else 1) + int(a.posctl) + len([x for x in a.dose.split(',') if x]) * (2 if a.dose_complement else 1))
+    _need = (a.layer_hi - a.layer_lo + 1) * ((2 if a.null else 1) + int(a.posctl) + 2 * len([x for x in a.struct.split(',') if x]) + len([x for x in a.dose.split(',') if x]) * (2 if a.dose_complement else 1))
     done_vids = {key for key, v in _c.items() if all(len(v.get(k, ())) >= _need for k in ks)}
 t0 = time.time(); nvid = 0
 for task in a.tasks.split(","):
@@ -114,9 +128,12 @@ for task in a.tasks.split(","):
             for layer in range(a.layer_lo, a.layer_hi + 1):
                 ll = list(range(max(0, layer - k // 2), min(num_layers, layer - (-k // 2))))
                 doses = [x for x in a.dose.split(",") if x]
-                for cond in (["real", "null"] if a.null else ["real"]) + [f"dose{x}" for x in doses] + ([f"dose{x}c" for x in doses] if a.dose_complement else []) + (["posctl"] if a.posctl else []):
+                for cond in (["real", "null"] if a.null else ["real"]) + [f"dose{x}" for x in doses] + ([f"dose{x}c" for x in doses] if a.dose_complement else []) + (["posctl"] if a.posctl else []) + [y for x in a.struct.split(",") if x for y in (x, x + "_m")]:
                     if cond == "real": m = am
                     elif cond == "posctl": m = am_pc
+                    elif cond.rstrip("_m") in ("adj", "far", "first", "notfirst") or cond.endswith("_m"):
+                        _nm = cond[:-2] if cond.endswith("_m") else cond
+                        m, _ns = struct_mask(am, _nm, ph, 144, model.device, model.dtype, a.seed * 1000003 + layer * 31 + k, match=cond.endswith("_m"))
                     elif cond.startswith("dose"):
                         _c = cond.endswith("c"); _q = float(cond[4:-1] if _c else cond[4:])
                         m, _nd = dose_mask(am, _q, model.device, model.dtype, a.seed * 1000003 + layer * 31 + k + int(_q * 1000), complement=_c)
