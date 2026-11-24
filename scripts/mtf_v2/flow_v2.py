@@ -14,12 +14,14 @@ from tasks.eval.model_utils import load_model_and_dataset
 from analysis.causal_intervention_tools import (precompute_attention_masks, precompute_random_block_attention_masks,
     _set_block_attn_hooks, _remove_wrapper, find_inter_frame_block_ranges)
 
-def dose_mask(am, q, device, dtype, seed):
+def dose_mask(am, q, device, dtype, seed, complement=False):
     """Block a random fraction q of the cross-frame cells of the real block mask `am` (cells blocked in am and on/below the diagonal)."""
     g = torch.Generator(device=device); g.manual_seed(seed)
     blocked = am[0, 0] < -1e4; n = blocked.shape[0]
     cross = (blocked & torch.tril(torch.ones(n, n, device=device, dtype=torch.bool))).nonzero()
-    keep = torch.rand(cross.shape[0], device=device, generator=g) < q; cs = cross[keep]
+    keep = torch.rand(cross.shape[0], device=device, generator=g) < q
+    if complement: keep = ~keep
+    cs = cross[keep]
     m = torch.tril(torch.ones((n, n), dtype=torch.uint8, device=device)); m[cs[:, 0], cs[:, 1]] = 0
     return ((1.0 - m.unsqueeze(0).unsqueeze(0).expand(-1, am.shape[1], -1, -1).to(dtype)) * torch.finfo(dtype).min), int(keep.sum())
 
@@ -41,7 +43,7 @@ def rowmatched_null_mask(ntoks, num_heads, ph, nvis, nfr, dtype, device, gen=Non
 ap = argparse.ArgumentParser()
 ap.add_argument("--out", required=True); ap.add_argument("--split", required=True); ap.add_argument("--part", choices=["dev", "test"], default="dev")
 ap.add_argument("--tasks", default="Action Antonym,Action Sequence,Object Count,Scene Transition,Moving Direction")
-ap.add_argument("--n_per_task", type=int, default=5); ap.add_argument("--ks", default="1,5,9,13"); ap.add_argument("--null", action="store_true"); ap.add_argument("--null_kind", choices=["random", "rowmatched"], default="random"); ap.add_argument("--dose", default="", help="comma list of fractions q: block a random fraction q of the CROSS-FRAME cells only (within-frame cells never touched); conds named dose<q>"); ap.add_argument("--posctl", action="store_true", help="positive control: also block post-video text rows (question/answer prompt) from all video keys, cond name posctl"); ap.add_argument("--layer_lo", type=int, default=0); ap.add_argument("--layer_hi", type=int, default=31)
+ap.add_argument("--n_per_task", type=int, default=5); ap.add_argument("--ks", default="1,5,9,13"); ap.add_argument("--null", action="store_true"); ap.add_argument("--null_kind", choices=["random", "rowmatched"], default="random"); ap.add_argument("--dose", default="", help="comma list of fractions q: block a random fraction q of the CROSS-FRAME cells only (within-frame cells never touched); conds named dose<q>"); ap.add_argument("--dose_complement", action="store_true", help="for each dose q also run cond dose<q>c = the complementary cell set (same seed), additivity positive control"); ap.add_argument("--posctl", action="store_true", help="positive control: also block post-video text rows (question/answer prompt) from all video keys, cond name posctl"); ap.add_argument("--layer_lo", type=int, default=0); ap.add_argument("--layer_hi", type=int, default=31)
 ap.add_argument("--model_path", default=os.path.expanduser(os.environ.get("MTF_MODEL_PATH", "~/external/models/LLaVA-NeXT-7B-Video-FT"))); ap.add_argument("--seed", type=int, default=0); ap.add_argument("--fp32_readout", action="store_true"); ap.add_argument("--skip_n", type=int, default=0); ap.add_argument("--done_from", default=None)
 a = ap.parse_args()
 if os.path.exists(a.out): raise SystemExit(f"exists {a.out}")
@@ -86,7 +88,7 @@ if a.done_from:
             _r = json.loads(_l)
             if "meta" in _r: continue
             _c[(_r["task"], _r["video"])][_r["k"]].add((_r["layer"], _r["cond"]))
-    _need = (a.layer_hi - a.layer_lo + 1) * ((2 if a.null else 1) + int(a.posctl) + len([x for x in a.dose.split(',') if x]))
+    _need = (a.layer_hi - a.layer_lo + 1) * ((2 if a.null else 1) + int(a.posctl) + len([x for x in a.dose.split(',') if x]) * (2 if a.dose_complement else 1))
     done_vids = {key for key, v in _c.items() if all(len(v.get(k, ())) >= _need for k in ks)}
 t0 = time.time(); nvid = 0
 for task in a.tasks.split(","):
@@ -112,11 +114,12 @@ for task in a.tasks.split(","):
             for layer in range(a.layer_lo, a.layer_hi + 1):
                 ll = list(range(max(0, layer - k // 2), min(num_layers, layer - (-k // 2))))
                 doses = [x for x in a.dose.split(",") if x]
-                for cond in (["real", "null"] if a.null else ["real"]) + [f"dose{x}" for x in doses] + (["posctl"] if a.posctl else []):
+                for cond in (["real", "null"] if a.null else ["real"]) + [f"dose{x}" for x in doses] + ([f"dose{x}c" for x in doses] if a.dose_complement else []) + (["posctl"] if a.posctl else []):
                     if cond == "real": m = am
                     elif cond == "posctl": m = am_pc
                     elif cond.startswith("dose"):
-                        m, _nd = dose_mask(am, float(cond[4:]), model.device, model.dtype, a.seed * 1000003 + layer * 31 + k + int(float(cond[4:]) * 1000))
+                        _c = cond.endswith("c"); _q = float(cond[4:-1] if _c else cond[4:])
+                        m, _nd = dose_mask(am, _q, model.device, model.dtype, a.seed * 1000003 + layer * 31 + k + int(_q * 1000), complement=_c)
                     elif a.null_kind == "rowmatched":
                         torch.manual_seed(a.seed * 1000003 + layer * 31 + k)
                         m, _nb = rowmatched_null_mask(ntoks, mask_heads, ph, nvis, 8, model.dtype, model.device); assert _nb == n_block
