@@ -12,7 +12,7 @@ from analysis.causal_intervention_tools import (precompute_attention_masks, prec
 ap = argparse.ArgumentParser()
 ap.add_argument("--out", required=True); ap.add_argument("--split", required=True); ap.add_argument("--part", choices=["dev", "test"], default="dev")
 ap.add_argument("--tasks", default="Action Antonym,Action Sequence,Object Count,Scene Transition,Moving Direction")
-ap.add_argument("--n_per_task", type=int, default=5); ap.add_argument("--layers", default="6-15", help="0-based inclusive range; exploratory default until criteria are frozen"); ap.add_argument("--p", type=float, default=0.3); ap.add_argument("--n_subsets", type=int, default=20)
+ap.add_argument("--n_per_task", type=int, default=5); ap.add_argument("--layers", default="6-15", help="0-based inclusive range; exploratory default until criteria are frozen"); ap.add_argument("--p", type=float, default=0.3); ap.add_argument("--n_subsets", type=int, default=20); ap.add_argument("--complement", action="store_true", help="also block the complement of every sampled subset (additivity test: y(S)+y(S^c) vs y(all))")
 ap.add_argument("--model_path", default=os.path.expanduser(os.environ.get("MTF_MODEL_PATH", "~/external/models/LLaVA-NeXT-7B-Video-FT"))); ap.add_argument("--seed", type=int, default=0); ap.add_argument("--fp32_readout", action="store_true"); ap.add_argument("--skip_n", type=int, default=0); ap.add_argument("--done_from", default=None)
 a = ap.parse_args()
 if os.path.exists(a.out): raise SystemExit(f"exists {a.out}")
@@ -31,7 +31,7 @@ vocab = processor.tokenizer.get_vocab(); conv_mode = "eval_mvbench"
 idx_by = defaultdict(list)
 for i, e in enumerate(dataset.data_list): idx_by[e["task_type"]].append(i)
 lo, hi = [int(x) for x in a.layers.split("-")]; layers = list(range(lo, hi + 1)); H = model.config.text_config.num_attention_heads
-meta = {"script": "flow_heads_v2.py", "split": a.split, "split_sha256": hashlib.sha256(open(a.split, "rb").read()).hexdigest(), "part": a.part, "layers": layers, "p": a.p, "n_subsets": a.n_subsets,
+meta = {"script": "flow_heads_v2.py", "split": a.split, "split_sha256": hashlib.sha256(open(a.split, "rb").read()).hexdigest(), "part": a.part, "layers": layers, "p": a.p, "n_subsets": a.n_subsets, "complement": a.complement,
         "n_per_task": a.n_per_task, "skip_n": a.skip_n, "seed": a.seed, "H": H, "host": __import__("socket").gethostname(), "transformers": __import__("transformers").__version__, "torch": torch.__version__,
         "gpu": torch.cuda.get_device_name(0), "readout": "fp32_lm_head" if a.fp32_readout else "bf16", "note": "per-head [1,H,n,n] masks; subset seed = seed*1000003 + video_index*131 + s; layers 0-based"}
 fo = open(a.out, "w"); fo.write(json.dumps({"meta": meta}) + "\n"); fo.flush()
@@ -74,7 +74,10 @@ for task in a.tasks.split(","):
                 for l, hs in sub.items(): restore_layer_mask(bufs[l], causal, hs)
             return margin(p, letters, gt)
         allsub = {l: list(range(H)) for l in layers}
-        jobs = [("all", allsub)] + [(f"s{s}", sample_subset(layers, H, a.p, a.seed * 1000003 + vcount * 131 + s)) for s in range(a.n_subsets)]
+        jobs = [("all", allsub)]
+        for s in range(a.n_subsets):
+            sub = sample_subset(layers, H, a.p, a.seed * 1000003 + vcount * 131 + s); jobs.append((f"s{s}", sub))
+            if a.complement: jobs.append((f"c{s}", {l: [h for h in range(H) if h not in set(sub.get(l, []))] for l in layers}))
         for name, sub in jobs:
             mn, lpn = run(sub)
             fo.write(json.dumps({**rec_base, "cond": name, "subset": {str(l): hs for l, hs in sub.items()}, "n_heads": sum(len(h) for h in sub.values()), "new_margin": mn, "new_logp": lpn, "d_margin": mn - mb}) + "\n")
