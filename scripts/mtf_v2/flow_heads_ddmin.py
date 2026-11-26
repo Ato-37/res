@@ -87,4 +87,4 @@ def effect(elems):
     print(f"[{time.time()-t0:.0f}s] call {ncall[0]} size {len(elems)} loss {loss:+.3f}", flush=True)
     return loss
 res, full, calls = ddmin(root, effect, frac=a.frac, max_calls=a.max_calls)
-fo.write(json.dumps({"result": {"minimal": res, "size": None if res is None else len(res), "full_loss": full, "frac": a.frac, "calls": calls, "complete": calls < a.max_calls}}) + "\n"); fo.close(); print("done", time.time() - t0)
+fo.write(json.dumps({"result": {"minimal": res, "size": None if res is None else len(res), "full_loss": full, "frac": a.frac, "calls": calls, "complete": calls < a.max_calls}  # NOTE: flag can be false although the loop finished; check the call log for 1-minimality}) + "\n"); fo.close(); print("done", time.time() - t0)
