@@ -48,6 +48,7 @@ fo = open(a.out, "w"); fo.write(json.dumps({"meta": meta}) + "\n"); fo.flush()
 
 @torch.no_grad()
 def margin_with(c, masks):
+    torch.cuda.empty_cache()  # keep the allocator under 16 GB (WSL spills to host memory otherwise)
     undo = install(target.layers, masks) if masks else (lambda: None)
     try: out = model(**c["inputs"], use_cache=False)  # no KV cache: avoids spilling past 16 GB
     finally: undo()
