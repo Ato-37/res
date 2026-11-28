@@ -38,6 +38,12 @@ H = model.config.text_config.num_attention_heads; target = model.language_model.
 assert model.config.text_config.pretraining_tp == 1
 meta = {"script": "flow_pathpatch.py", "split_sha256": hashlib.sha256(open(a.split, "rb").read()).hexdigest(), "ranges": {k: [v.start, v.stop - 1] for k, v in RANGES.items()}, "n_per_task": a.n_per_task, "skip_n": a.skip_n, "pairs": a.pairs, "max_heads": a.max_heads,
         "host": __import__("socket").gethostname(), "torch": torch.__version__, "gpu": torch.cuda.get_device_name(0), "readout": "fp32_lm_head" if a.fp32_readout else "bf16", "H": H, "attn": type(target.layers[0].self_attn).__name__}
+done = set()
+for f in [x for x in a.done_from.split(",") if x]:
+    for line in open(f):
+        try: r = json.loads(line)
+        except ValueError: continue
+        if "path" in r: done.add((r["path"], r["task"], r["video"], r["layer"], r["head"]))
 fo = open(a.out, "w"); fo.write(json.dumps({"meta": meta}) + "\n"); fo.flush()
 
 @torch.no_grad()
